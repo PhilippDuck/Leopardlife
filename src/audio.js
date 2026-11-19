@@ -39,7 +39,8 @@ function noise(dur,vol,f1,f2,type,delay){
 }
 /* Aufgenommene Geräusche (ElevenLabs); bis sie geladen sind oder offline fehlen, klingt der Synth-Ersatz */
 const SAMPLES={roar:'audio/roar.mp3',dayA:'audio/amb-day-1.mp3',dayB:'audio/amb-day-2.mp3',windA:'audio/amb-wind-1.mp3',windB:'audio/amb-wind-2.mp3',
-  fly:'audio/fly.mp3',birdA:'audio/bird-1.mp3',birdB:'audio/bird-2.mp3',doveA:'audio/dove-1.mp3',doveB:'audio/dove-2.mp3',gust:'audio/gust.mp3',night:'audio/amb-night.mp3',rain:'audio/rain.mp3',thunder:'audio/thunder.mp3'};
+  fly:'audio/fly.mp3',birdA:'audio/bird-1.mp3',birdB:'audio/bird-2.mp3',doveA:'audio/dove-1.mp3',doveB:'audio/dove-2.mp3',gust:'audio/gust.mp3',owlA:'audio/owl-1.mp3',owlB:'audio/owl-2.mp3',owlC:'audio/owl-3.mp3',owlD:'audio/owl-4.mp3',
+  music1:'audio/music-1.mp3',music2:'audio/music-2.mp3',music3:'audio/music-3.mp3',music4:'audio/music-4.mp3',night:'audio/amb-night.mp3',rain:'audio/rain.mp3',thunder:'audio/thunder.mp3'};
 /** @type {Record<string, AudioBuffer>} */ const bufs={};
 /** Für Schleifen: Stille am Anfang und Ende überspringen (MP3 hat dort Polster), damit es nahtlos weiterläuft */
 const loopPts={};
@@ -67,7 +68,17 @@ const hasSample=k=>!!bufs[k];
 /** @type {Record<string, GainNode>} */ const amb={};
 const BEDS={day:['windA','windB'],night:['night'],bugs:['dayA','dayB']}, bedNext={day:0,night:0,bugs:0}, BED_GAP={day:[0.35,0.6],night:[0.35,0.6],bugs:[1.5,4]};
 // Ereignisse tagsüber: Aufnahmen, Abstand in s, Lautstärke
-const EVENTS=[{ks:['birdA','birdB'],gap:[15,45],vol:[0.15,0.4]},{ks:['doveA','doveB'],gap:[30,70],vol:[0.15,0.35]},{ks:['fly'],gap:[25,70],vol:[0.2,0.5]},{ks:['gust'],gap:[40,100],vol:[0.2,0.4]}];
+// Tageszeiten (h = Stunde): Vögel vor allem morgens und abends, in der Mittagshitze mehr Insekten, nachts Eulen
+const ramp=(h,a,b,c,d)=>h<a||h>d?0:h<b?(h-a)/(b-a):h<=c?1:(d-h)/(d-c);
+const birdTime=h=>Math.max(ramp(h,4.5,6,8.5,10.5),ramp(h,16,17.5,19.5,20.5),0.12);
+const heat=h=>ramp(h,10,12,15,17);
+// Ereignisse: Aufnahmen, Abstand in s, Lautstärke, wie oft je Tageszeit (0 = nie, 1 = normal; seltener teilt den Abstand)
+const EVENTS=[
+  {ks:['birdA','birdB'],gap:[25,60],vol:[0.05,0.14],f:(h,day)=>day>0.3?birdTime(h):0},
+  {ks:['doveA','doveB'],gap:[30,70],vol:[0.15,0.35],f:(h,day)=>day>0.3?Math.max(birdTime(h),0.3):0},
+  {ks:['fly'],gap:[30,80],vol:[0.2,0.5],f:(h,day)=>day>0.3?0.4+1.6*heat(h):0},
+  {ks:['gust'],gap:[40,100],vol:[0.2,0.4],f:(h,day)=>day>0.3?1:0.5},
+  {ks:['owlA','owlB','owlC','owlD'],gap:[25,70],vol:[0.25,0.5],f:(h,day)=>day<0.35?1:0}];
 const evNext=EVENTS.map(()=>0);
 function bus(k){ if(!amb[k]){ amb[k]=AC.createGain(); amb[k].gain.value=0; amb[k].connect(master); } return amb[k]; }
 function oneShot(k,vol,pan,rate){
@@ -93,17 +104,21 @@ function ambLoop(k){
 }
 /** Lautstärken der Umgebung nachführen und neue Ausschnitte starten: day 0…1 (Tageslicht), rain 0…1 */
 /** storm: Gewitter – dann schweigen Vögel, Fliege, Insekten und Grillen, nur Wind, Regen und Donner bleiben */
-function ambTick(day,rain,storm){
+function ambTick(day,rain,storm,hour,tense){
   if(!AC||AC.state!=='running') return;
-  const t=AC.currentTime, dry=1-0.6*rain, calm=storm?Math.max(0,1-2*rain):1, lv={day:0.22*day*dry,night:0.3*(1-day)*dry*calm,bugs:0.2*day*dry*calm};
+  const t=AC.currentTime, dry=1-0.6*rain, calm=storm?Math.max(0,1-2*rain):1, hot=heat(hour||12), lv={day:0.22*day*dry,night:0.3*(1-day)*dry*calm,bugs:(0.08+0.27*hot)*day*dry*calm};
   if(!bufs.windA&&!bufs.windB){ BEDS.day=['dayA','dayB']; lv.bugs=0; lv.day=0.28*day*dry; } else BEDS.day=['windA','windB'];   // ohne Wind-Aufnahmen wie bisher
   for(const bed in BEDS){
     bus(bed).gain.setTargetAtTime(lv[bed],t,0.8);
     if(lv[bed]>0.01&&t>=bedNext[bed]){ const d=grain(bed), g=BED_GAP[bed]; bedNext[bed]=t+(d?d*rnd(g[0],g[1]):2); }
   }
-  bus('ev').gain.setTargetAtTime(day*dry*calm,t,0.8);
-  if(day>0.3&&calm>0.2) EVENTS.forEach((e,i)=>{ if(t<evNext[i]) return; if(evNext[i]>0){ const ks=e.ks.filter(k=>bufs[k]); if(ks.length) oneShot(ks[Math.floor(Math.random()*ks.length)],rnd(e.vol[0],e.vol[1]),rnd(-0.85,0.85),rnd(0.9,1.1)); }
-    evNext[i]=t+rnd(e.gap[0],e.gap[1]); });
+  bus('ev').gain.setTargetAtTime(dry*calm,t,0.8);
+  // Insekten-Ausschnitte kommen in der Mittagshitze dichter
+  BED_GAP.bugs=hot>0.5?[0.5,1.2]:[1.5,4];
+  if(calm>0.2) EVENTS.forEach((e,i)=>{ if(t<evNext[i]) return; const fq=e.f(hour||12,day);
+    if(evNext[i]>0&&fq>0.05){ const ks=e.ks.filter(k=>bufs[k]); if(ks.length) oneShot(ks[Math.floor(Math.random()*ks.length)],rnd(e.vol[0],e.vol[1]),rnd(-0.85,0.85),rnd(0.9,1.1)); }
+    evNext[i]=t+rnd(e.gap[0],e.gap[1])/Math.max(0.15,fq); });
+  musicFiles(t,storm&&rain>0.4||tense);
   const rg=ambLoop('rain'); if(rg) rg.gain.setTargetAtTime(0.7*rain,t,0.8);
   if(windG&&(bufs.dayA||bufs.windA||bufs.night)) windG.gain.value=0.02;   // Synth-Wind nur noch leise darunter
 }
@@ -173,8 +188,24 @@ function mSchedule(i,t){
   if(s===4||s===14) mTone(270,t,0.11,'sine',0.07,0.003,200);                      // hohe Handtrommel
   mNoise(t,0.05,s%2?0.028:0.014,6500);                                            // Rassel
 }
+/* Aufgenommene Musik: leise im Hintergrund, ein Stück nach dem anderen in zufälliger Reihenfolge,
+   dazwischen 20–60 s Pause; bei Gewitter oder Gefahr tritt sie zurück. Solange keine Aufnahme geladen ist, spielt die Synth-Musik. */
+const MUSIC=['music1','music2','music3','music4'], MUSIC_VOL=0.16;
+let mFileNext=8, mFileGain=null, mLast='';
+const musicFilesReady=()=>MUSIC.some(k=>bufs[k]);
+function musicFiles(t,duck){
+  if(!musicFilesReady()) return;
+  if(!mFileGain){ mFileGain=AC.createGain(); mFileGain.gain.value=0; mFileGain.connect(master); }
+  mFileGain.gain.setTargetAtTime(musicOn&&!duck?1:0,t,duck?0.6:2.5);
+  if(t<mFileNext||!musicOn) return;
+  const ks=MUSIC.filter(k=>bufs[k]&&k!==mLast), k=ks.length?ks[Math.floor(Math.random()*ks.length)]:mLast; if(!bufs[k]) return; mLast=k;
+  const b=bufs[k], s=AC.createBufferSource(); s.buffer=b; const g=AC.createGain(), d=b.duration;
+  g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(MUSIC_VOL,t+3); g.gain.setValueAtTime(MUSIC_VOL,t+d-4); g.gain.linearRampToValueAtTime(0.0001,t+d);
+  s.connect(g); g.connect(mFileGain); s.start(t);
+  mFileNext=t+d+rnd(20,60);
+}
 function musicTick(){
-  if(!AC||!musicOn||AC.state!=='running') return;
+  if(!AC||!musicOn||AC.state!=='running'||musicFilesReady()) return;
   if(!musicGain){ musicGain=AC.createGain(); musicGain.gain.value=0.5; musicGain.connect(master); }
   const now=AC.currentTime; if(mNext<now) mNext=now+0.06;
   while(mNext<now+0.3){ mSchedule(mStep,mNext); mNext+=M_STEP; mStep++; }
