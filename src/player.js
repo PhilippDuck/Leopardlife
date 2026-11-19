@@ -51,6 +51,7 @@ const JAG={col:0xe0a23c,col2:0xf0c98a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.44
  * @property {any} [eatC] Kadaver, von dem gerade gefressen wird
  * @property {number} [eatT] Zeit bis zum nächsten Bissen
  * @property {number} [roarT] Brüll-Animation läuft noch (s)
+ * @property {boolean} [pounceRun] Sprungangriff in Laufrichtung statt zum Fadenkreuz (Einstellung des Spielers)
  * @property {{a:Record<string,number>, b:Record<string,number>}} [skSnap] Entwicklung beim Öffnen des Fensters (zum Zurücksetzen)
  * @property {number} hurtT Dauer des roten Rands
  * @property {number} combatT Zeit seit dem letzten Kampf (keine Heilung)

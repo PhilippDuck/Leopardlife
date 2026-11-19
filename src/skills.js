@@ -14,6 +14,7 @@ import { animals } from './animals.js';
 import { cloneWithClasses, tell } from './coop.js';
 import { canvas } from './engine.js';
 import { padUI } from './gamepad.js';
+import { pounceLabel, togglePounce } from './actions.js';
 
 /* Icons für Eigenschaften, Fähigkeiten und Erbanlagen: 24er-Raster, Strichzeichnung in der jeweiligen Farbe */
 /** Wessen Entwicklung gerade offen ist: Spieler 1 oder ein Mitspieler */
@@ -24,6 +25,7 @@ function renderSkills(p=skP,root=null){
   g('skWho').textContent=p===P?(players.length>1?' · Spieler 1':''):' · Spieler '+(p.num||2);
   { const b=g('btnSkCub'), ok=p!==P&&!!S.cub&&S.cub.n>0; b.style.display=ok?'block':'none'; if(ok&&!p.cubArm) b.textContent='Als Junges weiterspielen (Stufe '+heirLevel()+', Generation '+(S.cub.gen||'?')+')'; }
   g('skPts').textContent=L.pts+' Punkt'+(L.pts===1?'':'e');
+  g('btnSkPounce').textContent=pounceLabel(p);
   { const n=spentSince(p), r=/** @type {HTMLButtonElement} */(g('btnSkReset')); r.disabled=!n; r.textContent=n?'↺ Zurücksetzen (+'+n+' Punkt'+(n===1?'':'e')+')':'↺ Auswahl zurücksetzen'; }
   const row=(it,val,max,cost,grp,cap)=>{ const act=Math.min(val,cap), rest=val-act;
     return '<div class="skill wi">'+ico(it.k,ICOL[grp])+'<div><b>'+it.n+'</b><small>'+it.d+'</small></div><span class="pips">'+'●'.repeat(act)+'<span style="color:#7fb4d8">'+'●'.repeat(rest)+'</span><span style="opacity:.25">'+'●'.repeat(max-val)+'</span></span><button data-g="'+grp+'" data-k="'+it.k+'" '+((L.pts<cost||val>=max||val>=cap)?'disabled':'')+'>+</button></div>'; };
@@ -53,6 +55,7 @@ function skillClick(e,p,root){
   if(root&&t.closest('.s-btnClose')){ toggleSkills(p); return; }
   if(root&&t.closest('.s-btnSkCub')){ cubSwitch(p,root); return; }
   if(root&&t.closest('.s-btnSkReset')){ resetSkills(p,root); return; }
+  if(root&&t.closest('.s-btnSkPounce')){ togglePounce(p); renderSkills(p,root); return; }
   const b=/** @type {HTMLElement} */(t.closest('button[data-k]')); if(!b) return;
   const L=p.L, g=b.dataset.g,k=b.dataset.k,cost=g==='a'?1:2,max=g==='a'?10:3;
   if(L.pts>=cost&&L[g][k]<max&&(g!=='a'||L.a[k]<attrCap(L))){ L[g][k]++; L.pts-=cost; snd.click(); if(k==='vit') p.hp+=15; save(); renderSkills(p,root); }
@@ -98,6 +101,7 @@ function cubSwitch(p,root){
 }
 $('btnClose').onclick=()=>toggleSkills(skP);
 $('btnSkReset').onclick=()=>resetSkills(skP,null);
+$('btnSkPounce').onclick=()=>{ togglePounce(skP); renderSkills(skP,null); };
 // Mitspieler wechselt ins Junge des aktuellen Wurfs (zweimal drücken zum Bestätigen)
 $('btnSkCub').onclick=()=>cubSwitch(skP,null);
 
