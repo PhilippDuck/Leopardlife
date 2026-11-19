@@ -20,14 +20,14 @@ import { archiveLine, makeCarcass, recordAncestor, startFlee } from './carcass.j
 import { goalEvent } from './goals.js';
 import { padUI, rumble } from './gamepad.js';
 import { updateUI, updateWarn } from './hud.js';
-import { downPlayer, othersAlive } from './coop.js';
+import { downPlayer, othersAlive, tell } from './coop.js';
 import { emit } from './events.js';
 
 /* ---------- Aktionen ---------- */
 /** Index des nächsten erreichbaren Baums für Spieler p, sonst -1. */
 function nearestTree(p=P){
   let bi=-1, bd=1e9; for(let i=0;i<trees.length;i++){ const t=trees[i], d=Math.hypot(t.x-p.x,t.z-p.z); if(d<bd){ bd=d; bi=i; } }
-  return bd<3.4+pScale()*0.8?bi:-1;
+  return bd<3.4+pScale(p.L)*0.8?bi:-1;
 }
 function leaveTree(p,rate){ p.dropY=p.upNow; p.dropRate=rate; p.tree=null; p.safe=false; p.upNow=0; }
 /** Klettern bzw. vom Baum herunter für Spieler p. Fähigkeiten und Ausdauer-Anzeige gelten noch gemeinsam. */
@@ -35,9 +35,9 @@ function doClimb(p=P){
   if(p.dead) return;
   if(G.paused||p.pounce>0) return;
   if(p.tree!=null){ leaveTree(p,24); p.x+=Math.sin(p.rot)*1.6; p.z+=Math.cos(p.rot)*1.6; snd.step(0.25); return; }
-  if(S.b.climb<1){ toast('Klettern ist noch nicht gelernt (Tab)','#b9b7a6'); return; }
+  if(p.L.b.climb<1){ tell(p,'Klettern ist noch nicht gelernt (Tab)','#b9b7a6'); return; }
   const i=nearestTree(p); if(i<0){ toast('Kein Baum in Reichweite','#b9b7a6'); return; }
-  const cost=45-5*(S.b.climb-1); if(p.st<cost){ noStamina(); return; } p.st-=cost;
+  const cost=45-5*(p.L.b.climb-1); if(p.st<cost){ noStamina(); return; } p.st-=cost;
   goalEvent('climb',1); p.tree=i; p.climbT=0; p.fromX=p.x; p.fromZ=p.z; p.sneak=false; p.dropY=0; snd.climb();
 }
 G.noStT=0;
@@ -52,38 +52,41 @@ function doPounce(p=P){
   if(p.tree!=null&&p.climbT<1) return;
   if(p.st<15){ noStamina(); return; }
   p.leap=false;
-  if(p.tree!=null){ if(p.climbT<1) return; const h=p.upNow; p.leap=true; leaveTree(p,1); p.dropRate=h/(0.55+0.04*S.b.jmp); }
-  p.st-=15; p.pounce=(p.leap?0.55:0.38)+0.04*S.b.jmp; p.pT=p.pounce; p.pcd=1.3-0.2*S.b.jmp; p.hit=false; snd.pounce();
+  if(p.tree!=null){ if(p.climbT<1) return; const h=p.upNow; p.leap=true; leaveTree(p,1); p.dropRate=h/(0.55+0.04*p.L.b.jmp); }
+  p.st-=15; p.pounce=(p.leap?0.55:0.38)+0.04*p.L.b.jmp; p.pT=p.pounce; p.pcd=1.3-0.2*p.L.b.jmp; p.hit=false; snd.pounce();
   p.rot=Math.atan2(-Math.sin(p.cam.yaw),-Math.cos(p.cam.yaw));
 }
 /** Brüllen von Spieler p: Raubtiere fliehen, Beute erstarrt. */
 function doRoar(p=P){
   if(p.dead) return;
   if(G.paused) return;
-  if(S.b.roar<1){ toast('Brüllen ist noch nicht gelernt (Tab)','#b9b7a6'); return; }
+  if(p.L.b.roar<1){ tell(p,'Brüllen ist noch nicht gelernt (Tab)','#b9b7a6'); return; }
   if(p.rcd>0) return;
-  p.rcd=22-3*S.b.roar; const R=16+7*S.b.roar;
+  p.rcd=22-3*p.L.b.roar; const R=16+7*p.L.b.roar;
   puff(p.x,p.y+1,p.z,0xffffff,10,0.6); toast('ROAAAR!','#f2b84b'); snd.roar();
   animals.forEach(a=>{ if(a.dead) return; const d=Math.hypot(a.x-p.x,a.z-p.z); if(d>R) return;
-    if(a.sp.pred){ if(!a.sp.hunt||S.lvl+2*S.b.roar>=a.sp.hunt-3){ a.state='flee'; a.fleeT=0; a.aggro=0; a.scared=5; } }
-    else if(!a.sp.boss&&!a.sp.friend){ a.stun=1.2+0.5*S.b.roar; } });
+    if(a.sp.pred){ if(!a.sp.hunt||p.L.lvl+2*p.L.b.roar>=a.sp.hunt-3){ a.state='flee'; a.fleeT=0; a.aggro=0; a.scared=5; } }
+    else if(!a.sp.boss&&!a.sp.friend){ a.stun=1.2+0.5*p.L.b.roar; } });
 }
-function gainXp(n){
-  const lv0=S.lvl; S.xp+=n; let up=false;
-  while(S.xp>=xpNeed(S.lvl)){ S.xp-=xpNeed(S.lvl); S.lvl++; S.pts+=2; up=true; }
-  if(up){ P.hp=maxHp(); toast('Stufe '+S.lvl+'! Du wächst. +2 Punkte (Tab)','#f2b84b'); puff(P.x,P.y+1,P.z,0xf2b84b,14,0.7); snd.level();
-    if(lv0<8&&S.lvl>=8&&!S.cub) setTimeout(()=>toast('Du bist ausgewachsen. Andere Leoparden streifen jetzt umher – du findest sie als rosa Punkte auf der Spürkarte.','#ff9ad0'),3200); }
+/** Spieler p bekommt n Erfahrung; Stufenaufstieg gibt 2 Punkte für die Entwicklung. */
+function gainXp(n,p=P){
+  const L=p.L, lv0=L.lvl; L.xp+=n; let up=false;
+  while(L.xp>=xpNeed(L.lvl)){ L.xp-=xpNeed(L.lvl); L.lvl++; L.pts+=2; up=true; }
+  if(up){ p.hp=maxHp(L); tell(p,'Stufe '+L.lvl+'! Du wächst. +2 Punkte (Tab)','#f2b84b'); puff(p.x,p.y+1,p.z,0xf2b84b,14,0.7); snd.level();
+    if(p===P&&lv0<8&&L.lvl>=8&&!S.cub) setTimeout(()=>toast('Du bist ausgewachsen. Andere Leoparden streifen jetzt umher – du findest sie als rosa Punkte auf der Spürkarte.','#ff9ad0'),3200); }
   save();
 }
+/** Vibration am Controller von Spieler p */
+function buzz(p,strong,weak,ms){ if(p===P){ if(padUI()) rumble(strong,weak,ms); } else if(p.pad!=null) rumble(strong,weak,ms,p.pad); }
 /** Spieler p erleidet d Schaden durch a (a.sp beschreibt die Ursache). force: auch auf dem Baum bzw. ohne Schwierigkeitsfaktor. */
 function hurtPlayer(d,a,force,p=P){
   if(p.dead||(p.safe&&!force)) return;
   if(!force) d*=D().dmg;
   snd.hurt();
-  p.hp-=d; p.combatT=5; p.cam.shake=Math.max(p.cam.shake,Math.min(0.6,0.15+d/maxHp()));
-  if(p===P){ if(padUI()) rumble(Math.min(1,0.35+d/maxHp()),0.5,220); $('hurt').style.opacity=0.8; } else if(p.pad!=null) rumble(Math.min(1,0.35+d/maxHp()),0.5,220,p.pad);
+  p.hp-=d; p.combatT=5; p.cam.shake=Math.max(p.cam.shake,Math.min(0.6,0.15+d/maxHp(p.L)));
+  buzz(p,Math.min(1,0.35+d/maxHp(p.L)),0.5,220); if(p===P) $('hurt').style.opacity=0.8;
   p.hurtT=0.25;
-  floatText('-'+Math.round(d),p.x,p.camY+1.5*pScale(),p.z,'#ff7a5c');
+  floatText('-'+Math.round(d),p.x,p.camY+1.5*pScale(p.L),p.z,'#ff7a5c');
   if(p.hp<=0){
     // Koop: zu Boden gehen, solange ein anderer noch steht; fällt der Letzte, endet es für alle wie im Einzelspiel (über Spieler 1)
     if(players.length>1){ if(othersAlive(p)){ downPlayer(p,a); return; } p.dead=true; p.downT=null; die(P,a); return; }
@@ -138,26 +141,26 @@ function respawn(p=P){
 $('btnRespawn').onclick=()=>respawn();
 /** Spieler p trifft Tier a: Schaden, Hinterhalt, Beute, Erfahrung (Erfahrung und Stufe sind noch gemeinsam). */
 function hitAnimal(a,p=P){
-  let d=dmg(), amb=false;
-  if(a.state==='wander'||a.state==='lurk'||a.stun>0){ d*=2+0.6*S.b.amb; amb=true; }
-  if(p.leap){ d*=1.25+0.25*S.b.climb; p.leap=false; floatText('Sprung vom Baum!',p.x,p.camY+2*pScale(),p.z,'#9be07f'); }
+  let d=dmg(p.L), amb=false;
+  if(a.state==='wander'||a.state==='lurk'||a.stun>0){ d*=2+0.6*p.L.b.amb; amb=true; }
+  if(p.leap){ d*=1.25+0.25*p.L.b.climb; p.leap=false; floatText('Sprung vom Baum!',p.x,p.camY+2*pScale(p.L),p.z,'#9be07f'); }
   d=Math.round(d*rnd(0.9,1.1));
   a.hp-=d; p.combatT=5;
   floatText((amb?'Hinterhalt! ':'')+'-'+d,a.x,H(a.x,a.z)+a.sp.size*1.8,a.z,amb?'#f2b84b':'#fff');
   puff(a.x,H(a.x,a.z)+a.sp.size,a.z,0xc0392b,4,0.5);
-  G.lastHit=a; G.lastHitT=6; snd.hit(); if(amb){ snd.ambush(); goalEvent('amb',1); if(padUI()) rumble(0.25,0.6,120); G.slowT=Math.max(G.slowT,0.16); p.cam.shake=Math.max(p.cam.shake,0.3*pScale()); }
-  if(a.hp<=0){ snd.kill(); if(padUI()) rumble(0.5,0.8,180); G.slowT=Math.max(G.slowT,0.22); p.cam.shake=Math.max(p.cam.shake,0.4*pScale()); }
+  G.lastHit=a; G.lastHitT=6; snd.hit(); if(amb){ snd.ambush(); goalEvent('amb',1); buzz(p,0.25,0.6,120); G.slowT=Math.max(G.slowT,0.16); p.cam.shake=Math.max(p.cam.shake,0.3*pScale(p.L)); }
+  if(a.hp<=0){ snd.kill(); buzz(p,0.5,0.8,180); G.slowT=Math.max(G.slowT,0.22); p.cam.shake=Math.max(p.cam.shake,0.4*pScale(p.L)); }
   if(a.hp<=0){
     a.dead=true; a.respawn=rnd(18,30); S.kills=(S.kills||0)+1; goalEvent('kill',1,{sp:a.sp.id,night:dayF<0.5,herd:!!a.herd});
     { const n=FOOD[a.sp.id]||1, now=n>=4?Math.ceil(n/2):n; let rest=now;
       if(S.cub&&S.cub.grow<1){ const k=Math.min(FOOD_MAX-S.food,now); S.food+=k; rest=n-k; if(k>0) floatText('+'+k+' Futter im Vorrat',a.x,H(a.x,a.z)+a.sp.size*1.2,a.z,'#ff9ad0'); }
-      if(rest>0) S.hunger=Math.min(100,S.hunger+rest*10);
+      if(rest>0) p.L.hunger=Math.min(100,p.L.hunger+rest*10);
       if(n>=4) makeCarcass(a,n-now); else a.g.visible=false; }
     puff(a.x,H(a.x,a.z)+a.sp.size*0.7,a.z,a.sp.m.col,10,0.5+a.sp.size*0.5);
-    p.hp=Math.min(maxHp(),p.hp+maxHp()*0.25+a.sp.xp*0.1);
+    p.hp=Math.min(maxHp(p.L),p.hp+maxHp(p.L)*0.25+a.sp.xp*0.1);
     const xpv=a.sp.xp*(a.fur&&a.fur.albino?2:1); if(a.fur&&a.fur.albino) toast('Seltene Beute: ein Albino! Doppelte Erfahrung.','#f2b84b');
-    floatText('+'+xpv+' EP',p.x,p.y+2*pScale(),p.z,'#8ad4ef');
-    gainXp(xpv);
+    floatText('+'+xpv+' EP',p.x,p.y+2*pScale(p.L),p.z,'#8ad4ef');
+    gainXp(xpv,p);
     if(a.sp.boss&&!beaten(REG_ID)){ S.beat=Object.assign({},S.beat,{[REG_ID]:true}); if(REG_ID==='savanne') S.won=true; save(); $('winTitle').textContent=REG.winT; $('winText').textContent=REG.winX; setTimeout(()=>{ snd.win(); $('win').style.display='flex'; G.paused=true; if(document.exitPointerLock) document.exitPointerLock(); },900); }
   } else if(a.sp.fight){ a.state='chase'; a.aggro=10; a.scared=0; }
   else startFlee(a);

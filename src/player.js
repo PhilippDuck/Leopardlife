@@ -15,6 +15,7 @@ const JAG={col:0xe0a23c,col2:0xf0c98a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.44
  * @typedef {object} Player
  * @property {{source:string, fw:number, rt:number, sprint:boolean, act:boolean}} ctl Steuerwunsch dieses Bildes (controls.js); act: Aktionstaste gehalten (Wiederbeleben)
  * @property {{yaw:number, pitch:number, zoom:number, huntF:number, shake:number}} cam Kamera: Richtung, Neigung, Zoom, Jagd-Ansicht 0…1, Wackeln
+ * @property {import('./save.js').Leopard} L Werte dieses Leoparden (Stufe, Erfahrung, Punkte, Eigenschaften, Fähigkeiten, Erbanlagen, Fell, Hunger, Alter). Bei Spieler 1 der Spielstand S
  * @property {any} camera three.js-Kamera, mit der dieser Spieler gezeigt wird
  * @property {any} g Modell (THREE.Group)
  * @property {object|null} fur Fellvariante, wenn nicht aus dem Spielstand
@@ -56,7 +57,8 @@ const JAG={col:0xe0a23c,col2:0xf0c98a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.44
  * @property {number} [num] Spielernummer 2…4 eines Mitspielers
  * @property {HTMLElement} [hud] kleine Anzeige eines Mitspielers
  * @property {boolean[]} [padPrev] Tasten im letzten Bild
- * @property {number} [leaveT] Zeitfenster fürs zweite Back (Aussteigen)
+ * @property {number} [leaveT] wie lange Back gehalten wird, in Sekunden (Aussteigen)
+ * @property {number} [leaveAt] Zeitpunkt, an dem Back gedrückt wurde
  * @property {number} [msgT] Restzeit des Hinweises in der kleinen Anzeige
  * @property {number|null} [downT] Restzeit am Boden bis zum Erwachen im Bau (Koop)
  * @property {number} [revT] Fortschritt beim Wiederbeleben in Sekunden
@@ -71,15 +73,16 @@ const JAG={col:0xe0a23c,col2:0xf0c98a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.44
  * @param {number} [o.x] Startposition
  * @param {number} [o.z]
  * @param {object|null} [o.fur] Fellvariante (null = normal)
+ * @param {import('./save.js').Leopard} [o.L] eigene Werte (Standard: Spielstand S, also Spieler 1)
  */
 /** @returns {Player} */
 function makePlayer(o={}){
   // ctl: Steuerwunsch dieses Bildes (gefüllt von controls.js) · cam: eigene Kamera (Blickrichtung, Neigung, Zoom, Jagd-Ansicht, Wackeln)
   /** @type {Player} */
-  const p={camera:null,fur:null,saveFur:true,ctl:{source:'local',fw:0,rt:0,sprint:false,act:false},cam:{yaw:START_YAW,pitch:0.42,zoom:1,huntF:0,shake:0},dead:false,tree:null,climbT:0,safe:false,dropY:0,dropRate:20,upNow:0,camY:0,leap:false,x:2,z:2,y:0,rot:START_ROT,hp:1,st:1,pounce:0,pcd:0,rcd:0,sneak:false,hurtT:0,combatT:0,hidden:1,g:null,moving:0,walkT:0};
-  p.ctl.source=o.source||'local'; p.camera=o.camera||camera; p.saveFur=o.fur===undefined; p.fur=o.fur||null;   // saveFur: Fell kommt aus dem Spielstand (Spieler 1)
+  const p={L:null,camera:null,fur:null,saveFur:true,ctl:{source:'local',fw:0,rt:0,sprint:false,act:false},cam:{yaw:START_YAW,pitch:0.42,zoom:1,huntF:0,shake:0},dead:false,tree:null,climbT:0,safe:false,dropY:0,dropRate:20,upNow:0,camY:0,leap:false,x:2,z:2,y:0,rot:START_ROT,hp:1,st:1,pounce:0,pcd:0,rcd:0,sneak:false,hurtT:0,combatT:0,hidden:1,g:null,moving:0,walkT:0};
+  p.L=o.L||S; p.ctl.source=o.source||'local'; p.camera=o.camera||camera; p.saveFur=o.fur===undefined; p.fur=o.fur||null;   // saveFur: Fell kommt aus dem Spielstand (Spieler 1)
   if(o.x!==undefined){ p.x=o.x; p.z=o.z; }
-  rebuildPlayer(p); p.hp=maxHp(); p.st=maxSt();
+  rebuildPlayer(p); p.hp=maxHp(p.L); p.st=maxSt(p.L);
   return p;
 }
 function dropModel(g){ if(!g) return; scene.remove(g); const i=blobs.indexOf(g.userData.blob); if(i>=0) blobs.splice(i,1); }

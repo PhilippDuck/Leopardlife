@@ -84,6 +84,9 @@ function step(dt){
   drawRadar(); updateCoopHud(dt);
 }
 
+// Für Browsertests (tools/*.py mit ?test): Spielzustand zum Nachsehen
+if(typeof location!=='undefined'&&location.search.includes('test')) window['__leopard']={G,players,S};
+
 applyQuality();
 setInputMode(inputMode); setResLabel(); if(!S.goals) newGoals();
 updateUI();

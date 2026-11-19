@@ -104,7 +104,7 @@ function blobGeo(detail){
 /** Blendet Baumkronen aus, die auf der Sichtlinie Kamera → Leopard liegen. views: [{camera, p}] je Spieler (beim Splitscreen mehrere). */
 function updateTrees(dt,views){
   // Nur Bäume ausblenden, deren Krone wirklich auf der Sichtlinie Kamera -> Leopard liegt (3D-Test)
-  const L=views.map(({camera:c,p})=>{ const cx=c.position.x, cy=c.position.y, cz=c.position.z, sx=p.x-cx, sy=(p.camY+pScale()*0.6)-cy, sz=p.z-cz; return [cx,cy,cz,sx,sy,sz,sx*sx+sy*sy+sz*sz||1,p.tree]; });
+  const L=views.map(({camera:c,p})=>{ const cx=c.position.x, cy=c.position.y, cz=c.position.z, sx=p.x-cx, sy=(p.camY+pScale(p.L)*0.6)-cy, sz=p.z-cz; return [cx,cy,cz,sx,sy,sz,sx*sx+sy*sy+sz*sz||1,p.tree]; });
   for(let i=0;i<trees.length;i++){
     const t=trees[i], kx=t.x+t.cx, ky=t.y+t.cy, kz=t.z+t.cz; let target=1;
     for(let j=0;j<L.length;j++){ const [cx,cy,cz,sx,sy,sz,len2,own]=L[j]; if(i===own) continue;

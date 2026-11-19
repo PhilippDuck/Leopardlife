@@ -36,7 +36,7 @@ function moveAnimal(a,dx,dz,spd,dt){
 }
 /** Sprungtreffer: trifft irgendein Spieler mit seinem Sprung das Tier a? */
 function pounceHits(a){
-  for(const p of players){ if(p.pounce>0&&!p.hit&&Math.hypot(p.x-a.x,p.z-a.z)<a.rad+0.5+pScale()*0.8){ p.hit=true; p.pounce=Math.min(p.pounce,0.08); hitAnimal(a,p); return; } }
+  for(const p of players){ if(p.pounce>0&&!p.hit&&Math.hypot(p.x-a.x,p.z-a.z)<a.rad+0.5+pScale(p.L)*0.8){ p.hit=true; p.pounce=Math.min(p.pounce,0.08); hitAnimal(a,p); return; } }
 }
 function nearestDist(a){ let m=1e9; for(const p of players) m=Math.min(m,Math.hypot(p.x-a.x,p.z-a.z)); return m; }
 /**
@@ -65,7 +65,7 @@ function updateAnimal(a,dt){
   const dv=players.length>1?nearestDist(a):d;
   if(dv>VIEW_D&&a!==G.raider){ a.g.visible=false; return; } a.g.visible=dv<=VIEW_D;
   a.cd-=dt; if(a.scared>0) a.scared-=dt;
-  const hostile=sp.hunt&&S.lvl<sp.hunt&&!(a.scared>0);
+  const hostile=sp.hunt&&T.L.lvl<sp.hunt&&!(a.scared>0);
   const detect=sp.sense*stealth*D().sense*(sp.pred?1+0.25*(1-dayF):1)*(d>0.1?windMulDir(-dx/d,-dz/d):1);
   if(sp.croc){ if(a.stun>0) a.stun-=dt; else crocStep(a,dt,d,dx,dz,stealth*D().sense,hostile,T);
     pounceHits(a);
@@ -89,7 +89,7 @@ function updateAnimal(a,dt){
       } else a.sus=Math.max(0,a.sus-dt*0.35);
     } else {
       a.sus=0;
-      if(d<detect&&(!sp.fight||(sp.pred&&S.lvl>=sp.hunt+2&&d<detect*0.5))) startFlee(a);
+      if(d<detect&&(!sp.fight||(sp.pred&&T.L.lvl>=sp.hunt+2&&d<detect*0.5))) startFlee(a);
     }
   }
   else if(a.state==='raid'){ raidStep(a,dt); }
@@ -129,7 +129,7 @@ function updateAnimal(a,dt){
       a.g.position.set(a.x,H(a.x,a.z),a.z); return;
     }
     if(a.aggro>0) a.aggro-=dt;
-    const reach=a.rad+0.5+pScale()*0.7;
+    const reach=a.rad+0.5+pScale(T.L)*0.7;
     let tx=dx, tz=dz;
     if(PACK[sp.id]&&SMART()>0&&d>6){   // Rudel kreist dich ein: jedes Tier nähert sich von einer anderen Seite
       const all=animals.filter(o=>!o.dead&&o.sp===sp&&o.state==='chase'&&Math.hypot(o.x-T.x,o.z-T.z)<40);

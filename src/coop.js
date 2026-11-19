@@ -6,16 +6,17 @@ import { animals } from './animals.js';
 import { snd } from './audio.js';
 import { SUN_OFF, camera, renderer, resize, scene, sun } from './engine.js';
 import { on } from './events.js';
-import { pdz } from './gamepad.js';
-import { toggleMenu } from './menu.js';
+import { claimOverlay, pdz } from './gamepad.js';
+import { menuOpen, toggleMenu } from './menu.js';
 import { P, dropModel, makePlayer, players } from './player.js';
-import { maxHp, maxSt, pScale } from './save.js';
+import { S, copyLeopard, maxHp, maxSt, pScale } from './save.js';
 import { sky, stars } from './sky.js';
 import { G } from './state.js';
 import { H, cullTiles } from './terrain.js';
 import { toast } from './ui.js';
 import { $ } from './util.js';
 import { tallMat } from './vegetation.js';
+import { toggleSkills } from './skills.js';
 
 /** Höchstens so viele Spieler teilen sich den Bildschirm */
 const MAX_PLAYERS=4;
@@ -32,11 +33,13 @@ function joinPlayer(i,gp){
   const num=firstFreeNum();
   const cam=new THREE.PerspectiveCamera(camera.fov,1,camera.near,camera.far);
   const ang=P.rot+Math.PI/2*(num%2?1:-1), r=2.5;
-  const p=makePlayer({source:'pad'+i,camera:cam,x:P.x+Math.sin(ang)*r,z:P.z+Math.cos(ang)*r,fur:FURS[num-1]});
+  // Eigene Werte: startet als Geschwister auf der Stufe von Spieler 1 und entwickelt sich ab dann selbst
+  const L=copyLeopard(S); L.fur=FURS[num-1]; L.hunger=100; L.age=0;
+  const p=makePlayer({source:'pad'+i,camera:cam,x:P.x+Math.sin(ang)*r,z:P.z+Math.cos(ang)*r,fur:FURS[num-1],L});
   p.pad=i; p.num=num; p.padPrev=gp?gp.buttons.map(b=>!!b.pressed):[];   // der Start-Druck zum Einsteigen zählt nicht als Pause p.rot=P.rot; p.cam.yaw=P.cam.yaw; p.cam.pitch=P.cam.pitch;
   p.hud=makeHud(p);
   players.push(p); layoutChanged();
-  toast(NAMES[num-1]+' ist dabei! Start: Pause · Back zweimal: aussteigen','#9be07f'); snd.click();
+  toast(NAMES[num-1]+' ist dabei! Back: Entwicklung · Back halten: aussteigen · Start: Pause','#9be07f'); snd.click();
   return p;
 }
 /** Spieler p steigt aus (Back zweimal oder Controller getrennt). */
@@ -92,7 +95,7 @@ function placeSun(x,y,z){ sun.position.set(x+SUN_OFF.x,y+SUN_OFF.y,z+SUN_OFF.z);
 function viewSetup(p,cam){
   sky.position.copy(cam.position); stars.position.copy(cam.position);
   if(G.grassMat) G.grassMat.uniforms.uP.value.set(p.x,p.z);
-  tallMat.uniforms.uP.value.set(p.x,p.z); tallMat.uniforms.uR.value=p.tree!=null?0.01:1.1+pScale()*1.1;
+  tallMat.uniforms.uP.value.set(p.x,p.z); tallMat.uniforms.uR.value=p.tree!=null?0.01:1.1+pScale(p.L)*1.1;
 }
 
 /* ---------- Controller der Mitspieler ---------- */
@@ -100,6 +103,7 @@ function viewSetup(p,cam){
 function pollCoop(dt,gps){
   for(const p of players.slice()){
     if(p===P||p.pad==null) continue;
+    if(G.ovPad===p.pad&&topOverlayOpen()) continue;   // bedient gerade ein Fenster (gamepad.js)
     const gp=gps[p.pad], c=p.ctl;
     if(!gp||!gp.connected){ c.fw=c.rt=0; c.sprint=false; c.act=false; continue; }
     const prev=p.padPrev||(p.padPrev=[]), B=i=>!!(gp.buttons[i]&&gp.buttons[i].pressed), hit=i=>B(i)&&!prev[i];
@@ -116,12 +120,15 @@ function pollCoop(dt,gps){
       if(hit(12)) p.cam.zoom=Math.max(0.45,p.cam.zoom/1.15);
       if(hit(13)) p.cam.zoom=Math.min(2.6,p.cam.zoom*1.15);
     }
-    if(hit(9)&&G.started&&!$('dead').style.display.includes('flex')) toggleMenu();
-    if(hit(8)){ if(p.leaveT>0) { leavePlayer(p); continue; } p.leaveT=2; hudMsg(p,'Nochmal Back: aussteigen',2); }
-    if(p.leaveT>0) p.leaveT-=dt;
+    if(hit(9)&&G.started&&!$('dead').style.display.includes('flex')){ toggleMenu(); if(menuOpen()) claimOverlay(p.pad,gp); }
+    // Back kurz: eigene Entwicklung · Back halten: aussteigen
+    // Haltezeit in echter Zeit (dt ist pro Bild gedeckelt und liefe bei wenigen Bildern pro Sekunde zu langsam)
+    if(B(8)){ const now=performance.now(); if(!prev[8]) p.leaveAt=now; p.leaveT=(now-p.leaveAt)/1000; if(p.leaveT>=1.5){ leavePlayer(p); continue; } if(p.leaveT>0.35) hudMsg(p,'Halten zum Aussteigen …',0.3); }
+    else { if(prev[8]&&(p.leaveT||0)<0.35&&G.started&&!G.paused){ toggleSkills(p); if(G.ovPad===p.pad) claimOverlay(p.pad,gp); } p.leaveT=0; }
     for(let i=0;i<gp.buttons.length;i++) prev[i]=B(i);
   }
 }
+const topOverlayOpen=()=>['skills','menu','settings','regions','book'].some(id=>$(id)&&$(id).style.display==='flex');
 /** Ist Controller i schon einem Mitspieler zugeordnet? */
 const padTaken=i=>players.some(p=>p!==P&&p.pad===i);
 
@@ -129,7 +136,7 @@ const padTaken=i=>players.some(p=>p!==P&&p.pad===i);
 /** Spieler p geht zu Boden, solange noch ein anderer steht. Mitspieler können ihn wiederbeleben. */
 function downPlayer(p,a){
   p.dead=true; p.hp=0; p.pounce=0; p.downT=DOWN_TIME; p.revT=0; p.sneak=false;
-  p.g.rotation.z=Math.PI/2; p.g.position.y=p.y+0.25*pScale();
+  p.g.rotation.z=Math.PI/2; p.g.position.y=p.y+0.25*pScale(p.L);
   snd.death(); if(p===P) $('hurt').style.opacity=0.55;
   toast(nameOf(p)+' ist am Boden! Daneben X (bzw. F) halten zum Wiederbeleben.','#ff8a70');
 }
@@ -146,7 +153,7 @@ function updateCoop(dt){
 }
 function wakeUp(p,x,z,hpF){
   p.dead=false; p.downT=null; p.revT=0; p.x=x; p.z=z; p.tree=null; p.safe=false; p.upNow=0; p.dropY=0;
-  p.hp=maxHp()*hpF; p.st=maxSt()*0.5; p.combatT=3; p.g.rotation.z=0; if(p===P){ $('hurt').style.opacity=0; $('crossMsg').style.opacity='0'; P.lastS=null; }
+  p.hp=maxHp(p.L)*hpF; p.st=maxSt(p.L)*0.5; p.combatT=3; p.g.rotation.z=0; if(p===P){ $('hurt').style.opacity=0; $('crossMsg').style.opacity='0'; P.lastS=null; }
   snd.click();
 }
 // Wenn Spieler 1 nach dem Ende aller Spieler neu erwacht, wachen die Mitspieler neben ihm auf
@@ -165,13 +172,15 @@ function makeHud(p){
     '<div class="pvCross"></div><div class="pvMsg"></div><div class="pvDown"><b>Am Boden</b><span></span><div class="pvBar"><i class="rev"></i></div></div>';
   document.body.appendChild(el); return el;
 }
+/** Hinweis an Spieler p: Spieler 1 bekommt die große Meldung, Mitspieler eine in ihrem Ausschnitt. */
+function tell(p,txt,col){ if(p===P||!p.hud){ toast(txt,col); return; } hudMsg(p,txt.replace('(Tab)','(Back)'),3.5); }
 function hudMsg(p,txt,t){ if(!p.hud) return; const m=q(p.hud,'.pvMsg'); m.textContent=txt; m.style.opacity='1'; p.msgT=t; }
 /** Anzeige der Mitspieler auffrischen (Leben, Ausdauer, Tarnung, am Boden). */
 function updateCoopHud(dt){
   for(const p of players){
     if(!p.hud) continue; const h=p.hud;
-    q(h,'.hp').style.width=Math.max(0,p.hp/maxHp()*100)+'%';
-    q(h,'.st').style.width=Math.max(0,p.st/maxSt()*100)+'%';
+    q(h,'.hp').style.width=Math.max(0,p.hp/maxHp(p.L)*100)+'%';
+    q(h,'.st').style.width=Math.max(0,p.st/maxSt(p.L)*100)+'%';
     const cr=q(h,'.pvCross'); cr.style.borderColor=p.hideLv===2?'#8fe07a':p.hideLv===1?'#f2b84b':'#fff';
     const dn=q(h,'.pvDown'); dn.style.display=p.dead?'flex':'none';
     if(p.dead){ q(dn,'span').textContent='Ein Mitspieler hält X neben dir – oder du erwachst in '+Math.ceil(p.downT||0)+' s im Bau.'; q(dn,'.rev').style.width=(p.revT/REVIVE_TIME*100)+'%'; }
@@ -181,4 +190,4 @@ function updateCoopHud(dt){
   if(players.length>1&&P.dead&&P.downT!=null){ const s=Math.ceil(P.downT); if(s!==P.lastS){ P.lastS=s; $('crossMsg').textContent='Am Boden – Mitspieler: X halten · Bau in '+s+' s'; $('crossMsg').style.opacity='1'; } }
 }
 
-export { MAX_PLAYERS, joinPlayer, leavePlayer, renderAll, pollCoop, padTaken, downPlayer, updateCoop, updateCoopHud, othersAlive, nameOf };
+export { tell, MAX_PLAYERS, joinPlayer, leavePlayer, renderAll, pollCoop, padTaken, downPlayer, updateCoop, updateCoopHud, othersAlive, nameOf };

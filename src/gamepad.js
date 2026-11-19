@@ -16,6 +16,8 @@ import { MAX_PLAYERS, joinPlayer, leavePlayer, padTaken, pollCoop } from './coop
    In Menüs: Steuerkreuz oder Stick wählt, A bestätigt, B geht zurück. Später steuert Controller N den Spieler N. */
 let padX=0, padY=0, padSprint=false, padAct=false, padIdx=-1, padSynth=false, padNavT=0, padFocusEl=null;
 const padPrev=[], joinPrev=[];
+/** Controller i bedient ab jetzt das offene Fenster; seine gerade gedrückten Tasten zählen dort nicht als neuer Druck. */
+function claimOverlay(i,gp){ G.ovPad=i; padPrev[i]=gp.buttons.map(b=>!!b.pressed); }
 function padUI(){ return inputMode==='pad'; }   // als Funktion, weil die Anzeige sie schon vor diesem Abschnitt braucht
 const PADDZ=0.2, pdz=v=>Math.abs(v)<PADDZ?0:(v-Math.sign(v)*PADDZ)/(1-PADDZ);
 /** Vibration am Controller idx (Standard: der von Spieler 1) */
@@ -35,7 +37,9 @@ function pollPads(dt){
     if(!cur&&(g.buttons.some((b,i)=>b.pressed&&i!==9)||g.axes.some(a=>Math.abs(a)>0.35))) padIdx=g.index;
   }
   pollCoop(dt,gps);
-  const gp=padIdx>=0?gps[padIdx]:null;
+  const ov0=G.ovPad!=null?topOverlay():null; if(G.ovPad!=null&&!ov0) G.ovPad=null;
+  // Ein Fenster, das ein Mitspieler geöffnet hat, bedient dessen Controller
+  const gp=ov0&&G.ovPad!=null&&gps[G.ovPad]?gps[G.ovPad]:padIdx>=0?gps[padIdx]:null;
   if(!gp){ padX=padY=0; padSprint=false; padAct=false; return; }
   const prev=padPrev[gp.index]||(padPrev[gp.index]=[]), B=i=>!!(gp.buttons[i]&&gp.buttons[i].pressed), hit=i=>B(i)&&!prev[i];
   if(inputMode!=='pad'&&(gp.buttons.some(b=>b.pressed)||gp.axes.some(a=>Math.abs(a)>0.35))) setInputMode('pad');
@@ -47,9 +51,10 @@ function pollPads(dt){
     const up=hit(12)||(v<-0.6&&padNavT<=0), down=hit(13)||(v>0.6&&padNavT<=0);
     if((up||down)&&btns.length){ let i=btns.indexOf(padFocusEl); i=i<0?0:(i+(down?1:-1)+btns.length)%btns.length; setPadFocus(btns[i]); if(Math.abs(v)>0.6) padNavT=0.22; }
     if(hit(0)){ if(padFocusEl) padFocusEl.click(); else if(btns.length) setPadFocus(btns[0]); }
-    if(hit(1)){ if(ov.id==='menu') toggleMenu(); else pressKey('Escape'); }
+    if(hit(1)){ if(ov.id==='menu') toggleMenu(); else if(ov.id==='skills') toggleSkills(players.find(p=>p.pad===G.ovPad)||P); else pressKey('Escape'); }
     if(hit(9)&&ov.id==='menu') toggleMenu();
-    if(hit(8)&&ov.id==='skills') toggleSkills();
+    if(gp.index!==padIdx){ for(let i=0;i<gp.buttons.length;i++) prev[i]=B(i); return; }   // Mitspieler-Controller: nur Fenster bedienen
+    if(hit(8)&&ov.id==='skills') toggleSkills(players.find(p=>p.pad===G.ovPad)||P);
   } else {
     setPadFocus(null);
     padX=pdz(gp.axes[0]||0); padY=pdz(gp.axes[1]||0);
@@ -75,5 +80,5 @@ window.addEventListener('gamepadconnected',e=>{ const extra=G.started&&padIdx>=0
 window.addEventListener('gamepaddisconnected',e=>{ const m=players.find(p=>p!==P&&p.pad===e.gamepad.index); if(m) leavePlayer(m);
   if(e.gamepad.index===padIdx){ padIdx=-1; padX=padY=0; toast('Controller getrennt','#f2b84b'); } });
 
-export { padAct, padSprint, padUI, padX, padY, pdz, pollPads };
+export { claimOverlay, padAct, padSprint, padUI, padX, padY, pdz, pollPads };
 export { padSynth, rumble };

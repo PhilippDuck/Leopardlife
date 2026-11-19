@@ -55,7 +55,7 @@ function updateWarn(dt){
 /** @param {import('./player.js').Player} p */
 function updateCamera(p,cam){
   p.cam.huntF+=(((p.sneak&&p.tree==null&&!p.dead&&!G.paused)?1:0)-p.cam.huntF)*0.06;
-  const sc=pScale(), dist=(5+sc*6.5)*p.cam.zoom*(1-0.3*p.cam.huntF), ty=p.camY+sc*1.1+dist*0.16;
+  const sc=pScale(p.L), dist=(5+sc*6.5)*p.cam.zoom*(1-0.3*p.cam.huntF), ty=p.camY+sc*1.1+dist*0.16;
   const fov=60-8*p.cam.huntF; if(Math.abs(cam.fov-fov)>0.05){ cam.fov=fov; cam.updateProjectionMatrix(); }
   const cp=Math.cos(p.cam.pitch);
   let cx=p.x+Math.sin(p.cam.yaw)*dist*cp, cz=p.z+Math.cos(p.cam.yaw)*dist*cp, cy=ty+Math.sin(p.cam.pitch)*dist;

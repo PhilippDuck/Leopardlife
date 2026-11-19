@@ -31,7 +31,7 @@ const doc={ querySelectorAll:()=>[], getElementById:el, addEventListener(){}, cr
 let raf=null;
 const g={ window:win, document:doc, navigator:{maxTouchPoints:0}, localStorage:{getItem:k=>(k in ls?ls[k]:null),setItem:(k,v)=>{ls[k]=String(v);}}, THREE:win.THREE,
   requestAnimationFrame:fn=>{ if(fn.name==='frame') raf=fn; else fn(); }, setTimeout:fn=>{ fn(); } };
-const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer};';
+const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp};';
 new Function(...Object.keys(g), body)(...Object.values(g));
 const T=globalThis.__T; const rnd2=()=>Math.random()*8-4; const localStorageDump=()=>ls['jaguar-lines'];
 els.btnPlay.onclick();
@@ -193,4 +193,13 @@ console.log('audio nodes created',ACs&&ACs.count());
   if(P.dead||Q.dead) { console.log('FEHLER: nach dem Neuerwachen sollten alle stehen'); process.exit(1); }
   console.log('Koop: am Boden, Wiederbeleben, Bau, gemeinsamer Tod ok');
   T.players.pop(); T.unpause(); }
+// Eigene Werte je Leopard: Erfahrung und Stufe eines Mitspielers ändern Spieler 1 nicht
+{ const P=T.P, S=T.S(); const lv=S.lvl, xp=S.xp;
+  const Q=T.makePlayer({source:'test',x:P.x+3,z:P.z,fur:null,L:T.copyLeopard(S)}); T.players.push(Q);
+  T.gainXp(5000,Q);
+  if(!(Q.L.lvl>lv)||S.lvl!==lv||S.xp!==xp) { console.log('FEHLER: Erfahrung landet beim falschen Leoparden',Q.L.lvl,S.lvl); process.exit(1); }
+  if(!(T.maxHpOf(Q.L)>T.maxHpOf(S))) { console.log('FEHLER: höhere Stufe sollte mehr Leben geben'); process.exit(1); }
+  if(Q.L.a===S.a||Q.L.b===S.b) { console.log('FEHLER: Mitspieler teilt Eigenschaften mit Spieler 1'); process.exit(1); }
+  console.log('eigene Werte: Mitspieler Stufe',Q.L.lvl,'· Spieler 1 bleibt Stufe',S.lvl,'· Leben',T.maxHpOf(Q.L),'vs',T.maxHpOf(S));
+  T.players.pop(); }
 console.log('ALL OK');

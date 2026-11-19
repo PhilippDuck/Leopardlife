@@ -74,7 +74,7 @@ document.addEventListener('pointerlockchange',()=>{
   if(document.pointerLockElement===canvas){ hadLock=true; return; }
   if(hadLock&&G.started&&!G.paused&&!menuOpen()){ hadLock=false; toggleMenu(); }
   hadLock=false;
-}); $('pts').onclick=toggleSkills;
+}); $('pts').onclick=()=>toggleSkills();
 $('btnPlay').onclick=()=>{ try{ if(!localStorage.getItem('jaguar-windtip')){ localStorage.setItem('jaguar-windtip','1'); setTimeout(()=>toast('Achte auf den Wind (blauer Pfeil an der Spürkarte): Weht er von dir zu einem Tier, wittert es dich früher.','#96cdff'),8000); } }catch(e){} initAudio(); $('start').style.display='none'; $('diffRow').style.display='none'; save(); G.paused=false; G.started=true; if(!touchUI()){ try{ const r=canvas.requestPointerLock(); if(r&&r.catch) r.catch(()=>{}); }catch(e){} } };
 let resetArm=false;
 function showDiff(){ $('diffRow').style.display='block'; document.querySelectorAll('.diffb').forEach((/** @type {HTMLElement} */ b)=>b.classList.toggle('on',b.dataset.d===S.diff)); $('diffTxt').textContent=D().d; }

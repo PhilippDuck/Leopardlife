@@ -15,7 +15,7 @@ function crocStep(a,dt,d,dx,dz,stealth,hostile,T=P){
   const sp=a.sp, p=a.pond, wl=p.L-WATER_D;
   if(a.state==='lunge'){
     a.lt-=dt; moveAnimal(a,dx,dz,12+2*sp.size,dt);
-    if(d<a.rad+0.9+pScale()*0.6&&a.cd<=0&&!T.safe){ a.cd=1.6; hurtPlayer(sp.dmg,a,false,T); a.lt=Math.min(a.lt,0.25); }
+    if(d<a.rad+0.9+pScale(T.L)*0.6&&a.cd<=0&&!T.safe){ a.cd=1.6; hurtPlayer(sp.dmg,a,false,T); a.lt=Math.min(a.lt,0.25); }
     if(a.lt<=0) a.state='return';
   } else if(a.state==='lurk'){
     a.timer-=dt;

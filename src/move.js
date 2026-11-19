@@ -23,18 +23,18 @@ function stepPlayer(p,dt){
   const moving=il>0.1&&p.tree==null;
   const wantSprint=p.ctl.sprint&&moving&&!p.sneak;
   let sprint=wantSprint&&p.st>1;
-  let spd=baseSpeed()*(sprint?1.6:p.sneak?0.45:1); if(p.wet) spd*=0.65;
-  if(sprint) p.st-=20*dt; else p.st=Math.min(maxSt(),p.st+(12+2*at('sta'))*(S.hunger<25?0.5:1)*(moving?0.7:1.3)*dt);
+  let spd=baseSpeed(p.L)*(sprint?1.6:p.sneak?0.45:1); if(p.wet) spd*=0.65;
+  if(sprint) p.st-=20*dt; else p.st=Math.min(maxSt(p.L),p.st+(12+2*at('sta',p.L))*(p.L.hunger<25?0.5:1)*(moving?0.7:1.3)*dt);
   if(p===P&&p.st<=1&&G.tSprint){ G.tSprint=false; $('tbS').classList.remove('on'); }
-  const sc=pScale();
+  const sc=pScale(p.L);
   if(p.tree!=null){
-    const t=trees[p.tree]; p.climbT=Math.min(1,p.climbT+dt/(1.3-0.3*S.b.climb));
+    const t=trees[p.tree]; p.climbT=Math.min(1,p.climbT+dt/(1.3-0.3*p.L.b.climb));
     const e=p.climbT*p.climbT*(3-2*p.climbT);
     const tx=t.x+t.perch[0], tz=t.z+t.perch[2]; p.x=p.fromX+(tx-p.fromX)*e; p.z=p.fromZ+(tz-p.fromZ)*e;
     if(p.climbT<1){ p.rot=Math.atan2(tx-p.fromX,tz-p.fromZ); p.walkT+=dt*14; }
     p.safe=p.climbT>0.5;
   } else if(p.pounce>0){
-    p.pounce-=dt; if(p.pounce<=0) p.leap=false; const ps=19+3*S.b.jmp+baseSpeed()*0.5;
+    p.pounce-=dt; if(p.pounce<=0) p.leap=false; const ps=19+3*p.L.b.jmp+baseSpeed(p.L)*0.5;
     p.x+=Math.sin(p.rot)*ps*dt; p.z+=Math.cos(p.rot)*ps*dt;
   } else if(moving){
     p.x+=mx*spd*dt; p.z+=mz*spd*dt;
@@ -43,7 +43,7 @@ function stepPlayer(p,dt){
   const pr=Math.hypot(p.x,p.z); if(pr>WORLD){ p.x*=WORLD/pr; p.z*=WORLD/pr; }
   if(p.tree==null){ const c=collide(p.x,p.z,0.3+0.4*sc,p.pounce>0); p.x=c.x; p.z=c.z; }
   p.pcd=Math.max(0,p.pcd-dt); p.rcd=Math.max(0,p.rcd-dt); p.combatT=Math.max(0,p.combatT-dt);
-  if(p.combatT<=0&&S.hunger>25) p.hp=Math.min(maxHp(),p.hp+maxHp()*0.015*dt);
+  if(p.combatT<=0&&p.L.hunger>25) p.hp=Math.min(maxHp(p.L),p.hp+maxHp(p.L)*0.015*dt);
   if(p.hurtT>0){ p.hurtT-=dt; if(p.hurtT<=0) $('hurt').style.opacity=0; }
   const jump=p.pounce>0?Math.sin(Math.PI*(1-p.pounce/p.pT))*1.1*sc:0;
   p.y=H(p.x,p.z);
@@ -59,10 +59,10 @@ function stepPlayer(p,dt){
   if(moving&&p.pounce<=0){ p.stepT=(p.stepT||0)-dt*(sprint?1.7:p.sneak?0.55:1); if(p.stepT<=0){ p.stepT=0.3; if(p.wet) snd.splash(); else snd.step(p.sneak?0.04:sprint?0.2:0.12); } }
   // Tarnung
   const grass=inGrass(p.x,p.z); p.wet=p.tree==null&&inWater(p.x,p.z);
-  let st=1; if(p.sneak) st*=0.5; if(sprint) st*=1.3; if(grass) st*=p.sneak?0.3:(0.32+0.38*Math.min(1,(S.lvl-1)/7)); st*=(1-0.05*at('cam'))*(has('dunkel')?0.8:1)*(S.fur&&S.fur.albino?1.15:S.fur&&S.fur.melan?0.9:1); st*=0.8+0.025*S.lvl; st*=0.7+0.3*dayF; st*=1-0.25*W.rain; if(p.safe) st=0;
+  let st=1; if(p.sneak) st*=0.5; if(sprint) st*=1.3; if(grass) st*=p.sneak?0.3:(0.32+0.38*Math.min(1,(p.L.lvl-1)/7)); st*=(1-0.05*at('cam',p.L))*(has('dunkel',p.L)?0.8:1)*(p.L.fur&&p.L.fur.albino?1.15:p.L.fur&&p.L.fur.melan?0.9:1); st*=0.8+0.025*p.L.lvl; st*=0.7+0.3*dayF; st*=1-0.25*W.rain; if(p.safe) st=0;
   p.hidden=st; p.grass=grass;
-  { const lv=(p.safe||(grass&&(p.sneak||S.lvl<4)))?2:(grass||p.sneak)?1:0; if(lv!==p.hideLv){ if(p===P) setHide(lv); else p.hideLv=lv; }   // Anzeige am Fadenkreuz: vorerst nur Spieler 1
-    if(lv===2&&S.goals&&S.goals.list.some(g=>g.id==='hide'&&!g.done)&&animals.some(a=>!a.dead&&a.sp.hunt&&S.lvl<a.sp.hunt&&Math.hypot(a.x-p.x,a.z-p.z)<25)) goalEvent('hide',dt); }
+  { const lv=(p.safe||(grass&&(p.sneak||p.L.lvl<4)))?2:(grass||p.sneak)?1:0; if(lv!==p.hideLv){ if(p===P) setHide(lv); else p.hideLv=lv; }   // Anzeige am Fadenkreuz: vorerst nur Spieler 1
+    if(lv===2&&S.goals&&S.goals.list.some(g=>g.id==='hide'&&!g.done)&&animals.some(a=>!a.dead&&a.sp.hunt&&p.L.lvl<a.sp.hunt&&Math.hypot(a.x-p.x,a.z-p.z)<25)) goalEvent('hide',dt); }
   p.stealth=st;   // für die Tiere: wie gut dieser Spieler gerade getarnt ist
   return st;
 }
