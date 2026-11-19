@@ -1,7 +1,7 @@
 // LeopardLife – Entwicklungsfenster: Eigenschaften, Fähigkeiten, Erbanlagen, Ahnenkraft.
 import { snd } from './audio.js';
 import { ABIL, ATTR, ICOL, TRAITS, ico } from './data.js';
-import { keys } from './input.js';
+import { keys, touchUI } from './input.js';
 import { P, players } from './player.js';
 import { S, ancF, attrCap, save } from './save.js';
 import { G } from './state.js';
@@ -12,6 +12,8 @@ import { heirLevel } from './family.js';
 import { mateBecomeCub } from './kinship.js';
 import { animals } from './animals.js';
 import { cloneWithClasses, tell } from './coop.js';
+import { canvas } from './engine.js';
+import { padUI } from './gamepad.js';
 
 /* Icons für Eigenschaften, Fähigkeiten und Erbanlagen: 24er-Raster, Strichzeichnung in der jeweiligen Farbe */
 /** Wessen Entwicklung gerade offen ist: Spieler 1 oder ein Mitspieler */
@@ -60,7 +62,9 @@ function panelFor(p){
 }
 const q0=(el,s)=>/** @type {HTMLElement} */(el.querySelector(s));
 function toggleSkillPanel(p){
-  if(p.skOpen){ p.skOpen=false; if(p.skPanel) p.skPanel.style.display='none'; return; }
+  if(p.skOpen){ p.skOpen=false; if(p.skPanel) p.skPanel.style.display='none';
+    if(p===P&&!touchUI()&&!padUI()){ try{ const r=canvas.requestPointerLock(); if(r&&r.catch) r.catch(()=>{}); }catch(e){} }
+    return; }
   if(p.dead||sleeping) return;
   if(animals.some(a=>!a.dead&&(a.state==='chase'||a.state==='lunge')&&a.tgt===p&&Math.hypot(a.x-p.x,a.z-p.z)<45)){
     tell(p,'Du wirst gejagt – bring dich erst in Sicherheit, z. B. auf einem Baum.','#ff8a70'); return; }

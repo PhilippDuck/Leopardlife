@@ -14,9 +14,9 @@ durch Savanne und Sumpf.
 - Tag-Nacht-Wechsel, Regen und Gewitter, Tagesziele, drei Schwierigkeitsgrade
 - Gebiete: Savanne und Sumpf (mit Krokodilen); weitere geplant
 - Steuerung mit Tastatur und Maus, Touch oder Xbox-Controller
-- Gemeinsames Spiel (Splitscreen) für bis zu 4 Spieler: im Startmenü „Gemeinsam spielen" wählen, dann drückt ein weiterer
-  Controller Start zum Einsteigen. Back: eigene Entwicklung · Back halten: aussteigen. Jeder Leopard hat eigene Stufe und Werte;
-  das gemeinsame Spiel hat einen eigenen Spielstand.
+- Gemeinsames Spiel (Splitscreen) für bis zu 4 Spieler: Im Spiel drückt ein weiterer Controller Start und steigt ein –
+  auf der Stufe von Spieler 1, mit den passenden Punkten zum Verteilen. Back: eigene Entwicklung · Back halten: aussteigen. Erfahrung wird geteilt, Eigenschaften und
+  Fähigkeiten verteilt jeder selbst.
   Familie: Wer einsteigt, ist ein fremder Leopard – ab Stufe 8 können sich Spieler paaren (F bzw. X antippen). Ein Wurf hat ein
   Junges je Spieler; jeder entscheidet selbst, ob er als Junges weiterspielt. Junge eines Wurfs sind Geschwister: Verwandte paaren sich nicht.
   Wer zu Boden geht, kann von Mitspielern wiederbelebt werden (daneben X bzw. F halten, 3 s), sonst erwacht er nach einer Minute im Bau.

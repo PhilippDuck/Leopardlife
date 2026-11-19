@@ -3,21 +3,10 @@ import { DIFF, REGIONS } from './data.js';
 import { $ } from './util.js';
 
 /* ---------- Spielstand ---------- */
-// Spielmodus: 'solo' (allein) oder 'coop' (gemeinsam am selben Gerät, Splitscreen). Jeder Modus hat eigenen Spielstand und eigenes Ahnenbuch.
-let MODE=(()=>{ try{ return localStorage.getItem('jaguar-mode')==='coop'?'coop':'solo'; }catch(e){ return 'solo'; } })();
-let SAVE_KEY='', LINES_KEY='';
-const setKeys=()=>{ SAVE_KEY=MODE==='coop'?'jaguar-coop-v1':'jaguar-save-v1'; LINES_KEY=MODE==='coop'?'jaguar-coop-lines':'jaguar-lines'; };
-setKeys();
-/**
- * Wechselt den Modus und lädt den Spielstand des anderen Modus – ohne die Seite neu zu laden
- * (in eingebetteten Vorschauen darf sich die Seite nicht selbst neu laden).
- * Gibt false zurück, wenn der andere Spielstand in einem anderen Gebiet spielt; dann muss die Welt neu aufgebaut werden.
- */
-function setMode(m){
-  try{ localStorage.setItem('jaguar-mode',m); }catch(e){}
-  MODE=m; setKeys(); loadSave();
-  return (S.region&&REGIONS[S.region]&&!REGIONS[S.region].soon?S.region:'savanne')===REG_ID;
-}
+// Ein Spielstand für alles: Mitspieler steigen jederzeit ein (coop.js). Früher gab es einen eigenen Stand fürs gemeinsame Spiel;
+// wer zuletzt damit gespielt hat ('jaguar-mode' = 'coop'), spielt mit diesem Stand weiter.
+const MODE=(()=>{ try{ return localStorage.getItem('jaguar-mode')==='coop'?'coop':'solo'; }catch(e){ return 'solo'; } })();
+const SAVE_KEY=MODE==='coop'?'jaguar-coop-v1':'jaguar-save-v1', LINES_KEY=MODE==='coop'?'jaguar-coop-lines':'jaguar-lines';
 const fresh=()=>({region:'savanne',beat:{},day:0,goals:null,kills:0,anc:[],diff:'normal',tod:0.3,lvl:1,xp:0,pts:0,won:false,gen:1,fur:null,cub:null,food:0,preg:0,partner:false,p1:false,p2:false,hunger:100,age:0,traits:[],a:{str:0,spd:0,sta:0,vit:0,cam:0},b:{amb:0,jmp:0,roar:0,nose:0,climb:0,night:0},mates:{},id:'',parents:[],litterParents:null,partnerPlayer:false,partnerId:''});
 // mates: im gemeinsamen Spiel die Werte der Mitspieler nach Platz (2, 3, 4), siehe coop.js
 // id/parents: Verwandtschaft (kinship.js) · litterParents: Eltern des kommenden Wurfs · partnerPlayer: Partner ist ein Mitspieler
@@ -86,4 +75,4 @@ const LEOPARD_KEYS=['lvl','xp','pts','a','b','traits','fur','hunger','age','id',
 /** @type {(L?:Leopard)=>Leopard} */
 const copyLeopard=(L=S)=>{ const o=/** @type {any} */({}); for(const k of LEOPARD_KEYS) o[k]=JSON.parse(JSON.stringify(L[k]===undefined?null:L[k])); return o; };
 
-export { MODE, LINES_KEY, setMode, LEOPARD_KEYS, copyLeopard, D, DIE_AT, OLD_AT, REG, REG_ID, S, ancF, at, attrCap, baseSpeed, beaten, dmg, fresh, has, maxHp, maxSt, oldF, pScale, resetState, save, xpNeed };
+export { LINES_KEY, LEOPARD_KEYS, copyLeopard, D, DIE_AT, OLD_AT, REG, REG_ID, S, ancF, at, attrCap, baseSpeed, beaten, dmg, fresh, has, maxHp, maxSt, oldF, pScale, resetState, save, xpNeed };

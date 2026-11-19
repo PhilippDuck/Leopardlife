@@ -9,7 +9,7 @@ import { on } from './events.js';
 import { claimOverlay, pdz } from './gamepad.js';
 import { menuOpen, toggleMenu } from './menu.js';
 import { P, dropModel, makePlayer, players } from './player.js';
-import { S, copyLeopard, maxHp, maxSt, pScale, save } from './save.js';
+import { S, copyLeopard, fresh, maxHp, maxSt, pScale, save } from './save.js';
 import { sky, stars } from './sky.js';
 import { G } from './state.js';
 import { H, cullTiles } from './terrain.js';
@@ -39,14 +39,18 @@ function joinPlayer(i,gp){
   // Eigene Werte: startet als Geschwister auf der Stufe von Spieler 1 und entwickelt sich ab dann selbst
   // Gespeicherte Werte dieses Platzes, sonst neu (Kopie von Spieler 1); liegen im Spielstand und werden mit ihm gespeichert
   S.mates=S.mates||{};
-  let L=S.mates[num]; if(!L){ L=copyLeopard(S); L.fur=FURS[num-1]; L.hunger=100; L.age=0; L.kills=0; L.gen=S.gen||1; S.mates[num]=L; }
+  // Neu: fremder Leopard auf der Stufe von Spieler 1, mit den Punkten, die er bis dahin bekommen hätte (2 je Stufe) – selbst verteilen.
+  // Bekannt (gespeichert): hat Spieler 1 inzwischen allein weitergespielt, holt er die fehlenden Stufen samt Punkten auf.
+  let L=S.mates[num];
+  if(!L){ L=copyLeopard(S); Object.assign(L,{a:fresh().a,b:fresh().b,traits:[],xp:0,pts:2*(S.lvl-1),fur:FURS[num-1],hunger:100,age:0,kills:0,gen:S.gen||1}); S.mates[num]=L; }
+  else if(L.lvl<S.lvl){ L.pts+=2*(S.lvl-L.lvl); L.lvl=S.lvl; L.xp=0; }
   // Wer neu einsteigt, ist ein fremder Leopard (nicht verwandt) – erst eure Jungen sind miteinander verwandt
   if(!L.id||L.id===S.id){ L.id=newId(); L.parents=[]; } ensureKin(L); save();
   const p=makePlayer({source:'pad'+i,camera:cam,x:P.x+Math.sin(ang)*r,z:P.z+Math.cos(ang)*r,fur:L.fur||FURS[num-1],L});
   p.pad=i; p.num=num; p.padPrev=gp?gp.buttons.map(b=>!!b.pressed):[];   // der Start-Druck zum Einsteigen zählt nicht als Pause p.rot=P.rot; p.cam.yaw=P.cam.yaw; p.cam.pitch=P.cam.pitch;
   p.hud=makeHud(p);
   players.push(p); layoutChanged();
-  toast(NAMES[num-1]+' ist dabei! Back: Entwicklung · Back halten: aussteigen · Start: Pause','#9be07f'); snd.click();
+  toast(NAMES[num-1]+' ist dabei (Stufe '+L.lvl+')! '+(L.pts>0?L.pts+' Punkte verteilen mit Back · ':'Back: Entwicklung · ')+'Back halten: aussteigen','#9be07f'); snd.click();
   return p;
 }
 /** Spieler p steigt aus (Back zweimal oder Controller getrennt). */
@@ -250,6 +254,7 @@ function updateCoopHud(dt){
   }
   // Spieler 1 am Boden (nur im Koop): Hinweis in der großen Anzeige
   if(players.length>1&&P.dead&&P.downT!=null){ const s=Math.ceil(P.downT); if(s!==P.lastS){ P.lastS=s; $('crossMsg').textContent='Am Boden – Mitspieler: X halten · Bau in '+s+' s'; $('crossMsg').style.opacity='1'; } }
+  else if(P.lastS!=null){ P.lastS=null; $('crossMsg').style.opacity='0'; }   // wieder auf den Beinen (auch nach dem gemeinsamen Tod)
 }
 
 /* ---------- Mitspieler markieren ---------- */

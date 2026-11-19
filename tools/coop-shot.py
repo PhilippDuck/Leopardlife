@@ -9,7 +9,6 @@ os.makedirs(out, exist_ok=True)
 errors = []
 FAKE = """
 (() => {
-  try { localStorage.setItem('jaguar-mode', 'coop'); } catch (e) {}
   const pads = [];
   const mk = i => ({ index: i, id: 'Testcontroller ' + i + ' (Xbox)', connected: true, mapping: 'standard',
     buttons: Array.from({length: 17}, () => ({pressed: false, value: 0})), axes: [0, 0, 0, 0], vibrationActuator: null });
@@ -27,14 +26,17 @@ with sync_playwright() as p:
     pg.on('pageerror', lambda e: errors.append(f'pageerror: {e}'))
     pg.goto('http://localhost:8765/index.html?test')
     pg.wait_for_timeout(2000)
-    shot(pg, '0-start-koop')
+    shot(pg, '0-start')
     pg.click('#btnPlay'); pg.wait_for_timeout(1200)
     pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
     if pg.locator('#menu').is_visible(): pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
     pg.keyboard.down('KeyW'); pg.wait_for_timeout(600); pg.keyboard.up('KeyW')
+    pg.evaluate("(()=>{ const S=__leopard.S; S.lvl=5; })()")   # Spieler 1 ist schon Stufe 5
     # Controller 0: Start = Spieler 2 steigt ein (Spieler 1 spielt mit Tastatur)
     pg.evaluate("__pad(0,{b:[9]})"); pg.wait_for_timeout(700); pg.evaluate("__pad(0,{})"); pg.wait_for_timeout(600)
     joined = (pg.locator('.ph').count()-1)
+    newmate = pg.evaluate("JSON.stringify({lvl:__leopard.players[1].L.lvl,pts:__leopard.players[1].L.pts})")
+    pg.evaluate("__leopard.S.lvl=1")
     # Spieler 2 läuft nach vorn und dreht die Kamera
     pg.evaluate("__pad(0,{ax:[0.3,-1,0.4,0]})"); pg.wait_for_timeout(1500); pg.evaluate("__pad(0,{})"); pg.wait_for_timeout(300)
     shot(pg, '1-zwei-spieler')
@@ -86,10 +88,9 @@ with sync_playwright() as p:
     pg.evaluate("__pad(0,{b:[9]})"); pg.wait_for_timeout(700); pg.evaluate("__pad(0,{})"); pg.wait_for_timeout(400)
     menu = pg.locator('#menu').is_visible()
     shot(pg, '5-pause')
-    saved = pg.evaluate("JSON.stringify(Object.keys(JSON.parse(localStorage.getItem('jaguar-coop-v1')||'{}').mates||{}))")
-    solo = pg.evaluate("localStorage.getItem('jaguar-save-v1')")
+    saved = pg.evaluate("JSON.stringify(Object.keys(JSON.parse(localStorage.getItem('jaguar-save-v1')||'{}').mates||{}))")
     b.close()
-    print('Koop-Spielstand Mitspieler-Plätze:', saved, '| Einzelspielstand angelegt:', solo is not None)
+    print('Spielstand Mitspieler-Plätze:', saved, '| neuer Mitspieler bei Spieler 1 auf Stufe 5:', newmate)
 print('Sprung mit RT:', rt_jump, '| Geburtsfenster Knöpfe für Mitspieler:', birth_btns, '| Spieler 2 vorher Stufe', lvl_before, '→ als Junges', mate_cub)
 print('Markierungen nach Steuerkreuz links:', marks)
 print('Leiste Spieler 1 nach Ⓐ kurz:', repr(hint.strip()[:30]), '| nach Ⓐ 2 s:', repr(took.strip()[:30]))

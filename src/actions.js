@@ -70,8 +70,15 @@ function doRoar(p=P){
     if(a.sp.pred){ if(!a.sp.hunt||p.L.lvl+2*p.L.b.roar>=a.sp.hunt-3){ a.state='flee'; a.fleeT=0; a.aggro=0; a.scared=5; } }
     else if(!a.sp.boss&&!a.sp.friend){ a.stun=1.2+0.5*p.L.b.roar; } });
 }
-/** Spieler p bekommt n Erfahrung; Stufenaufstieg gibt 2 Punkte für die Entwicklung. */
+/**
+ * Spieler p bekommt n Erfahrung; Stufenaufstieg gibt 2 Punkte für die Entwicklung.
+ * Im gemeinsamen Spiel bekommt jeder Spieler die volle Erfahrung – ihr werdet gemeinsam stärker.
+ */
 function gainXp(n,p=P){
+  if(players.length>1){ for(const q of players) gainXpOne(n,q); return; }
+  gainXpOne(n,p);
+}
+function gainXpOne(n,p){
   const L=p.L, lv0=L.lvl; L.xp+=n; let up=false;
   while(L.xp>=xpNeed(L.lvl)){ L.xp-=xpNeed(L.lvl); L.lvl++; L.pts+=2; up=true; }
   if(up){ p.hp=maxHp(L); tell(p,'Stufe '+L.lvl+'! Du wächst. +2 Punkte (Tab)','#f2b84b'); puff(p.x,p.y+1,p.z,0xf2b84b,14,0.7); snd.level();
@@ -137,7 +144,7 @@ function respawn(p=P){
   G.heirPending=false; G.lineageEnd=false;
   p.tree=null; p.safe=false; p.dropY=0; p.upNow=0; p.x=sx; p.z=sz; p.rot=START_ROT; p.cam.yaw=START_YAW; p.hp=maxHp(); p.st=maxSt(); p.pounce=0; p.pcd=0; p.sneak=false; p.combatT=0; p.g.rotation.z=0;
   animals.forEach(o=>{ o.aggro=0; o.sus=0; o.near=false; if(o.state==='chase'){ o.state='wander'; o.timer=0; } });
-  updateWarn(0); $('hurt').style.opacity=0; $('dead').style.display='none'; p.dead=false; G.paused=false; initAudio(); snd.click();
+  updateWarn(0); $('hurt').style.opacity=0; $('crossMsg').style.opacity='0'; p.downT=null; $('dead').style.display='none'; p.dead=false; G.paused=false; initAudio(); snd.click();
   emit('respawn');
   if(!touchUI()){ try{ const r=canvas.requestPointerLock(); if(r&&r.catch) r.catch(()=>{}); }catch(e){} }
 }
