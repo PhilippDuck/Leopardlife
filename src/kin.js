@@ -1,5 +1,5 @@
 // LeopardLife – Partner und Elterntiere am Bau: verteidigen, Futter bringen, beschützen; Wechsel ins Junge.
-import { dead, gainXp } from './actions.js';
+import { gainXp } from './actions.js';
 import { animals } from './animals.js';
 import { snd } from './audio.js';
 import { REGIONS, TRAITS } from './data.js';
@@ -39,7 +39,7 @@ function famTarget(a,role){
   for(const o of animals){ if(o.dead||o.state!=='fightFam') continue; const d=Math.hypot(o.x-a.x,o.z-a.z); if((o.foe===a||d<60)&&d<bd){ bd=d; best=o; } }
   if(best) return best;
   if(G.raider&&!G.raider.pAway&&S.cub&&Math.hypot(G.raider.x-cub.x,G.raider.z-cub.z)<16) return G.raider;
-  if(role!=='partner'&&S.lvl<8&&!dead){
+  if(role!=='partner'&&S.lvl<8&&!P.dead){
     bd=130;
     for(const o of animals){
       if(o.dead||o.state!=='chase') continue;
@@ -72,7 +72,7 @@ function famStep(a,dt,role){
     }
   } else if(a.feeding){
     const dx=P.x-a.x, dz=P.z-a.z, d=Math.hypot(dx,dz);
-    if(dead||P.tree!=null&&d<4){ animLegs(a.g,a.ph,0.03); }
+    if(P.dead||P.tree!=null&&d<4){ animLegs(a.g,a.ph,0.03); }
     else if(d>3) moveAnimal(a,dx,dz,9.5,dt); else { a.feeding=false; deliverFood(a); famHome(a); }
   } else {
     a.timer-=dt; if(a.timer<=0||Math.hypot(a.tx-a.x,a.tz-a.z)<1){ famHome(a); a.idle=rnd(1,5); }
@@ -83,7 +83,7 @@ function famStep(a,dt,role){
 }
 function updateFamily(dt){
   for(let i=0;i<3;i++){ const a=fam[i], r=famRole(i); if(r&&!a.famOn) famPlace(a,CUB_HOME.x+rnd(-9,9),CUB_HOME.z+rnd(-9,9)); if(!r) a.famOn=false; }
-  if(kidMode()&&!dead){
+  if(kidMode()&&!P.dead){
     feedT-=dt;
     if(feedT<=0){ feedT=rnd(70,110); let b=null, bd=1e9; for(let i=1;i<3;i++){ const a=fam[i]; if(!a.famOn||a.feeding) continue; const d=Math.hypot(a.x-P.x,a.z-P.z); if(d<bd){ bd=d; b=a; } } if(b) b.feeding=true; }
   }

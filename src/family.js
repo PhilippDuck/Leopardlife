@@ -1,5 +1,4 @@
 // LeopardLife – Partnersuche, Paarung, Junges (Füttern, Wachsen, Überfälle) und Weiterleben als Junges.
-import { dead } from './actions.js';
 import { animals } from './animals.js';
 import { snd } from './audio.js';
 import { ICOL, QUAL, TRAITS, ico } from './data.js';
@@ -34,7 +33,7 @@ const seeking=()=>canMate()&&!S.partner;
 const heirLevel=()=>1+Math.floor(Math.min(1,S.cub.grow)*7);
 function nearestMate(){ let b=null, bd=1e9; for(const a of (S.partner?[fam[0]]:fam.slice(3))){ if(S.partner&&!a.famOn) continue; const d=Math.hypot(a.x-P.x,a.z-P.z); if(d<bd){ bd=d; b=a; } } return b?{a:b,d:bd}:null; }
 function context(){
-  if(dead||G.paused) return null;
+  if(P.dead||G.paused) return null;
   if(P.tree!=null) return (P.safe&&P.climbT>=1&&canSleepNow())?{label:'Schlafen',fn:sleepOnTree}:null;
   if(S.cub&&!cubGrown()&&S.food>0&&S.cub.full<97&&Math.hypot(cub.x-P.x,cub.z-P.z)<4.5) return {label:'Füttern',fn:feedCub};
   { const cc=nearCarcass(); if(cc){ if(S.cub&&S.cub.grow<1&&S.food<FOOD_MAX) return {label:'Fleisch mitnehmen',fn:()=>takeMeat(cc,true)}; if(S.hunger<90) return {label:'Fressen',fn:()=>takeMeat(cc,false)}; } }

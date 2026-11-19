@@ -7,7 +7,6 @@ import { S, ancF, attrCap, save } from './save.js';
 import { G } from './state.js';
 import { $ } from './util.js';
 import { menuOpen } from './menu.js';
-import { dead } from './actions.js';
 import { sleeping } from './daynight.js';
 
 /* Icons für Eigenschaften, Fähigkeiten und Erbanlagen: 24er-Raster, Strichzeichnung in der jeweiligen Farbe */
@@ -23,7 +22,7 @@ function renderSkills(){
 }
 $('skills').addEventListener('click',e=>{ const b=e.target.closest('button[data-k]'); if(!b) return; const g=b.dataset.g,k=b.dataset.k,cost=g==='a'?1:2,max=g==='a'?10:3;
   if(S.pts>=cost&&S[g][k]<max&&(g!=='a'||S.a[k]<attrCap())){ S[g][k]++; S.pts-=cost; snd.click(); if(k==='vit') P.hp+=15; save(); renderSkills(); } });
-function toggleSkills(){ if(sleeping||dead||$('win').style.display==='flex'||$('birth').style.display==='flex'||menuOpen()) return; const el=$('skills'); const open=el.style.display==='none'; if(open){ renderSkills(); el.style.display='flex'; G.paused=true; if(document.exitPointerLock) document.exitPointerLock(); for(const k in keys) keys[k]=false; } else { el.style.display='none'; G.paused=false; } }
+function toggleSkills(){ if(sleeping||P.dead||$('win').style.display==='flex'||$('birth').style.display==='flex'||menuOpen()) return; const el=$('skills'); const open=el.style.display==='none'; if(open){ renderSkills(); el.style.display='flex'; G.paused=true; if(document.exitPointerLock) document.exitPointerLock(); for(const k in keys) keys[k]=false; } else { el.style.display='none'; G.paused=false; } }
 $('btnClose').onclick=toggleSkills;
 
 export { toggleSkills };

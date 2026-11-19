@@ -70,18 +70,18 @@ function gainXp(n){
     if(lv0<8&&S.lvl>=8&&!S.cub) setTimeout(()=>toast('Du bist ausgewachsen. Andere Leoparden streifen jetzt umher – du findest sie als rosa Punkte auf der Spürkarte.','#ff9ad0'),3200); }
   save();
 }
-let dead=false;
-function hurtPlayer(d,a,force){
-  if(dead||(P.safe&&!force)) return;
+/** Spieler p erleidet d Schaden durch a (a.sp beschreibt die Ursache). force: auch auf dem Baum bzw. ohne Schwierigkeitsfaktor. */
+function hurtPlayer(d,a,force,p=P){
+  if(p.dead||(p.safe&&!force)) return;
   if(!force) d*=D().dmg;
   snd.hurt();
-  P.hp-=d; P.combatT=5; P.cam.shake=Math.max(P.cam.shake,Math.min(0.6,0.15+d/maxHp())); if(padUI()) rumble(Math.min(1,0.35+d/maxHp()),0.5,220); $('hurt').style.opacity=0.8; P.hurtT=0.25;
-  floatText('-'+Math.round(d),P.x,P.camY+1.5*pScale(),P.z,'#ff7a5c');
-  if(P.hp<=0){
-    P.hp=0; G.heirPending=!!S.cub; G.lineageEnd=!S.cub&&(a.sp.id==='age'||D().perma); let lost=0; if(!G.heirPending&&!G.lineageEnd){ lost=Math.floor(S.xp*D().xpLoss); S.xp-=lost; } save();
-    dead=true; G.paused=true; P.pounce=0; for(const k in keys) keys[k]=false; G.drag=false;
+  p.hp-=d; p.combatT=5; p.cam.shake=Math.max(p.cam.shake,Math.min(0.6,0.15+d/maxHp())); if(padUI()) rumble(Math.min(1,0.35+d/maxHp()),0.5,220); $('hurt').style.opacity=0.8; p.hurtT=0.25;
+  floatText('-'+Math.round(d),p.x,p.camY+1.5*pScale(),p.z,'#ff7a5c');
+  if(p.hp<=0){
+    p.hp=0; G.heirPending=!!S.cub; G.lineageEnd=!S.cub&&(a.sp.id==='age'||D().perma); let lost=0; if(!G.heirPending&&!G.lineageEnd){ lost=Math.floor(S.xp*D().xpLoss); S.xp-=lost; } save();
+    p.dead=true; G.paused=true; p.pounce=0; for(const k in keys) keys[k]=false; G.drag=false;
     if(document.exitPointerLock) document.exitPointerLock();
-    P.g.rotation.z=Math.PI/2; P.g.position.y=P.y+0.25*pScale();
+    p.g.rotation.z=Math.PI/2; p.g.position.y=p.y+0.25*pScale();
     snd.death();
     const fem=(a.sp.id==='hyena'||a.sp.id==='giant');
     G.lastCause=a.sp.id==='hunger'?'verhungert':a.sp.id==='age'?'an Altersschwäche gestorben':'von '+(DAT[a.sp.id]||'einem '+a.sp.n)+' getötet';
@@ -104,7 +104,8 @@ function hurtPlayer(d,a,force){
     $('hurt').style.opacity=0.55; $('dead').style.display='flex'; updateUI();
   }
 }
-function respawn(){
+/** Spieler p erwacht neu (im Bau, als Junges oder mit neuer Blutlinie). */
+function respawn(p=P){
   let sx=2, sz=2;
   if(G.heirPending&&S.cub){
     sx=cub.x; sz=cub.z; becomeCub(false);
@@ -113,12 +114,12 @@ function respawn(){
   else if(G.lineageEnd){ recordAncestor(G.lastCause); archiveLine(); const df=S.diff; resetState(); S.diff=df; save(); if(REG_ID!=='savanne'){ reloadWorld(false); return; } rebuildPlayer(); rebuildCub(); animals.forEach(placeAnimal); G.raider=null; toast('Eine neue Blutlinie beginnt.','#f2b84b'); }
   else S.hunger=Math.max(S.hunger,70);
   G.heirPending=false; G.lineageEnd=false;
-  P.tree=null; P.safe=false; P.dropY=0; P.upNow=0; P.x=sx; P.z=sz; P.rot=START_ROT; P.cam.yaw=START_YAW; P.hp=maxHp(); P.st=maxSt(); P.pounce=0; P.pcd=0; P.sneak=false; P.combatT=0; P.g.rotation.z=0;
+  p.tree=null; p.safe=false; p.dropY=0; p.upNow=0; p.x=sx; p.z=sz; p.rot=START_ROT; p.cam.yaw=START_YAW; p.hp=maxHp(); p.st=maxSt(); p.pounce=0; p.pcd=0; p.sneak=false; p.combatT=0; p.g.rotation.z=0;
   animals.forEach(o=>{ o.aggro=0; o.sus=0; o.near=false; if(o.state==='chase'){ o.state='wander'; o.timer=0; } });
-  updateWarn(0); $('hurt').style.opacity=0; $('dead').style.display='none'; dead=false; G.paused=false; initAudio(); snd.click();
+  updateWarn(0); $('hurt').style.opacity=0; $('dead').style.display='none'; p.dead=false; G.paused=false; initAudio(); snd.click();
   if(!touchUI()){ try{ const r=canvas.requestPointerLock(); if(r&&r.catch) r.catch(()=>{}); }catch(e){} }
 }
-$('btnRespawn').onclick=respawn;
+$('btnRespawn').onclick=()=>respawn();
 /** Spieler p trifft Tier a: Schaden, Hinterhalt, Beute, Erfahrung (Erfahrung und Stufe sind noch gemeinsam). */
 function hitAnimal(a,p=P){
   let d=dmg(), amb=false;
@@ -147,5 +148,5 @@ function hitAnimal(a,p=P){
 }
 G.lastHit=null; G.lastHitT=0;
 
-export { dead, doClimb, doPounce, doRoar, gainXp, hitAnimal, hurtPlayer, nearestTree };
+export { doClimb, doPounce, doRoar, gainXp, hitAnimal, hurtPlayer, nearestTree };
 export { respawn };

@@ -1,5 +1,5 @@
 // LeopardLife – Anzeige: Entdeckungswarnung, Kamera, Fadenkreuz, Statusleisten, Ziel, Spürkarte.
-import { dead, nearestTree } from './actions.js';
+import { nearestTree } from './actions.js';
 import { animals } from './animals.js';
 import { snd } from './audio.js';
 import { esc } from './carcass.js';
@@ -53,7 +53,7 @@ function updateWarn(dt){
 }
 /** Setzt die Kamera cam hinter Spieler p (Abstand, Neigung, Jagd-Ansicht, Wackeln). Beim Splitscreen hat jeder Spieler seine. */
 function updateCamera(p,cam){
-  p.cam.huntF+=(((p.sneak&&p.tree==null&&!dead&&!G.paused)?1:0)-p.cam.huntF)*0.06;
+  p.cam.huntF+=(((p.sneak&&p.tree==null&&!p.dead&&!G.paused)?1:0)-p.cam.huntF)*0.06;
   const sc=pScale(), dist=(5+sc*6.5)*p.cam.zoom*(1-0.3*p.cam.huntF), ty=p.camY+sc*1.1+dist*0.16;
   const fov=60-8*p.cam.huntF; if(Math.abs(cam.fov-fov)>0.05){ cam.fov=fov; cam.updateProjectionMatrix(); }
   const cp=Math.cos(p.cam.pitch);
