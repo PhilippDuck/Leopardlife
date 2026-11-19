@@ -84,7 +84,7 @@ function mateContextInfo(p){
   if(p.tree!=null) return (p.safe&&p.climbT>=1&&canSleepNow())?{label:p.wantSleep?'Wartet auf die anderen …':'Schlafen'}:null;
   const q=pairCandidate(p); if(q&&canPair(p,q)) return {label:'Paaren mit '+nameOf(q)};
   if(S.cub&&S.cub.grow<1&&S.food>0&&S.cub.full<97&&Math.hypot(cub.x-p.x,cub.z-p.z)<4.5) return {label:'Füttern'};
-  const cc=nearCarcass(p); if(cc){ if(p.L.hunger<90) return {label:'Fressen'}; if(S.cub&&S.cub.grow<1&&S.food<FOOD_MAX) return {label:'Fleisch mitnehmen'}; }
+  const cc=nearCarcass(p); if(cc){ if(p.L.hunger<90&&p.eatC!==cc) return {label:'Fressen ('+cc.carc.meat+' Bissen übrig)'}; if(S.cub&&S.cub.grow<1&&S.food<FOOD_MAX) return {label:'Fleisch mitnehmen'}; }
   return null;
 }
 /** Aktionstaste eines Mitspielers (X antippen): paaren, Junges füttern. */

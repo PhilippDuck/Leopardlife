@@ -55,6 +55,7 @@
   .skill small{display:block;color:var(--mut);font-size:11.5px;margin-top:1px}
   .pips{letter-spacing:1px;color:var(--gold);font-size:12px;white-space:nowrap}
   .skill button{padding:4px 11px;font-size:13px}
+  .ghost2{background:transparent;color:var(--txt);border:1px solid var(--line)} .ghost2:disabled{opacity:.35;cursor:default}
   .sect{margin:14px 0 2px;font-size:12px;text-transform:uppercase;letter-spacing:1.5px;color:var(--mut)}
   #menuBtn{z-index:1;position:fixed;right:12px;top:calc(var(--rad) + 20px);padding:5px 10px;font-size:12px;border:1px solid var(--line);background:var(--bg)}
   #menu .card{width:min(360px,92vw)} #menu button{display:block;width:100%;margin-top:9px;font-size:14px;padding:10px 14px}
@@ -242,7 +243,7 @@ body.quad .ph{--rad:92px}
     <p style="font-size:13px;color:var(--mut)"><b style="color:#96cdff">Wind:</b> Der blaue Pfeil an der Spürkarte zeigt, wohin der Wind weht. Tiere, zu denen er deinen Geruch trägt, bemerken dich früher – pirsche dich gegen den Wind an. Der gestrichelte Wahrnehmungsring zeigt das an. Ab „Normal" jagen Hyänen und Schakale im Rudel und Beute schlägt Haken, auf „Schwer" noch geschickter.</p>
     <p style="font-size:13px;color:var(--mut)"><b style="color:var(--gold)">Gebiete und Ahnenkraft:</b> Jede zweite Generation öffnet ein neues Gebiet (Menü → Gebiete) – ab Generation 3 den Sumpf mit seinen Krokodilen. Jede Generation macht deine Linie außerdem etwas stärker.</p>
     <p style="font-size:13px;color:var(--mut)"><b style="color:#9be07f">Tagesziele und Wetter:</b> Jeden Morgen gibt es drei Tagesziele mit Bonus-Erfahrung (links oben). Regen und Gewitter übertönen deine Schritte – gut zum Anschleichen; Donner schreckt Beute auf. Tiere hinterlassen Fährten (Raubtiere rötlich); mit Witterung bleiben sie länger sichtbar.</p>
-    <p style="font-size:13px;color:var(--mut)"><b style="color:#c08050">Kadaver und Herden:</b> Große Beute frisst du nur zur Hälfte, der Rest bleibt als Kadaver liegen (F: fressen oder mitnehmen) – und lockt Hyänen und Schakale an. Hirsche, Antilopen und Wasserschweine ziehen in Herden: Flieht eines, fliehen alle. Im Menü findest du das Ahnenbuch deiner Blutlinie.</p>
+    <p style="font-size:13px;color:var(--mut)"><b style="color:#c08050">Kadaver und Herden:</b> Mäuse und Hasen sind sofort verschlungen. Größere Beute bleibt als Kadaver liegen: Die roten Kugeln darüber zeigen, wie viele Bissen noch übrig sind – je größer das Tier, desto mehr. Alle Leoparden fressen davon, Bissen für Bissen, bis sie satt sind (F, Laufen hört auf). Hyänen und Schakale wittern ihn, und nach einer Weile verdirbt er (die Kugeln blinken). Hirsche, Antilopen und Wasserschweine ziehen in Herden: Flieht eines, fliehen alle. Im Menü findest du das Ahnenbuch deiner Blutlinie.</p>
     <p style="font-size:13px"><b style="color:var(--gold)">Mit Xbox-Controller:</b> linker Stick laufen, rechter Stick Kamera, RT (oder Ⓐ) Sprung, LT Sprinten, Ⓑ Schleichen, Ⓧ Aktion, Ⓨ Klettern, LB Brüllen, Menü-Taste ☰ Pause. In Menüs wählt das Steuerkreuz, Ⓐ bestätigt, Ⓑ geht zurück.</p>
     <p style="font-size:13px"><b style="color:var(--gold)">Am Handy oder Tablet:</b> linke Bildschirmhälfte = laufen (der Joystick erscheint, wo der Daumen aufsetzt), rechte Hälfte ziehen = Kamera, <b>rechts doppeltippen = Sprungangriff</b>.</p>
     <div class="keys">
@@ -284,7 +285,7 @@ body.quad .ph{--rad:92px}
   <div class="sect">Eigenschaften · 1 Punkt</div><div id="skA"></div>
   <div class="sect">Fähigkeiten · 2 Punkte</div><div id="skB"></div>
   <div class="sect">Erbanlagen</div><div id="skT"></div>
-  <div style="margin-top:16px"><button id="btnClose">Weiter jagen</button></div>
+  <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap"><button id="btnClose">Weiter jagen</button><button id="btnSkReset" class="ghost2" disabled>↺ Auswahl zurücksetzen</button></div>
 </div></div>
 
 <div id="menu" class="overlay" style="display:none"><div class="card panel">

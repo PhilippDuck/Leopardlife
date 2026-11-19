@@ -33,8 +33,26 @@ function updateFx(dt){
   }
 }
 
+/* Fleisch-Kugeln über einem Kadaver: eine Kugel je Bissen, in Reihen zu höchstens 8 */
+const orbGeo=new THREE.SphereGeometry(0.16,10,8);
+const orbMat=new THREE.MeshBasicMaterial({color:0xe0603a,transparent:true,opacity:0.95,depthWrite:false});
+/** Baut die Kugelgruppe für n Bissen über Position x,y,z */
+function meatOrbs(n,x,y,z){
+  const g=new THREE.Group(); g.position.set(x,y,z);
+  for(let i=0;i<n;i++){ const row=Math.floor(i/8), col=i%8, inRow=Math.min(8,n-row*8);
+    const m=new THREE.Mesh(orbGeo,orbMat); m.position.set((col-(inRow-1)/2)*0.42,row*0.42,0); m.renderOrder=6; g.add(m); }
+  scene.add(g); return g;
+}
+/** Kugeln an den Rest anpassen: je Bissen eine sichtbar; kurz vor dem Verderben blinken sie; schweben leicht */
+function syncOrbs(g,meat,left,now){
+  g.children.forEach((m,i)=>{ m.visible=i<meat; });
+  g.visible=left>10||Math.sin(now*12)>-0.3;
+  g.position.y=g.userData.y0+Math.sin(now*2)*0.08; g.rotation.y=now*0.6;
+}
+function dropOrbs(g){ if(g) scene.remove(g); }
+
 /* Trefferfeedback */
 // slowT: kurze Zeitlupe nach Hinterhalt und Beute
 G.slowT=0;
 
-export { puff, puffs, roarFx, updateFx };
+export { dropOrbs, meatOrbs, puff, puffs, roarFx, syncOrbs, updateFx };

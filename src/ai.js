@@ -2,7 +2,7 @@
 import { hitAnimal, hurtPlayer } from './actions.js';
 import { animals, placeAnimal } from './animals.js';
 import { snd } from './audio.js';
-import { herdLead, startFlee } from './carcass.js';
+import { endCarcass, herdLead, startFlee } from './carcass.js';
 import { dayF } from './daynight.js';
 import { SMART, windMulDir } from './engine.js';
 import { raidStep, seeking } from './family.js';
@@ -17,6 +17,7 @@ import { addTrack } from './tracks.js';
 import { floatText } from './ui.js';
 import { rnd } from './util.js';
 import { crocStep } from './crocodile.js';
+import { syncOrbs } from './effects.js';
 
 /* Rudel: Hyänen und Schakale rufen ihre Artgenossen zur Jagd (je nach Schwierigkeit) */
 const PACK={hyena:1,jack:1};
@@ -54,7 +55,7 @@ function targetOf(a){
 function updateAnimal(a,dt){
   const T=targetOf(a), stealth=T.stealth==null?1:T.stealth;
   if(a.dead){
-    if(a.carc){ a.carc.t-=dt; if(a.carc.t<=0||a.carc.meat<=0){ a.carc=null; a.g.visible=false; a.g.rotation.z=0; } return; }
+    if(a.carc){ a.carc.t-=dt; if(a.carc.t<=0||a.carc.meat<=0){ endCarcass(a); a.g.visible=false; a.g.rotation.z=0; } else syncOrbs(a.carc.orbs,a.carc.meat,a.carc.t,performance.now()/1000); return; }
     a.respawn-=dt; if(a.respawn<=0) placeAnimal(a); return; }
   const sp=a.sp, dx=T.x-a.x, dz=T.z-a.z, d=Math.hypot(dx,dz);
   if(sp.friend){

@@ -38,7 +38,7 @@ function context(){
   if(P.dead||G.paused) return null;
   if(P.tree!=null) return (P.safe&&P.climbT>=1&&canSleepNow())?{label:P.wantSleep?'Wartet auf die anderen …':players.some(o=>o!==P&&o.wantSleep)?'Schlafen (die anderen warten)':'Schlafen',fn:()=>sleepOnTree(P)}:null;
   if(S.cub&&!cubGrown()&&S.food>0&&S.cub.full<97&&Math.hypot(cub.x-P.x,cub.z-P.z)<4.5) return {label:'Füttern',fn:feedCub};
-  { const cc=nearCarcass(); if(cc){ if(S.cub&&S.cub.grow<1&&S.food<FOOD_MAX) return {label:'Fleisch mitnehmen',fn:()=>takeMeat(cc,true)}; if(S.hunger<90) return {label:'Fressen',fn:()=>takeMeat(cc,false)}; } }
+  { const cc=nearCarcass(); if(cc){ if(S.cub&&S.cub.grow<1&&S.food<FOOD_MAX) return {label:'Fleisch mitnehmen',fn:()=>takeMeat(cc,true)}; if(S.hunger<90&&P.eatC!==cc) return {label:'Fressen ('+cc.carc.meat+' Bissen übrig)',fn:()=>takeMeat(cc,false)}; } }
   if(S.food>0&&S.hunger<50) return {label:'Fressen',fn:eatFood};
   { const q=pairCandidate(P); if(q){ if(canPair(P,q)) return {label:'Paaren mit '+nameOf(q),fn:()=>pairPlayers(P,q)}; if(related(P.L,q.L)&&canMate()) return {label:'Verwandt – keine Paarung',fn:()=>pairPlayers(P,q)}; } }
   if(canMate()){ const m=nearestMate(); if(m&&m.d<4.5) return {label:'Paaren',fn:()=>mateWith(m.a)}; }

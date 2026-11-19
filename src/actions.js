@@ -16,7 +16,7 @@ import { trees } from './vegetation.js';
 import { FOOD_MAX, cub, heirLevel, rebuildCub } from './family.js';
 import { becomeCub } from './kin.js';
 import { dayF } from './daynight.js';
-import { archiveLine, makeCarcass, recordAncestor, startFlee } from './carcass.js';
+import { archiveLine, makeCarcass, recordAncestor, startFlee, takeMeat } from './carcass.js';
 import { goalEvent } from './goals.js';
 import { padUI, rumble } from './gamepad.js';
 import { updateUI, updateWarn } from './hud.js';
@@ -163,10 +163,13 @@ function hitAnimal(a,p=P){
   if(a.hp<=0){ snd.kill(); buzz(p,0.5,0.8,180); G.slowT=Math.max(G.slowT,0.22); p.cam.shake=Math.max(p.cam.shake,0.4*pScale(p.L)); }
   if(a.hp<=0){
     a.dead=true; a.respawn=rnd(18,30); p.L.kills=(p.L.kills||0)+1; goalEvent('kill',1,{sp:a.sp.id,night:dayF<0.5,herd:!!a.herd});
-    { const n=FOOD[a.sp.id]||1, now=n>=4?Math.ceil(n/2):n; let rest=now;
-      if(S.cub&&S.cub.grow<1){ const k=Math.min(FOOD_MAX-S.food,now); S.food+=k; rest=n-k; if(k>0) floatText('+'+k+' Futter im Vorrat',a.x,H(a.x,a.z)+a.sp.size*1.2,a.z,'#ff9ad0'); }
-      if(rest>0) p.L.hunger=Math.min(100,p.L.hunger+rest*10);
-      if(n>=4) makeCarcass(a,n-now); else a.g.visible=false; }
+    // Kleine Beute (Maus, Hase) ist sofort verschlungen; größere bleibt als Kadaver mit einer Kugel je Bissen liegen,
+    // die Jägerin fängt gleich an zu fressen. Ein Junges zuhause bekommt bis zur Hälfte davon in den Vorrat.
+    { const n=FOOD[a.sp.id]||1;
+      if(n<3){ p.L.hunger=Math.min(100,p.L.hunger+n*10); a.g.visible=false; }
+      else { let m=n;
+        if(S.cub&&S.cub.grow<1){ const k=Math.min(FOOD_MAX-S.food,Math.ceil(n/2)); if(k>0){ S.food+=k; m-=k; floatText('+'+k+' Futter im Vorrat',a.x,H(a.x,a.z)+a.sp.size*1.2,a.z,'#ff9ad0'); } }
+        makeCarcass(a,m); if(m>0&&p.L.hunger<100) takeMeat(a,false,p); } }
     puff(a.x,H(a.x,a.z)+a.sp.size*0.7,a.z,a.sp.m.col,10,0.5+a.sp.size*0.5);
     p.hp=Math.min(maxHp(p.L),p.hp+maxHp(p.L)*0.25+a.sp.xp*0.1);
     const xpv=a.sp.xp*(a.fur&&a.fur.albino?2:1); if(a.fur&&a.fur.albino) toast('Seltene Beute: ein Albino! Doppelte Erfahrung.','#f2b84b');

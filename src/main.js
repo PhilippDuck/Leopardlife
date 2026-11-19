@@ -24,7 +24,7 @@ import { CUB_HOME, FOOD_MAX, context, cub, doContext, endRaid, heirLevel, raidSt
 import { canMate, fam, famHurt, famRole, famStep, kidMode, updateFamily } from './kin.js';
 import { updateLife } from './life.js';
 import { clockStr, dayF, updateDayNight } from './daynight.js';
-import { esc, herdLead, startFlee } from './carcass.js';
+import { esc, herdLead, startFlee, updateEating } from './carcass.js';
 import { W, updateWeather } from './weather.js';
 import { goalEvent, newGoals, renderGoals } from './goals.js';
 import { addTrack, updateTracks } from './tracks.js';
@@ -72,6 +72,7 @@ function frame(now){
 function step(dt){
   for(const p of players) readControls(p,dt);
   for(const p of players) if(!p.dead) stepPlayer(p,dt);
+  for(const p of players) updateEating(p,dt);
   updateCoop(dt);
   G.birdT-=dt; if(G.birdT<=0){ G.birdT=rnd(4,11); snd.bird(); }
   updateWeather(dt);

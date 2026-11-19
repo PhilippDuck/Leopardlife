@@ -2,7 +2,7 @@
 import { animals } from './animals.js';
 import { snd } from './audio.js';
 import { DIFF, ICOL, TRAITS, ico } from './data.js';
-import { puff } from './effects.js';
+import { dropOrbs, meatOrbs, puff } from './effects.js';
 import { FOOD_MAX } from './family.js';
 
 import { animLegs, furColor, furName } from './models.js';
@@ -16,9 +16,13 @@ import { goalEvent } from './goals.js';
 import { related } from './kinship.js';
 
 /* ---------- Kadaver, Aasfresser, Herden, Ahnenbuch ---------- */
-// Größere Beute bleibt als Kadaver liegen: Du frisst gleich die Hälfte, der Rest bleibt für später – und lockt Hyänen und Schakale an.
+// Kadaver: Beute ab der Größe eines Schakals bleibt liegen. Jeder Bissen ist eine Kugel über dem Kadaver – je größer das Tier,
+// desto mehr Bissen (FOOD in data.js). Alle Spieler und Aasfresser fressen davon, bis nichts mehr übrig ist oder er verdirbt.
+const BITE_T=0.7;
 function makeCarcass(a,meat){
-  a.carc={t:55,meat}; a.g.visible=true; a.g.rotation.z=Math.PI/2;
+  const life=40+8*meat;
+  a.carc={t:life,meat,orbs:meatOrbs(meat,a.x,H(a.x,a.z)+a.sp.size*1.4+0.6,a.z)}; a.carc.orbs.userData.y0=a.carc.orbs.position.y;
+  a.g.visible=true; a.g.rotation.z=Math.PI/2;
   a.g.position.set(a.x,H(a.x,a.z)+a.sp.size*0.22,a.z); animLegs(a.g,0,0);
   const sc=animals.filter(o=>!o.dead&&(o.sp.id==='hyena'||o.sp.id==='jack')&&o.state==='wander'&&Math.hypot(o.x-a.x,o.z-a.z)<150)
     .sort((p,q)=>(p.sp.id==='hyena'?0:1)-(q.sp.id==='hyena'?0:1)||Math.hypot(p.x-a.x,p.z-a.z)-Math.hypot(q.x-a.x,q.z-a.z)).slice(0,2);
@@ -26,15 +30,26 @@ function makeCarcass(a,meat){
   if(sc.length&&Math.hypot(P.x-a.x,P.z-a.z)<80){ const hy=sc[0].sp.id==='hyena';
     setTimeout(()=>toast((hy?'Hyänen':'Schakale')+' haben die Beute gewittert und kommen!'+(sc[0].sp.hunt&&S.lvl<sc[0].sp.hunt?' Nimm dir, was du brauchst, und verschwinde.':''),'#f2b84b'),1200); }
 }
+/** Kadaver a ist weg (leer, verdorben oder Tier neu gesetzt) */
+function endCarcass(a){ if(!a.carc) return; dropOrbs(a.carc.orbs); a.carc=null; }
 /** Kadaver mit Fleisch in Reichweite von Spieler p, sonst null */
 function nearCarcass(p=P){ for(const a of animals){ if(a.carc&&a.carc.meat>0&&Math.hypot(a.x-p.x,a.z-p.z)<a.rad+2.6) return a; } return null; }
-/** Spieler p frisst vom Kadaver c (store: Fleisch für das Junge in den Vorrat mitnehmen) */
+/** Spieler p: Fleisch für das Junge in den Vorrat mitnehmen (store) oder anfangen zu fressen (Bissen für Bissen, bis satt) */
 function takeMeat(c,store,p=P){
-  const L=p.L, n=store?Math.min(c.carc.meat,FOOD_MAX-S.food):Math.min(c.carc.meat,Math.max(1,Math.ceil((100-L.hunger)/10)));
-  if(n<=0) return;
-  if(store) S.food+=n; else { L.hunger=Math.min(100,L.hunger+n*10); p.hp=Math.min(maxHp(L),p.hp+maxHp(L)*0.05*n); }
-  c.carc.meat-=n; snd.eat(); if(!store) goalEvent('meat',1); puff(c.x,H(c.x,c.z)+0.6,c.z,0xc0392b,5,0.4);
-  floatText(store?'+'+n+' Futter im Vorrat':'gefressen',c.x,H(c.x,c.z)+1.4,c.z,store?'#ff9ad0':'#e0a060');
+  if(store){ const n=Math.min(c.carc.meat,FOOD_MAX-S.food); if(n<=0) return; S.food+=n; c.carc.meat-=n; snd.eat();
+    puff(c.x,H(c.x,c.z)+0.6,c.z,0xc0392b,5,0.4); floatText('+'+n+' Futter im Vorrat',c.x,H(c.x,c.z)+1.4,c.z,'#ff9ad0'); return; }
+  if(p.L.hunger>=100) return;
+  p.eatC=c; p.eatT=BITE_T*0.6; goalEvent('meat',1);
+}
+/** Fressen läuft: alle BITE_T Sekunden ein Bissen (+10 Hunger, etwas Leben). Endet bei Bewegung, satt, leer oder zu weit weg. */
+function updateEating(p,dt){
+  const c=p.eatC; if(!c) return;
+  const L=p.L, moving=Math.hypot(p.ctl.fw,p.ctl.rt)>0.1;
+  if(p.dead||moving||p.tree!=null||!c.carc||c.carc.meat<=0||L.hunger>=100||Math.hypot(c.x-p.x,c.z-p.z)>c.rad+3.2){ p.eatC=null; return; }
+  p.eatT+=dt; if(p.eatT<BITE_T) return; p.eatT=0;
+  c.carc.meat--; L.hunger=Math.min(100,L.hunger+10); p.hp=Math.min(maxHp(L),p.hp+maxHp(L)*0.05);
+  snd.eat(); puff(c.x,H(c.x,c.z)+0.6,c.z,0xc0392b,3,0.35);
+  if(L.hunger>=100) floatText('satt',p.x,p.y+1.8,p.z,'#e0a060');
 }
 // Herden: Wasserschweine, Hirsche und Antilopen ziehen in Gruppen. Flieht eines, fliehen die Nachbarn mit.
 const herdLead=a=>{ for(const m of a.herd) if(!m.dead) return m; return a; };
@@ -71,4 +86,4 @@ $('btnBook').onclick=openBook;
 $('btnBookBack').onclick=closeBook;
 
 export { esc, herdLead, startFlee };
-export { archiveLine, bookOpen, closeBook, makeCarcass, nearCarcass, recordAncestor, takeMeat };
+export { archiveLine, bookOpen, closeBook, endCarcass, makeCarcass, nearCarcass, recordAncestor, takeMeat, updateEating };
