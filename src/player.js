@@ -63,6 +63,7 @@ const JAG={col:0xe0a23c,col2:0xf0c98a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.44
  * @property {number|null} [downT] Restzeit am Boden bis zum Erwachen im Bau (Koop)
  * @property {number} [revT] Fortschritt beim Wiederbeleben in Sekunden
  * @property {number} [lastS] zuletzt angezeigte Sekunde am Boden
+ * @property {HTMLElement[]} [waPool] Warnpfeile in der kleinen Anzeige
  */
 
 /**

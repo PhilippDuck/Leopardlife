@@ -19,7 +19,7 @@ import { canSleepNow, sleepOnTree } from './daynight.js';
 import { nearCarcass, takeMeat } from './carcass.js';
 import { goalEvent } from './goals.js';
 import { moveAnimal } from './ai.js';
-import { nameOf } from './coop.js';
+import { nameOf, viewMin } from './coop.js';
 import { canPair, ensureKin, litterLeaves, litterSize, newId, pairCandidate, pairPlayers, related } from './kinship.js';
 
 /* ---------- Familie: Partner, Junges, Futter, Überfälle ---------- */
@@ -130,7 +130,7 @@ function updateFamArrow(dt){
   if(S.cub&&!cubGrown()&&(G.raider||S.cub.full<20)){ tx=cub.x; tz=cub.z; }
   else if(canMate()&&seekT<15){ const m=nearestMate(); if(m){ tx=m.a.x; tz=m.a.z; } }
   if(tx===null||Math.hypot(tx-P.x,tz-P.z)<9){ el.style.display='none'; return; }
-  const dx=tx-P.x, dz=tz-P.z, s=Math.sin(P.cam.yaw), c=Math.cos(P.cam.yaw), ang=Math.atan2(dx*c-dz*s,-(dx*s+dz*c)), R=Math.min(window.innerWidth,window.innerHeight)*0.27;
+  const dx=tx-P.x, dz=tz-P.z, s=Math.sin(P.cam.yaw), c=Math.cos(P.cam.yaw), ang=Math.atan2(dx*c-dz*s,-(dx*s+dz*c)), R=viewMin(P)*0.27;
   el.style.display='block'; el.style.transform='rotate('+ang+'rad) translateY('+(-R)+'px) scale(0.8)';
 }
 

@@ -151,6 +151,11 @@ body.split #eye{left:var(--cx);top:calc(var(--cy) - 62px)}
 body.split #ctxHint{left:var(--cx);top:calc(var(--cy) + 64px)}
 body.split #crossMsg{left:var(--cx);top:calc(var(--cy) + 40px)}
 body.split #cds{left:var(--cx)}
+body.split #radar{right:calc(var(--rr) + 10px);top:calc(var(--rt) + 10px);--rad:120px}
+body.split #menuBtn{right:calc(var(--rr) + 10px);top:calc(var(--rt) + 138px)}
+.pvRadar{position:absolute;right:8px;top:8px;width:min(110px,28%);aspect-ratio:1;border-radius:50%;box-shadow:0 0 0 2px rgba(0,0,0,.5)}
+.pvRing{position:absolute;left:50%;top:50%;width:0;height:0}
+.pvWarn{position:absolute;left:50%;top:10px;transform:translateX(-50%);font-size:12px;font-weight:bold;text-shadow:0 1px 4px #000;white-space:nowrap;display:none;max-width:60%;overflow:hidden;text-overflow:ellipsis}
 body.split #warn,body.split #target{left:var(--cx);max-width:calc(var(--vw) - 16px)}
 .pv{position:fixed;pointer-events:none;box-sizing:border-box;border-left:2px solid rgba(0,0,0,.55);border-top:2px solid rgba(0,0,0,.55);padding:8px 10px;z-index:4}
 .pvName{font-weight:bold;font-size:14px;text-shadow:0 1px 3px #000}

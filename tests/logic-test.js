@@ -31,7 +31,7 @@ const doc={ querySelectorAll:()=>[], getElementById:el, addEventListener(){}, cr
 let raf=null;
 const g={ window:win, document:doc, navigator:{maxTouchPoints:0}, localStorage:{getItem:k=>(k in ls?ls[k]:null),setItem:(k,v)=>{ls[k]=String(v);}}, THREE:win.THREE,
   requestAnimationFrame:fn=>{ if(fn.name==='frame') raf=fn; else fn(); }, setTimeout:fn=>{ fn(); } };
-const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId};';
+const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows};';
 new Function(...Object.keys(g), body)(...Object.values(g));
 const T=globalThis.__T; const rnd2=()=>Math.random()*8-4; const localStorageDump=()=>ls['jaguar-lines'];
 els.btnPlay.onclick();
@@ -222,4 +222,14 @@ console.log('audio nodes created',ACs&&ACs.count());
   if(T.canPair(P,Q)) { console.log('FEHLER: Geschwister dürfen sich nicht paaren'); process.exit(1); }
   console.log('Familie: Fremde paaren sich, Wurf mit 2 Jungen, beide als Junge (Generation',S.gen+'), jetzt Geschwister – keine Paarung');
   T.players.pop(); delete S.mates[2]; }
+// Warnpfeile je Spieler: ein Raubtier, das Spieler 2 jagt, warnt nur Spieler 2
+{ const P=T.P; if(P.dead) T.respawn(); T.unpause();
+  const Q=T.makePlayer({source:'test',x:P.x+30,z:P.z,fur:null,L:T.copyLeopard(T.S())}); T.players.push(Q);
+  const a=T.animals.find(o=>!o.dead&&o.sp.fight&&!o.sp.friend); const st=[a.state,a.tgt,a.x,a.z];
+  a.state='chase'; a.tgt=Q; a.x=Q.x+10; a.z=Q.z;
+  const ring={appendChild(){}}, wP=T.warnArrows(P,ring,[],100), wQ=T.warnArrows(Q,ring,[],100);
+  [a.state,a.tgt,a.x,a.z]=st;
+  if(wP.top===a||wQ.top!==a) { console.log('FEHLER: Warnung beim falschen Spieler'); process.exit(1); }
+  console.log('Warnpfeile: '+a.sp.n+' jagt Spieler 2 → nur Spieler 2 gewarnt');
+  T.players.pop(); }
 console.log('ALL OK');

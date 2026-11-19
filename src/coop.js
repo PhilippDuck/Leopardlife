@@ -18,6 +18,7 @@ import { $ } from './util.js';
 import { tallMat } from './vegetation.js';
 import { toggleSkills } from './skills.js';
 import { ensureKin, mateContext, newId } from './kinship.js';
+import { drawRadar, warnArrows } from './hud.js';
 
 /** Höchstens so viele Spieler teilen sich den Bildschirm */
 const MAX_PLAYERS=4;
@@ -64,12 +65,16 @@ function rectsFor(n){
   if(n===2) return [[0,0,0.5,1],[0.5,0,0.5,1]];
   return [[0,0,0.5,0.5],[0.5,0,0.5,0.5],[0,0.5,0.5,0.5],[0.5,0.5,0.5,0.5]];
 }
+/** Kleinere Seite des Bildausschnitts von Spieler p in Pixeln (für Abstände von Warnpfeilen und Hinweisen). */
+function viewMin(p){ const i=Math.max(0,players.indexOf(p)), q=rectsFor(players.length)[i]||[0,0,1,1]; return Math.min(q[2]*window.innerWidth,q[3]*window.innerHeight); }
 function layoutChanged(){
   const n=players.length, R=rectsFor(n), split=n>1;
   document.body.classList.toggle('split',split);
   const r=R[0], st=document.body.style;
   st.setProperty('--cx',((r[0]+r[2]/2)*100)+'%'); st.setProperty('--cy',((r[1]+r[3]/2)*100)+'%');
   st.setProperty('--vw',(r[2]*100)+'%');
+  // große Spürkarte von Spieler 1: oben rechts in seinem Ausschnitt
+  st.setProperty('--rr',((1-r[0]-r[2])*100)+'%'); st.setProperty('--rt',(r[1]*100)+'%');
   players.forEach((p,i)=>{ if(!p.hud) return; const q=R[i]; Object.assign(p.hud.style,{left:q[0]*100+'%',top:q[1]*100+'%',width:q[2]*100+'%',height:q[3]*100+'%'}); });
   const empty=$('splitEmpty'); if(empty){ empty.style.display=n===3?'flex':'none'; }
   if(!split){ renderer.setScissorTest(false); resize(); }
@@ -171,10 +176,12 @@ const nameOf=p=>p===P?NAMES[0]:NAMES[(p.num||2)-1];
 /* ---------- Kleine Anzeige je Mitspieler ---------- */
 /** @returns {HTMLElement} */
 const q=(el,sel)=>el.querySelector(sel);
+let hudTick=0;
 function makeHud(p){
   const el=document.createElement('div'); el.className='pv';
   el.innerHTML='<div class="pvName" style="color:'+COLORS[p.num-1]+'">'+NAMES[p.num-1]+'</div>'+
     '<div class="pvBar"><i class="hp"></i></div><div class="pvBar"><i class="st"></i></div>'+
+    '<canvas class="pvRadar" width="200" height="200"></canvas><div class="pvRing"></div><div class="pvWarn"></div>'+
     '<div class="pvCross"></div><div class="pvMsg"></div><div class="pvDown"><b>Am Boden</b><span></span><div class="pvBar"><i class="rev"></i></div></div>';
   document.body.appendChild(el); return el;
 }
@@ -183,6 +190,7 @@ function tell(p,txt,col){ if(p===P||!p.hud){ toast(txt,col); return; } hudMsg(p,
 function hudMsg(p,txt,t){ if(!p.hud) return; const m=q(p.hud,'.pvMsg'); m.textContent=txt; m.style.opacity='1'; p.msgT=t; }
 /** Anzeige der Mitspieler auffrischen (Leben, Ausdauer, Tarnung, am Boden). */
 function updateCoopHud(dt){
+  hudTick++;
   for(const p of players){
     if(!p.hud) continue; const h=p.hud;
     q(h,'.hp').style.width=Math.max(0,p.hp/maxHp(p.L)*100)+'%';
@@ -190,10 +198,15 @@ function updateCoopHud(dt){
     const cr=q(h,'.pvCross'); cr.style.borderColor=p.hideLv===2?'#8fe07a':p.hideLv===1?'#f2b84b':'#fff';
     const dn=q(h,'.pvDown'); dn.style.display=p.dead?'flex':'none';
     if(p.dead){ q(dn,'span').textContent='Ein Mitspieler hält X neben dir – oder du erwachst in '+Math.ceil(p.downT||0)+' s im Bau.'; q(dn,'.rev').style.width=(p.revT/REVIVE_TIME*100)+'%'; }
+    // Warnpfeile und Warnzeile, kleine Spürkarte (jedes zweite Bild, abwechselnd je Spieler)
+    const ring=q(h,'.pvRing'), wr=q(h,'.pvWarn'), {top}=warnArrows(p,ring,p.waPool||(p.waPool=[]),viewMin(p)*0.3);
+    if(top&&!p.dead){ const v=top._v; wr.style.display='block'; wr.style.color=v>=2?'#ff6a50':v>0?'#ffb04a':'#f2d04b'; wr.textContent=(v>=2?'⚠ '+top.sp.n+' jagt dich!':v>0?'⚠ '+top.sp.n+' wird misstrauisch':top.sp.n+' in der Nähe')+' ('+Math.round(top._d)+' m)'; }
+    else wr.style.display='none';
+    if((hudTick+(p.num||0))%2===0){ const cv=/** @type {HTMLCanvasElement} */(q(h,'.pvRadar')); drawRadar(p,cv,cv.getContext('2d')); }
     if(p.msgT>0){ p.msgT-=dt; if(p.msgT<=0) q(h,'.pvMsg').style.opacity='0'; }
   }
   // Spieler 1 am Boden (nur im Koop): Hinweis in der großen Anzeige
   if(players.length>1&&P.dead&&P.downT!=null){ const s=Math.ceil(P.downT); if(s!==P.lastS){ P.lastS=s; $('crossMsg').textContent='Am Boden – Mitspieler: X halten · Bau in '+s+' s'; $('crossMsg').style.opacity='1'; } }
 }
 
-export { tell, MAX_PLAYERS, joinPlayer, leavePlayer, renderAll, pollCoop, padTaken, downPlayer, updateCoop, updateCoopHud, othersAlive, nameOf };
+export { viewMin, tell, MAX_PLAYERS, joinPlayer, leavePlayer, renderAll, pollCoop, padTaken, downPlayer, updateCoop, updateCoopHud, othersAlive, nameOf };

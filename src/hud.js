@@ -12,26 +12,43 @@ import { renderGoals } from './goals.js';
 import { tapLearned, touchUI } from './input.js';
 import { canMate, fam, kidMode } from './kin.js';
 import { hudExp, xb } from './menu.js';
-import { P } from './player.js';
+import { P, players } from './player.js';
 import { D, DIE_AT, S, baseSpeed, has, maxHp, maxSt, oldF, pScale, xpNeed } from './save.js';
 import { G } from './state.js';
 import { H, PONDS } from './terrain.js';
 import { $ } from './util.js';
 import { patches } from './vegetation.js';
 import { W } from './weather.js';
+import { viewMin } from './coop.js';
 
 const rc=$('rc').getContext('2d');   // Spürkarte
 const waPool=[]; let beatT=0;
-function updateWarn(dt){
-  const ring=$('warnRing'), R=Math.min(window.innerWidth,window.innerHeight)*0.33, s=Math.sin(P.cam.yaw), c=Math.cos(P.cam.yaw);
+/**
+ * Warnpfeile rund ums Fadenkreuz von Spieler p: zeigen Raubtiere, die ihn bemerken oder jagen.
+ * ring: Element in der Bildmitte des Spielers, pool: wiederverwendete Pfeile, R: Abstand der Pfeile in Pixeln.
+ * @param {import('./player.js').Player} p
+ * @returns {{top:any, maxSus:number}} das dringendste Tier und der höchste Verdacht
+ */
+/** Farben der Spieler 1–4 (wie Namen in der Anzeige) */
+const PCOL=['#f2b84b','#7fc8f2','#9be07f','#e88fd0'];
+/**
+ * Warnpfeile rund ums Fadenkreuz von Spieler p: zeigen Raubtiere, die ihn bemerken oder jagen.
+ * ring: Element in der Bildmitte des Spielers, pool: wiederverwendete Pfeile, R: Abstand der Pfeile in Pixeln.
+ * @param {import('./player.js').Player} p
+ * @returns {{top:any, maxSus:number}} das dringendste Tier und der höchste Verdacht
+ */
+function warnArrows(p,ring,pool,R){
+  const s=Math.sin(p.cam.yaw), c=Math.cos(p.cam.yaw);
   let n=0, top=null, topV=-1, maxSus=0;
+  if(!p.dead)
   for(const a of animals){
     if(a.dead||!a.sp.fight) continue;
+    if(players.length>1&&a.tgt&&a.tgt!==p) continue;   // jedes Tier achtet auf einen Spieler (ai.js targetOf)
     const chase=a.state==='chase'||a.state==='lunge';
-    let v; if(chase) v=2; else if(a.state==='wander'&&a.sus>0) v=a.sus; else if(a.state==='wander'&&a.near) v=0; else if(a.state==='scav'&&a.sp.hunt&&S.lvl<a.sp.hunt&&Math.hypot(a.x-P.x,a.z-P.z)<90) v=0.3; else if(a.state==='lurk'&&a.near) v=0; else continue;
-    const dx=a.x-P.x, dz=a.z-P.z, d=Math.hypot(dx,dz); if(chase&&d>80) continue;
+    let v; if(chase) v=2; else if(a.state==='wander'&&a.sus>0) v=a.sus; else if(a.state==='wander'&&a.near) v=0; else if(a.state==='scav'&&a.sp.hunt&&p.L.lvl<a.sp.hunt&&Math.hypot(a.x-p.x,a.z-p.z)<90) v=0.3; else if(a.state==='lurk'&&a.near) v=0; else continue;
+    const dx=a.x-p.x, dz=a.z-p.z, d=Math.hypot(dx,dz); if(chase&&d>80) continue;
     const ang=Math.atan2(dx*c-dz*s,-(dx*s+dz*c));
-    let el=waPool[n]; if(!el){ el=document.createElement('div'); el.className='wa'; ring.appendChild(el); waPool.push(el); } n++;
+    let el=pool[n]; if(!el){ el=document.createElement('div'); el.className='wa'; ring.appendChild(el); pool.push(el); } n++;
     el.style.display='block';
     el.style.borderBottomColor=chase?'#ff4a30':'hsl('+(48-34*v)+',92%,'+(60-6*v)+'%)';
     el.classList.toggle('ch',chase);
@@ -40,7 +57,12 @@ function updateWarn(dt){
     if(pr>topV){ topV=pr; top=a; top._v=v; top._d=d; }
     if(!chase&&v>maxSus) maxSus=v;
   }
-  for(let i=n;i<waPool.length;i++) waPool[i].style.display='none';
+  for(let i=n;i<pool.length;i++) pool[i].style.display='none';
+  return {top,maxSus};
+}
+/** Warnung für Spieler 1: Pfeile, Hinweiszeile oben, Herzschlag. */
+function updateWarn(dt){
+  const {top,maxSus}=warnArrows(P,$('warnRing'),waPool,viewMin(P)*0.33);
   const w=$('warn');
   if(top){
     const v=top._v, nm=top.sp.n, m=Math.round(top._d)+' m';
@@ -143,30 +165,38 @@ radarBg.width=radarBg.height=RW*2*RB;
   c.fillStyle='rgba(90,160,200,.55)'; c.beginPath(); for(const p of PONDS){ c.moveTo(p.x+p.r,p.z); c.arc(p.x,p.z,p.r,0,6.283); } c.fill();
   c.fillStyle='#ddd'; c.fillRect(-5,-5,10,10);
 })();
-let radarPx=0; const RADAR_COL=['#ff7ab8','#ff5a3c','#f2b84b','#9be07f'];
-function drawRadar(){
-  const cv=$('rc'), css=cv.clientWidth||140, want=Math.round(css*Math.min(window.devicePixelRatio||1,2));
-  if(want>0&&want!==radarPx){ radarPx=want; cv.width=cv.height=want; }
-  const W=cv.width||280, R=45+22*S.b.nose+(has('nase')?25:0), k=W/2/R, sc=W/280;
+ const RADAR_COL=['#ff7ab8','#ff5a3c','#f2b84b','#9be07f'];
+/**
+ * Spürkarte von Spieler p auf die Zeichenfläche cv (Kontext ctx): Gelände, Tiere, Kadaver, Junges, Mitspieler, Wahrnehmungskreis, Wind.
+ * Ohne Angaben: die große Spürkarte von Spieler 1.
+ * @param {import('./player.js').Player} [p]
+ */
+function drawRadar(p=P,cv=$('rc'),ctx=rc){
+  const rc=ctx, css=cv.clientWidth||140, want=Math.round(css*Math.min(window.devicePixelRatio||1,2));
+  if(want>0&&want!==cv._px){ cv._px=want; cv.width=cv.height=want; }
+  const W=cv.width||280, R=45+22*p.L.b.nose+(has('nase',p.L)?25:0), k=W/2/R, sc=W/280;
   rc.setTransform(1,0,0,1,0,0); rc.clearRect(0,0,W,W); rc.fillStyle='rgba(30,50,25,.55)'; rc.fillRect(0,0,W,W);
-  rc.save(); rc.translate(W/2,W/2); rc.rotate(P.cam.yaw);
-  rc.save(); rc.scale(k/RB,k/RB); rc.drawImage(radarBg,-(P.x+RW)*RB,-(P.z+RW)*RB); rc.restore();
-  if(S.cub){ const dx=cub.x-P.x, dz=cub.z-P.z; if(dx*dx+dz*dz<R*R){ rc.fillStyle='#ff7ab8'; rc.fillRect(dx*k-6*sc,dz*k-6*sc,12*sc,12*sc); } }
+  rc.save(); rc.translate(W/2,W/2); rc.rotate(p.cam.yaw);
+  rc.save(); rc.scale(k/RB,k/RB); rc.drawImage(radarBg,-(p.x+RW)*RB,-(p.z+RW)*RB); rc.restore();
+  if(S.cub){ const dx=cub.x-p.x, dz=cub.z-p.z; if(dx*dx+dz*dz<R*R){ rc.fillStyle='#ff7ab8'; rc.fillRect(dx*k-6*sc,dz*k-6*sc,12*sc,12*sc); } }
   for(let g=0;g<4;g++){
     rc.fillStyle=RADAR_COL[g]; rc.beginPath(); let any=false;
-    for(let i=0;i<animals.length;i++){ const a=animals[i]; if(a.dead||(a.sp.friend&&!a.g.visible)) continue; if(a.state==='lurk'&&Math.abs(a.x-P.x)+Math.abs(a.z-P.z)>18) continue;
-      const hostile=a.sp.hunt&&S.lvl<a.sp.hunt, grp=a.sp.friend?0:hostile?1:a.sp.fight?2:3; if(grp!==g) continue;
-      const dx=a.x-P.x, dz=a.z-P.z; if(dx*dx+dz*dz>R*R) continue;
+    for(let i=0;i<animals.length;i++){ const a=animals[i]; if(a.dead||(a.sp.friend&&!a.g.visible)) continue; if(a.state==='lurk'&&Math.abs(a.x-p.x)+Math.abs(a.z-p.z)>18) continue;
+      const hostile=a.sp.hunt&&p.L.lvl<a.sp.hunt, grp=a.sp.friend?0:hostile?1:a.sp.fight?2:3; if(grp!==g) continue;
+      const dx=a.x-p.x, dz=a.z-p.z; if(dx*dx+dz*dz>R*R) continue;
       const r=Math.max(4,a.sp.size*6)*sc; rc.moveTo(dx*k+r,dz*k); rc.arc(dx*k,dz*k,r,0,6.283); any=true; }
     if(any) rc.fill();
   }
-  rc.fillStyle='#b07040'; for(const a of animals){ if(!a.carc) continue; const dx=a.x-P.x, dz=a.z-P.z; if(dx*dx+dz*dz<R*R) rc.fillRect(dx*k-4*sc,dz*k-4*sc,8*sc,8*sc); }
+  // Mitspieler als Punkte in ihrer Farbe (am Boden: blinkend)
+  for(const q of players){ if(q===p) continue; const dx=q.x-p.x, dz=q.z-p.z; if(dx*dx+dz*dz>R*R||(q.dead&&Math.floor(performance.now()/300)%2)) continue;
+    rc.fillStyle=PCOL[(q.num||1)-1]; rc.strokeStyle='#000'; rc.lineWidth=2*sc; rc.beginPath(); rc.arc(dx*k,dz*k,7*sc,0,6.283); rc.fill(); rc.stroke(); }
+  rc.fillStyle='#b07040'; for(const a of animals){ if(!a.carc) continue; const dx=a.x-p.x, dz=a.z-p.z; if(dx*dx+dz*dz<R*R) rc.fillRect(dx*k-4*sc,dz*k-4*sc,8*sc,8*sc); }
   rc.restore();
   // Wahrnehmungskreis: ab hier bemerken dich Raubtiere (rot) bzw. Beute (grün); schrumpft beim Schleichen und im Gras
-  let sense=0; for(const sp of SPECIES){ if(sp.hunt&&S.lvl<sp.hunt&&sp.sense>sense) sense=sp.sense; }
+  let sense=0; for(const sp of SPECIES){ if(sp.hunt&&p.L.lvl<sp.hunt&&sp.sense>sense) sense=sp.sense; }
   const danger=sense>0; if(!danger) sense=24;
-  const base=sense*P.hidden*D().sense;
-  rc.save(); rc.translate(W/2,W/2); rc.rotate(P.cam.yaw);
+  const base=sense*p.hidden*D().sense;
+  rc.save(); rc.translate(W/2,W/2); rc.rotate(p.cam.yaw);
   if(base*k>3){ rc.strokeStyle=danger?'rgba(255,110,80,.9)':'rgba(155,224,127,.9)'; rc.lineWidth=3*sc; rc.setLineDash([9*sc,7*sc]); rc.beginPath();
     for(let i=0;i<=48;i++){ const t=i/48*6.283, ux=Math.cos(t), uz=Math.sin(t), r=Math.min(base*windMulDir(ux,uz),R)*k; if(i) rc.lineTo(ux*r,uz*r); else rc.moveTo(ux*r,uz*r); }
     rc.stroke(); rc.setLineDash([]); }
@@ -177,4 +207,4 @@ function drawRadar(){
   rc.fillStyle='#fff'; rc.beginPath(); rc.moveTo(W/2,W/2-11*sc); rc.lineTo(W/2+7*sc,W/2+8*sc); rc.lineTo(W/2-7*sc,W/2+8*sc); rc.fill();
 }
 
-export { drawRadar, updateCamera, updateCross, updateUI, updateWarn };
+export { PCOL, drawRadar, updateCamera, updateCross, updateUI, updateWarn, warnArrows };
