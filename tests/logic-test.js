@@ -247,4 +247,10 @@ console.log('audio nodes created',ACs&&ACs.count());
   el('btnBook').onclick(); const html=String(el('bookList').innerHTML); S.mates=keep; el('book').style.display='none';
   if(html.indexOf('Spieler 2')<0||html.indexOf('nicht verwandt mit Spieler 1')<0) { console.log('FEHLER: Ahnenbuch ohne Mitspieler'); process.exit(1); }
   console.log('Ahnenbuch: Mitspieler mit Verwandtschaft eingetragen'); }
+// Schleichen + Sprint gehalten: es wird gesprintet, nach dem Loslassen wieder geschlichen
+{ const P=T.P; const run=(spr)=>{ const Q=T.makePlayer({source:'test',x:60,z:-60,fur:null}); Q.sneak=true; Q.cam.yaw=0; Q.ctl.fw=1; Q.ctl.rt=0; Q.ctl.sprint=spr;
+    const x0=Q.x,z0=Q.z; for(let i=0;i<20;i++) T.stepPlayer(Q,1/30); const d=Math.hypot(Q.x-x0,Q.z-z0); Q.ctl.sprint=false; T.stepPlayer(Q,1/30); return [d,Q.sneak]; };
+  const [ds]=run(false), [dr,still]=run(true);
+  if(!(dr>ds*2)||!still) { console.log('FEHLER: Sprint aus dem Schleichen',ds.toFixed(2),dr.toFixed(2),still); process.exit(1); }
+  console.log('Schleichen+Sprint: '+dr.toFixed(1)+' m statt '+ds.toFixed(1)+' m, danach wieder Schleichen'); }
 console.log('ALL OK');
