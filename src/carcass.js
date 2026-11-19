@@ -7,7 +7,7 @@ import { FOOD_MAX } from './family.js';
 
 import { animLegs, furColor, furName } from './models.js';
 import { P } from './player.js';
-import { S, maxHp } from './save.js';
+import { LINES_KEY, S, maxHp } from './save.js';
 import { G } from './state.js';
 import { H } from './terrain.js';
 import { floatText, toast } from './ui.js';
@@ -42,8 +42,8 @@ function startFlee(a){
 // Ahnenbuch: jede Generation der Blutlinie mit Fell, Erbanlagen, Stufe, Beute und Schicksal
 function recordAncestor(cause){ S.anc=(S.anc||[]).concat({g:S.gen||1,l:S.lvl,f:S.fur?Object.assign({},S.fur):null,t:S.traits.slice(),k:S.kills||0,c:cause}).slice(-40); }
 function archiveLine(){
-  let L=[]; try{ L=JSON.parse(localStorage.getItem('jaguar-lines')||'[]'); }catch(e){}
-  L.unshift({g:S.gen||1,d:S.diff,at:Date.now()}); try{ localStorage.setItem('jaguar-lines',JSON.stringify(L.slice(0,10))); }catch(e){}
+  let L=[]; try{ L=JSON.parse(localStorage.getItem(LINES_KEY)||'[]'); }catch(e){}
+  L.unshift({g:S.gen||1,d:S.diff,at:Date.now()}); try{ localStorage.setItem(LINES_KEY,JSON.stringify(L.slice(0,10))); }catch(e){}
 }
 const hex6=n=>'#'+n.toString(16).padStart(6,'0');
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -55,7 +55,7 @@ function renderBook(){
       '<small style="color:'+(me?'#9be07f':'var(--txt)')+'">'+esc(e.c)+'</small></div></div>'; };
   const cur={g:S.gen||1,l:S.lvl,f:S.fur,t:S.traits,k:S.kills||0,c:'lebt'};
   $('bookList').innerHTML=row(cur,true)+(S.anc||[]).slice().reverse().map(e=>row(e,false)).join('');
-  let L=[]; try{ L=JSON.parse(localStorage.getItem('jaguar-lines')||'[]'); }catch(e){}
+  let L=[]; try{ L=JSON.parse(localStorage.getItem(LINES_KEY)||'[]'); }catch(e){}
   $('bookLines').innerHTML=L.length?L.map(l=>'<div style="font-size:12px;color:var(--mut);padding:2px 0">Endete in Generation '+l.g+' · '+(DIFF[l.d]?DIFF[l.d].n:'Normal')+' · '+new Date(l.at).toLocaleDateString('de-DE')+'</div>').join(''):'<div style="font-size:12px;color:var(--mut)">Noch keine.</div>';
 }
 function openBook(){ renderBook(); $('menu').style.display='none'; $('book').style.display='flex'; }

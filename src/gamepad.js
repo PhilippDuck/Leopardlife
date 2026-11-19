@@ -9,6 +9,7 @@ import { G } from './state.js';
 import { toast } from './ui.js';
 import { $ } from './util.js';
 import { MAX_PLAYERS, joinPlayer, leavePlayer, padTaken, pollCoop } from './coop.js';
+import { MODE } from './save.js';
 
 /* ---------- Controller-Steuerung (Gamepad, Standardbelegung wie Xbox/PlayStation) ----------
    Linker Stick laufen · rechter Stick Kamera · A Sprung · B Schleichen · X Aktion · Y Klettern · LB Brüllen · RT/L3 Sprinten
@@ -33,7 +34,9 @@ function pollPads(dt){
   for(const g of gps){
     if(!g||!g.connected||g.index===padIdx||padTaken(g.index)) continue;
     const startDown=!!(g.buttons[9]&&g.buttons[9].pressed), was=joinPrev[g.index]; joinPrev[g.index]=startDown;
-    if(startDown&&!was&&G.started&&!topOverlay()&&(cur||inputMode!=='pad')&&players.length<MAX_PLAYERS){ joinPlayer(g.index,g); continue; }
+    if(startDown&&!was&&G.started&&!topOverlay()&&(cur||inputMode!=='pad')){
+      if(MODE==='coop'&&players.length<MAX_PLAYERS){ joinPlayer(g.index,g); continue; }
+      if(MODE!=='coop'&&cur){ toast('Zu zweit spielen? Im Startmenü „Gemeinsam spielen" wählen.','#b9b7a6'); continue; } }
     if(!cur&&(g.buttons.some((b,i)=>b.pressed&&i!==9)||g.axes.some(a=>Math.abs(a)>0.35))) padIdx=g.index;
   }
   pollCoop(dt,gps);

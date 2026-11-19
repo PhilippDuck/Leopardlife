@@ -3,14 +3,20 @@ import { DIFF, REGIONS } from './data.js';
 import { $ } from './util.js';
 
 /* ---------- Spielstand ---------- */
-const fresh=()=>({region:'savanne',beat:{},day:0,goals:null,kills:0,anc:[],diff:'normal',tod:0.3,lvl:1,xp:0,pts:0,won:false,gen:1,fur:null,cub:null,food:0,preg:0,partner:false,p1:false,p2:false,hunger:100,age:0,traits:[],a:{str:0,spd:0,sta:0,vit:0,cam:0},b:{amb:0,jmp:0,roar:0,nose:0,climb:0,night:0}});
+// Spielmodus: 'solo' (allein) oder 'coop' (gemeinsam am selben Gerät, Splitscreen). Jeder Modus hat eigenen Spielstand und eigenes Ahnenbuch.
+const MODE=(()=>{ try{ return localStorage.getItem('jaguar-mode')==='coop'?'coop':'solo'; }catch(e){ return 'solo'; } })();
+const SAVE_KEY=MODE==='coop'?'jaguar-coop-v1':'jaguar-save-v1', LINES_KEY=MODE==='coop'?'jaguar-coop-lines':'jaguar-lines';
+/** Wechselt den Modus; die Seite lädt neu mit dem Spielstand des anderen Modus. */
+function setMode(m){ try{ localStorage.setItem('jaguar-mode',m); }catch(e){} location.reload(); }
+const fresh=()=>({region:'savanne',beat:{},day:0,goals:null,kills:0,anc:[],diff:'normal',tod:0.3,lvl:1,xp:0,pts:0,won:false,gen:1,fur:null,cub:null,food:0,preg:0,partner:false,p1:false,p2:false,hunger:100,age:0,traits:[],a:{str:0,spd:0,sta:0,vit:0,cam:0},b:{amb:0,jmp:0,roar:0,nose:0,climb:0,night:0},mates:{}});
+// mates: im gemeinsamen Spiel die Werte der Mitspieler nach Platz (2, 3, 4), siehe coop.js
 // Schwierigkeit: Schaden, Hunger, Wachsamkeit der Tiere, Erfahrungsverlust beim Tod, Abstand der Überfälle, endgültiger Tod ohne Nachwuchs
 const D=()=>DIFF[S.diff]||DIFF.normal;
 // Spielstand: wird nie ersetzt, sondern an Ort und Stelle neu befüllt, damit alle Teile des Spiels dasselbe Objekt behalten
 const S=fresh();
 function resetState(o){ for(const k of Object.keys(S)) delete S[k]; Object.assign(S,o||fresh()); }
-try{ const raw=localStorage.getItem('jaguar-save-v1'); if(raw){ const o=JSON.parse(raw); if(o&&o.lvl){ resetState(Object.assign(fresh(),o)); S.a=Object.assign(fresh().a,o.a); S.b=Object.assign(fresh().b,o.b); $('btnReset').style.display=''; $('btnPlay').textContent='Weiterspielen (Stufe '+S.lvl+')'; } } }catch(e){}
-function save(){ try{ localStorage.setItem('jaguar-save-v1',JSON.stringify(S)); }catch(e){} }
+try{ const raw=localStorage.getItem(SAVE_KEY); if(raw){ const o=JSON.parse(raw); if(o&&o.lvl){ resetState(Object.assign(fresh(),o)); S.a=Object.assign(fresh().a,o.a); S.b=Object.assign(fresh().b,o.b); $('btnReset').style.display=''; $('btnPlay').textContent='Weiterspielen (Stufe '+S.lvl+')'; } } }catch(e){}
+function save(){ try{ localStorage.setItem(SAVE_KEY,JSON.stringify(S)); }catch(e){} }
 
 const xpNeed=l=>Math.round(20*Math.pow(l,1.4));
 // Erbanlagen: jedes Junge bekommt eine; bis zu drei werden über die Generationen weitergegeben
@@ -60,4 +66,4 @@ const LEOPARD_KEYS=['lvl','xp','pts','a','b','traits','fur','hunger','age'];
 /** @type {(L?:Leopard)=>Leopard} */
 const copyLeopard=(L=S)=>{ const o=/** @type {any} */({}); for(const k of LEOPARD_KEYS) o[k]=JSON.parse(JSON.stringify(L[k]===undefined?null:L[k])); return o; };
 
-export { LEOPARD_KEYS, copyLeopard, D, DIE_AT, OLD_AT, REG, REG_ID, S, ancF, at, attrCap, baseSpeed, beaten, dmg, fresh, has, maxHp, maxSt, oldF, pScale, resetState, save, xpNeed };
+export { MODE, LINES_KEY, setMode, LEOPARD_KEYS, copyLeopard, D, DIE_AT, OLD_AT, REG, REG_ID, S, ancF, at, attrCap, baseSpeed, beaten, dmg, fresh, has, maxHp, maxSt, oldF, pScale, resetState, save, xpNeed };

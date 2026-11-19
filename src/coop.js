@@ -9,7 +9,7 @@ import { on } from './events.js';
 import { claimOverlay, pdz } from './gamepad.js';
 import { menuOpen, toggleMenu } from './menu.js';
 import { P, dropModel, makePlayer, players } from './player.js';
-import { S, copyLeopard, maxHp, maxSt, pScale } from './save.js';
+import { S, copyLeopard, maxHp, maxSt, pScale, save } from './save.js';
 import { sky, stars } from './sky.js';
 import { G } from './state.js';
 import { H, cullTiles } from './terrain.js';
@@ -34,8 +34,10 @@ function joinPlayer(i,gp){
   const cam=new THREE.PerspectiveCamera(camera.fov,1,camera.near,camera.far);
   const ang=P.rot+Math.PI/2*(num%2?1:-1), r=2.5;
   // Eigene Werte: startet als Geschwister auf der Stufe von Spieler 1 und entwickelt sich ab dann selbst
-  const L=copyLeopard(S); L.fur=FURS[num-1]; L.hunger=100; L.age=0;
-  const p=makePlayer({source:'pad'+i,camera:cam,x:P.x+Math.sin(ang)*r,z:P.z+Math.cos(ang)*r,fur:FURS[num-1],L});
+  // Gespeicherte Werte dieses Platzes, sonst neu (Kopie von Spieler 1); liegen im Spielstand und werden mit ihm gespeichert
+  S.mates=S.mates||{};
+  let L=S.mates[num]; if(!L){ L=copyLeopard(S); L.fur=FURS[num-1]; L.hunger=100; L.age=0; S.mates[num]=L; save(); }
+  const p=makePlayer({source:'pad'+i,camera:cam,x:P.x+Math.sin(ang)*r,z:P.z+Math.cos(ang)*r,fur:L.fur||FURS[num-1],L});
   p.pad=i; p.num=num; p.padPrev=gp?gp.buttons.map(b=>!!b.pressed):[];   // der Start-Druck zum Einsteigen zählt nicht als Pause p.rot=P.rot; p.cam.yaw=P.cam.yaw; p.cam.pitch=P.cam.pitch;
   p.hud=makeHud(p);
   players.push(p); layoutChanged();

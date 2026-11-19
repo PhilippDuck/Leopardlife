@@ -9,6 +9,7 @@ os.makedirs(out, exist_ok=True)
 errors = []
 FAKE = """
 (() => {
+  try { localStorage.setItem('jaguar-mode', 'coop'); } catch (e) {}
   const pads = [];
   const mk = i => ({ index: i, id: 'Testcontroller ' + i + ' (Xbox)', connected: true, mapping: 'standard',
     buttons: Array.from({length: 17}, () => ({pressed: false, value: 0})), axes: [0, 0, 0, 0], vibrationActuator: null });
@@ -26,6 +27,7 @@ with sync_playwright() as p:
     pg.on('pageerror', lambda e: errors.append(f'pageerror: {e}'))
     pg.goto('http://localhost:8765/index.html?test')
     pg.wait_for_timeout(2000)
+    shot(pg, '0-start-koop')
     pg.click('#btnPlay'); pg.wait_for_timeout(1200)
     pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
     if pg.locator('#menu').is_visible(): pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
@@ -63,7 +65,10 @@ with sync_playwright() as p:
     pg.evaluate("__pad(0,{b:[9]})"); pg.wait_for_timeout(700); pg.evaluate("__pad(0,{})"); pg.wait_for_timeout(400)
     menu = pg.locator('#menu').is_visible()
     shot(pg, '5-pause')
+    saved = pg.evaluate("JSON.stringify(Object.keys(JSON.parse(localStorage.getItem('jaguar-coop-v1')||'{}').mates||{}))")
+    solo = pg.evaluate("localStorage.getItem('jaguar-save-v1')")
     b.close()
+    print('Koop-Spielstand Mitspieler-Plätze:', saved, '| Einzelspielstand angelegt:', solo is not None)
 print('Entwicklung Spieler 2:', skills, repr(who), '| wieder zu:', skills_closed)
 print('eingestiegen:', joined, '| bei vier:', four, '| nach Aussteigen:', after, '| Pause per Controller:', menu)
 print('Fehler/Warnungen:', len(errors))

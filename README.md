@@ -14,7 +14,9 @@ durch Savanne und Sumpf.
 - Tag-Nacht-Wechsel, Regen und Gewitter, Tagesziele, drei Schwierigkeitsgrade
 - Gebiete: Savanne und Sumpf (mit Krokodilen); weitere geplant
 - Steuerung mit Tastatur und Maus, Touch oder Xbox-Controller
-- Splitscreen für bis zu 4 Spieler: weiterer Controller drückt Start zum Einsteigen, Back zweimal zum Aussteigen.
+- Gemeinsames Spiel (Splitscreen) für bis zu 4 Spieler: im Startmenü „Gemeinsam spielen" wählen, dann drückt ein weiterer
+  Controller Start zum Einsteigen. Back: eigene Entwicklung · Back halten: aussteigen. Jeder Leopard hat eigene Stufe und Werte;
+  das gemeinsame Spiel hat einen eigenen Spielstand.
   Wer zu Boden geht, kann von Mitspielern wiederbelebt werden (daneben X bzw. F halten, 3 s), sonst erwacht er nach 20 s im Bau.
 
 ## Aufbau
