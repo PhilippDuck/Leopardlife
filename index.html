@@ -86,10 +86,13 @@
   #joy{position:fixed;left:18px;bottom:28px;width:calc(120px*var(--ts));height:calc(120px*var(--ts));border-radius:50%;background:rgba(255,255,255,.08);border:1px solid var(--line);pointer-events:none;opacity:.45}
   #joy.act{opacity:1}
   #joy i{position:absolute;left:33.3%;top:33.3%;width:33.4%;height:33.4%;border-radius:50%;background:rgba(255,255,255,.35)}
-  .tb{position:fixed;right:16px;bottom:28px;width:calc(66px*var(--ts));height:calc(66px*var(--ts));border-radius:50%;padding:0;font-size:max(9px,calc(11px*var(--ts)));background:var(--bg);color:var(--txt);border:1px solid var(--line)}
+  .tb{position:fixed;right:16px;bottom:28px;width:calc(66px*var(--ts));height:calc(66px*var(--ts));aspect-ratio:1;flex:none;border-radius:50%;padding:0;font-size:max(9px,calc(11px*var(--ts)));background:var(--bg);color:var(--txt);border:1px solid var(--line)}
   .tb.on{background:var(--gold);color:#2a1d00}
   #tbS{bottom:28px} #tbC{bottom:calc(28px + 76px*var(--ts))}
   #tbR{right:calc(16px + 76px*var(--ts))}
+  /* Abklingzeit als Ladering um den Knopf: --cd 0…1 (1 = bereit) */
+  .tb.tcd::before{content:'';position:absolute;inset:0;border-radius:50%;pointer-events:none;background:conic-gradient(var(--gold) calc(var(--cd,1)*360deg),rgba(255,255,255,.2) 0);-webkit-mask:radial-gradient(circle closest-side,transparent calc(100% - 4px),#000 calc(100% - 3.5px));mask:radial-gradient(circle closest-side,transparent calc(100% - 4px),#000 calc(100% - 3.5px))}
+  .tb.tcd.ready::before{background:var(--gold)}
   #tbE{right:calc(16px + 76px*var(--ts));bottom:calc(28px + 76px*var(--ts))}
   #tbF{display:none;right:calc(16px + 76px*var(--ts));bottom:calc(28px + 152px*var(--ts));background:#d86fa8;color:#2a0a1c;font-weight:bold}
   #cubBox{display:none;margin-top:6px;border-top:1px solid var(--line);padding-top:5px}
@@ -222,7 +225,7 @@ body.quad .ph{--rad:92px}
   <div id="joy"><i id="knob"></i></div>
   <button class="tb" id="tbS">Sprint</button>
   <button class="tb" id="tbC">Schleichen</button>
-  <button class="tb" id="tbR">Brüllen</button>
+  <button class="tb tcd" id="tbR">Brüllen</button>
   <button class="tb" id="tbE">Klettern</button>
   <button class="tb" id="tbF">Füttern</button>
 </div>

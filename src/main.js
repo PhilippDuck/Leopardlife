@@ -13,7 +13,7 @@ import { PX_BASE, VIEW_D, applyQuality, blobs, quality } from './quality.js';
 import { animLegs, buildQuad, furColor, furName, makeFur } from './models.js';
 import { P, START_ROT, START_YAW, dropModel, players, rebuildPlayer } from './player.js';
 import { animals, placeAnimal } from './animals.js';
-import { puff, puffs } from './effects.js';
+import { puff, puffs, updateFx } from './effects.js';
 import { inputMode, keys, setInputMode, tapLearned, touchUI } from './input.js';
 import { floatText, showToast, toast, toastQ } from './ui.js';
 import { toggleSkills } from './skills.js';
@@ -77,6 +77,7 @@ function step(dt){
   updateWeather(dt);
   for(let i=0;i<animals.length;i++) updateAnimal(animals[i],dt);
   for(let i=puffs.length-1;i>=0;i--){ const p=puffs[i]; p.t-=dt; p.vy-=12*dt; p.m.position.x+=p.vx*dt; p.m.position.y+=p.vy*dt; p.m.position.z+=p.vz*dt; p.m.material.opacity=Math.max(0,p.t/0.7); if(p.t<=0){ scene.remove(p.m); p.m.material.dispose(); puffs.splice(i,1); } }
+  updateFx(dt);
   if(G.toastT>0){ G.toastT-=dt; G.toastShown+=dt; if(G.toastT<=0){ if(toastQ.length){ const q=toastQ.shift(); showToast(q[0],q[1],q[2]); } else $('toast').style.opacity=0; } }
   if(G.lastHitT>0) G.lastHitT-=dt;
   updateWarn(dt); updateCross(); updateTracks(dt); updateFamily(dt); updateCub(dt); updateFamArrow(dt); updateLife(dt); updateDayNight(dt);

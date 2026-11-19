@@ -2,7 +2,7 @@
 import { animals, placeAnimal } from './animals.js';
 import { initAudio, snd, tone } from './audio.js';
 import { DAT, FOOD } from './data.js';
-import { puff } from './effects.js';
+import { puff, roarFx } from './effects.js';
 import { canvas } from './engine.js';
 import { keys, touchUI } from './input.js';
 import { P, START_ROT, START_YAW, players, rebuildPlayer } from './player.js';
@@ -65,7 +65,8 @@ function doRoar(p=P){
   if(p.L.b.roar<1){ tell(p,'Brüllen ist noch nicht gelernt (Tab)','#b9b7a6'); return; }
   if(p.rcd>0) return;
   p.rcd=22-3*p.L.b.roar; const R=16+7*p.L.b.roar;
-  puff(p.x,p.y+1,p.z,0xffffff,10,0.6); toast('ROAAAR!','#f2b84b'); snd.roar();
+  const sc=p.g?p.g.scale.x:1; roarFx(p.x,p.camY||p.y,p.z,p.rot,sc,R); p.cam.shake=Math.max(p.cam.shake,0.35); buzz(p,0.6,0.9,600); p.roarT=0.9;
+  toast('ROAAAR!','#f2b84b'); snd.roar();
   animals.forEach(a=>{ if(a.dead) return; const d=Math.hypot(a.x-p.x,a.z-p.z); if(d>R) return;
     if(a.sp.pred){ if(!a.sp.hunt||p.L.lvl+2*p.L.b.roar>=a.sp.hunt-3){ a.state='flee'; a.fleeT=0; a.aggro=0; a.scared=5; } }
     else if(!a.sp.boss&&!a.sp.friend){ a.stun=1.2+0.5*p.L.b.roar; } });

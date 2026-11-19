@@ -12,6 +12,7 @@ function initAudio(){
   try{
     AC=new (window.AudioContext||/** @type {any} */(window).webkitAudioContext)();
     master=AC.createGain(); master.gain.value=muted?0:0.55; master.connect(AC.destination);
+    loadSamples();
     nbuf=AC.createBuffer(1,AC.sampleRate*2,AC.sampleRate); const d=nbuf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
     // Umgebung: leiser Wind
     const src=AC.createBufferSource(); src.buffer=nbuf; src.loop=true;
@@ -36,6 +37,18 @@ function noise(dur,vol,f1,f2,type,delay){
   const g=AC.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(vol,t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
   s.connect(f); f.connect(g); g.connect(master); s.start(t,Math.random()); s.stop(t+dur+0.05);
 }
+/* Aufgenommene Geräusche (ElevenLabs); bis sie geladen sind oder offline fehlen, klingt der Synth-Ersatz */
+const SAMPLES={roar:'audio/roar.mp3'}; /** @type {Record<string, AudioBuffer>} */ const bufs={};
+function loadSamples(){
+  for(const k in SAMPLES) fetch(SAMPLES[k]).then(r=>r.ok?r.arrayBuffer():Promise.reject(r.status))
+    .then(b=>new Promise((res,rej)=>AC.decodeAudioData(b,res,rej))).then(d=>{ bufs[k]=/** @type {AudioBuffer} */(d); }).catch(()=>{});
+}
+/** Spielt ein geladenes Geräusch mit leicht zufälliger Tonhöhe; false, wenn es (noch) nicht da ist. */
+function sample(k,vol,rate){
+  const b=bufs[k]; if(!AC||!b) return false;
+  const s=AC.createBufferSource(); s.buffer=b; s.playbackRate.value=rate||1;
+  const g=AC.createGain(); g.gain.value=vol; s.connect(g); g.connect(master); s.start(); return true;
+}
 const snd={
   pounce(){ noise(0.3,0.35,500,2600); tone(180,0.25,'sawtooth',0.06,90); },
   hit(){ tone(130,0.16,'square',0.22,45); noise(0.12,0.3,900,300,'lowpass'); },
@@ -43,7 +56,7 @@ const snd={
   kill(){ noise(0.09,0.3,1800,900,'bandpass',0.12); noise(0.09,0.3,1500,700,'bandpass',0.26); tone(392,0.14,'triangle',0.16,0,0.4); tone(523,0.2,'triangle',0.16,0,0.5); },
   hurt(){ tone(220,0.28,'sawtooth',0.22,70); noise(0.15,0.25,400,150,'lowpass'); },
   level(){ [523,659,784,1047].forEach((f,i)=>tone(f,0.3,'triangle',0.2,0,i*0.11)); },
-  roar(){ tone(150,1.1,'sawtooth',0.3,55); tone(101,1.1,'square',0.14,48); noise(1.1,0.4,700,180,'lowpass'); },
+  roar(){ if(sample('roar',1.1,rnd(0.93,1.06))) return; tone(150,1.1,'sawtooth',0.3,55); tone(101,1.1,'square',0.14,48); noise(1.1,0.4,700,180,'lowpass'); },
   alert(){ tone(880,0.09,'square',0.1); tone(880,0.09,'square',0.1,0,0.14); },
   notice(){ tone(300,0.12,'sine',0.13,240); },
   beat(v){ tone(62,0.12,'sine',0.25+0.25*v,45); tone(58,0.1,'sine',0.18+0.2*v,42,0.14); },
