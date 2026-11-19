@@ -27,6 +27,7 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 | `src/animals.js` | Alle Tiere der Welt: Anlegen pro Gebiet, Platzieren und Herden bilden |
 | `src/audio.js` | Ton: Geräusche, Umgebung (Wind, Vögel) und laufend erzeugte Musik, alles synthetisch über WebAudio |
 | `src/carcass.js` | Kadaver, Aasfresser, Herden und Ahnenbuch |
+| `src/controls.js` | Steuerquellen: übersetzen Tastatur, Maus, Touch oder Controller in den Steuerwunsch eines Spielers |
 | `src/crocodile.js` | Krokodile: lauern im Wasser und schnellen hervor |
 | `src/data.js` | Feste Spieldaten: Eigenschaften, Fähigkeiten, Erbanlagen, Schwierigkeitsgrade, Gebiete, |
 | `src/daynight.js` | Tag und Nacht: Sonne, Mond, Himmelsfarben, Nebel, Nachtsicht, Schlafen auf Bäumen |
@@ -44,6 +45,7 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 | `src/main.js` | Einstieg: Hauptschleife (Bild für Bild: Spieler, Tiere, Kamera, Anzeige) und Spielstart |
 | `src/menu.js` | Pausenmenü, Einstellungen, Steuerungsliste, Neustart |
 | `src/models.js` | Tiermodelle aus Blöcken, Fellvarianten (inkl. Albino und Panther), Zusammenführen starrer Teile, Laufanimation |
+| `src/move.js` | Bewegung eines Leoparden pro Bild: Laufen, Sprinten, Sprung, Klettern, Kollision, Tarnung |
 | `src/perf.js` | Leistung: Schattentakt, automatische Auflösung, Bildratenanzeige |
 | `src/player.js` | Der Leopard des Spielers: Zustand, Startposition und Modell |
 | `src/quality.js` | Grafikstufen (niedrig/hoch/ultra) anwenden: Auflösung, Schatten, Gras, Nebel, Sichtweite |
@@ -62,6 +64,8 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 | `sw.js` | Service Worker für Installation und Offline-Betrieb |
 | `manifest.webmanifest`, `icon-*.png` | PWA-Angaben und Icons |
 | `tests/logic-test.js` | Logiktest ohne Browser (prüft vorher mit `tests/check-imports.js`, dass jeder Import exportiert wird) |
+| `tests/check-names.js` | Meldet Namen, die ein Modul benutzt, aber weder anlegt noch importiert |
+| `tools/add-imports.py` | Ergänzt solche fehlenden Importe automatisch aus den Exporten der anderen Module |
 | `tools/shot.py` | Startet das Spiel in Headless-Chrome, öffnet alle Fenster, macht Bildschirmfotos und meldet Fehler |
 
 Nach Änderungen am Spiel `python3 tools/bump-sw.py` ausführen: Das trägt alle Module in den Service-Worker-Cache ein und zählt die Version hoch, sonst behalten installierte Geräte den alten Stand.
