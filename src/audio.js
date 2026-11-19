@@ -40,7 +40,9 @@ function noise(dur,vol,f1,f2,type,delay){
 /* Aufgenommene Geräusche (ElevenLabs); bis sie geladen sind oder offline fehlen, klingt der Synth-Ersatz */
 const SAMPLES={roar:'audio/roar.mp3',dayA:'audio/amb-day-1.mp3',dayB:'audio/amb-day-2.mp3',windA:'audio/amb-wind-1.mp3',windB:'audio/amb-wind-2.mp3',
   fly:'audio/fly.mp3',birdA:'audio/bird-1.mp3',birdB:'audio/bird-2.mp3',doveA:'audio/dove-1.mp3',doveB:'audio/dove-2.mp3',gust:'audio/gust.mp3',owlA:'audio/owl-1.mp3',owlB:'audio/owl-2.mp3',owlC:'audio/owl-3.mp3',owlD:'audio/owl-4.mp3',
-  music1:'audio/music-1.mp3',music2:'audio/music-2.mp3',music3:'audio/music-3.mp3',music4:'audio/music-4.mp3',night:'audio/amb-night.mp3',rain:'audio/rain.mp3',thunder:'audio/thunder.mp3',thunderMid:'audio/thunder-mid.mp3',thunderMid2:'audio/thunder-mid-2.mp3',thunderFar:'audio/thunder-far.mp3'};
+  music1:'audio/music-1.mp3',music2:'audio/music-2.mp3',music3:'audio/music-3.mp3',music4:'audio/music-4.mp3',night:'audio/amb-night.mp3',rain:'audio/rain.mp3',hyenaA:'audio/hyena-1.mp3',hyenaB:'audio/hyena-2.mp3',lion:'audio/lion.mp3',jackalA:'audio/jackal-1.mp3',jackalB:'audio/jackal-2.mp3',alarm:'audio/alarm.mp3',
+  growlA:'audio/growl-1.mp3',growlB:'audio/growl-2.mp3',mew:'audio/mew.mp3',eat:'audio/eat.mp3',paws:'audio/paws.mp3',claws:'audio/claws.mp3',hurtA:'audio/hurt-1.mp3',hurtB:'audio/hurt-2.mp3',
+  thunder:'audio/thunder.mp3',thunderMid:'audio/thunder-mid.mp3',thunderMid2:'audio/thunder-mid-2.mp3',thunderFar:'audio/thunder-far.mp3'};
 /** @type {Record<string, AudioBuffer>} */ const bufs={};
 /** Für Schleifen: Stille am Anfang und Ende überspringen (MP3 hat dort Polster), damit es nahtlos weiterläuft */
 const loopPts={};
@@ -56,6 +58,22 @@ function sample(k,vol,rate){
   const b=bufs[k]; if(!AC||!b) return false;
   const s=AC.createBufferSource(); s.buffer=b; s.playbackRate.value=rate||1;
   const g=AC.createGain(); g.gain.value=vol; s.connect(g); g.connect(master); s.start(); return true;
+}
+/* Räumlicher Ton: Tiere klingen aus ihrer Richtung (links/rechts) und werden mit der Entfernung leiser und dumpfer.
+   Gehört wird vom nächsten Spieler aus; main.js meldet jedes Bild die Position und Blickrichtung der Spieler. */
+let LIS=[];
+function setListeners(l){ LIS=l; }
+/** Aufnahme (eine von ks) am Ort x,z abspielen; vol in nächster Nähe, ab maxD Metern unhörbar. false, wenn zu weit oder nicht geladen. */
+function snd3d(ks,x,z,vol,maxD,rate){
+  if(!AC||!LIS.length) return false; ks=(Array.isArray(ks)?ks:[ks]).filter(k=>bufs[k]); if(!ks.length) return false;
+  let L=LIS[0], d=1e9; for(const l of LIS){ const e=Math.hypot(x-l.x,z-l.z); if(e<d){ d=e; L=l; } }
+  if(d>maxD) return false;
+  const k=ks[Math.floor(Math.random()*ks.length)], t=AC.currentTime+0.02, near=Math.pow(1-d/maxD,1.6);
+  const fx=-Math.sin(L.yaw), fz=-Math.cos(L.yaw), dx=(x-L.x)/(d||1), dz=(z-L.z)/(d||1), side=dx*(-fz)+dz*fx;
+  const s=AC.createBufferSource(); s.buffer=bufs[k]; s.playbackRate.value=rate||rnd(0.93,1.07);
+  const g=AC.createGain(); g.gain.value=vol*near; const lp=AC.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=1200+16000*near;
+  s.connect(lp); lp.connect(g); let out=g; if(AC.createStereoPanner){ const p=AC.createStereoPanner(); p.pan.value=Math.max(-0.9,Math.min(0.9,side*Math.min(1,d/6))); g.connect(p); out=p; }
+  out.connect(master); s.start(t); return true;
 }
 /** Ist die Aufnahme k geladen? */
 const hasSample=k=>!!bufs[k];
@@ -122,21 +140,22 @@ function ambTick(day,rain,storm,hour,tense){
   const rg=ambLoop('rain'); if(rg) rg.gain.setTargetAtTime(0.7*rain,t,0.8);
   if(windG&&(bufs.dayA||bufs.windA||bufs.night)) windG.gain.value=0.02;   // Synth-Wind nur noch leise darunter
 }
+let eatUntil=0;   // Fressen: die Aufnahme ausklingen lassen, statt sie bei jedem Bissen neu zu starten
 const snd={
-  pounce(){ noise(0.3,0.35,500,2600); tone(180,0.25,'sawtooth',0.06,90); },
+  pounce(){ if(sample('paws',0.6,rnd(0.92,1.08))) return; noise(0.3,0.35,500,2600); tone(180,0.25,'sawtooth',0.06,90); },
   hit(){ tone(130,0.16,'square',0.22,45); noise(0.12,0.3,900,300,'lowpass'); },
   ambush(){ tone(660,0.18,'triangle',0.18,990); },
   kill(){ noise(0.09,0.3,1800,900,'bandpass',0.12); noise(0.09,0.3,1500,700,'bandpass',0.26); tone(392,0.14,'triangle',0.16,0,0.4); tone(523,0.2,'triangle',0.16,0,0.5); },
-  hurt(){ tone(220,0.28,'sawtooth',0.22,70); noise(0.15,0.25,400,150,'lowpass'); },
+  hurt(){ if(sample(Math.random()<0.5?'hurtA':'hurtB',0.35,rnd(0.92,1.1))) return; tone(220,0.28,'sawtooth',0.22,70); noise(0.15,0.25,400,150,'lowpass'); },
   level(){ [523,659,784,1047].forEach((f,i)=>tone(f,0.3,'triangle',0.2,0,i*0.11)); },
   roar(){ if(sample('roar',1.1,rnd(0.93,1.06))) return; tone(150,1.1,'sawtooth',0.3,55); tone(101,1.1,'square',0.14,48); noise(1.1,0.4,700,180,'lowpass'); },
   alert(){ tone(880,0.09,'square',0.1); tone(880,0.09,'square',0.1,0,0.14); },
   notice(){ tone(300,0.12,'sine',0.13,240); },
   beat(v){ tone(62,0.12,'sine',0.25+0.25*v,45); tone(58,0.1,'sine',0.18+0.2*v,42,0.14); },
-  climb(){ for(let i=0;i<4;i++) noise(0.07,0.22,1400,700,'bandpass',i*0.12); },
+  climb(){ if(sample('claws',1.6,rnd(0.95,1.1))) return; for(let i=0;i<4;i++) noise(0.07,0.22,1400,700,'bandpass',i*0.12); },
   purr(){ for(let i=0;i<7;i++) tone(58,0.11,'sawtooth',0.13,50,i*0.13); },
-  mew(){ tone(950,0.22,'sine',0.11,620); tone(1200,0.1,'sine',0.05,900); },
-  eat(){ for(let i=0;i<3;i++) noise(0.08,0.25,1600,800,'bandpass',i*0.13); },
+  mew(){ if(sample('mew',1.0,rnd(0.92,1.15))) return; tone(950,0.22,'sine',0.11,620); tone(1200,0.1,'sine',0.05,900); },
+  eat(){ if(bufs.eat){ if(AC.currentTime>eatUntil){ eatUntil=AC.currentTime+bufs.eat.duration*0.85; sample('eat',1.4,rnd(0.92,1.08)); } return; } for(let i=0;i<3;i++) noise(0.08,0.25,1600,800,'bandpass',i*0.13); },
   rustle(){ for(let i=0;i<3;i++) noise(0.09,0.14,3200,1500,'bandpass',i*0.07); },
   croc(){ noise(0.4,0.4,900,250,'lowpass'); tone(70,0.6,'sawtooth',0.2,40); },
   lost(){ tone(500,0.18,'sine',0.1,330); },
@@ -217,4 +236,4 @@ function musicTick(){
   while(mNext<now+0.3){ mSchedule(mStep,mNext); mNext+=M_STEP; mStep++; }
 }
 
-export { AC, ambTick, hasSample, master, nbuf, initAudio, tone, snd, musicTick };
+export { AC, ambTick, setListeners, snd3d, hasSample, master, nbuf, initAudio, tone, snd, musicTick };

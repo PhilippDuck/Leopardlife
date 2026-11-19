@@ -18,6 +18,7 @@ import { floatText } from './ui.js';
 import { rnd } from './util.js';
 import { crocStep } from './crocodile.js';
 import { syncOrbs } from './effects.js';
+import { growlAt } from './calls.js';
 
 /* Rudel: Hyänen und Schakale rufen ihre Artgenossen zur Jagd (je nach Schwierigkeit) */
 const PACK={hyena:1,jack:1};
@@ -86,7 +87,7 @@ function updateAnimal(a,dt){
       if(d<detect){
         if(a.sus<=0) snd.notice();
         a.sus+=dt*(0.3+0.85*(1-d/detect));
-        if(a.sus>=1){ a.sus=0; a.near=false; a.state='chase'; a.lost=0; snd.alert(); recruitPack(a); floatText('!',a.x,H(a.x,a.z)+sp.size*2.2,a.z,'#ff5a3c'); }
+        if(a.sus>=1){ a.sus=0; a.near=false; a.state='chase'; a.lost=0; snd.alert(); if(sp.pred) growlAt(a); recruitPack(a); floatText('!',a.x,H(a.x,a.z)+sp.size*2.2,a.z,'#ff5a3c'); }
       } else a.sus=Math.max(0,a.sus-dt*0.35);
     } else {
       a.sus=0;
@@ -98,7 +99,7 @@ function updateAnimal(a,dt){
     const c=a.carc;
     if(!c||!c.carc){ a.state='wander'; a.timer=0; a.carc=null; }
     else { const cx=c.x-a.x, cz=c.z-a.z, cd=Math.hypot(cx,cz), pd=Math.hypot(T.x-c.x,T.z-c.z);
-      if(hostile&&!T.safe&&cd<25&&(pd<10||d<detect)){ a.state='chase'; a.lost=0; a.aggro=4; a.carc=null; snd.alert(); floatText('!',a.x,H(a.x,a.z)+sp.size*2.2,a.z,'#ff5a3c'); }
+      if(hostile&&!T.safe&&cd<25&&(pd<10||d<detect)){ a.state='chase'; a.lost=0; a.aggro=4; a.carc=null; snd.alert(); growlAt(a); floatText('!',a.x,H(a.x,a.z)+sp.size*2.2,a.z,'#ff5a3c'); }
       else if(!hostile&&d<9){ a.carc=null; startFlee(a); }          // vor einem starken Jäger weichen Aasfresser zurück
       else if(cd>c.rad+1.3) moveAnimal(a,cx,cz,sp.spd*0.75,dt);
       else { a.g.rotation.y=Math.atan2(cx,cz); animLegs(a.g,a.ph,0.04); a.eatT+=dt; if(a.eatT>3){ a.eatT=0; c.carc.meat--; } } }

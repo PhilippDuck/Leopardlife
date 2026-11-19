@@ -1,0 +1,28 @@
+# Lädt Audiodateien aus audio/sources.json herunter (Liste: Ziel-Dateiname -> Download-Adresse) und legt sie in audio/ ab.
+name: Audio holen
+on:
+  push:
+    paths: ['audio/sources.json']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dateien laden
+        run: |
+          python3 - <<'PY'
+          import json, urllib.request, os
+          src = json.load(open('audio/sources.json'))
+          for name, url in src.items():
+              path = os.path.join('audio', name)
+              if os.path.exists(path): continue
+              urllib.request.urlretrieve(url, path); print('geladen', name, os.path.getsize(path))
+          PY
+      - name: Einchecken
+        run: |
+          git config user.name "audio-bot"; git config user.email "audio-bot@users.noreply.github.com"
+          git add audio/*.mp3 || true
+          git diff --cached --quiet || (git commit -m "Audio: neue Dateien geladen" && git push)

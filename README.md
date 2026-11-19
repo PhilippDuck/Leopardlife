@@ -35,6 +35,7 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 | `src/animals.js` | Alle Tiere der Welt: Anlegen pro Gebiet, Platzieren und Herden bilden |
 | `src/audio.js` | Ton: Geräusche, Umgebung (Wind, Vögel) und laufend erzeugte Musik, synthetisch über WebAudio, dazu aufgenommene Geräusche aus `audio/` (Brüllen, mit ElevenLabs erzeugt; Synth-Ersatz, solange sie fehlen) |
 | `src/carcass.js` | Kadaver, Aasfresser, Herden und Ahnenbuch |
+| `src/calls.js` | Tierrufe aus der Umgebung (Hyäne, Löwe, Schakal), Knurren und Alarmschnauben mit Richtung |
 | `src/controls.js` | Steuerquellen: übersetzen Tastatur, Maus, Touch oder Controller in den Steuerwunsch eines Spielers |
 | `src/coop.js` | Mitspieler am selben Gerät: Beitreten per Controller, geteiltes Bild, eigene Anzeige, am Boden und Wiederbeleben |
 | `src/crocodile.js` | Krokodile: lauern im Wasser und schnellen hervor |
@@ -91,3 +92,9 @@ python3 tools/shot.py            # echter Browsertest (braucht den Server oben a
 ```
 
 Der Spielstand liegt im `localStorage` des jeweiligen Browsers.
+
+## Geräusche und Musik
+
+Die Aufnahmen in `audio/` sind mit ElevenLabs erzeugt. Neue Dateien kommen so ins Spiel: Ziel-Dateiname und Download-Adresse in
+`audio/sources.json` eintragen und pushen – die GitHub-Action „Audio holen“ (`.github/workflows/audio-fetch.yml`) lädt sie herunter
+und checkt sie im selben Zweig ein. Danach `git pull`. Fehlt eine Datei, spielt das Spiel einen synthetischen Ersatzton.

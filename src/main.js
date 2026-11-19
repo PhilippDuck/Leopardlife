@@ -3,7 +3,7 @@
 import { ATTR, ABIL, TRAITS, DIFF, REGIONS, QUAL, SPECIES, FOOD, DAT, ART, ICONS, ICOL, ico } from './data.js';
 import { $, rnd } from './util.js';
 import { G } from './state.js';
-import { AC, ambTick, hasSample, initAudio, master, musicTick, nbuf, snd, tone } from './audio.js';
+import { AC, ambTick, hasSample, initAudio, master, musicTick, nbuf, setListeners, snd, tone } from './audio.js';
 import { D, DIE_AT, OLD_AT, REG, REG_ID, S, ancF, at, attrCap, baseSpeed, beaten, dmg, fresh, has, maxHp, maxSt, oldF, pScale, resetState, save, xpNeed } from './save.js';
 import { HORIZON, SMART, SUN_OFF, camera, canvas, grassLight, hemi, renderer, resize, scene, sun, windMulDir, windU } from './engine.js';
 import { cloudMat, clouds, sky, starMat, stars } from './sky.js';
@@ -36,6 +36,7 @@ import { drawRadar, updateCamera, updateCross, updateUI, updateWarn } from './hu
 import { readControls } from './controls.js';
 import { stepPlayer } from './move.js';
 import { renderAll, updateCoop, updateCoopHud } from './coop.js';
+import { updateCalls } from './calls.js';
 if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }); }
 if(typeof THREE==='undefined'){ $('err').textContent='Three.js konnte nicht geladen werden. Bitte Seite neu laden.'; $('btnPlay').disabled=true; throw new Error('three.js fehlt'); }
 
@@ -77,6 +78,7 @@ function step(dt){
   G.birdT-=dt; if(G.birdT<=0){ G.birdT=rnd(4,11); if(dayF>0.45&&W.rain<0.5&&!hasSample('birdA')) snd.bird(); }   // Synth-Vögel nur, solange die Vogel-Aufnahmen fehlen
   updateWeather(dt);
   for(let i=0;i<animals.length;i++) updateAnimal(animals[i],dt);
+  setListeners(players.map(p=>({x:p.x,z:p.z,yaw:p.cam.yaw}))); updateCalls(dt);
   for(let i=puffs.length-1;i>=0;i--){ const p=puffs[i]; p.t-=dt; p.vy-=12*dt; p.m.position.x+=p.vx*dt; p.m.position.y+=p.vy*dt; p.m.position.z+=p.vz*dt; p.m.material.opacity=Math.max(0,p.t/0.7); if(p.t<=0){ scene.remove(p.m); p.m.material.dispose(); puffs.splice(i,1); } }
   updateFx(dt);
   if(G.toastT>0){ G.toastT-=dt; G.toastShown+=dt; if(G.toastT<=0){ if(toastQ.length){ const q=toastQ.shift(); showToast(q[0],q[1],q[2]); } else $('toast').style.opacity=0; } }

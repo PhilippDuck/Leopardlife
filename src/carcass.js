@@ -14,6 +14,7 @@ import { floatText, toast } from './ui.js';
 import { $ } from './util.js';
 import { goalEvent } from './goals.js';
 import { related } from './kinship.js';
+import { alarmAt, callSoon } from './calls.js';
 
 /* ---------- Kadaver, Aasfresser, Herden, Ahnenbuch ---------- */
 // Kadaver: Beute ab der Größe eines Schakals bleibt liegen. Jeder Bissen ist eine Kugel über dem Kadaver – je größer das Tier,
@@ -26,7 +27,7 @@ function makeCarcass(a,meat){
   a.g.position.set(a.x,H(a.x,a.z)+a.sp.size*0.22,a.z); animLegs(a.g,0,0);
   const sc=animals.filter(o=>!o.dead&&(o.sp.id==='hyena'||o.sp.id==='jack')&&o.state==='wander'&&Math.hypot(o.x-a.x,o.z-a.z)<150)
     .sort((p,q)=>(p.sp.id==='hyena'?0:1)-(q.sp.id==='hyena'?0:1)||Math.hypot(p.x-a.x,p.z-a.z)-Math.hypot(q.x-a.x,q.z-a.z)).slice(0,2);
-  sc.forEach(o=>{ o.state='scav'; o.carc=a; o.eatT=0; o.sus=0; });
+  sc.forEach(o=>{ o.state='scav'; o.carc=a; o.eatT=0; o.sus=0; if(o.sp.id==='hyena') callSoon(o); });
   if(sc.length&&Math.hypot(P.x-a.x,P.z-a.z)<80){ const hy=sc[0].sp.id==='hyena';
     setTimeout(()=>toast((hy?'Hyänen':'Schakale')+' haben die Beute gewittert und kommen!'+(sc[0].sp.hunt&&S.lvl<sc[0].sp.hunt?' Nimm dir, was du brauchst, und verschwinde.':''),'#f2b84b'),1200); }
 }
@@ -54,6 +55,7 @@ function updateEating(p,dt){
 // Herden: Wasserschweine, Hirsche und Antilopen ziehen in Gruppen. Flieht eines, fliehen die Nachbarn mit.
 const herdLead=a=>{ for(const m of a.herd) if(!m.dead) return m; return a; };
 function startFlee(a){
+  if(a.state!=='flee') alarmAt(a);
   a.state='flee'; a.fleeT=0;
   if(a.herd) for(const m of a.herd) if(m!==a&&!m.dead&&m.state==='wander'&&Math.hypot(m.x-a.x,m.z-a.z)<40){ m.state='flee'; m.fleeT=0; m.sus=0; }
 }
