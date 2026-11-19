@@ -1,7 +1,7 @@
 // Service Worker: macht das Spiel installierbar und offline spielbar.
 // Bei jeder neuen Version VERSION hochzählen, damit Clients den Cache erneuern.
-const VERSION = 'leopardlife-v37';
-const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'icon-180.png'];
+const VERSION = 'leopardlife-v38';
+const SHELL = ['./', 'index.html', 'src/main.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'icon-180.png'];
 const CDN = ['https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'];
 
 self.addEventListener('install', e => {

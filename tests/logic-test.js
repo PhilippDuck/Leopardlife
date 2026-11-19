@@ -4,10 +4,8 @@
 // Führt das Spielskript mit Platzhaltern für THREE und DOM aus, um Laufzeitfehler (ReferenceError, TypeError) zu finden.
 const fs=require('fs');
 const path=require('path');
-// Spielskript aus index.html holen (das letzte <script>-Element ohne src)
-const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
-const scripts=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m=>m[1]);
-const code=scripts[scripts.length-1];
+// Spielskript aus src/main.js holen
+const code=fs.readFileSync(path.join(__dirname,'..','src','main.js'),'utf8');
 function U(name){ const store={}; const f=function(){};
   return new Proxy(f,{
     get(t,k){ if(k===Symbol.toPrimitive) return ()=>0; if(k===Symbol.iterator) return function*(){}; if(k==='then') return undefined; if(!(k in store)) store[k]=U(name+'.'+String(k)); return store[k]; },
