@@ -13,6 +13,7 @@ import { PX_BASE, VIEW_D, applyQuality, blobs, quality } from './quality.js';
 import { animLegs, buildQuad, furColor, furName, makeFur } from './models.js';
 import { P, START_ROT, START_YAW, dropModel, rebuildPlayer } from './player.js';
 import { animals, placeAnimal } from './animals.js';
+import { puff, puffs } from './effects.js';
 if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }); }
 if(!window.THREE){ $('err').textContent='Three.js konnte nicht geladen werden. Bitte Seite neu laden.'; $('btnPlay').disabled=true; throw new Error('three.js fehlt'); }
 
@@ -30,10 +31,6 @@ function updateEnv(dt,now){
   for(let i=0;i<waters.length;i++){ const w=waters[i]; w.position.y=w.userData.y+Math.sin(t*0.8+i)*0.03; }
 }
 
-
-/* Partikel */
-const puffs=[]; const puffGeo=new THREE.BoxGeometry(0.25,0.25,0.25);
-function puff(x,y,z,c,n,s){ for(let i=0;i<n;i++){ const m=new THREE.Mesh(puffGeo,new THREE.MeshBasicMaterial({color:c,transparent:true})); m.position.set(x,y,z); m.scale.setScalar(s*rnd(0.6,1.4)); scene.add(m); puffs.push({m,vx:rnd(-3,3),vy:rnd(2,6),vz:rnd(-3,3),t:0.7}); } }
 
 /* ---------- Eingabe ---------- */
 const keys={}; G.camYaw=START_YAW; G.camPitch=0.42; G.camZoom=1; G.paused=true; G.started=false;
