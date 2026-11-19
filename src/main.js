@@ -1,5 +1,6 @@
 // LeopardLife – Spiellogik (Einstiegsmodul).
 // Wird in den nächsten Schritten in Module nach Zuständigkeit aufgeteilt; bis dahin unverändert aus index.html übernommen.
+import { ATTR, ABIL, TRAITS, DIFF, REGIONS, QUAL, SPECIES, FOOD, DAT, ART, ICONS, ICOL, ico } from './data.js';
 if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }); }
 (function(){
 'use strict';
@@ -7,26 +8,8 @@ const _el={}; const $=id=>_el[id]||(_el[id]=document.getElementById(id));   // E
 if(!window.THREE){ $('err').textContent='Three.js konnte nicht geladen werden. Bitte Seite neu laden.'; $('btnPlay').disabled=true; return; }
 
 /* ---------- Spielstand ---------- */
-const ATTR=[
-  {k:'str',n:'Stärke',d:'+3 Schaden pro Rang'},
-  {k:'spd',n:'Tempo',d:'Schneller laufen und sprinten'},
-  {k:'sta',n:'Ausdauer',d:'+15 Ausdauer, schnellere Erholung'},
-  {k:'vit',n:'Vitalität',d:'+15 Leben pro Rang'},
-  {k:'cam',n:'Tarnung',d:'Tiere bemerken dich später'}
-];
-const ABIL=[
-  {k:'amb',n:'Hinterhalt',d:'Mehr Bonusschaden auf ahnungslose Beute'},
-  {k:'jmp',n:'Sprungkraft',d:'Weiterer Sprung, kürzere Abklingzeit'},
-  {k:'roar',n:'Brüllen',d:'Verjagt Raubtiere, lässt Beute erstarren (R)'},
-  {k:'nose',n:'Witterung',d:'Größere Reichweite der Spürkarte, Fährten bleiben länger sichtbar'},
-  {k:'climb',n:'Klettern',d:'Auf Bäume flüchten (E), kostet viel Ausdauer. Höhere Ränge: günstiger, schneller hinauf, stärkerer Sprung vom Baum'},
-  {k:'night',n:'Nachtsicht',d:'Nachts heller und weiter sehen'}
-];
 const fresh=()=>({region:'savanne',beat:{},day:0,goals:null,kills:0,anc:[],diff:'normal',tod:0.3,lvl:1,xp:0,pts:0,won:false,gen:1,fur:null,cub:null,food:0,preg:0,partner:false,p1:false,p2:false,hunger:100,age:0,traits:[],a:{str:0,spd:0,sta:0,vit:0,cam:0},b:{amb:0,jmp:0,roar:0,nose:0,climb:0,night:0}});
 // Schwierigkeit: Schaden, Hunger, Wachsamkeit der Tiere, Erfahrungsverlust beim Tod, Abstand der Überfälle, endgültiger Tod ohne Nachwuchs
-const DIFF={easy:{n:'Leicht',dmg:0.6,hunger:0.7,sense:0.85,xpLoss:0,raid:1.5,perma:false,d:'Weniger Schaden, langsamerer Hunger, kein Erfahrungsverlust beim Tod.'},
-  normal:{n:'Normal',dmg:1,hunger:1,sense:1,xpLoss:0.4,raid:1,perma:false,d:'Das ausgewogene Spiel.'},
-  hard:{n:'Schwer',dmg:1.35,hunger:1.3,sense:1.15,xpLoss:0.6,raid:0.75,perma:true,d:'Mehr Schaden, schnellerer Hunger, wachsamere Tiere. Stirbst du ohne Nachwuchs, endet deine Blutlinie endgültig.'}};
 const D=()=>DIFF[S.diff]||DIFF.normal;
 let S=fresh();
 try{ const raw=localStorage.getItem('jaguar-save-v1'); if(raw){ const o=JSON.parse(raw); if(o&&o.lvl){ S=Object.assign(fresh(),o); S.a=Object.assign(fresh().a,o.a); S.b=Object.assign(fresh().b,o.b); $('btnReset').style.display=''; $('btnPlay').textContent='Weiterspielen (Stufe '+S.lvl+')'; } } }catch(e){}
@@ -34,8 +17,6 @@ function save(){ try{ localStorage.setItem('jaguar-save-v1',JSON.stringify(S)); 
 
 const xpNeed=l=>Math.round(20*Math.pow(l,1.4));
 // Erbanlagen: jedes Junge bekommt eine; bis zu drei werden über die Generationen weitergegeben
-const TRAITS={flink:['Flinke Läufe','+10 % Tempo'],zaeh:['Zähes Fell','+20 % Leben'],dunkel:['Dunkles Fell','Tiere bemerken dich später'],kiefer:['Starker Kiefer','+15 % Schaden'],
-  lunge:['Große Lunge','+25 % Ausdauer'],nase:['Feine Nase','Spürkarte reicht weiter'],genug:['Genügsam','Hunger wächst langsamer'],lang:['Langlebig','5 Minuten längeres Leben']};
 const has=t=>S.traits.indexOf(t)>=0;
 // Eigenschaften wirken höchstens bis Rang Stufe + 2: Geerbtes ruht, bis der Körper mitgewachsen ist
 const attrCap=()=>S.lvl+2;
@@ -44,18 +25,6 @@ const at=k=>Math.min(S.a[k],attrCap());
 const OLD_AT=18*60, DIE_AT=()=>25*60+(has('lang')?300:0);
 const oldF=()=>S.lvl>=8?Math.max(0,Math.min(1,(S.age-OLD_AT)/(DIE_AT()-OLD_AT))):0;
 /* ---------- Gebiete: jede zweite Generation öffnet ein neues. Jedes Gebiet ist eine eigene Karte; beim Wandern wird sie neu aufgebaut. ---------- */
-const REGIONS={
-  savanne:{n:'Savanne',gen:1,d:'Offenes Grasland mit Wasserlöchern, Akazien und Herden.',boss:'Riesenantilope',
-    ponds:[[-52,38,15],[92,-78,19],[-118,-128,23],[60,150,18]],trees:330,savFrom:115,palms:[3,5],patches:95,ground:[0x3c7a38,0xbfa95c],hor:0xcfe2d4,counts:null,
-    winT:'König der Wildnis',winX:'Du hast die Riesenantilope erlegt. Aus dem kleinen Jungtier ist der gefürchtetste Jäger der Savanne geworden.'},
-  sumpf:{n:'Sumpf',gen:3,d:'Viele Wasserlöcher, Schilf und Palmen. Krokodile lauern unsichtbar im Wasser – nur Luftblasen verraten sie.',boss:'Riesenkrokodil',
-    ponds:[[-60,30,18],[-20,-70,16],[55,-40,20],[80,60,22],[-110,-40,24],[20,110,19],[-90,120,21],[140,-10,23],[110,-130,20],[-40,-150,22],[-160,70,18],[170,110,17],[-150,-130,19]],
-    trees:300,savFrom:999,palms:[4,7],patches:120,ground:[0x335a2a,0x5d6a36],hor:0xbfd3c2,
-    counts:{maus:14,hase:8,capy:18,boar:9,deer:8,anti:0,giant:0,jack:3,hyena:4,lion:2,croc:10,bigcroc:1},
-    winT:'Herr des Sumpfes',winX:'Du hast das Riesenkrokodil bezwungen. Kein Wasserloch ist vor deiner Linie mehr sicher.'},
-  dschungel:{n:'Dschungel',gen:5,soon:true,d:'Paviane, Giftschlangen und Affen in den Bäumen.'},
-  wueste:{n:'Wüste',gen:7,soon:true,d:'Hitze, kaum Deckung, Strauße und Oryx-Antilopen.'}
-};
 const REG_ID=(S.region&&REGIONS[S.region]&&!REGIONS[S.region].soon)?S.region:'savanne', REG=REGIONS[REG_ID];
 const beaten=id=>id==='savanne'?!!(S.won||(S.beat||{}).savanne):!!(S.beat||{})[id];
 // Ahnenkraft: jede erreichte Generation macht die Linie etwas stärker (höchstens +20 %)
@@ -89,11 +58,6 @@ function resize(){ const w=window.innerWidth,h=window.innerHeight; renderer.setS
 window.addEventListener('resize',resize); resize();
 
 /* Grafikqualität: niedrig / hoch / ultra (weitere Sicht, schärfere und weitere Schatten, mehr Gras) */
-const QUAL={
-  low:{n:'niedrig',px:1,sh:0,shR:55,grass:3500,gS:80,tall:0.45,fog:[45,190],view:150},
-  high:{n:'hoch',px:2,sh:2048,shR:55,grass:13000,gS:80,tall:1,fog:[55,240],view:170},
-  ultra:{n:'ultra',px:2,sh:4096,shR:95,grass:30000,gS:125,tall:1,fog:[120,430],view:340}
-};
 let quality='high', VIEW_D=170, pxScale=1, PX_BASE=1;
 try{ const q=localStorage.getItem('jaguar-gfx2'); if(q&&QUAL[q]) quality=q; }catch(e){}
 const blobs=[]; let grassGeo=null, grassMat=null; const GRASS_N=30000;
@@ -578,21 +542,6 @@ function animLegs(g,t,amp){ const l=g.userData.legs; const a=Math.sin(t)*amp; l[
 
 /* ---------- Tierarten ---------- */
 // ring: Abstand vom Zentrum. hunt: jagt Spieler unter dieser Stufe. fight: wehrt sich.
-const SPECIES=[
- {id:'maus',n:'Maus',size:0.2,hp:4,spd:5,xp:5,sense:9,ring:[6,80],count:16,m:{col:0x9a8f84,col2:0xb5aa9f,ears:0.2,tail:0.9,len:1.1}},
- {id:'hase',n:'Hase',size:0.32,hp:10,spd:9,xp:12,sense:15,ring:[15,120],count:16,m:{col:0xb99772,col2:0xd6bfa0,ears:0.55,len:1.1,leg:0.45}},
- {id:'capy',n:'Wasserschwein',size:0.55,hp:32,spd:7,xp:32,sense:16,ring:[40,140],count:10,m:{col:0x8a633f,col2:0x76532f,len:1.5,hgt:0.7,wid:0.65,leg:0.4,ears:0.1}},
- {id:'boar',n:'Wildschwein',size:0.75,hp:75,spd:8.5,xp:70,sense:13,ring:[70,170],count:7,fight:1,dmg:8,m:{col:0x4b3d33,col2:0x3a2f27,len:1.5,hgt:0.75,wid:0.6,leg:0.42,tusks:1,tail:0.3}},
- {id:'deer',n:'Hirsch',size:1.0,hp:115,spd:12,xp:120,sense:24,ring:[90,200],count:9,m:{col:0xa8743f,col2:0x8c5e30,leg:0.95,neck:0.35,horns:0.6,stripe:0xe8d9bd,ears:0.2}},
- {id:'anti',n:'Antilope',size:1.15,hp:200,spd:13.5,xp:230,sense:27,ring:[130,225],count:9,m:{col:0xc9924f,col2:0xe9d2a8,leg:1.0,neck:0.4,horns:0.85,stripe:0x3b2a1c,ears:0.2,tail:0.4}},
- {id:'giant',n:'Riesenantilope',size:2.5,hp:700,spd:10.5,xp:1200,sense:22,ring:[185,228],count:3,fight:1,dmg:35,boss:1,m:{col:0xb08a5c,col2:0x7d6040,leg:1.0,neck:0.45,horns:1.1,hgt:0.75,wid:0.65,len:1.6,ears:0.22,tail:0.6,tailTip:0x2a1c10}},
- {id:'jack',n:'Schakal',size:0.62,hp:40,spd:8.6,xp:55,sense:30,ring:[45,130],count:5,hunt:4,fight:1,dmg:6,pred:1,m:{col:0xb58a4f,col2:0x8d8a80,ears:0.3,tail:0.7,leg:0.6}},
- {id:'hyena',n:'Hyäne',size:0.95,hp:125,spd:10,xp:160,sense:34,ring:[105,190],count:5,hunt:8,fight:1,dmg:14,pred:1,m:{col:0x9c8a6a,col2:0x4a4036,ears:0.22,tail:0.4,leg:0.7,hgt:0.65,spots:1}},
- {id:'lion',n:'Löwe',size:1.35,hp:360,spd:11.5,xp:520,sense:38,ring:[150,225],count:3,hunt:12,fight:1,dmg:30,pred:1,m:{col:0xcfa35a,col2:0xbf9350,mane:0x6e4420,tail:1.0,tailTip:0x4a2c12,leg:0.7,hgt:0.7,wid:0.6,len:1.6}},
- {id:'croc',n:'Krokodil',size:1.1,hp:260,spd:4.5,xp:280,sense:9,ring:[0,230],count:0,hunt:14,fight:1,dmg:26,pred:1,croc:1,m:{col:0x4d5a34,col2:0x6b7547,len:2.6,hgt:0.32,wid:0.75,leg:0.22,head:0.42,ears:0.02,tail:1.8,tailTip:0x3c4628,snout:1}},
- {id:'bigcroc',n:'Riesenkrokodil',size:2.0,hp:950,spd:4,xp:1500,sense:11,ring:[0,230],count:0,hunt:99,fight:1,dmg:45,pred:1,croc:1,boss:1,m:{col:0x3f4a2c,col2:0x5e6740,len:2.6,hgt:0.32,wid:0.75,leg:0.22,head:0.42,ears:0.02,tail:1.8,tailTip:0x323a22,snout:1}},
- {id:'mate',n:'Leopard',size:1.0,hp:999,spd:7,xp:0,sense:0,ring:[40,150],count:5,friend:1,m:{col:0xe0a23c,col2:0xf0c98a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.44,ears:0.15,tail:1.1,tailTip:0x2a1c10,spots:1}}
-];
 const animals=[];
 function placeAnimal(a){
   const sp=a.sp; let x,z,tries=0;
@@ -719,34 +668,6 @@ function floatText(txt,x,y,z,c){
   setTimeout(()=>el.remove(),1050);
 }
 /* Icons für Eigenschaften, Fähigkeiten und Erbanlagen: 24er-Raster, Strichzeichnung in der jeweiligen Farbe */
-const ICONS={
-  // Eigenschaften
-  str:'<path d="M5 19Q8 11 11 4M10 20Q13 12 16 5M15 20Q17 14 19 9"/>',
-  spd:'<path d="M5 6l6 6-6 6M12 6l6 6-6 6"/>',
-  sta:'<path d="M3 9h11a3 3 0 1 0-3-3M3 15h14a3 3 0 1 1-3 3M3 12h8"/>',
-  vit:'<path d="M12 20s-7-4.5-8.5-9A4.5 4.5 0 0 1 12 6.5 4.5 4.5 0 0 1 20.5 11C19 15.5 12 20 12 20z"/>',
-  cam:'<path d="M5 20Q7 13 4 6M10 20Q11 11 14 4M15 20Q15.5 14 20 8M2 20.5h20"/>',
-  // Fähigkeiten
-  amb:'<circle cx="12" cy="12" r="6.5"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/>',
-  jmp:'<path d="M3 19Q10 1 19 14"/><path d="M15.2 13.6l3.8.6.9-3.7"/><path d="M2 21h6"/>',
-  roar:'<circle cx="5.5" cy="12" r="2" fill="currentColor"/><path d="M10 8a5 5 0 0 1 0 8M14 5a9 9 0 0 1 0 14M18 2.5a13 13 0 0 1 0 19"/>',
-  nose:'<path d="M7 21c-2-3 2-5 0-8s2-5 0-8M12 21c-2-3 2-5 0-8s2-5 0-8M17 21c-2-3 2-5 0-8s2-5 0-8"/>',
-  climb:'<path d="M6 13a4 4 0 0 1 1.5-7.6 5 5 0 0 1 9.2-.4A4 4 0 0 1 18.5 13z"/><path d="M13 13v8M13 17l2.5-2"/><path d="M5 21v-5M3.2 17.8L5 16l1.8 1.8"/>',
-  night:'<path d="M19.5 14.5A7.5 7.5 0 1 1 9.5 4.5a6 6 0 0 0 10 10z"/><path d="M17 3.5v3M15.5 5h3"/>',
-  // Erbanlagen
-  flink:'<ellipse cx="14.5" cy="16.6" rx="3.4" ry="2.7"/><circle cx="10.6" cy="11.4" r="1.35" fill="currentColor"/><circle cx="13.1" cy="9.3" r="1.35" fill="currentColor"/><circle cx="16.1" cy="9.3" r="1.35" fill="currentColor"/><circle cx="18.5" cy="11.7" r="1.35" fill="currentColor"/><path d="M2 12.5h4M2.5 16.5h5M2 20.5h6"/>',
-  zaeh:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
-  dunkel:'<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/><circle cx="15.5" cy="9" r="1.2" fill="currentColor"/><circle cx="16" cy="14.5" r="1.4" fill="currentColor"/>',
-  kiefer:'<path d="M3.5 5h17"/><path d="M8.5 5c0 6 1.6 10.5 3.5 15 1.9-4.5 3.5-9 3.5-15"/><path d="M4.5 5l1.2 3.4L7 5M17 5l1.3 3.4L19.5 5"/>',
-  lunge:'<path d="M12 3v8"/><path d="M10.5 9C7 8 4 12 4 17c0 2 1.5 3 3.5 3s3-1 3-3V9zM13.5 9c3.5-1 6.5 3 6.5 8 0 2-1.5 3-3.5 3s-3-1-3-3V9z"/>',
-  nase:'<circle cx="10" cy="10" r="6"/><path d="M14.5 14.5L20 20"/><path d="M8 10.5c.6-1.5 2.4-1.5 3 0"/>',
-  genug:'<path d="M3 12h18a9 7 0 0 1-18 0z"/><path d="M9 9c0-2 2-2 2-4M13.5 9c0-2 2-2 2-4"/>',
-  lang:'<path d="M7 3h10M7 21h10M8 3c0 6 8 6 8 9s-8 3-8 9M16 3c0 6-8 6-8 9s8 3 8 9"/><path d="M10 19h4" />',
-  // Ahnenkraft
-  anc:'<path d="M3 18h18M4.5 18L3 8l5 4 4-7 4 7 5-4-1.5 10"/><circle cx="12" cy="14" r="1.2" fill="currentColor"/>'
-};
-const ICOL={a:'#f2b84b',b:'#8ad4ef',t:'#ff9ad0',anc:'#9be07f'};
-const ico=(k,c,sz)=>'<span class="ico" style="--ic:'+c+(sz?';--isz:'+sz+'px':'')+'"><svg viewBox="0 0 24 24" aria-hidden="true">'+(ICONS[k]||'')+'</svg></span>';
 function renderSkills(){
   $('skPts').textContent=S.pts+' Punkt'+(S.pts===1?'':'e');
   const row=(it,val,max,cost,grp,cap)=>{ const act=Math.min(val,cap), rest=val-act;
@@ -1078,7 +999,6 @@ function hitAnimal(a){
 let lastHit=null,lastHitT=0;
 
 /* ---------- Familie: Partner, Junges, Futter, Überfälle ---------- */
-const FOOD={croc:8,bigcroc:25,maus:1,hase:2,capy:4,boar:6,deer:8,anti:10,giant:20,jack:3,hyena:5,lion:8};
 const FOOD_MAX=20, CUB_HOME={x:7,z:5};
 const cub={x:7,z:5,tx:7,tz:5,t:0,ph:0,mewT:6,saveT:10};
 let cubG=null;
@@ -1396,7 +1316,6 @@ function startFlee(a){
   if(a.herd) for(const m of a.herd) if(m!==a&&!m.dead&&m.state==='wander'&&Math.hypot(m.x-a.x,m.z-a.z)<40){ m.state='flee'; m.fleeT=0; m.sus=0; }
 }
 // Ahnenbuch: jede Generation der Blutlinie mit Fell, Erbanlagen, Stufe, Beute und Schicksal
-const DAT={croc:'einem Krokodil',bigcroc:'einem Riesenkrokodil',lion:'einem Löwen',hyena:'einer Hyäne',jack:'einem Schakal',boar:'einem Wildschwein',giant:'einer Riesenantilope'};
 function recordAncestor(cause){ S.anc=(S.anc||[]).concat({g:S.gen||1,l:S.lvl,f:S.fur?Object.assign({},S.fur):null,t:S.traits.slice(),k:S.kills||0,c:cause}).slice(-40); }
 function archiveLine(){
   let L=[]; try{ L=JSON.parse(localStorage.getItem('jaguar-lines')||'[]'); }catch(e){}
@@ -1467,7 +1386,6 @@ function updateWeather(dt){
 // Zu jedem Sonnenaufgang drei neue Aufgaben; jede bringt einen Teil der nächsten Stufe als Bonus-Erfahrung.
 const PREY_BY_LVL=l=>{ const L=l<3?['hase','maus']:l<6?['capy','hase']:l<9?['boar','deer','capy']:l<12?['deer','anti','boar']:['anti','lion','hyena','croc']; const f=L.filter(id=>animals.some(a=>a.sp.id===id)); return f.length?f:['hase']; };
 function spName(id){ const sp=SPECIES.find(x=>x.id===id); return sp?sp.n:id; }
-const ART={croc:'ein',hase:'einen',maus:'eine',capy:'ein',boar:'ein',deer:'einen',anti:'eine',lion:'einen',hyena:'eine',jack:'einen'};
 function newGoals(){
   const pool=[];
   const n=3+Math.floor(Math.random()*3); pool.push({id:'kill',text:'Erlege '+n+' Beutetiere',need:n});

@@ -4,8 +4,12 @@
 // Führt das Spielskript mit Platzhaltern für THREE und DOM aus, um Laufzeitfehler (ReferenceError, TypeError) zu finden.
 const fs=require('fs');
 const path=require('path');
-// Spielskript aus src/main.js holen
-const code=fs.readFileSync(path.join(__dirname,'..','src','main.js'),'utf8');
+// Spielskript aus src/main.js holen; importierte Module werden eingefügt (einfacher Bündler für den Test)
+function bundle(file){
+  const c=fs.readFileSync(file,'utf8');
+  return c.replace(/^import \{[^}]*\} from '\.\/([\w-]+\.js)';\n/mg,(m,f)=>bundle(path.join(path.dirname(file),f)).replace(/^export /mg,'')+'\n');
+}
+const code=bundle(path.join(__dirname,'..','src','main.js'));
 function U(name){ const store={}; const f=function(){};
   return new Proxy(f,{
     get(t,k){ if(k===Symbol.toPrimitive) return ()=>0; if(k===Symbol.iterator) return function*(){}; if(k==='then') return undefined; if(!(k in store)) store[k]=U(name+'.'+String(k)); return store[k]; },
