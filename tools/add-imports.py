@@ -19,7 +19,7 @@ for f,names in need.items():
         else: print('  ?',f,n,srcs)
     for mod,ns in sorted(add.items()):
         pat=r"import \{([^}]*)\} from '\./"+re.escape(mod)+"';"
-        if re.search(pat,c): c=re.sub(pat,lambda m:"import { "+', '.join(sorted({x.strip() for x in m[1].split(',') if x.strip()}|ns))+" } from './"+mod+"';",c,1)
+        if re.search(pat,c): c=re.sub(pat,lambda m:"import { "+', '.join(sorted({x.strip() for x in m[1].split(',') if x.strip()}|ns))+" } from './"+mod+"';",c,count=1)
         else:
             L=c.split('\n'); idx=[i for i,l in enumerate(L) if l.startswith('import ')]
             at=(idx[-1]+1) if idx else next(i for i,l in enumerate(L) if not l.startswith('//'))

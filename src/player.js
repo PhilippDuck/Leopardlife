@@ -1,6 +1,6 @@
 // LeopardLife – Der Leopard des Spielers: Zustand, Startposition und Modell.
 import { QUAL } from './data.js';
-import { scene } from './engine.js';
+import { camera, scene } from './engine.js';
 import { buildQuad } from './models.js';
 import { blobs, quality } from './quality.js';
 import { S, maxHp, maxSt } from './save.js';
@@ -15,6 +15,9 @@ const JAG={col:0xe0a23c,col2:0xf0c98a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.44
 function dropModel(g){ if(!g) return; scene.remove(g); const i=blobs.indexOf(g.userData.blob); if(i>=0) blobs.splice(i,1); }
 function rebuildPlayer(){ dropModel(P.g); P.g=buildQuad(JAG,S.fur||null); P.g.userData.blob.visible=!QUAL[quality].sh; scene.add(P.g); }
 rebuildPlayer();
-scene.add(P.g); P.hp=maxHp(); P.st=maxSt();
+scene.add(P.g);
+P.camera=camera;   // Kamera, mit der dieser Spieler gezeigt wird
+// Alle Spieler auf diesem Gerät. Noch einer; beim Splitscreen kommen weitere dazu.
+const players=[P]; P.hp=maxHp(); P.st=maxSt();
 
-export { P, START_ROT, START_YAW, dropModel, rebuildPlayer };
+export { P, players, START_ROT, START_YAW, dropModel, rebuildPlayer };

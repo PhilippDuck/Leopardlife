@@ -51,15 +51,16 @@ function updateWarn(dt){
   } else w.style.display='none';
   beatT-=dt; if(maxSus>0&&beatT<=0){ beatT=0.95-0.6*maxSus; snd.beat(maxSus); }
 }
-function updateCamera(){
-  P.cam.huntF+=(((P.sneak&&P.tree==null&&!dead&&!G.paused)?1:0)-P.cam.huntF)*0.06;
-  const sc=pScale(), dist=(5+sc*6.5)*P.cam.zoom*(1-0.3*P.cam.huntF), ty=P.camY+sc*1.1+dist*0.16;
-  const fov=60-8*P.cam.huntF; if(Math.abs(camera.fov-fov)>0.05){ camera.fov=fov; camera.updateProjectionMatrix(); }
-  const cp=Math.cos(P.cam.pitch);
-  let cx=P.x+Math.sin(P.cam.yaw)*dist*cp, cz=P.z+Math.cos(P.cam.yaw)*dist*cp, cy=ty+Math.sin(P.cam.pitch)*dist;
+/** Setzt die Kamera cam hinter Spieler p (Abstand, Neigung, Jagd-Ansicht, Wackeln). Beim Splitscreen hat jeder Spieler seine. */
+function updateCamera(p,cam){
+  p.cam.huntF+=(((p.sneak&&p.tree==null&&!dead&&!G.paused)?1:0)-p.cam.huntF)*0.06;
+  const sc=pScale(), dist=(5+sc*6.5)*p.cam.zoom*(1-0.3*p.cam.huntF), ty=p.camY+sc*1.1+dist*0.16;
+  const fov=60-8*p.cam.huntF; if(Math.abs(cam.fov-fov)>0.05){ cam.fov=fov; cam.updateProjectionMatrix(); }
+  const cp=Math.cos(p.cam.pitch);
+  let cx=p.x+Math.sin(p.cam.yaw)*dist*cp, cz=p.z+Math.cos(p.cam.yaw)*dist*cp, cy=ty+Math.sin(p.cam.pitch)*dist;
   cy=Math.max(cy,H(cx,cz)+0.6);
-  if(P.cam.shake>0){ cx+=(Math.random()-0.5)*P.cam.shake; cy+=(Math.random()-0.5)*P.cam.shake; cz+=(Math.random()-0.5)*P.cam.shake; P.cam.shake=Math.max(0,P.cam.shake*0.86-0.005); }
-  camera.position.set(cx,cy,cz); camera.lookAt(P.x,ty,P.z);
+  if(p.cam.shake>0){ cx+=(Math.random()-0.5)*p.cam.shake; cy+=(Math.random()-0.5)*p.cam.shake; cz+=(Math.random()-0.5)*p.cam.shake; p.cam.shake=Math.max(0,p.cam.shake*0.86-0.005); }
+  cam.position.set(cx,cy,cz); cam.lookAt(p.x,ty,p.z);
 }
 function updateCross(){
   // Fadenkreuz leuchtet, wenn ein Tier in Sprungrichtung und -reichweite ist

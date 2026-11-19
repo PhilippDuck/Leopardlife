@@ -11,7 +11,7 @@ import { GLSL_H, GLSL_PONDMASK, H, PONDS, WATER_D, WORLD, addCol, collide, cullT
 import { _tm, _tv, inGrass, leafGeoHi, leafGeoLo, leafMeshes, leafTime, patches, tallGeo, tallMat, trees, updateTrees } from './vegetation.js';
 import { PX_BASE, VIEW_D, applyQuality, blobs, quality } from './quality.js';
 import { animLegs, buildQuad, furColor, furName, makeFur } from './models.js';
-import { P, START_ROT, START_YAW, dropModel, rebuildPlayer } from './player.js';
+import { P, START_ROT, START_YAW, dropModel, players, rebuildPlayer } from './player.js';
 import { animals, placeAnimal } from './animals.js';
 import { puff, puffs } from './effects.js';
 import { inputMode, keys, setInputMode, tapLearned, touchUI } from './input.js';
@@ -64,12 +64,12 @@ function frame(now){
   pollPads(dt);
   if(G.slowT>0){ G.slowT-=dt; dt*=0.25; }
   if(!G.paused) step(dt);
-  updateCamera(); updateTrees(dt); updateEnv(dt,now); musicTick(); cullTiles();
+  for(const p of players) updateCamera(p,p.camera); updateTrees(dt); updateEnv(dt,now); musicTick(); cullTiles();
   renderer.render(scene,camera);
 }
 function step(dt){
-  readControls(P,dt);
-  const st=stepPlayer(P,dt);
+  for(const p of players) readControls(p,dt);
+  const st=stepPlayer(P,dt);   // Tiere reagieren noch auf die Tarnung des ersten Spielers
   G.birdT-=dt; if(G.birdT<=0){ G.birdT=rnd(4,11); snd.bird(); }
   updateWeather(dt);
   for(let i=0;i<animals.length;i++) updateAnimal(animals[i],dt,st);
