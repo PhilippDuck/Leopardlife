@@ -40,7 +40,7 @@ function noise(dur,vol,f1,f2,type,delay){
 /* Aufgenommene Geräusche (ElevenLabs); bis sie geladen sind oder offline fehlen, klingt der Synth-Ersatz */
 const SAMPLES={roar:'audio/roar.mp3',dayA:'audio/amb-day-1.mp3',dayB:'audio/amb-day-2.mp3',windA:'audio/amb-wind-1.mp3',windB:'audio/amb-wind-2.mp3',
   fly:'audio/fly.mp3',birdA:'audio/bird-1.mp3',birdB:'audio/bird-2.mp3',doveA:'audio/dove-1.mp3',doveB:'audio/dove-2.mp3',gust:'audio/gust.mp3',owlA:'audio/owl-1.mp3',owlB:'audio/owl-2.mp3',owlC:'audio/owl-3.mp3',owlD:'audio/owl-4.mp3',
-  music1:'audio/music-1.mp3',music2:'audio/music-2.mp3',music3:'audio/music-3.mp3',music4:'audio/music-4.mp3',night:'audio/amb-night.mp3',rain:'audio/rain.mp3',thunder:'audio/thunder.mp3'};
+  music1:'audio/music-1.mp3',music2:'audio/music-2.mp3',music3:'audio/music-3.mp3',music4:'audio/music-4.mp3',night:'audio/amb-night.mp3',rain:'audio/rain.mp3',thunder:'audio/thunder.mp3',thunderMid:'audio/thunder-mid.mp3',thunderMid2:'audio/thunder-mid-2.mp3',thunderFar:'audio/thunder-far.mp3'};
 /** @type {Record<string, AudioBuffer>} */ const bufs={};
 /** Für Schleifen: Stille am Anfang und Ende überspringen (MP3 hat dort Polster), damit es nahtlos weiterläuft */
 const loopPts={};
