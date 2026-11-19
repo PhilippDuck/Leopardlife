@@ -64,6 +64,7 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 | `sw.js` | Service Worker für Installation und Offline-Betrieb |
 | `manifest.webmanifest`, `icon-*.png` | PWA-Angaben und Icons |
 | `tests/logic-test.js` | Logiktest ohne Browser (prüft vorher mit `tests/check-imports.js`, dass jeder Import exportiert wird) |
+| `tests/typecheck.js`, `jsconfig.json`, `types/` | Typprüfung aller Module mit TypeScript (ohne Build-Schritt; der Editor nutzt dieselben Einstellungen) |
 | `tests/check-names.js` | Meldet Namen, die ein Modul benutzt, aber weder anlegt noch importiert |
 | `tools/add-imports.py` | Ergänzt solche fehlenden Importe automatisch aus den Exporten der anderen Module |
 | `tools/shot.py` | Startet das Spiel in Headless-Chrome, öffnet alle Fenster, macht Bildschirmfotos und meldet Fehler |
@@ -74,7 +75,8 @@ Nach Änderungen am Spiel `python3 tools/bump-sw.py` ausführen: Das trägt alle
 
 ```bash
 python3 -m http.server 8080      # dann http://localhost:8080 öffnen
-node tests/logic-test.js         # Spiellogik prüfen, endet mit "ALL OK"
+node tests/logic-test.js         # Importe, Namen, Typen und Spiellogik prüfen, endet mit "ALL OK"
+python3 tools/shot.py            # echter Browsertest (braucht den Server oben auf Port 8765)
 ```
 
 Der Spielstand liegt im `localStorage` des jeweiligen Browsers.
