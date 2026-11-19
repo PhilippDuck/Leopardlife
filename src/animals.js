@@ -6,6 +6,7 @@ import { P } from './player.js';
 import { REG } from './save.js';
 import { PONDS } from './terrain.js';
 import { rnd } from './util.js';
+import { dropOrbs } from './effects.js';
 
 /* ---------- Tierarten ---------- */
 // ring: Abstand vom Zentrum. hunt: jagt Spieler unter dieser Stufe. fight: wehrt sich.
@@ -16,7 +17,7 @@ function placeAnimal(a){
   while(tries<20 && Math.hypot(x-P.x,z-P.z)<45);
   if(a.herd){ for(const m of a.herd){ if(m!==a&&!m.dead&&Math.hypot(m.x-P.x,m.z-P.z)>45){ x=m.x+rnd(-6,6); z=m.z+rnd(-6,6); break; } } }
   if(sp.croc&&PONDS.length){ a.pond=sp.boss?PONDS.reduce((m,q)=>q.r>m.r?q:m):PONDS[Math.floor(Math.random()*PONDS.length)]; const an=Math.random()*6.283, rr=Math.random()*a.pond.r*0.5; x=a.pond.x+Math.cos(an)*rr; z=a.pond.z+Math.sin(an)*rr; }
-  a.carc=null; a.g.rotation.z=0;
+  if(a.carc&&a.carc.orbs) dropOrbs(a.carc.orbs); a.carc=null; a.g.rotation.z=0;
   a.x=x; a.z=z; a.hp=sp.hp; a.state='wander'; a.tx=x; a.tz=z; a.timer=0; a.aggro=0; a.lost=0; a.fleeT=0; a.cd=0; a.stun=0; a.sus=0; a.near=false; a.dead=false; a.ph=Math.random()*6; if(sp.croc) a.state='lurk';
   a.g.visible=true;
 }

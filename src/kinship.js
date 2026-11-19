@@ -1,5 +1,5 @@
 // LeopardLife – Verwandtschaft und Familie im gemeinsamen Spiel: wer mit wem verwandt ist, Spieler als Paar, Wurf mit einem Jungen je Spieler.
-// Regel: Verwandte paaren sich nie (Geschwister, Eltern und Kinder). Wer neu einsteigt, ist fremd; erst die Jungen sind verwandt.
+// Regel: Verwandte paaren sich nie (Eltern/Kinder, Geschwister, Großeltern/Enkel, Tante/Onkel mit Nichte/Neffe). Cousins dürfen. Wer neu einsteigt, ist fremd.
 import { snd } from './audio.js';
 import { nameOf, tell } from './coop.js';
 import { TRAITS } from './data.js';
@@ -21,16 +21,24 @@ const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 function ensureKin(L){ if(!L.id) L.id=newId(); if(!Array.isArray(L.parents)) L.parents=[]; return L; }
 
 /**
- * Sind die Leoparden A und B verwandt? Dieselben, Eltern und Kind oder Geschwister (mindestens ein gemeinsames Elternteil).
+ * Sind die Leoparden A und B zu nah verwandt für eine Paarung? Siehe Regel oben; Cousins zählen nicht.
  * @param {{id?:string, parents?:string[]}} A
  * @param {{id?:string, parents?:string[]}} B
  */
 function related(A,B){
   if(!A||!B||!A.id||!B.id) return false;
   if(A.id===B.id) return true;
-  const pa=A.parents||[], pb=B.parents||[];
-  if(pa.indexOf(B.id)>=0||pb.indexOf(A.id)>=0) return true;
-  return pa.some(x=>pb.indexOf(x)>=0);
+  const ok=x=>x&&x!=='wild', pa=(A.parents||[]).filter(ok), pb=(B.parents||[]).filter(ok), has=(l,x)=>l.indexOf(x)>=0, meet=(l,m)=>l.some(x=>has(m,x));
+  if(has(pa,B.id)||has(pb,A.id)||meet(pa,pb)) return true;            // Eltern und Kind, Geschwister
+  const ga=pa.flatMap(parentsOf).filter(ok), gb=pb.flatMap(parentsOf).filter(ok);
+  if(has(ga,B.id)||has(gb,A.id)) return true;                          // Großeltern und Enkel
+  return meet(pa,gb)||meet(pb,ga);                                     // Tante/Onkel und Nichte/Neffe; Cousins dürfen
+}
+/** Eltern eines Leoparden der Familie über seine Kennung (lebende Spieler und Ahnenbuch) */
+function parentsOf(id){
+  if(S.id===id) return S.parents||[];
+  for(const k in (S.mates||{})) if(S.mates[k].id===id) return S.mates[k].parents||[];
+  const e=(S.anc||[]).find(x=>x.i===id); return e&&e.p?e.p:[];
 }
 /** Können sich die Spieler p und q paaren? Beide ausgewachsen, nicht verwandt, kein Junges und keine Trächtigkeit in der Familie. */
 function canPair(p,q){
@@ -65,7 +73,7 @@ function mateBecomeCub(p){
   recordAncestor('zog sein Junges groß und lebt als Elterntier weiter',L,nameOf(p));
   S.mates[p.num]=nl; p.L=nl; p.fur=nl.fur; rebuildPlayer(p);
   // Der alte Leopard bleibt als Elterntier am Bau (Platz 2), falls frei
-  if(!S.p2){ S.p2=true; famPlace(fam[2],p.x,p.z); }
+  if(!S.p2){ S.p2=true; famPlace(fam[2],p.x,p.z,old.fur||{albino:false,melan:false,l:1,s:1,sn:1,ss:1}); }
   p.x=cub.x+rnd(-1,1); p.z=cub.z+rnd(-1,1); p.tree=null; p.safe=false; p.pounce=0; p.hp=maxHp(nl); p.st=maxSt(nl);
   takeFromLitter();
   if((nl.gen||1)>(S.gen||1)) S.gen=nl.gen;
@@ -84,7 +92,7 @@ function mateContextInfo(p){
   if(p.tree!=null) return (p.safe&&p.climbT>=1&&canSleepNow())?{label:p.wantSleep?'Wartet auf die anderen …':'Schlafen'}:null;
   const q=pairCandidate(p); if(q&&canPair(p,q)) return {label:'Paaren mit '+nameOf(q)};
   if(S.cub&&S.cub.grow<1&&S.food>0&&S.cub.full<97&&Math.hypot(cub.x-p.x,cub.z-p.z)<4.5) return {label:'Füttern'};
-  const cc=nearCarcass(p); if(cc){ if(p.L.hunger<90) return {label:'Fressen'}; if(S.cub&&S.cub.grow<1&&S.food<FOOD_MAX) return {label:'Fleisch mitnehmen'}; }
+  const cc=nearCarcass(p); if(cc){ if(p.L.hunger<90&&p.eatC!==cc) return {label:'Fressen ('+cc.carc.meat+' Bissen übrig)'}; if(S.cub&&S.cub.grow<1&&S.food<FOOD_MAX) return {label:'Fleisch mitnehmen'}; }
   return null;
 }
 /** Aktionstaste eines Mitspielers (X antippen): paaren, Junges füttern. */

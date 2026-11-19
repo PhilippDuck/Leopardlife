@@ -4,11 +4,11 @@ import { animals } from './animals.js';
 import { snd } from './audio.js';
 import { REGIONS, TRAITS } from './data.js';
 import { puff } from './effects.js';
-import { canvas } from './engine.js';
+import { canvas, scene } from './engine.js';
 import { CUB_HOME, cub, endRaid, heirLevel } from './family.js';
 import { touchUI } from './input.js';
-import { animLegs } from './models.js';
-import { P, players, rebuildPlayer } from './player.js';
+import { animLegs, buildQuad } from './models.js';
+import { P, dropModel, players, rebuildPlayer } from './player.js';
 import { S, fresh, has, maxHp, maxSt, save, xpNeed } from './save.js';
 import { G } from './state.js';
 import { H } from './terrain.js';
@@ -28,9 +28,16 @@ const famRole=i=>i===0?(S.partner?'partner':null):i===1?(S.p1?'p1':null):i===2?(
 const canMate=()=>S.lvl>=8&&!S.cub&&!(S.preg>0);
 const kidMode=()=>S.lvl<8&&(S.p1||S.p2);
 function famHome(a){ const an=Math.random()*6.283, r=rnd(5,20); a.tx=CUB_HOME.x+Math.cos(an)*r; a.tz=CUB_HOME.z+Math.sin(an)*r; a.timer=rnd(4,10); }
-function famPlace(a,x,z){ a.x=x; a.z=z; a.fhp=FAM_HP; a.feeding=false; a.famOn=true; a.cd=0; a.fcombat=0; a.idle=0; famHome(a); }
+/** Fell von Familienmitglied i (0 Partner, 1/2 Elterntiere) setzen und merken, damit es wie der Leopard aussieht, der es war */
+function famFur(i,fur){
+  const a=fam[i]; if(!fur) return; S.famFur=S.famFur||[null,null,null]; S.famFur[i]=Object.assign({},fur);
+  if(a.fur===fur) return; const vis=a.g.visible, pos=a.g.position.clone(), rot=a.g.rotation.y;
+  dropModel(a.g); a.fur=S.famFur[i]; a.g=buildQuad(a.sp.m,a.fur); a.g.scale.setScalar(a.sp.size); a.g.position.copy(pos); a.g.rotation.y=rot; a.g.visible=vis; scene.add(a.g);
+}
+function famPlace(a,x,z,fur){ if(fur) famFur(fam.indexOf(a),fur); a.x=x; a.z=z; a.fhp=FAM_HP; a.feeding=false; a.famOn=true; a.cd=0; a.fcombat=0; a.idle=0; famHome(a); }
 function famDie(a){
-  const i=fam.indexOf(a); if(i===0) S.partner=false; else if(i===1) S.p1=false; else S.p2=false;
+  const i=fam.indexOf(a); if(i===0&&S.tree&&S.tree[S.partnerId]) S.tree[S.partnerId].c='im Kampf gestorben';
+  if(i===0) S.partner=false; else if(i===1) S.p1=false; else S.p2=false;
   a.famOn=false; a.g.visible=false; save(); snd.death(); puff(a.x,H(a.x,a.z)+1,a.z,0xe0a23c,10,0.8);
   toast(i===0?'Dein Partner ist im Kampf gestorben.':'Eines deiner Elterntiere ist im Kampf gestorben.','#ff8a70');
 }
@@ -90,7 +97,7 @@ function famStep(a,dt,role){
   a.g.position.set(a.x,H(a.x,a.z),a.z);
 }
 function updateFamily(dt){
-  for(let i=0;i<3;i++){ const a=fam[i], r=famRole(i); if(r&&!a.famOn) famPlace(a,CUB_HOME.x+rnd(-9,9),CUB_HOME.z+rnd(-9,9)); if(!r) a.famOn=false; }
+  for(let i=0;i<3;i++){ const a=fam[i], r=famRole(i); if(r&&!a.famOn) famPlace(a,CUB_HOME.x+rnd(-9,9),CUB_HOME.z+rnd(-9,9),S.famFur&&S.famFur[i]); if(!r) a.famOn=false; }
   // Elterntiere bringen jungen Spielern ab und zu Beute: dem hungrigsten, das nächste freie Elterntier läuft los
   const kids=youngPlayers();
   if(kids.length){
@@ -103,10 +110,10 @@ function updateFamily(dt){
 // Wechsel ins Junge: freiwillig (das alte Ich bleibt als Elterntier) oder nach dem Tod
 function becomeCub(vol){
   recordAncestor(vol?'zog sein Junges groß und lebt als Elterntier weiter':G.lastCause);
-  const hl=heirLevel(), ox=P.x, oz=P.z, hadPartner=S.partner&&fam[0].famOn, mateParent=S.p2&&fam[2].famOn;
+  const hl=heirLevel(), ox=P.x, oz=P.z, hadPartner=S.partner&&fam[0].famOn, mateParent=S.p2&&fam[2].famOn, myFur=S.fur?Object.assign({},S.fur):{albino:false,melan:false,l:1,s:1,sn:1,ss:1};
   S.p1=!!vol; S.p2=!!hadPartner||!!mateParent; S.partner=false;
-  if(hadPartner) famPlace(fam[2],fam[0].x,fam[0].z); else if(!mateParent) fam[2].famOn=false;
-  if(S.p1) famPlace(fam[1],ox,oz); else fam[1].famOn=false;
+  if(hadPartner) famPlace(fam[2],fam[0].x,fam[0].z,fam[0].fur); else if(!mateParent) fam[2].famOn=false;
+  if(S.p1) famPlace(fam[1],ox,oz,myFur); else fam[1].famOn=false;
   fam[0].famOn=false;
   if(S.cub.trait&&TRAITS[S.cub.trait]&&!has(S.cub.trait)) S.traits=S.traits.concat(S.cub.trait).slice(-3);
   { const sum=o=>Object.keys(o).reduce((x,k)=>x+o[k],0), total=sum(S.a)+2*sum(S.b)+S.pts;   // Eigenschaften und Fähigkeiten werden nicht vererbt, nur 10 % der Punkte
@@ -154,4 +161,4 @@ $('btnMenuCub').onclick=()=>{
 };
 
 export { canMate, fam, famHurt, famRole, famStep, kidMode, updateFamily };
-export { becomeCub, famPlace, renderBirthChoices };
+export { becomeCub, famFur, famPlace, renderBirthChoices };

@@ -31,7 +31,7 @@ const doc={ querySelectorAll:()=>[], getElementById:el, addEventListener(){}, cr
 let raf=null;
 const g={ window:win, document:doc, navigator:{maxTouchPoints:0}, localStorage:{getItem:k=>(k in ls?ls[k]:null),setItem:(k,v)=>{ls[k]=String(v);}}, THREE:win.THREE,
   requestAnimationFrame:fn=>{ if(fn.name==='frame') raf=fn; else fn(); }, setTimeout:fn=>{ fn(); } };
-const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping};';
+const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping};';
 new Function(...Object.keys(g), body)(...Object.values(g));
 const T=globalThis.__T; const rnd2=()=>Math.random()*8-4; const localStorageDump=()=>ls['jaguar-lines'];
 els.btnPlay.onclick();
@@ -260,10 +260,17 @@ console.log('audio nodes created',ACs&&ACs.count());
   const Q=T.makePlayer({source:'test',x:P.x+40,z:P.z,fur:null,L:Object.assign(T.copyLeopard(T.S()),{hunger:30})}); T.players.push(Q);
   const a=T.animals.find(o=>!o.dead&&!o.sp.friend&&(o.sp.id==='deer'||o.sp.size>0.8))||T.animals.find(o=>!o.dead&&!o.sp.friend);
   const keep=[a.x,a.z,a.dead,a.carc]; a.dead=true; a.x=Q.x+1; a.z=Q.z; T.makeCarcass(a,4);
-  const info=T.mateContextInfo(Q); T.mateContext(Q); const fed=Q.L.hunger>30;
-  a.carc=keep[3]; a.dead=keep[2]; a.x=keep[0]; a.z=keep[1]; T.players.pop();
-  if(!info||info.label!=='Fressen'||!fed) { console.log('FEHLER: Mitspieler kann nicht fressen',info); process.exit(1); }
-  console.log('Kadaver: Mitspieler frisst ('+Math.round(Q.L.hunger)+' % satt)'); }
+  const orbs=a.carc.orbs?4:0;
+  const info=T.mateContextInfo(Q); T.mateContext(Q); Q.ctl.fw=Q.ctl.rt=0;
+  for(let i=0;i<3;i++) T.updateEating(Q,0.75); const fed=Q.L.hunger, left=a.carc.meat;
+  // ein zweiter Spieler frisst am selben Kadaver mit
+  P.x=a.x-1; P.z=a.z; const h1=P.L.hunger=50; T.takeMeat(a,false,P); P.ctl.fw=P.ctl.rt=0; T.updateEating(P,0.75);
+  const both=P.L.hunger>h1&&a.carc.meat===left-1;
+  // laufen bricht das Fressen ab
+  Q.ctl.fw=1; T.updateEating(Q,0.75); const stopped=Q.eatC==null; Q.ctl.fw=0; P.eatC=null;
+  T.endCarcass(a); a.carc=keep[3]; a.dead=keep[2]; a.x=keep[0]; a.z=keep[1]; T.players.pop();
+  if(!info||!/^Fressen/.test(info.label)||orbs!==4||fed!==60||left!==1||!both||!stopped) { console.log('FEHLER: Kadaver-Bissen',info,orbs,fed,left,both,stopped); process.exit(1); }
+  console.log('Kadaver: 4 Kugeln, Spieler 2 frisst 3 Bissen ('+fed+' % satt), Spieler 1 frisst mit, Laufen bricht ab'); }
 // Gemeinsam schlafen: erst wenn alle wollen (zuletzt im Test, weil der Schlaf das Spiel kurz anhält)
 { const P=T.P, S=T.S(); if(P.dead) T.respawn(); T.unpause(); S.tod=0.9;
   const Q=T.makePlayer({source:'test',x:P.x+3,z:P.z,fur:null,L:T.copyLeopard(S)}); Q.num=2; T.players.push(Q);
@@ -274,4 +281,24 @@ console.log('audio nodes created',ACs&&ACs.count());
   if(!(Math.abs(S.tod-0.27)<0.01)) { console.log('FEHLER: Schlaf sollte beginnen, wenn beide wollen',info,S.tod); process.exit(1); }
   console.log('Schlafen: Spieler 1 wartet, Spieler 2 wählt „'+info.label+'" → beide schlafen bis zum Morgen');
   for(const p of [P,Q]){ p.tree=null; p.safe=false; } }
+{ const P=T.P, L=P.L; P.dead=false; P.skOpen=false; if(T.paused()) T.unpause(); L.pts=5; const a0=L.a.str, b0=L.b.nose;
+  P.skSnap={a:{...L.a},b:{...L.b}}; L.a.str++; L.pts--; L.b.nose++; L.pts-=2; L.pts+=2; /* zwischendurch neu verdient */
+  T.resetSkills(P,null);
+  if(L.a.str!==a0||L.b.nose!==b0||L.pts!==7){ console.log('FEHLER: Zurücksetzen',L.a.str,a0,L.b.nose,b0,L.pts); process.exit(1); }
+  T.resetSkills(P,null); if(L.pts!==7){ console.log('FEHLER: doppeltes Zurücksetzen erstattet erneut'); process.exit(1); }
+  console.log('Entwicklung: Auswahl zurückgesetzt, 3 Punkte erstattet, neu verdiente bleiben'); }
+{ const S=T.S(), F=T.fam; const savedCub=S.cub, savedFur=S.fur;
+  S.fur={albino:false,melan:false,l:0.71,s:1,sn:1,ss:1}; S.partner=true; F[0].famOn=true; F[0].fur={albino:false,melan:true,l:0.9,s:1,sn:1,ss:1};
+  S.cub={full:70,grow:1,hp:1,n:2,gen:(S.gen||1)+1,parents:[S.id,'x'],fur:{albino:false,melan:false,l:1,s:1,sn:1,ss:1}};
+  T.becomeCub(true);
+  const ok=F[1].fur.l===0.71&&F[2].fur.melan===true&&!F[1].fur.albino&&S.famFur&&S.famFur[1].l===0.71;
+  if(!ok){ console.log('FEHLER: Elterntiere haben falsches Fell',F[1].fur,F[2].fur); process.exit(1); }
+  console.log('Elterntiere behalten ihr Fell: altes Ich und Partner'); }
+{ const S=T.S(), sv=[S.anc,S.id,S.parents,S.mates];
+  S.anc=[{i:'G1',p:[]},{i:'G2',p:[]},{i:'C1',p:['G1','G2']},{i:'C2',p:['G1','G2']},{i:'X',p:[]},{i:'Y',p:[]}]; S.id='zz'; S.parents=[]; S.mates={};
+  const L=(id,p)=>({id,parents:p}), cousinA=L('K1',['C1','X']), cousinB=L('K2',['C2','Y']);
+  const r=[T.related(cousinA,cousinB), T.related(L('C2',['G1','G2']),cousinA), T.related(L('G1',[]),cousinA), T.related(L('C1',['G1','G2']),L('C2',['G1','G2']))];
+  S.anc=sv[0]; S.id=sv[1]; S.parents=sv[2]; S.mates=sv[3];
+  if(r.join()!=='false,true,true,true'){ console.log('FEHLER: Verwandtschaft',r); process.exit(1); }
+  console.log('Verwandtschaft: Cousins dürfen, Tante/Neffe, Großeltern und Geschwister nicht'); }
 console.log('ALL OK');

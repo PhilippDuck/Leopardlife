@@ -3,7 +3,7 @@
 import { ATTR, ABIL, TRAITS, DIFF, REGIONS, QUAL, SPECIES, FOOD, DAT, ART, ICONS, ICOL, ico } from './data.js';
 import { $, rnd } from './util.js';
 import { G } from './state.js';
-import { AC, master, nbuf, initAudio, tone, snd, musicTick } from './audio.js';
+import { AC, ambTick, hasSample, initAudio, master, musicTick, nbuf, snd, tone } from './audio.js';
 import { D, DIE_AT, OLD_AT, REG, REG_ID, S, ancF, at, attrCap, baseSpeed, beaten, dmg, fresh, has, maxHp, maxSt, oldF, pScale, resetState, save, xpNeed } from './save.js';
 import { HORIZON, SMART, SUN_OFF, camera, canvas, grassLight, hemi, renderer, resize, scene, sun, windMulDir, windU } from './engine.js';
 import { cloudMat, clouds, sky, starMat, stars } from './sky.js';
@@ -24,7 +24,7 @@ import { CUB_HOME, FOOD_MAX, context, cub, doContext, endRaid, heirLevel, raidSt
 import { canMate, fam, famHurt, famRole, famStep, kidMode, updateFamily } from './kin.js';
 import { updateLife } from './life.js';
 import { clockStr, dayF, updateDayNight } from './daynight.js';
-import { esc, herdLead, startFlee } from './carcass.js';
+import { esc, herdLead, startFlee, updateEating } from './carcass.js';
 import { W, updateWeather } from './weather.js';
 import { goalEvent, newGoals, renderGoals } from './goals.js';
 import { addTrack, updateTracks } from './tracks.js';
@@ -66,14 +66,15 @@ function frame(now){
   // Zeitlupe nach Hinterhalt/Beute verlangsamt die ganze Welt – im gemeinsamen Spiel nicht (die anderen spielen ja weiter)
   if(G.slowT>0){ G.slowT-=dt; if(players.length===1) dt*=0.25; }
   if(!G.paused) step(dt);
-  for(const p of players) updateCamera(p,p.camera); updateTrees(dt,players.map(p=>({camera:p.camera,p}))); updateEnv(dt,now); musicTick();
+  for(const p of players) updateCamera(p,p.camera); updateTrees(dt,players.map(p=>({camera:p.camera,p}))); updateEnv(dt,now); musicTick(); ambTick(dayF,W.rain);
   renderAll();
 }
 function step(dt){
   for(const p of players) readControls(p,dt);
   for(const p of players) if(!p.dead) stepPlayer(p,dt);
+  for(const p of players) updateEating(p,dt);
   updateCoop(dt);
-  G.birdT-=dt; if(G.birdT<=0){ G.birdT=rnd(4,11); snd.bird(); }
+  G.birdT-=dt; if(G.birdT<=0){ G.birdT=rnd(4,11); if(dayF>0.45&&W.rain<0.5&&!hasSample('birdA')) snd.bird(); }   // Synth-Vögel nur, solange die Vogel-Aufnahmen fehlen
   updateWeather(dt);
   for(let i=0;i<animals.length;i++) updateAnimal(animals[i],dt);
   for(let i=puffs.length-1;i>=0;i--){ const p=puffs[i]; p.t-=dt; p.vy-=12*dt; p.m.position.x+=p.vx*dt; p.m.position.y+=p.vy*dt; p.m.position.z+=p.vz*dt; p.m.material.opacity=Math.max(0,p.t/0.7); if(p.t<=0){ scene.remove(p.m); p.m.material.dispose(); puffs.splice(i,1); } }

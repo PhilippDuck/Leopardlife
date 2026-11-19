@@ -1,9 +1,9 @@
-// LeopardLife – Ton: Geräusche, Umgebung (Wind, Vögel) und laufend erzeugte Musik, alles synthetisch über WebAudio.
+// LeopardLife – Ton: Geräusche, Umgebung (Tag, Nacht, Regen, Wind, Vögel) und laufend erzeugte Musik. Aufnahmen aus audio/, sonst synthetisch über WebAudio.
 import { $, rnd } from './util.js';
 import { G } from './state.js';
 
 /* ---------- Ton (WebAudio, alles synthetisch) ---------- */
-let AC=null, master=null, nbuf=null, muted=false; G.birdT=4;
+let AC=null, master=null, nbuf=null, muted=false, windG=null; G.birdT=4;
 try{ muted=localStorage.getItem('jaguar-mute')==='1'; }catch(e){}
 function setMuteLabel(){ $('mute').textContent='Ton: '+(muted?'aus':'an'); }
 setMuteLabel();
@@ -17,7 +17,7 @@ function initAudio(){
     // Umgebung: leiser Wind
     const src=AC.createBufferSource(); src.buffer=nbuf; src.loop=true;
     const f=AC.createBiquadFilter(); f.type='lowpass'; f.frequency.value=420;
-    const g=AC.createGain(); g.gain.value=0.07;
+    const g=AC.createGain(); g.gain.value=0.07; windG=g;
     const lfo=AC.createOscillator(); lfo.frequency.value=0.13; const lg=AC.createGain(); lg.gain.value=0.035; lfo.connect(lg); lg.connect(g.gain); lfo.start();
     src.connect(f); f.connect(g); g.connect(master); src.start();
   }catch(e){ AC=null; }
@@ -38,16 +38,73 @@ function noise(dur,vol,f1,f2,type,delay){
   s.connect(f); f.connect(g); g.connect(master); s.start(t,Math.random()); s.stop(t+dur+0.05);
 }
 /* Aufgenommene Geräusche (ElevenLabs); bis sie geladen sind oder offline fehlen, klingt der Synth-Ersatz */
-const SAMPLES={roar:'audio/roar.mp3'}; /** @type {Record<string, AudioBuffer>} */ const bufs={};
+const SAMPLES={roar:'audio/roar.mp3',dayA:'audio/amb-day-1.mp3',dayB:'audio/amb-day-2.mp3',windA:'audio/amb-wind-1.mp3',windB:'audio/amb-wind-2.mp3',
+  fly:'audio/fly.mp3',birdA:'audio/bird-1.mp3',birdB:'audio/bird-2.mp3',doveA:'audio/dove-1.mp3',doveB:'audio/dove-2.mp3',gust:'audio/gust.mp3',night:'audio/amb-night.mp3',rain:'audio/rain.mp3',thunder:'audio/thunder.mp3'};
+/** @type {Record<string, AudioBuffer>} */ const bufs={};
+/** Für Schleifen: Stille am Anfang und Ende überspringen (MP3 hat dort Polster), damit es nahtlos weiterläuft */
+const loopPts={};
+function findLoop(k,b){ const d=b.getChannelData(0), n=d.length, th=0.0005; let a=0, e=n-1;
+  while(a<Math.min(n,4000)&&Math.abs(d[a])<th) a++; while(e>n-4000&&Math.abs(d[e])<th) e--;
+  loopPts[k]=[a/b.sampleRate,(e+1)/b.sampleRate]; }
 function loadSamples(){
   for(const k in SAMPLES) fetch(SAMPLES[k]).then(r=>r.ok?r.arrayBuffer():Promise.reject(r.status))
-    .then(b=>new Promise((res,rej)=>AC.decodeAudioData(b,res,rej))).then(d=>{ bufs[k]=/** @type {AudioBuffer} */(d); }).catch(()=>{});
+    .then(b=>new Promise((res,rej)=>AC.decodeAudioData(b,res,rej))).then(d=>{ bufs[k]=/** @type {AudioBuffer} */(d); findLoop(k,bufs[k]); }).catch(()=>{});
 }
 /** Spielt ein geladenes Geräusch mit leicht zufälliger Tonhöhe; false, wenn es (noch) nicht da ist. */
 function sample(k,vol,rate){
   const b=bufs[k]; if(!AC||!b) return false;
   const s=AC.createBufferSource(); s.buffer=b; s.playbackRate.value=rate||1;
   const g=AC.createGain(); g.gain.value=vol; s.connect(g); g.connect(master); s.start(); return true;
+}
+/** Ist die Aufnahme k geladen? */
+const hasSample=k=>!!bufs[k];
+
+/* ---------- Umgebung ----------
+   Grund ist ruhiger Wind im Gras (tags) bzw. Grillen (nachts), gespielt als Folge zufälliger Ausschnitte: zufällige Stelle,
+   5–11 s, leicht verstimmt, links/rechts verschoben, weich überblendet, zwei bis drei überlappen sich.
+   Darüber kommen einzelne Ereignisse zu zufälligen Zeiten: Vögel, Tauben, eine Fliege, Windböen und selten ein Stück der
+   vollen Savannen-Aufnahme mit Insekten. Regen bleibt eine Schleife. */
+/** @type {Record<string, GainNode>} */ const amb={};
+const BEDS={day:['windA','windB'],night:['night'],bugs:['dayA','dayB']}, bedNext={day:0,night:0,bugs:0}, BED_GAP={day:[0.35,0.6],night:[0.35,0.6],bugs:[1.5,4]};
+// Ereignisse tagsüber: Aufnahmen, Abstand in s, Lautstärke
+const EVENTS=[{ks:['birdA','birdB'],gap:[15,45],vol:[0.15,0.4]},{ks:['doveA','doveB'],gap:[30,70],vol:[0.15,0.35]},{ks:['fly'],gap:[25,70],vol:[0.2,0.5]},{ks:['gust'],gap:[14,40],vol:[0.25,0.5]}];
+const evNext=EVENTS.map(()=>0);
+function bus(k){ if(!amb[k]){ amb[k]=AC.createGain(); amb[k].gain.value=0; amb[k].connect(master); } return amb[k]; }
+function oneShot(k,vol,pan,rate){
+  const b=bufs[k]; if(!b) return; const t=AC.currentTime+0.02;
+  const s=AC.createBufferSource(); s.buffer=b; s.playbackRate.value=rate; const g=AC.createGain(); g.gain.value=vol;
+  let out=g; if(AC.createStereoPanner){ const p=AC.createStereoPanner(); p.pan.value=pan; g.connect(p); out=p; }
+  s.connect(g); out.connect(bus('ev')); s.start(t);
+}
+function grain(bed){
+  const ks=BEDS[bed].filter(k=>bufs[k]); if(!ks.length) return 0;
+  const k=ks[Math.floor(Math.random()*ks.length)], b=bufs[k], lp=loopPts[k]||[0,b.duration];
+  const t=AC.currentTime+0.05, dur=rnd(5,11), fade=rnd(1.4,2.6), rate=rnd(0.93,1.07);
+  const s=AC.createBufferSource(); s.buffer=b; s.loop=true; s.loopStart=lp[0]; s.loopEnd=lp[1]; s.playbackRate.value=rate;
+  const pk=rnd(0.6,1), g=AC.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(pk,t+fade); g.gain.setValueAtTime(pk,t+dur-fade); g.gain.linearRampToValueAtTime(0.0001,t+dur);
+  let out=g; if(AC.createStereoPanner){ const p=AC.createStereoPanner(); p.pan.value=rnd(-0.7,0.7); g.connect(p); out=p; }
+  s.connect(g); out.connect(bus(bed)); s.start(t,lp[0]+Math.random()*(lp[1]-lp[0])); s.stop(t+dur+0.1);
+  return dur;
+}
+function ambLoop(k){
+  if(amb[k]||!bufs[k]) return amb[k]||null;
+  const s=AC.createBufferSource(); s.buffer=bufs[k]; s.loop=true; const lp=loopPts[k]; if(lp){ s.loopStart=lp[0]; s.loopEnd=lp[1]; }
+  const g=AC.createGain(); g.gain.value=0; s.connect(g); g.connect(master); s.start(0,(lp?lp[0]:0)+Math.random()*5); amb[k]=g; return g;
+}
+/** Lautstärken der Umgebung nachführen und neue Ausschnitte starten: day 0…1 (Tageslicht), rain 0…1 */
+function ambTick(day,rain){
+  if(!AC||AC.state!=='running') return;
+  const t=AC.currentTime, dry=1-0.6*rain, lv={day:0.3*day*dry,night:0.3*(1-day)*dry,bugs:0.2*day*dry};
+  if(!bufs.windA&&!bufs.windB){ BEDS.day=['dayA','dayB']; lv.bugs=0; lv.day=0.28*day*dry; } else BEDS.day=['windA','windB'];   // ohne Wind-Aufnahmen wie bisher
+  for(const bed in BEDS){
+    bus(bed).gain.setTargetAtTime(lv[bed],t,0.8);
+    if(lv[bed]>0.01&&t>=bedNext[bed]){ const d=grain(bed), g=BED_GAP[bed]; bedNext[bed]=t+(d?d*rnd(g[0],g[1]):2); }
+  }
+  bus('ev').gain.setTargetAtTime(day*dry,t,0.8);
+  if(day>0.3) EVENTS.forEach((e,i)=>{ if(t<evNext[i]) return; if(evNext[i]>0){ const ks=e.ks.filter(k=>bufs[k]); if(ks.length) oneShot(ks[Math.floor(Math.random()*ks.length)],rnd(e.vol[0],e.vol[1]),rnd(-0.85,0.85),rnd(0.9,1.1)); }
+    evNext[i]=t+rnd(e.gap[0],e.gap[1]); });
+  const rg=ambLoop('rain'); if(rg) rg.gain.setTargetAtTime(0.7*rain,t,0.8);
+  if(windG&&(bufs.dayA||bufs.windA||bufs.night)) windG.gain.value=0.02;   // Synth-Wind nur noch leise darunter
 }
 const snd={
   pounce(){ noise(0.3,0.35,500,2600); tone(180,0.25,'sawtooth',0.06,90); },
@@ -70,7 +127,7 @@ const snd={
   death(){ [392,330,262,196].forEach((f,i)=>tone(f,0.5,'sawtooth',0.14,f*0.9,i*0.28)); },
   win(){ [523,659,784,659,784,1047].forEach((f,i)=>tone(f,0.4,'triangle',0.2,0,i*0.16)); },
   click(){ tone(700,0.07,'triangle',0.12,1000); },
-  thunder(){ noise(0.25,0.35,2600,900,'bandpass'); noise(2.8,0.5,220,60,'lowpass',0.05); tone(48,2.2,'sine',0.22,30,0.05); },
+  thunder(){ if(sample('thunder',rnd(0.55,1),rnd(0.85,1.1))) return; noise(0.25,0.35,2600,900,'bandpass'); noise(2.8,0.5,220,60,'lowpass',0.05); tone(48,2.2,'sine',0.22,30,0.05); },
   splash(){ noise(0.16,0.16,1800,700,'bandpass'); },
   step(v){ noise(0.06,v,260,120,'lowpass'); },
   bird(){ const b=rnd(1800,3200); for(let i=0;i<3;i++) tone(b*rnd(0.9,1.15),0.09,'sine',0.035,b*rnd(1.1,1.4),i*0.13); }
@@ -122,4 +179,4 @@ function musicTick(){
   while(mNext<now+0.3){ mSchedule(mStep,mNext); mNext+=M_STEP; mStep++; }
 }
 
-export { AC, master, nbuf, initAudio, tone, snd, musicTick };
+export { AC, ambTick, hasSample, master, nbuf, initAudio, tone, snd, musicTick };

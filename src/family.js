@@ -1,5 +1,5 @@
 // LeopardLife – Partnersuche, Paarung, Junges (Füttern, Wachsen, Überfälle) und Weiterleben als Junges.
-import { animals } from './animals.js';
+import { animals, placeAnimal } from './animals.js';
 import { snd } from './audio.js';
 import { ICOL, QUAL, TRAITS, ico } from './data.js';
 import { puff } from './effects.js';
@@ -16,7 +16,7 @@ import { $, rnd } from './util.js';
 import { canMate, fam, famPlace, renderBirthChoices } from './kin.js';
 import { eatFood } from './life.js';
 import { canSleepNow, sleepOnTree } from './daynight.js';
-import { nearCarcass, takeMeat } from './carcass.js';
+import { nearCarcass, recordPartner, takeMeat } from './carcass.js';
 import { goalEvent } from './goals.js';
 import { moveAnimal } from './ai.js';
 import { nameOf, viewMin } from './coop.js';
@@ -38,15 +38,25 @@ function context(){
   if(P.dead||G.paused) return null;
   if(P.tree!=null) return (P.safe&&P.climbT>=1&&canSleepNow())?{label:P.wantSleep?'Wartet auf die anderen …':players.some(o=>o!==P&&o.wantSleep)?'Schlafen (die anderen warten)':'Schlafen',fn:()=>sleepOnTree(P)}:null;
   if(S.cub&&!cubGrown()&&S.food>0&&S.cub.full<97&&Math.hypot(cub.x-P.x,cub.z-P.z)<4.5) return {label:'Füttern',fn:feedCub};
-  { const cc=nearCarcass(); if(cc){ if(S.cub&&S.cub.grow<1&&S.food<FOOD_MAX) return {label:'Fleisch mitnehmen',fn:()=>takeMeat(cc,true)}; if(S.hunger<90) return {label:'Fressen',fn:()=>takeMeat(cc,false)}; } }
+  { const cc=nearCarcass(); if(cc){ if(S.cub&&S.cub.grow<1&&S.food<FOOD_MAX) return {label:'Fleisch mitnehmen',fn:()=>takeMeat(cc,true)}; if(S.hunger<90&&P.eatC!==cc) return {label:'Fressen ('+cc.carc.meat+' Bissen übrig)',fn:()=>takeMeat(cc,false)}; } }
   if(S.food>0&&S.hunger<50) return {label:'Fressen',fn:eatFood};
   { const q=pairCandidate(P); if(q){ if(canPair(P,q)) return {label:'Paaren mit '+nameOf(q),fn:()=>pairPlayers(P,q)}; if(related(P.L,q.L)&&canMate()) return {label:'Verwandt – keine Paarung',fn:()=>pairPlayers(P,q)}; } }
   if(canMate()){ const m=nearestMate(); if(m&&m.d<4.5) return {label:'Paaren',fn:()=>mateWith(m.a)}; }
   return null;
 }
 function doContext(){ const c=context(); if(c) c.fn(); }
+/** Fell eines Jungen: Mischung aus den Fellen der Eltern mit etwas Zufall; Albino und Schwarz bleiben selten, schwarze Eltern vererben öfter */
+function cubFur(ids){
+  const fs=[S,...Object.values(S.mates||{})].filter(L=>L&&L.id&&ids.indexOf(L.id)>=0&&L.fur).map(L=>L.fur);
+  if(fs.length<2&&S.partner&&fam[0].fur) fs.push(fam[0].fur);
+  const f=makeFur(); if(!fs.length) return f;
+  const mix=k=>{ const v=fs.reduce((x,o)=>x+(o[k]||1),0)/fs.length; return v*(0.92+Math.random()*0.16); };
+  f.l=mix('l'); f.s=mix('s'); f.sn=mix('sn'); f.ss=mix('ss');
+  if(!f.albino&&!f.melan&&fs.some(o=>o.melan)&&Math.random()<0.25) f.melan=true;
+  return f;
+}
 function mateWith(a){
-  if(!S.partner){ S.partner=true; S.partnerId=newId(); famPlace(fam[0],a.x,a.z); }   // der gewählte Leopard bleibt als Partner (fremd, eigene Kennung)
+  if(!S.partner){ S.partner=true; S.partnerId=newId(); famPlace(fam[0],a.x,a.z,a.fur); recordPartner(S.partnerId,a.fur,S.gen||1); if(a!==fam[0]) placeAnimal(a); }   // der gewählte Leopard (mit seinem Fell) bleibt als Partner   // der gewählte Leopard bleibt als Partner (fremd, eigene Kennung)
   S.preg=25; save(); snd.purr();
   puff(P.x,P.y+1.2,P.z,0xff7ab8,8,0.45); puff(a.x,H(a.x,a.z)+1.2,a.z,0xff7ab8,8,0.45);
   toast('Ihr habt euch gepaart. Dein Partner bleibt bei dir; im Bau kommt bald euer Junges zur Welt.','#ff9ad0');
@@ -101,7 +111,7 @@ function raidStep(a,dt){
 }
 function updateCub(dt){
   if(G.raider&&(G.raider.dead||G.raider.state!=='raid')) G.raider=null;
-  if(S.preg>0){ S.preg-=dt; if(S.preg<=0){ S.preg=0; { const ks=Object.keys(TRAITS).filter(t=>!has(t)); S.cub={full:70,grow:0,hp:1,trait:ks[Math.floor(Math.random()*ks.length)],n:litterSize(),gen:(S.gen||1)+1,parents:(S.litterParents||[ensureKin(S).id,S.partnerId||'wild']).slice()}; S.litterParents=null; S.cub.fur=makeFur(); if(S.cub.trait==='dunkel'&&!S.cub.fur.albino) S.cub.fur.l=Math.min(S.cub.fur.l,0.66); rebuildCub();
+  if(S.preg>0){ S.preg-=dt; if(S.preg<=0){ S.preg=0; { const ks=Object.keys(TRAITS).filter(t=>!has(t)); S.cub={full:70,grow:0,hp:1,trait:ks[Math.floor(Math.random()*ks.length)],n:litterSize(),gen:(S.gen||1)+1,parents:(S.litterParents||[ensureKin(S).id,S.partnerId||'wild']).slice()}; S.cub.fur=cubFur(S.cub.parents); S.litterParents=null; if(S.cub.trait==='dunkel'&&!S.cub.fur.albino) S.cub.fur.l=Math.min(S.cub.fur.l,0.66); rebuildCub();
       $('birthTrait').innerHTML=ico(S.cub.trait,ICOL.t,16)+' Erbanlage: '+TRAITS[S.cub.trait][0]+' ('+TRAITS[S.cub.trait][1]+') · Fell: '+furName(S.cub.fur); } cub.x=CUB_HOME.x; cub.z=CUB_HOME.z; cub.t=0; G.raidT=rnd(90,130)*D().raid; save(); snd.mew();
     $('birthTitle').textContent=S.cub.n>1?'Euer Wurf ist geboren: '+S.cub.n+' Junge':'Dein Junges ist geboren';
     $('birthCoop').style.display=S.cub.n>1?'block':'none';
