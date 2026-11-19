@@ -7,7 +7,6 @@ import { puff } from './effects.js';
 import { canvas } from './engine.js';
 import { CUB_HOME, cub, endRaid, heirLevel } from './family.js';
 import { touchUI } from './input.js';
-import { updateUI } from './main.js';
 import { animLegs } from './models.js';
 import { P, rebuildPlayer } from './player.js';
 import { S, fresh, has, maxHp, maxSt, save, xpNeed } from './save.js';
@@ -17,6 +16,7 @@ import { toast } from './ui.js';
 import { $, rnd } from './util.js';
 import { recordAncestor } from './carcass.js';
 import { moveAnimal } from './ai.js';
+import { updateUI } from './hud.js';
 
 /* Familienmitglieder: Partner (Platz 0) und Elterntiere (Plätze 1, 2) leben am Bau, verteidigen das Junge
    und versorgen und beschützen den Spieler, solange er selbst noch nicht ausgewachsen ist. Sie können endgültig sterben. */

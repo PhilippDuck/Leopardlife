@@ -5,7 +5,6 @@ import { DAT, FOOD } from './data.js';
 import { puff } from './effects.js';
 import { canvas } from './engine.js';
 import { keys, touchUI } from './input.js';
-import { updateUI, updateWarn } from './main.js';
 import { P, START_ROT, START_YAW, rebuildPlayer } from './player.js';
 import { reloadWorld } from './regions.js';
 import { D, REG, REG_ID, S, beaten, dmg, maxHp, maxSt, pScale, resetState, save, xpNeed } from './save.js';
@@ -20,6 +19,7 @@ import { dayF } from './daynight.js';
 import { archiveLine, makeCarcass, recordAncestor, startFlee } from './carcass.js';
 import { goalEvent } from './goals.js';
 import { padUI, rumble } from './gamepad.js';
+import { updateUI, updateWarn } from './hud.js';
 
 /* ---------- Aktionen ---------- */
 function nearestTree(){
