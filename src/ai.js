@@ -7,7 +7,6 @@ import { dayF } from './daynight.js';
 import { SMART, windMulDir } from './engine.js';
 import { raidStep, seeking } from './family.js';
 import { fam, famHurt, famRole, famStep } from './kin.js';
-import { crocStep } from './main.js';
 import { animLegs } from './models.js';
 import { P } from './player.js';
 import { VIEW_D } from './quality.js';
@@ -17,6 +16,7 @@ import { H, WORLD, collide } from './terrain.js';
 import { addTrack } from './tracks.js';
 import { floatText } from './ui.js';
 import { rnd } from './util.js';
+import { crocStep } from './crocodile.js';
 
 /* Rudel: Hyänen und Schakale rufen ihre Artgenossen zur Jagd (je nach Schwierigkeit) */
 const PACK={hyena:1,jack:1};
