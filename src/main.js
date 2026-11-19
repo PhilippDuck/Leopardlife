@@ -22,6 +22,7 @@ import { reloadWorld } from './regions.js';
 import { dead, doClimb, doPounce, doRoar, gainXp, hitAnimal, hurtPlayer, nearestTree } from './actions.js';
 import { CUB_HOME, FOOD_MAX, context, cub, doContext, endRaid, heirLevel, raidStep, seekT, seeking, updateCub, updateFamArrow } from './family.js';
 import { canMate, fam, famHurt, famRole, famStep, kidMode, updateFamily } from './kin.js';
+import { updateLife } from './life.js';
 if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }); }
 if(!window.THREE){ $('err').textContent='Three.js konnte nicht geladen werden. Bitte Seite neu laden.'; $('btnPlay').disabled=true; throw new Error('three.js fehlt'); }
 
@@ -39,22 +40,6 @@ function updateEnv(dt,now){
   for(let i=0;i<waters.length;i++){ const w=waters[i]; w.position.y=w.userData.y+Math.sin(t*0.8+i)*0.03; }
 }
 
-
-/* ---------- Lebenslauf: eigener Hunger, Altern, Fressen aus dem Vorrat ---------- */
-G.lineageEnd=false; G.lastCause='';
-function eatFood(){ if(S.food<=0) return; S.food--; S.hunger=Math.min(100,S.hunger+12); P.hp=Math.min(maxHp(),P.hp+maxHp()*0.05); snd.eat(); floatText('gefressen',P.x,P.camY+1.6*pScale(),P.z,'#e0a060'); }
-function updateLife(dt){
-  if(dead) return;
-  S.hunger=Math.max(0,S.hunger-dt*(100/420)*(has('genug')?0.75:1)*D().hunger);
-  if(S.hunger<20&&S.food>0){ S.food--; S.hunger=Math.min(100,S.hunger+12); }   // Notration aus dem Vorrat
-  if(S.hunger<=0){ P.hp-=maxHp()*0.015*dt; if(P.hp<=0){ hurtPlayer(1e9,{sp:{id:'hunger',n:'Hunger'}},true); return; } }
-  if(S.lvl>=8){
-    const a0=S.age, D=DIE_AT(); S.age+=dt;
-    if(a0<OLD_AT&&S.age>=OLD_AT) toast('Du wirst alt: Tempo und Kraft lassen nach. Sorge für Nachwuchs, damit deine Linie weiterlebt.','#f2b84b');
-    if(a0<D-90&&S.age>=D-90) toast('Deine Kräfte schwinden. Dir bleibt nicht mehr viel Zeit.','#ff8a70');
-    if(S.age>=D) hurtPlayer(1e9,{sp:{id:'age',n:'Alter'}},true);
-  }
-}
 
 /* ---------- Tag und Nacht ---------- */
 // S.tod: 0 = Mitternacht, 0.25 = Sonnenaufgang, 0.5 = Mittag, 0.75 = Sonnenuntergang. Ein ganzer Tag dauert DAY_LEN Sekunden.
@@ -748,4 +733,4 @@ drawRadar();
 requestAnimationFrame(frame);
 
 // Von anderen Modulen zur Laufzeit benutzt
-export { archiveLine, bookOpen, canSleepNow, clockStr, closeBook, closeSettings, dayF, eatFood, goalEvent, makeCarcass, moveAnimal, nearCarcass, padSynth, padUI, recordAncestor, rumble, settingsOpen, sleepOnTree, sleeping, startFlee, takeMeat, updateDayNight, updateUI, updateWarn };
+export { archiveLine, bookOpen, canSleepNow, clockStr, closeBook, closeSettings, dayF, goalEvent, makeCarcass, moveAnimal, nearCarcass, padSynth, padUI, recordAncestor, rumble, settingsOpen, sleepOnTree, sleeping, startFlee, takeMeat, updateDayNight, updateUI, updateWarn };
