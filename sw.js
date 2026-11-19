@@ -1,6 +1,6 @@
 // Service Worker: macht das Spiel installierbar und offline spielbar.
 // Bei jeder neuen Version VERSION hochzählen, damit Clients den Cache erneuern.
-const VERSION = 'leopardlife-v58';
+const VERSION = 'leopardlife-v59';
 const SHELL = ['./', 'index.html', 'src/actions.js', 'src/ai.js', 'src/animals.js', 'src/audio.js', 'src/carcass.js', 'src/controls.js', 'src/coop.js', 'src/crocodile.js', 'src/data.js', 'src/daynight.js', 'src/effects.js', 'src/engine.js', 'src/events.js', 'src/family.js', 'src/gamepad.js', 'src/goals.js', 'src/hide.js', 'src/hud.js', 'src/input.js', 'src/kin.js', 'src/kinship.js', 'src/life.js', 'src/main.js', 'src/menu.js', 'src/models.js', 'src/move.js', 'src/perf.js', 'src/player.js', 'src/quality.js', 'src/regions.js', 'src/save.js', 'src/skills.js', 'src/sky.js', 'src/state.js', 'src/terrain.js', 'src/tracks.js', 'src/ui.js', 'src/util.js', 'src/vegetation.js', 'src/weather.js', 'vendor/three.min.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'icon-180.png'];
 
 self.addEventListener('install', e => {

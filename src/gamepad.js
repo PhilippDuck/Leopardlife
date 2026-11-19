@@ -9,7 +9,6 @@ import { G } from './state.js';
 import { toast } from './ui.js';
 import { $ } from './util.js';
 import { MAX_PLAYERS, joinPlayer, leavePlayer, padTaken, panelNav, pingMates, pollCoop } from './coop.js';
-import { MODE } from './save.js';
 
 /* ---------- Controller-Steuerung (Gamepad, Standardbelegung wie Xbox/PlayStation) ----------
    Linker Stick laufen · rechter Stick Kamera · RT (oder A) Sprung · B Schleichen · X Aktion · Y Klettern · LB Brüllen · LT/L3 Sprinten
@@ -35,12 +34,11 @@ function pollPads(dt){
     if(!g||!g.connected||g.index===padIdx||padTaken(g.index)) continue;
     const startDown=!!(g.buttons[9]&&g.buttons[9].pressed), was=joinPrev[g.index]; joinPrev[g.index]=startDown;
     if(startDown&&!was&&G.started&&!topOverlay()&&(cur||inputMode!=='pad')){
-      if(MODE==='coop'&&players.length<MAX_PLAYERS){ joinPlayer(g.index,g); continue; }
-      if(MODE!=='coop'&&cur){ toast('Zu zweit spielen? Im Startmenü „Gemeinsam spielen" wählen.','#b9b7a6'); continue; } }
+      if(players.length<MAX_PLAYERS){ joinPlayer(g.index,g); continue; } }
     const active=g.buttons.some((b,i)=>b.pressed&&i!==9)||g.axes.some(a=>Math.abs(a)>0.35);
-    // Gemeinsames Spiel, Spieler 1 an Tastatur/Maus/Touch: ein freier Controller gehört nicht automatisch ihm.
+    // Spieler 1 an Tastatur/Maus/Touch: ein freier Controller gehört nicht automatisch ihm.
     // Start = mitspielen; Ⓐ 2 s halten = Spieler 1 übernimmt diesen Controller.
-    if(!cur&&MODE==='coop'&&G.started&&inputMode!=='pad'&&!topOverlay()){
+    if(!cur&&G.started&&inputMode!=='pad'&&!topOverlay()){
       const aDown=!!(g.buttons[0]&&g.buttons[0].pressed), now=performance.now();
       if(aDown){ if(!holdA[g.index]) holdA[g.index]=now; else if(now-holdA[g.index]>2000){ holdA[g.index]=0; padIdx=g.index; setInputMode('pad'); toast('Spieler 1 spielt jetzt mit diesem Controller.','#9be07f'); continue; } }
       else holdA[g.index]=0;

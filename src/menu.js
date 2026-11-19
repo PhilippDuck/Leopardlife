@@ -4,7 +4,7 @@ import { initAudio, snd } from './audio.js';
 import { canvas } from './engine.js';
 import { keys, touchUI } from './input.js';
 import { P, players, rebuildPlayer } from './player.js';
-import { D, MODE, REG, REG_ID, S, maxHp, maxSt, resetState, save, setMode } from './save.js';
+import { D, REG, REG_ID, S, maxHp, maxSt, resetState, save } from './save.js';
 import { toggleSkills } from './skills.js';
 import { G } from './state.js';
 import { toast } from './ui.js';
@@ -81,19 +81,7 @@ $('btnPlay').onclick=()=>{ try{ if(!localStorage.getItem('jaguar-windtip')){ loc
 let resetArm=false;
 function showDiff(){ $('diffRow').style.display='block'; document.querySelectorAll('.diffb').forEach((/** @type {HTMLElement} */ b)=>b.classList.toggle('on',b.dataset.d===S.diff)); $('diffTxt').textContent=D().d; }
 document.querySelectorAll('.diffb').forEach((/** @type {HTMLElement} */ b)=>b.addEventListener('click',()=>{ S.diff=b.dataset.d; showDiff(); }));
-// Modus-Umschalter auf dem Startbildschirm
-function showMode(){
-  $('btnMode').textContent=MODE==='coop'?'👤 Allein spielen':'👥 Gemeinsam spielen (Splitscreen)';
-  let el=$('modeLine'); if(!el){ const h=document.querySelector('#start h1 + div'); if(h) h.insertAdjacentHTML('afterend','<div id="modeLine" style="color:#9be07f;font-weight:bold;margin:-4px 0 8px">Gemeinsames Spiel · weitere Controller drücken im Spiel Start</div>'); el=$('modeLine'); }
-  if(el) el.style.display=MODE==='coop'?'block':'none';
-  if($('btnReset').style.display==='none') showDiff(); else $('diffRow').style.display='none';
-}
-showMode();
-$('btnMode').onclick=()=>{
-  const sameWorld=setMode(MODE==='coop'?'solo':'coop');
-  if(!sameWorld){ try{ location.reload(); }catch(e){} return; }   // anderes Gebiet: Welt neu aufbauen
-  ensureKin(S); rebuildPlayer(); rebuildCub(); P.hp=maxHp(); P.st=maxSt(); if(!S.goals) newGoals(); updateUI(); showMode(); snd.click();
-};
+if($('btnReset').style.display==='none') showDiff();
 $('btnReset').onclick=()=>{ if(!resetArm){ resetArm=true; $('btnReset').textContent='Wirklich? Fortschritt löschen'; return; } resetState(); save(); if(REG_ID!=='savanne'){ reloadWorld(true); return; } rebuildPlayer(); rebuildCub(); P.hp=maxHp(); P.st=maxSt(); $('btnReset').style.display='none'; $('btnPlay').textContent='Spielen'; showDiff(); };
 
 /* Einstellungsfenster */

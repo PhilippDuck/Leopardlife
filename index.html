@@ -61,7 +61,7 @@
   #menu button.sec{font-size:14px}
   #settings .card{width:min(520px,94vw)} #settings button{display:block;width:100%;margin-top:7px;padding:9px 12px;font-size:13.5px}
   .setrow{display:grid;grid-template-columns:1fr 1fr;gap:8px} #btnRestart{background:#5a2a22!important;color:#ffd9d0!important}
-  #ctxHint{position:fixed;left:50%;top:calc(50% + 64px);transform:translateX(-50%);padding:6px 14px;border-radius:8px;background:#d86fa8;text-shadow:none;color:#2a0a1c;font-weight:bold;font-size:14px;display:none;pointer-events:none;white-space:nowrap}
+  #ctxHint{position:fixed;left:50%;top:calc(50% + 64px);transform:translateX(-50%);padding:6px 14px;border-radius:8px;background:#f4f1e8;text-shadow:none;color:#111;box-shadow:0 2px 8px rgba(0,0,0,.45);font-weight:bold;font-size:14px;display:none;pointer-events:none;white-space:nowrap}
   #hideV{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .45s;background:radial-gradient(ellipse at center,transparent 30%,rgba(var(--veil1,4,24,6),.5) 62%,rgba(var(--veil2,2,14,4),.9) 88%,rgba(var(--veil3,1,8,2),.97) 100%)}
   #eye{position:fixed;left:50%;top:calc(50% - 62px);width:30px;height:30px;margin-left:-15px;pointer-events:none;opacity:0;transition:opacity .3s,color .3s;color:#fff;filter:drop-shadow(0 0 3px #000)}
   #eye svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
@@ -160,8 +160,6 @@ body.quad .ph{--rad:92px}
 /* Rahmen der Spieler-Anzeige: alles darin richtet sich nach diesem Rahmen statt nach dem ganzen Fenster (transform macht ihn zum Bezug für position:fixed) */
 .ph{position:fixed;left:0;top:0;width:100%;height:100%;transform:translateZ(0);pointer-events:none;overflow:hidden;z-index:3}
 .ph>*{pointer-events:auto}
-/* Modus-Knopf: eigene Farbe, damit er nicht wie gesperrt wirkt */
-#btnMode{background:#7fc8f2;color:#0d2230}
 /* Markierungen der Mitspieler (coop.js updateMarks) */
 .mk{position:absolute;font-weight:bold;font-size:13px;text-shadow:0 1px 3px #000,0 0 6px #000;pointer-events:none;text-align:center;white-space:nowrap;z-index:2;line-height:1.1}
 .mk.edge{display:flex;flex-direction:column;align-items:center;gap:2px}
@@ -232,6 +230,7 @@ body.quad .ph{--rad:92px}
 <div id="start" class="overlay"><div class="card panel">
   <h1>LeopardLife</h1>
   <div style="color:var(--mut);margin-bottom:8px">Jäger der Wildnis</div>
+  <div style="color:#7fc8f2;font-size:13px;margin:-4px 0 8px">👥 Zu zweit bis viert: Im Spiel einfach auf einem weiteren Controller Start drücken.</div>
   <p>Wachse vom kleinen Jungtier zum König der Wildnis – und sorge dafür, dass deine Blutlinie weiterlebt.</p>
   <details id="howto">
     <summary>Spielanleitung &amp; Steuerung</summary>
@@ -272,7 +271,6 @@ body.quad .ph{--rad:92px}
   <div style="display:flex;gap:10px;align-items:center;margin-top:14px">
     <button id="btnPlay">Spielen</button>
     <button id="btnReset" class="sec" style="display:none">Neu anfangen</button>
-    <button id="btnMode">👥 Gemeinsam spielen (Splitscreen)</button>
   </div>
   <div id="err" style="color:var(--red);margin-top:10px;font-size:13px"></div>
 </div></div>
