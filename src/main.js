@@ -63,7 +63,8 @@ function frame(now){
   requestAnimationFrame(frame); perfTick(now);
   let dt=Math.min(0.05,(now-G.last)/1000); G.last=now;
   pollPads(dt);
-  if(G.slowT>0){ G.slowT-=dt; dt*=0.25; }
+  // Zeitlupe nach Hinterhalt/Beute verlangsamt die ganze Welt – im gemeinsamen Spiel nicht (die anderen spielen ja weiter)
+  if(G.slowT>0){ G.slowT-=dt; if(players.length===1) dt*=0.25; }
   if(!G.paused) step(dt);
   for(const p of players) updateCamera(p,p.camera); updateTrees(dt,players.map(p=>({camera:p.camera,p}))); updateEnv(dt,now); musicTick();
   renderAll();

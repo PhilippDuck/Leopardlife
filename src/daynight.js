@@ -4,7 +4,7 @@ import { HORIZON, SUN_OFF, grassLight, hemi, scene, sun } from './engine.js';
 import { endRaid } from './family.js';
 import { keys, touchUI } from './input.js';
 import { menuOpen } from './menu.js';
-import { P } from './player.js';
+import { P, players } from './player.js';
 import { D, S, maxHp, maxSt, save } from './save.js';
 import { cloudMat, sky, starMat } from './sky.js';
 import { G } from './state.js';
@@ -15,10 +15,11 @@ import { W } from './weather.js';
 import { newGoals } from './goals.js';
 import { padUI } from './gamepad.js';
 import { updateUI } from './hud.js';
+import { nameOf, tell } from './coop.js';
 
 /* ---------- Tag und Nacht ---------- */
 // S.tod: 0 = Mitternacht, 0.25 = Sonnenaufgang, 0.5 = Mittag, 0.75 = Sonnenuntergang. Ein ganzer Tag dauert DAY_LEN Sekunden.
-const DAY_LEN=480;
+const DAY_LEN=960;   // 16 Minuten je Tag
 let dayF=1, nightToastDone=false, sleeping=false, sleepCount=0;
 try{ sleepCount=+localStorage.getItem('jaguar-sleeps')||0; }catch(e){}
 const C_DAY_TOP=new THREE.Color(0x3f8fd6), C_DAY_HOR=new THREE.Color(HORIZON), C_NIGHT_TOP=new THREE.Color(0x040814), C_NIGHT_HOR=new THREE.Color(0x101a2e), C_DUSK=new THREE.Color(0xf08a4a);
@@ -62,15 +63,38 @@ function updateDayNight(dt){
     toast('Die Nacht bricht herein: Du bist schwerer zu sehen, aber Raubtiere sind wachsamer.'+(S.b.climb&&sleepCount<2?(padUI()?' Auf einem Baum kannst du mit Ⓧ bis zum Morgen schlafen.':touchUI()?' Auf einem Baum kannst du mit dem rosa Knopf bis zum Morgen schlafen.':' Auf einem Baum kannst du mit F bis zum Morgen schlafen.'):''),'#9fb4ff'); }
   if(dayF>0.9) nightToastDone=false;
 }
-function sleepOnTree(){
+/**
+ * Spieler p will auf seinem Baum schlafen. Allein schläft er sofort; im gemeinsamen Spiel erst,
+ * wenn alle stehenden Spieler auf einem Baum „Schlafen" gewählt haben (bis dahin: „Warte auf Spieler 2").
+ */
+function sleepOnTree(p=P){
   if(sleeping) return;
+  if(players.length>1){
+    p.wantSleep=true;
+    const waiting=players.filter(o=>!o.dead&&!o.wantSleep);
+    if(waiting.length){
+      tell(p,'Du willst schlafen – warte auf '+waiting.map(nameOf).join(' und ')+'.','#9fb4ff');
+      for(const o of waiting) tell(o,nameOf(p)+' will schlafen: klettere auf einen Baum und wähle Schlafen.','#9fb4ff');
+      return;
+    }
+  }
+  doSleep();
+}
+/** Wer im gemeinsamen Spiel schlafen will, aber vom Baum steigt oder wenn es Tag wird, nimmt den Wunsch zurück. */
+function sleepVotes(){
+  for(const p of players) if(p.wantSleep&&(p.dead||p.tree==null||!p.safe||!canSleepNow())) p.wantSleep=false;
+}
+/** Schlaf bis zum Sonnenaufgang (alle Spieler): voll ausgeruht, aber hungrig. */
+function doSleep(){
   sleeping=true; G.paused=true; for(const k in keys) keys[k]=false; G.joyX=G.joyY=0;
   const fx=$('sleepFx'); fx.style.display='flex'; requestAnimationFrame(()=>{ fx.style.opacity=1; });
   setTimeout(()=>{
     const skip=((0.27-S.tod)+1)%1, secs=skip*DAY_LEN;
-    S.tod=0.27; S.day=(S.day||0)+1; newGoals(); P.hp=maxHp(); P.st=maxSt(); sleepCount++; try{ localStorage.setItem('jaguar-sleeps',String(sleepCount)); }catch(e){}
-    S.hunger=Math.max(5,Math.min(S.hunger-45,30));   // man wacht hungrig auf
-    if(S.lvl>=8) S.age+=secs;
+    S.tod=0.27; S.day=(S.day||0)+1; newGoals(); sleepCount++; try{ localStorage.setItem('jaguar-sleeps',String(sleepCount)); }catch(e){}
+    for(const p of players){ const L=p.L; p.wantSleep=false; if(p.dead) continue;
+      p.hp=maxHp(L); p.st=maxSt(L);
+      L.hunger=Math.max(5,Math.min(L.hunger-45,30));   // man wacht hungrig auf
+      if(L.lvl>=8) L.age+=secs; }
     if(S.cub&&S.cub.grow<1) S.cub.full=Math.max(8,S.cub.full-secs*0.28*D().hunger);
     if(S.preg>0) S.preg=Math.max(0.1,S.preg-secs);
     G.raidT=rnd(90,130)*D().raid; if(G.raider) endRaid(G.raider);
@@ -86,4 +110,4 @@ function sleepOnTree(){
 on('quality',()=>updateDayNight(0));
 
 export { clockStr, dayF, updateDayNight };
-export { canSleepNow, sleepOnTree, sleeping };
+export { canSleepNow, sleepOnTree, sleepVotes, sleeping };

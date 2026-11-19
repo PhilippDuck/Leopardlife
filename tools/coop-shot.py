@@ -38,8 +38,22 @@ with sync_playwright() as p:
     # Spieler 2 läuft nach vorn und dreht die Kamera
     pg.evaluate("__pad(0,{ax:[0.3,-1,0.4,0]})"); pg.wait_for_timeout(1500); pg.evaluate("__pad(0,{})"); pg.wait_for_timeout(300)
     shot(pg, '1-zwei-spieler')
-    # Spieler 2 springt (A)
-    pg.evaluate("__pad(0,{b:[0]})"); pg.wait_for_timeout(700); pg.evaluate("__pad(0,{})"); pg.wait_for_timeout(500)
+    # Spieler 2 markiert die anderen (Steuerkreuz links)
+    pg.evaluate("__pad(0,{b:[14]})"); pg.wait_for_timeout(700); pg.evaluate("__pad(0,{})"); pg.wait_for_timeout(600)
+    marks = pg.locator('.mk:visible').count()
+    shot(pg, '1b-markiert')
+    # Spieler 2 springt mit RT
+    pg.evaluate("__pad(0,{b:[7]})"); pg.wait_for_timeout(700); pg.evaluate("__pad(0,{})"); pg.wait_for_timeout(200)
+    rt_jump = pg.evaluate("__leopard.players[1].pcd>0")
+    pg.wait_for_timeout(400)
+    # Geburt im gemeinsamen Spiel: im Geburtsfenster für Spieler 2 „als Junges spielen“ wählen
+    pg.evaluate("(()=>{ const S=__leopard.S; S.cub=null; S.preg=0.05; })()"); pg.wait_for_timeout(1500)
+    birth_btns = pg.locator('#birthMates button').count()
+    shot(pg, '1c-geburt')
+    lvl_before = pg.evaluate("__leopard.players[1].L.lvl")
+    pg.locator('#birthMates button').first.click(); pg.wait_for_timeout(300)
+    mate_cub = pg.evaluate("JSON.stringify({lvl:__leopard.players[1].L.lvl,gen:__leopard.players[1].L.gen})")
+    pg.click('#btnStayAdult'); pg.wait_for_timeout(500)
     # Controller 1: Spieler 3
     pg.evaluate("__pad(1,{b:[9]})"); pg.wait_for_timeout(700); pg.evaluate("__pad(1,{})"); pg.wait_for_timeout(800)
     shot(pg, '2-drei-spieler')
@@ -49,11 +63,12 @@ with sync_playwright() as p:
     four = (pg.locator('.ph').count()-1)
     # Spieler 2 öffnet seine Entwicklung (Back kurz), blättert mit dem Steuerkreuz und schließt mit B
     pg.evaluate("__pad(0,{b:[8]})"); pg.wait_for_timeout(700); pg.evaluate("__pad(0,{})"); pg.wait_for_timeout(500)
-    skills = pg.locator('#skills').is_visible(); who = pg.locator('#skWho').text_content()
+    skills = pg.locator('.skp:visible').count()==1 and not pg.locator('#skills').is_visible(); who = pg.locator('.skp:visible .s-skWho').text_content()
+    paused = pg.evaluate('__leopard.G.paused')
     pg.evaluate("__pad(0,{b:[13]})"); pg.wait_for_timeout(700); pg.evaluate("__pad(0,{})"); pg.wait_for_timeout(200)
     shot(pg, '3b-entwicklung-spieler2')
     pg.evaluate("__pad(0,{b:[1]})"); pg.wait_for_timeout(700); pg.evaluate("__pad(0,{})"); pg.wait_for_timeout(400)
-    skills_closed = not pg.locator('#skills').is_visible()
+    skills_closed = pg.locator('.skp:visible').count()==0
     # Spieler 3 steigt aus: Back halten
     print('vor Aussteigen:', pg.evaluate("JSON.stringify({n:__leopard.players.length,pads:__leopard.players.map(p=>p.pad),ov:__leopard.G.ovPad,paused:__leopard.G.paused})"))
     pg.evaluate("__pad(1,{b:[8]})"); pg.wait_for_timeout(1000)
@@ -75,8 +90,10 @@ with sync_playwright() as p:
     solo = pg.evaluate("localStorage.getItem('jaguar-save-v1')")
     b.close()
     print('Koop-Spielstand Mitspieler-Plätze:', saved, '| Einzelspielstand angelegt:', solo is not None)
+print('Sprung mit RT:', rt_jump, '| Geburtsfenster Knöpfe für Mitspieler:', birth_btns, '| Spieler 2 vorher Stufe', lvl_before, '→ als Junges', mate_cub)
+print('Markierungen nach Steuerkreuz links:', marks)
 print('Leiste Spieler 1 nach Ⓐ kurz:', repr(hint.strip()[:30]), '| nach Ⓐ 2 s:', repr(took.strip()[:30]))
-print('Entwicklung Spieler 2:', skills, repr(who), '| wieder zu:', skills_closed)
+print('Entwicklung Spieler 2 im eigenen Ausschnitt:', skills, repr(who), '| Spiel pausiert:', paused, '| wieder zu:', skills_closed)
 print('eingestiegen:', joined, '| bei vier:', four, '| nach Aussteigen:', after, '| Pause per Controller:', menu)
 print('Fehler/Warnungen:', len(errors))
 for e in errors[:15]: print(' ', e)

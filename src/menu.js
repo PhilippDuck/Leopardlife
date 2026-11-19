@@ -3,7 +3,7 @@ import { animals, placeAnimal } from './animals.js';
 import { initAudio, snd } from './audio.js';
 import { canvas } from './engine.js';
 import { keys, touchUI } from './input.js';
-import { P, rebuildPlayer } from './player.js';
+import { P, players, rebuildPlayer } from './player.js';
 import { D, MODE, REG, REG_ID, S, maxHp, maxSt, resetState, save, setMode } from './save.js';
 import { toggleSkills } from './skills.js';
 import { G } from './state.js';
@@ -41,9 +41,9 @@ const XB={'Ⓐ':'#5fbf4a','Ⓑ':'#e0533d','Ⓧ':'#3f8fe0','Ⓨ':'#f2c230'};
 const xb=t=>t.replace(/[ⒶⒷⓍⓎ]/g,c=>'<b style="color:'+XB[c]+';font-size:1.15em">'+c+'</b>');
 function renderKeys(){ $('keysMode').textContent=padUI()?'Xbox-Controller':touchUI()?'Touch':'Tastatur und Maus';
   $('keysBox').innerHTML=(padUI()?[
-  ['Linker Stick','Laufen'],['Rechter Stick','Kamera und Fadenkreuz drehen'],['RT oder linken Stick drücken','Sprinten (kostet Ausdauer)'],
-  ['Ⓐ','Sprungangriff in Richtung Fadenkreuz'],['Ⓑ','Schleichen an/aus'],['Ⓧ','Aktion: paaren, füttern, fressen, schlafen'],['Ⓨ','Auf einen Baum klettern / herunter'],
-  ['LB','Brüllen'],['Rechten Stick drücken','Kamera hinter den Leoparden'],['Steuerkreuz ↑ ↓','Zoomen'],['Menü-Taste ☰','Pause-Menü'],['Ansicht-Taste ⧉','Eigenschaften & Fähigkeiten'],
+  ['Linker Stick','Laufen'],['Rechter Stick','Kamera und Fadenkreuz drehen'],['LT oder linken Stick drücken','Sprinten (kostet Ausdauer)'],
+  ['RT oder Ⓐ','Sprungangriff in Richtung Fadenkreuz'],['Ⓑ','Schleichen an/aus'],['Ⓧ','Aktion: paaren, füttern, fressen, schlafen'],['Ⓨ','Auf einen Baum klettern / herunter'],
+  ['LB','Brüllen'],['Rechten Stick drücken','Kamera hinter den Leoparden'],['Steuerkreuz ↑ ↓','Zoomen'],['Steuerkreuz ←','Mitspieler kurz markieren'],['Ⓧ halten','Mitspieler am Boden wiederbeleben'],['Menü-Taste ☰','Pause-Menü'],['Ansicht-Taste ⧉','Eigenschaften & Fähigkeiten'],
   ['In Menüs','Steuerkreuz wählt, Ⓐ bestätigt, Ⓑ zurück']
 ]:touchUI()?[
   ['Linke Bildschirmhälfte','Laufen – der Joystick entsteht, wo der Daumen aufsetzt'],
@@ -56,13 +56,13 @@ function renderKeys(){ $('keysMode').textContent=padUI()?'Xbox-Controller':touch
 ]:[
   ['<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>','Laufen'],['<kbd>Maus</kbd> / <kbd>←</kbd><kbd>→</kbd>','Kamera und Fadenkreuz drehen'],['<kbd>Mausrad</kbd>','Zoomen'],
   ['<kbd>Shift</kbd>','Sprinten (kostet Ausdauer)'],['<kbd>C</kbd>','Schleichen an/aus'],['<kbd>Leertaste</kbd> / <kbd>Klick</kbd>','Sprungangriff in Richtung Fadenkreuz'],
-  ['<kbd>R</kbd>','Brüllen (Fähigkeit)'],['<kbd>E</kbd>','Auf einen Baum klettern / herunter (Fähigkeit)'],['<kbd>F</kbd>','Paaren / Junges füttern / fressen / Fleisch mitnehmen / schlafen'],
+  ['<kbd>R</kbd>','Brüllen (Fähigkeit)'],['<kbd>E</kbd>','Auf einen Baum klettern / herunter (Fähigkeit)'],['<kbd>F</kbd>','Paaren / Junges füttern / fressen / Fleisch mitnehmen / schlafen'],['<kbd>Q</kbd>','Mitspieler kurz markieren (gemeinsames Spiel)'],
   ['<kbd>Tab</kbd> / <kbd>K</kbd>','Eigenschaften & Fähigkeiten'],['<kbd>Esc</kbd>','Pause-Menü']
 ]).map(r=>'<span>'+xb(r[0])+'</span><span>'+r[1]+'</span>').join(''); }
 // (Die Liste wird beim Start über setInputMode() gefüllt, sobald die Eingabeart feststeht.)
 $('keysMode').textContent='';
 $('menuBtn').onclick=toggleMenu; $('btnResume').onclick=toggleMenu;
-$('btnMenuSkills').onclick=()=>{ $('menu').style.display='none'; toggleSkills(); };
+$('btnMenuSkills').onclick=()=>{ const p=players.find(o=>o!==P&&o.pad===G.ovPad)||P; toggleMenu(); toggleSkills(p); };
 $('btnRestart').onclick=()=>{
   if(!restartArm){ restartArm=true; $('btnRestart').textContent='Wirklich? Stufe und Fähigkeiten gehen verloren'; return; }
   resetState(); save(); if(REG_ID!=='savanne'){ reloadWorld(true); return; }

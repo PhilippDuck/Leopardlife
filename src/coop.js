@@ -18,12 +18,14 @@ import { $ } from './util.js';
 import { applyTreeView, tallMat } from './vegetation.js';
 import { toggleSkills } from './skills.js';
 import { ensureKin, mateContext, newId } from './kinship.js';
-import { drawRadar, updateCross, updateUI, updateWarn, warnArrows } from './hud.js';
+import { PCOL, drawRadar, updateCross, updateUI, updateWarn, warnArrows } from './hud.js';
+import { esc } from './carcass.js';
+import { sleepVotes } from './daynight.js';
 
 /** Höchstens so viele Spieler teilen sich den Bildschirm */
 const MAX_PLAYERS=4;
 /** Sekunden am Boden, bevor ein Spieler von selbst im Bau erwacht, und Haltezeit fürs Wiederbeleben */
-const DOWN_TIME=20, REVIVE_TIME=3, REVIVE_DIST=3;
+const DOWN_TIME=60, REVIVE_TIME=3, REVIVE_DIST=3;
 const NAMES=['Spieler 1','Spieler 2','Spieler 3','Spieler 4'];
 // Fell der Mitspieler: deutlich unterscheidbar, aber natürlich (hell, dunkler, kräftig)
 const FURS=[null,{l:1.12,s:0.8,sn:0.8,ss:1.2},{l:0.86,s:1.1,sn:1.4,ss:0.9},{l:1.02,s:1.25,sn:1.1,ss:1.35}];
@@ -111,19 +113,24 @@ function pollCoop(dt,gps){
     if(p===P||p.pad==null) continue;
     if(G.ovPad===p.pad&&topOverlayOpen()) continue;   // bedient gerade ein Fenster (gamepad.js)
     const gp=gps[p.pad], c=p.ctl;
+    if(gp&&gp.connected&&p.skOpen){   // eigene Entwicklung offen: Controller bedient das Fenster, der Leopard steht still
+      const prev=p.padPrev||(p.padPrev=[]), B=i=>!!(gp.buttons[i]&&gp.buttons[i].pressed), hit=i=>B(i)&&!prev[i];
+      c.fw=c.rt=0; c.sprint=false; c.act=false; panelNav(p,gp,hit,dt);
+      for(let i=0;i<gp.buttons.length;i++) prev[i]=B(i); continue; }
     if(!gp||!gp.connected){ c.fw=c.rt=0; c.sprint=false; c.act=false; continue; }
     const prev=p.padPrev||(p.padPrev=[]), B=i=>!!(gp.buttons[i]&&gp.buttons[i].pressed), hit=i=>B(i)&&!prev[i];
     if(G.paused||!G.started||p.dead){ c.fw=c.rt=0; c.sprint=false; c.act=B(2); }
     else {
       let fw=-pdz(gp.axes[1]||0), rt=pdz(gp.axes[0]||0); const l=Math.hypot(fw,rt); if(l>1){ fw/=l; rt/=l; }
-      c.fw=fw; c.rt=rt; c.sprint=B(10)||!!(gp.buttons[7]&&gp.buttons[7].value>0.3); c.act=B(2);
+      c.fw=fw; c.rt=rt; c.sprint=B(10)||!!(gp.buttons[6]&&gp.buttons[6].value>0.3); c.act=B(2);   // LT/L3 sprinten
       p.cam.yaw-=pdz(gp.axes[2]||0)*dt*2.8; p.cam.pitch=Math.max(0.08,Math.min(1.25,p.cam.pitch+pdz(gp.axes[3]||0)*dt*1.8));
-      if(hit(0)) doPounce(p);
+      if(hit(0)||hit(7)) doPounce(p);   // RT oder Ⓐ: Sprungangriff
       if(hit(1)) p.sneak=!p.sneak;
       if(hit(3)) doClimb(p);
       if(hit(4)) doRoar(p);
       if(hit(2)) mateContext(p);   // X antippen: paaren, Junges füttern (X halten: wiederbeleben)
       if(hit(11)) p.cam.yaw=p.rot+Math.PI;
+      if(hit(14)) pingMates(p);   // Steuerkreuz links: Mitspieler markieren
       if(hit(12)) p.cam.zoom=Math.max(0.45,p.cam.zoom/1.15);
       if(hit(13)) p.cam.zoom=Math.min(2.6,p.cam.zoom*1.15);
     }
@@ -131,11 +138,23 @@ function pollCoop(dt,gps){
     // Back kurz: eigene Entwicklung · Back halten: aussteigen
     // Haltezeit in echter Zeit (dt ist pro Bild gedeckelt und liefe bei wenigen Bildern pro Sekunde zu langsam)
     if(B(8)){ const now=performance.now(); if(!prev[8]) p.leaveAt=now; p.leaveT=(now-p.leaveAt)/1000; if(p.leaveT>=1.5){ leavePlayer(p); continue; } if(p.leaveT>0.35) mateToast(p,'Halten zum Aussteigen …','#f2b84b'); }
-    else { if(prev[8]&&(p.leaveT||0)<0.35&&G.started&&!G.paused){ toggleSkills(p); if(G.ovPad===p.pad) claimOverlay(p.pad,gp); } p.leaveT=0; }
+    else { if(prev[8]&&(p.leaveT||0)<0.35&&G.started&&!G.paused) toggleSkills(p); p.leaveT=0; }
     for(let i=0;i<gp.buttons.length;i++) prev[i]=B(i);
   }
 }
 const topOverlayOpen=()=>['skills','menu','settings','regions','book'].some(id=>$(id)&&$(id).style.display==='flex');
+/** Eigenes Entwicklungsfenster mit dem Controller bedienen: Steuerkreuz/Stick wählt, Ⓐ drückt, Ⓑ oder Back schließt */
+function panelNav(p,gp,hit,dt){
+  const el=p.skPanel; if(!el) return;
+  const btns=Array.from(el.querySelectorAll('button')).filter(b=>!b.disabled&&b.offsetParent!==null);
+  const v=pdz(gp.axes[1]||0); p.navT=(p.navT||0)-dt; if(Math.abs(v)<0.3) p.navT=0;
+  const up=hit(12)||(v<-0.6&&p.navT<=0), down=hit(13)||(v>0.6&&p.navT<=0);
+  if(p.skF==null||p.skF>=btns.length) p.skF=-1;
+  if((up||down)&&btns.length){ p.skF=p.skF<0?0:(p.skF+(down?1:-1)+btns.length)%btns.length; if(Math.abs(v)>0.6) p.navT=0.22; try{ btns[p.skF].scrollIntoView({block:'nearest'}); }catch(e){} }
+  btns.forEach((b,i)=>b.classList.toggle('padf',i===p.skF));
+  if(hit(0)){ if(p.skF>=0) btns[p.skF].click(); else if(btns.length) p.skF=0; }
+  if(hit(1)||hit(8)) toggleSkills(p);
+}
 /** Ist Controller i schon einem Mitspieler zugeordnet? */
 const padTaken=i=>players.some(p=>p!==P&&p.pad===i);
 
@@ -150,6 +169,10 @@ function downPlayer(p,a){
 /** Pro Bild: Wiederbeleben durch einen Mitspieler in der Nähe, sonst nach Ablauf im Bau erwachen. */
 function updateCoop(dt){
   if(players.length<2) return;
+  sleepVotes();
+  // Wer steht nah bei einem Mitspieler am Boden? (für den Hinweis mit Fortschritt in seiner Anzeige)
+  for(const o of players){ o.reviveNear=null; if(o.dead) continue; let bd=REVIVE_DIST*2.5;
+    for(const p of players){ if(p===o||!p.dead||p.downT==null) continue; const d=Math.hypot(o.x-p.x,o.z-p.z); if(d<bd){ bd=d; o.reviveNear=p; } } }
   for(const p of players){
     if(!p.dead||p.downT==null) continue;
     const helper=players.find(o=>o!==p&&!o.dead&&o.ctl.act&&Math.hypot(o.x-p.x,o.z-p.z)<REVIVE_DIST);
@@ -172,26 +195,32 @@ const nameOf=p=>p===P?NAMES[0]:NAMES[(p.num||2)-1];
 /* ---------- Anzeige je Mitspieler: vollständige Kopie der Anzeige von Spieler 1 ---------- */
 /** @returns {HTMLElement} */
 const q=(el,sel)=>el.querySelector(sel);
-let hudTick=0, hudCssDone=false;
-/** Übernimmt alle Stilregeln, die Teile der Anzeige über ihre id ansprechen, auch für die Kopien (.h-<id>). */
-function cloneHudCss(ids){
-  if(hudCssDone) return; hudCssDone=true;
+let hudTick=0;
+/** Übernimmt alle Stilregeln, die Elemente über ihre id ansprechen, auch für Kopien mit der Klasse <prefix><id>. */
+const cssDone={};
+function cloneIdCss(ids,prefix){
+  if(cssDone[prefix]) return; cssDone[prefix]=true;
   const re=new RegExp('#('+ids.join('|')+')(?![\\w-])','g'), out=[];
   const walk=(rules,media)=>{ for(const r of Array.from(rules)){
     const sel=/** @type {any} */(r).selectorText, rr=/** @type {any} */(r);
-    if(sel&&sel.match(re)){ out.push((media?'@media '+media+'{':'')+sel.replace(re,'.h-$1')+'{'+rr.style.cssText+'}'+(media?'}':'')); }
+    if(sel&&sel.match(re)){ out.push((media?'@media '+media+'{':'')+sel.replace(re,'.'+prefix+'$1')+'{'+rr.style.cssText+'}'+(media?'}':'')); }
     else if(rr.media&&rr.cssRules) walk(rr.cssRules,rr.media.mediaText); } };
-  for(const sh of Array.from(document.styleSheets)){ try{ walk(sh.cssRules,null); }catch(e){} }
+  for(const sh of Array.from(document.styleSheets||[])){ try{ walk(sh.cssRules,null); }catch(e){} }
   const st=document.createElement('style'); st.textContent=out.join('\n'); document.head.appendChild(st);
+}
+/** Kopie eines Elements, bei der jede id zur Klasse <prefix><id> wird (für mehrere gleiche Fenster/Anzeigen) */
+function cloneWithClasses(src,prefix){
+  cloneIdCss([src.id,...Array.from(src.querySelectorAll('[id]')).map(e=>e.id)].filter(Boolean),prefix);
+  const el=/** @type {HTMLElement} */(src.cloneNode(true)); if(el.id){ el.classList.add(prefix+el.id); el.removeAttribute('id'); }
+  el.querySelectorAll('[id]').forEach(e=>{ e.classList.add(prefix+e.id); e.removeAttribute('id'); });
+  return el;
 }
 /** Baut die Anzeige eines Mitspielers als Kopie von #ph0: ids werden zu Klassen h-<id>. */
 function makeHud(p){
-  const ph0=$('ph0'), ids=Array.from(ph0.querySelectorAll('[id]')).map(e=>e.id);
-  cloneHudCss(ids);
-  const el=/** @type {HTMLElement} */(ph0.cloneNode(true)); el.removeAttribute('id');
-  el.querySelectorAll('[id]').forEach(e=>{ e.classList.add('h-'+e.id); e.removeAttribute('id'); });
+  const el=cloneWithClasses($('ph0'),'h-'); el.classList.remove('h-ph0');
+  el.querySelectorAll('.skp,.mk,.float').forEach(e=>e.remove());   // nur die Anzeige selbst, nicht Fenster und Markierungen von Spieler 1
   q(el,'.h-menuBtn').style.display='none'; q(el,'.h-famArrow').style.display='none';   // Mitspieler: Start öffnet die Pause
-  q(el,'.h-cds').style.display=''; el.querySelectorAll('.h-cds .kh').forEach((k,i)=>{ k.textContent=['Ⓐ','LB','Ⓨ'][i]; });
+  q(el,'.h-cds').style.display=''; el.querySelectorAll('.h-cds .kh').forEach((k,i)=>{ k.textContent=['RT','LB','Ⓨ'][i]; });
   q(el,'.h-toast').style.opacity='0'; q(el,'.h-hurt').style.opacity='0'; q(el,'.h-crossMsg').style.opacity='0';
   q(el,'.h-hudTog').onclick=null;
   el.insertAdjacentHTML('beforeend','<div class="pvDown"><b>Am Boden</b><span></span><div class="pvBar"><i class="rev"></i></div></div>');
@@ -208,6 +237,7 @@ on('toast',(t,c)=>{ for(const p of players) if(p!==P&&p.hud) mateToast(p,t,c); }
 /** Anzeige der Mitspieler auffrischen: dieselbe Anzeige wie bei Spieler 1, mit ihren eigenen Werten. */
 function updateCoopHud(dt){
   hudTick++;
+  for(const v of players) updateMarks(v,dt);
   for(const p of players){
     if(!p.hud) continue; const h=p.hud;
     if((hudTick+(p.num||0))%6===0) updateUI(p);
@@ -222,4 +252,36 @@ function updateCoopHud(dt){
   if(players.length>1&&P.dead&&P.downT!=null){ const s=Math.ceil(P.downT); if(s!==P.lastS){ P.lastS=s; $('crossMsg').textContent='Am Boden – Mitspieler: X halten · Bau in '+s+' s'; $('crossMsg').style.opacity='1'; } }
 }
 
-export { hEl, mateToast, viewMin, tell, MAX_PLAYERS, joinPlayer, leavePlayer, renderAll, pollCoop, padTaken, downPlayer, updateCoop, updateCoopHud, othersAlive, nameOf };
+/* ---------- Mitspieler markieren ---------- */
+/** Spieler p will die anderen sehen: für einige Sekunden Markierungen mit Name und Entfernung */
+function pingMates(p){ if(players.length<2) return; p.pingT=6; snd.click(); }
+const _mv=new THREE.Vector3();
+/**
+ * Markierungen in der Anzeige von Spieler v: über dem Kopf eines Mitspielers, wenn er im Bild ist, sonst Pfeil am Rand.
+ * Gezeigt werden alle nach Q/Steuerkreuz links und immer die, die am Boden liegen.
+ */
+function updateMarks(v,dt){
+  if(v.pingT>0) v.pingT-=dt;
+  const frame=v===P?$('ph0'):v.hud; if(!frame) return;
+  const pool=v.marks||(v.marks=[]); let n=0;
+  if(players.length>1&&!v.dead) for(const q of players){
+    if(q===v||!(v.pingT>0||(q.dead&&q.downT!=null))) continue;
+    let el=pool[n]; if(!el){ el=document.createElement('div'); el.className='mk'; frame.appendChild(el); pool.push(el); } n++;
+    const W=frame.clientWidth, Hh=frame.clientHeight, d=Math.round(Math.hypot(q.x-v.x,q.z-v.z)), col=PCOL[(q.num||1)-1];
+    _mv.set(q.x,q.y+1.4*pScale(q.L)+0.6,q.z).project(v.camera);
+    const label=(q.dead?'⚠ ':'')+nameOf(q)+' · '+d+' m';
+    el.style.display='block'; el.style.color=col;
+    if(_mv.z<1&&Math.abs(_mv.x)<0.95&&Math.abs(_mv.y)<0.95){   // im Bild: über dem Kopf
+      el.className='mk'; el.innerHTML=esc(label)+'<br>▼';
+      el.style.left=((_mv.x*0.5+0.5)*W)+'px'; el.style.top=((-_mv.y*0.5+0.5)*Hh)+'px'; el.style.transform='translate(-50%,-100%)';
+    } else {   // außerhalb: Pfeil am Rand in seine Richtung
+      const dx=q.x-v.x, dz=q.z-v.z, s=Math.sin(v.cam.yaw), c=Math.cos(v.cam.yaw), ang=Math.atan2(dx*c-dz*s,-(dx*s+dz*c)), R=Math.min(W,Hh)*0.36;
+      el.className='mk edge'; el.innerHTML='<i style="border-bottom-color:'+col+';transform:rotate('+ang+'rad)"></i><span>'+esc(label)+'</span>';
+      el.style.left=(W/2+Math.sin(ang)*R)+'px'; el.style.top=(Hh/2-Math.cos(ang)*R)+'px'; el.style.transform='translate(-50%,-50%)';
+    }
+  }
+  for(let i=n;i<pool.length;i++) pool[i].style.display='none';
+}
+/** Hinweis zum Wiederbeleben für Spieler o (oder null): wen, wie weit, Fortschritt 0…1 */
+function reviveHint(o){ const p=o.reviveNear; if(!p) return null; const d=Math.hypot(o.x-p.x,o.z-p.z); return {name:nameOf(p),close:d<REVIVE_DIST,progress:p.revT/REVIVE_TIME,left:Math.max(0,REVIVE_TIME-p.revT)}; }
+export { panelNav, cloneWithClasses, pingMates, updateMarks, reviveHint, hEl, mateToast, viewMin, tell, MAX_PLAYERS, joinPlayer, leavePlayer, renderAll, pollCoop, padTaken, downPlayer, updateCoop, updateCoopHud, othersAlive, nameOf };

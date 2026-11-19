@@ -17,8 +17,8 @@ import { $, rnd } from './util.js';
 import { recordAncestor } from './carcass.js';
 import { moveAnimal } from './ai.js';
 import { updateUI } from './hud.js';
-import { newId, takeFromLitter } from './kinship.js';
-import { tell } from './coop.js';
+import { mateBecomeCub, newId, takeFromLitter } from './kinship.js';
+import { nameOf, tell } from './coop.js';
 
 /* Familienmitglieder: Partner (Platz 0) und Elterntiere (Plätze 1, 2) leben am Bau, verteidigen das Junge
    und versorgen und beschützen den Spieler, solange er selbst noch nicht ausgewachsen ist. Sie können endgültig sterben. */
@@ -126,7 +126,26 @@ function playAsCub(){
 }
 function unpause(){ G.paused=false; if(!touchUI()){ try{ const r=canvas.requestPointerLock(); if(r&&r.catch) r.catch(()=>{}); }catch(e){} } }
 $('btnStayAdult').onclick=()=>{ $('birth').style.display='none'; unpause(); };
-$('btnBeCub').onclick=()=>{ $('birth').style.display='none'; playAsCub(); unpause(); };
+// Allein: wählen und weiter. Gemeinsam: das Fenster bleibt offen, bis alle entschieden haben (Fertig = alle übrigen bleiben erwachsen)
+$('btnBeCub').onclick=()=>{
+  if(players.length<2){ $('birth').style.display='none'; playAsCub(); unpause(); return; }
+  playAsCub(); const b=$('btnBeCub'); b.textContent='✓ Spieler 1 spielt als Junges'; b.disabled=true; renderBirthChoices();
+};
+/** Geburtsfenster im gemeinsamen Spiel: für jeden Mitspieler ein Knopf „als Junges spielen“, solange noch Junge im Wurf sind */
+function renderBirthChoices(){
+  const box=$('birthMates'), coop=players.length>1; box.style.display=coop?'flex':'none';
+  $('btnStayAdult').textContent=coop?'Fertig – weiterspielen':'Als Erwachsener weiter';
+  if(!coop) return;
+  if(!$('btnBeCub').disabled) $('btnBeCub').textContent='Spieler 1 als Junges spielen';
+  box.innerHTML='';
+  for(const q of players){ if(q===P) continue; const b=document.createElement('button');
+    const done=q.cubDone===S.cub||(!S.cub&&q.cubDone);
+    b.textContent=done?'✓ '+nameOf(q)+' spielt als Junges':nameOf(q)+' als Junges spielen'; b.disabled=!!done||!S.cub||!(S.cub.n>0);
+    b.style.cssText='background:#d86fa8;color:#2a0a1c';
+    b.onclick=()=>{ const c=S.cub; if(mateBecomeCub(q)){ q.cubDone=c||true; } renderBirthChoices(); };
+    box.appendChild(b); }
+  if(S.cub&&!(S.cub.n>0)) $('btnBeCub').disabled=true;
+}
 G.cubArm=false;
 $('btnMenuCub').onclick=()=>{
   if(!S.cub) return;
@@ -135,4 +154,4 @@ $('btnMenuCub').onclick=()=>{
 };
 
 export { canMate, fam, famHurt, famRole, famStep, kidMode, updateFamily };
-export { becomeCub, famPlace };
+export { becomeCub, famPlace, renderBirthChoices };
