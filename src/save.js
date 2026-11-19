@@ -8,8 +8,9 @@ const MODE=(()=>{ try{ return localStorage.getItem('jaguar-mode')==='coop'?'coop
 const SAVE_KEY=MODE==='coop'?'jaguar-coop-v1':'jaguar-save-v1', LINES_KEY=MODE==='coop'?'jaguar-coop-lines':'jaguar-lines';
 /** Wechselt den Modus; die Seite lädt neu mit dem Spielstand des anderen Modus. */
 function setMode(m){ try{ localStorage.setItem('jaguar-mode',m); }catch(e){} location.reload(); }
-const fresh=()=>({region:'savanne',beat:{},day:0,goals:null,kills:0,anc:[],diff:'normal',tod:0.3,lvl:1,xp:0,pts:0,won:false,gen:1,fur:null,cub:null,food:0,preg:0,partner:false,p1:false,p2:false,hunger:100,age:0,traits:[],a:{str:0,spd:0,sta:0,vit:0,cam:0},b:{amb:0,jmp:0,roar:0,nose:0,climb:0,night:0},mates:{}});
+const fresh=()=>({region:'savanne',beat:{},day:0,goals:null,kills:0,anc:[],diff:'normal',tod:0.3,lvl:1,xp:0,pts:0,won:false,gen:1,fur:null,cub:null,food:0,preg:0,partner:false,p1:false,p2:false,hunger:100,age:0,traits:[],a:{str:0,spd:0,sta:0,vit:0,cam:0},b:{amb:0,jmp:0,roar:0,nose:0,climb:0,night:0},mates:{},id:'',parents:[],litterParents:null,partnerPlayer:false,partnerId:''});
 // mates: im gemeinsamen Spiel die Werte der Mitspieler nach Platz (2, 3, 4), siehe coop.js
+// id/parents: Verwandtschaft (kinship.js) · litterParents: Eltern des kommenden Wurfs · partnerPlayer: Partner ist ein Mitspieler
 // Schwierigkeit: Schaden, Hunger, Wachsamkeit der Tiere, Erfahrungsverlust beim Tod, Abstand der Überfälle, endgültiger Tod ohne Nachwuchs
 const D=()=>DIFF[S.diff]||DIFF.normal;
 // Spielstand: wird nie ersetzt, sondern an Ort und Stelle neu befüllt, damit alle Teile des Spiels dasselbe Objekt behalten
@@ -32,6 +33,9 @@ const xpNeed=l=>Math.round(20*Math.pow(l,1.4));
  * @property {any} fur Fellvariante oder null
  * @property {number} hunger Sättigung 0…100
  * @property {number} age Alter in Sekunden ab Stufe 8
+ * @property {string} [id] Kennung für die Verwandtschaft
+ * @property {string[]} [parents] Kennungen der Eltern
+ * @property {number} [gen] Generation dieses Leoparden
  */
 /* Abgeleitete Werte eines Leoparden. L: dessen Werte (lvl, xp, pts, a, b, traits, fur, hunger, age); Standard ist Spieler 1 = Spielstand S */
 /** @type {(t:string, L?:Leopard)=>boolean} */
@@ -61,7 +65,7 @@ const baseSpeed=(L=S)=>(7+0.12*(L.lvl-1)+0.45*at('spd',L))*(has('flink',L)?1.1:1
 /** @type {(L?:Leopard)=>number} */
 const pScale=(L=S)=>Math.min(2.0,0.5+0.075*(L.lvl-1));
 /** Die Werte, die je Leopard gelten (der Rest des Spielstands gehört der ganzen Familie). */
-const LEOPARD_KEYS=['lvl','xp','pts','a','b','traits','fur','hunger','age'];
+const LEOPARD_KEYS=['lvl','xp','pts','a','b','traits','fur','hunger','age','id','parents','gen'];
 /** Eigene Werte für einen Mitspieler: tiefe Kopie der Werte von L (Standard: Spieler 1). */
 /** @type {(L?:Leopard)=>Leopard} */
 const copyLeopard=(L=S)=>{ const o=/** @type {any} */({}); for(const k of LEOPARD_KEYS) o[k]=JSON.parse(JSON.stringify(L[k]===undefined?null:L[k])); return o; };

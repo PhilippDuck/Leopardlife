@@ -31,7 +31,7 @@ const doc={ querySelectorAll:()=>[], getElementById:el, addEventListener(){}, cr
 let raf=null;
 const g={ window:win, document:doc, navigator:{maxTouchPoints:0}, localStorage:{getItem:k=>(k in ls?ls[k]:null),setItem:(k,v)=>{ls[k]=String(v);}}, THREE:win.THREE,
   requestAnimationFrame:fn=>{ if(fn.name==='frame') raf=fn; else fn(); }, setTimeout:fn=>{ fn(); } };
-const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp};';
+const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId};';
 new Function(...Object.keys(g), body)(...Object.values(g));
 const T=globalThis.__T; const rnd2=()=>Math.random()*8-4; const localStorageDump=()=>ls['jaguar-lines'];
 els.btnPlay.onclick();
@@ -202,4 +202,24 @@ console.log('audio nodes created',ACs&&ACs.count());
   if(Q.L.a===S.a||Q.L.b===S.b) { console.log('FEHLER: Mitspieler teilt Eigenschaften mit Spieler 1'); process.exit(1); }
   console.log('eigene Werte: Mitspieler Stufe',Q.L.lvl,'· Spieler 1 bleibt Stufe',S.lvl,'· Leben',T.maxHpOf(Q.L),'vs',T.maxHpOf(S));
   T.players.pop(); }
+// Familie im gemeinsamen Spiel: Fremde paaren sich, Wurf mit einem Jungen je Spieler, danach sind die Jungen Geschwister
+{ const P=T.P, S=T.S(); if(P.dead) T.respawn(); T.unpause();
+  // Grundregeln der Verwandtschaft
+  const a={id:'a',parents:[]}, b={id:'b',parents:[]}, c1={id:'c1',parents:['a','b']}, c2={id:'c2',parents:['a','x']};
+  if(T.related(a,b)||!T.related(a,c1)||!T.related(c1,c2)||T.related(b,c2)) { console.log('FEHLER: Verwandtschaftsregeln'); process.exit(1); }
+  S.cub=null; S.preg=0; S.lvl=8;
+  const Q=T.makePlayer({source:'test',x:P.x+1,z:P.z,fur:null,L:T.ensureKin(Object.assign(T.copyLeopard(S),{id:T.newId(),parents:[],lvl:8}))}); Q.num=2; S.mates[2]=Q.L; T.players.push(Q);
+  if(!T.canPair(P,Q)) { console.log('FEHLER: Fremde sollten sich paaren können'); process.exit(1); }
+  T.pairPlayers(P,Q); if(!(S.preg>0)) { console.log('FEHLER: keine Trächtigkeit nach Paarung'); process.exit(1); }
+  const pId=S.id, qId=Q.L.id;
+  for(let i=0;i<40&&!S.cub;i++) T.updateCub(1); T.unpause(); el('birth').style.display='none';
+  if(!S.cub||S.cub.n!==2||S.cub.parents.join()!==[pId,qId].join()) { console.log('FEHLER: Wurf',JSON.stringify(S.cub)); process.exit(1); }
+  const gen0=S.gen||1;
+  if(!T.mateBecomeCub(Q)||S.cub.n!==1||Q.L.gen!==gen0+1||Q.L.parents.join()!==[pId,qId].join()) { console.log('FEHLER: Mitspieler als Junges',JSON.stringify(Q.L)); process.exit(1); }
+  T.becomeCub(true);
+  if(S.cub||S.gen!==gen0+1||!T.related(S,Q.L)||S.id===pId) { console.log('FEHLER: Spieler 1 als Junges / Geschwister'); process.exit(1); }
+  S.lvl=8; Q.L.lvl=8;
+  if(T.canPair(P,Q)) { console.log('FEHLER: Geschwister dürfen sich nicht paaren'); process.exit(1); }
+  console.log('Familie: Fremde paaren sich, Wurf mit 2 Jungen, beide als Junge (Generation',S.gen+'), jetzt Geschwister – keine Paarung');
+  T.players.pop(); delete S.mates[2]; }
 console.log('ALL OK');

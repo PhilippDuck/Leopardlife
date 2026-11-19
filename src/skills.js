@@ -8,6 +8,8 @@ import { G } from './state.js';
 import { $ } from './util.js';
 import { menuOpen } from './menu.js';
 import { sleeping } from './daynight.js';
+import { heirLevel } from './family.js';
+import { mateBecomeCub } from './kinship.js';
 
 /* Icons für Eigenschaften, Fähigkeiten und Erbanlagen: 24er-Raster, Strichzeichnung in der jeweiligen Farbe */
 /** Wessen Entwicklung gerade offen ist: Spieler 1 oder ein Mitspieler */
@@ -15,6 +17,7 @@ let skP=P;
 function renderSkills(){
   const L=skP.L;
   $('skWho').textContent=skP===P?'':' · Spieler '+(skP.num||2);
+  { const b=$('btnSkCub'), ok=skP!==P&&!!S.cub&&S.cub.n>0; b.style.display=ok?'block':'none'; if(ok&&!cubArm) b.textContent='Als Junges weiterspielen (Stufe '+heirLevel()+', Generation '+(S.cub.gen||'?')+')'; }
   $('skPts').textContent=L.pts+' Punkt'+(L.pts===1?'':'e');
   const row=(it,val,max,cost,grp,cap)=>{ const act=Math.min(val,cap), rest=val-act;
     return '<div class="skill wi">'+ico(it.k,ICOL[grp])+'<div><b>'+it.n+'</b><small>'+it.d+'</small></div><span class="pips">'+'●'.repeat(act)+'<span style="color:#7fb4d8">'+'●'.repeat(rest)+'</span><span style="opacity:.25">'+'●'.repeat(max-val)+'</span></span><button data-g="'+grp+'" data-k="'+it.k+'" '+((L.pts<cost||val>=max||val>=cap)?'disabled':'')+'>+</button></div>'; };
@@ -31,5 +34,8 @@ function toggleSkills(p=P){ if(sleeping||(p===P&&P.dead)||$('win').style.display
   if(open){ skP=p; G.ovPad=p===P?null:p.pad; renderSkills(); el.style.display='flex'; G.paused=true; if(document.exitPointerLock) document.exitPointerLock(); for(const k in keys) keys[k]=false; }
   else { el.style.display='none'; G.paused=false; G.ovPad=null; skP=P; } }
 $('btnClose').onclick=()=>toggleSkills(skP);
+// Mitspieler wechselt ins Junge des aktuellen Wurfs (zweimal drücken zum Bestätigen)
+let cubArm=false;
+$('btnSkCub').onclick=()=>{ if(!cubArm){ cubArm=true; $('btnSkCub').textContent='Wirklich? Du startest neu als Junges'; return; } cubArm=false; const p=skP; toggleSkills(p); mateBecomeCub(p); };
 
 export { toggleSkills };

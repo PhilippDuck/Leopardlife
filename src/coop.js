@@ -17,6 +17,7 @@ import { toast } from './ui.js';
 import { $ } from './util.js';
 import { tallMat } from './vegetation.js';
 import { toggleSkills } from './skills.js';
+import { ensureKin, mateContext, newId } from './kinship.js';
 
 /** Höchstens so viele Spieler teilen sich den Bildschirm */
 const MAX_PLAYERS=4;
@@ -36,7 +37,9 @@ function joinPlayer(i,gp){
   // Eigene Werte: startet als Geschwister auf der Stufe von Spieler 1 und entwickelt sich ab dann selbst
   // Gespeicherte Werte dieses Platzes, sonst neu (Kopie von Spieler 1); liegen im Spielstand und werden mit ihm gespeichert
   S.mates=S.mates||{};
-  let L=S.mates[num]; if(!L){ L=copyLeopard(S); L.fur=FURS[num-1]; L.hunger=100; L.age=0; S.mates[num]=L; save(); }
+  let L=S.mates[num]; if(!L){ L=copyLeopard(S); L.fur=FURS[num-1]; L.hunger=100; L.age=0; L.gen=S.gen||1; S.mates[num]=L; }
+  // Wer neu einsteigt, ist ein fremder Leopard (nicht verwandt) – erst eure Jungen sind miteinander verwandt
+  if(!L.id||L.id===S.id){ L.id=newId(); L.parents=[]; } ensureKin(L); save();
   const p=makePlayer({source:'pad'+i,camera:cam,x:P.x+Math.sin(ang)*r,z:P.z+Math.cos(ang)*r,fur:L.fur||FURS[num-1],L});
   p.pad=i; p.num=num; p.padPrev=gp?gp.buttons.map(b=>!!b.pressed):[];   // der Start-Druck zum Einsteigen zählt nicht als Pause p.rot=P.rot; p.cam.yaw=P.cam.yaw; p.cam.pitch=P.cam.pitch;
   p.hud=makeHud(p);
@@ -118,6 +121,7 @@ function pollCoop(dt,gps){
       if(hit(1)) p.sneak=!p.sneak;
       if(hit(3)) doClimb(p);
       if(hit(4)) doRoar(p);
+      if(hit(2)) mateContext(p);   // X antippen: paaren, Junges füttern (X halten: wiederbeleben)
       if(hit(11)) p.cam.yaw=p.rot+Math.PI;
       if(hit(12)) p.cam.zoom=Math.max(0.45,p.cam.zoom/1.15);
       if(hit(13)) p.cam.zoom=Math.min(2.6,p.cam.zoom*1.15);

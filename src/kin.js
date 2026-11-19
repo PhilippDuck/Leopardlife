@@ -17,6 +17,7 @@ import { $, rnd } from './util.js';
 import { recordAncestor } from './carcass.js';
 import { moveAnimal } from './ai.js';
 import { updateUI } from './hud.js';
+import { newId, takeFromLitter } from './kinship.js';
 
 /* Familienmitglieder: Partner (Platz 0) und Elterntiere (Plätze 1, 2) leben am Bau, verteidigen das Junge
    und versorgen und beschützen den Spieler, solange er selbst noch nicht ausgewachsen ist. Sie können endgültig sterben. */
@@ -91,9 +92,9 @@ function updateFamily(dt){
 // Wechsel ins Junge: freiwillig (das alte Ich bleibt als Elterntier) oder nach dem Tod
 function becomeCub(vol){
   recordAncestor(vol?'zog sein Junges groß und lebt als Elterntier weiter':G.lastCause);
-  const hl=heirLevel(), ox=P.x, oz=P.z, hadPartner=S.partner&&fam[0].famOn;
-  S.p1=!!vol; S.p2=!!hadPartner; S.partner=false;
-  if(S.p2) famPlace(fam[2],fam[0].x,fam[0].z); else fam[2].famOn=false;
+  const hl=heirLevel(), ox=P.x, oz=P.z, hadPartner=S.partner&&fam[0].famOn, mateParent=S.p2&&fam[2].famOn;
+  S.p1=!!vol; S.p2=!!hadPartner||!!mateParent; S.partner=false;
+  if(hadPartner) famPlace(fam[2],fam[0].x,fam[0].z); else if(!mateParent) fam[2].famOn=false;
   if(S.p1) famPlace(fam[1],ox,oz); else fam[1].famOn=false;
   fam[0].famOn=false;
   if(S.cub.trait&&TRAITS[S.cub.trait]&&!has(S.cub.trait)) S.traits=S.traits.concat(S.cub.trait).slice(-3);
@@ -101,7 +102,9 @@ function becomeCub(vol){
     S.a=fresh().a; S.b=fresh().b; S.pts=Math.round(total*0.1); }
   S.fur=S.cub.fur||null;
   { const ng=(S.gen||1)+1, nr=Object.values(REGIONS).find(r=>r.gen===ng&&!r.soon); if(nr) setTimeout(()=>toast('Deine Linie ist stark genug: '+nr.n+' ist jetzt erreichbar (Menü → Gebiete).','#9be07f'),2600); }
-  S.lvl=hl; S.xp=0; S.gen=(S.gen||1)+1; S.cub=null; S.food=0; S.preg=0; S.hunger=80; S.age=0; S.kills=0; if(G.raider) endRaid(G.raider);
+  const cg=S.cub.gen||((S.gen||1)+1);
+  S.parents=(S.cub.parents||[S.id]).slice(); S.id=newId();   // neue Kennung: das Junge ist ein eigener Leopard, verwandt mit seinen Eltern und Geschwistern
+  S.lvl=hl; S.xp=0; S.gen=Math.max(S.gen||1,cg); takeFromLitter(); S.preg=0; S.partnerPlayer=false; S.hunger=80; S.age=0; S.kills=0; if(G.raider&&!S.cub) endRaid(G.raider);
   feedT=rnd(30,50); save(); rebuildPlayer();
 }
 function playAsCub(){

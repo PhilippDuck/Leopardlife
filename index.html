@@ -261,6 +261,7 @@ body.split #warn,body.split #target{left:var(--cx);max-width:calc(var(--vw) - 16
 
 <div id="skills" class="overlay" style="display:none"><div class="card panel">
   <div style="display:flex;justify-content:space-between;align-items:center"><h2>Entwicklung<span id="skWho" style="color:var(--mut);font-size:.7em"></span></h2><span id="skPts" style="color:var(--gold);font-weight:bold"></span></div>
+  <button id="btnSkCub" style="display:none;width:100%;margin:6px 0;background:#d86fa8;color:#2a0a1c">Als Junges weiterspielen</button>
   <div class="sect">Eigenschaften · 1 Punkt</div><div id="skA"></div>
   <div class="sect">Fähigkeiten · 2 Punkte</div><div id="skB"></div>
   <div class="sect">Erbanlagen</div><div id="skT"></div>
@@ -294,7 +295,8 @@ body.split #warn,body.split #target{left:var(--cx);max-width:calc(var(--vw) - 16
 </div></div>
 
 <div id="birth" class="overlay" style="display:none"><div class="card panel" style="text-align:center">
-  <h1 style="color:#ff9ad0">Dein Junges ist geboren</h1>
+  <h1 id="birthTitle" style="color:#ff9ad0">Dein Junges ist geboren</h1>
+  <p id="birthCoop" style="display:none;color:#9be07f;font-size:13px">Ein Junges für jeden, der will: Mitspieler wählen „Als Junges weiterspielen" in ihrer Entwicklung (Back). Junge aus einem Wurf sind Geschwister – Verwandte paaren sich nicht.</p>
   <p id="birthTrait" style="color:#ff9ad0;font-weight:bold"></p>
   <p>Es versteckt sich im Gras am Bau. Wie willst du weiterspielen?</p>
   <p style="font-size:13px;color:var(--mut);text-align:left"><b style="color:var(--txt)">Als Erwachsener:</b> Du bringst dem Jungen Futter (F) und vertreibst Räuber. Stirbst du, lebst du im Jungen weiter.<br><br>

@@ -17,6 +17,8 @@ durch Savanne und Sumpf.
 - Gemeinsames Spiel (Splitscreen) für bis zu 4 Spieler: im Startmenü „Gemeinsam spielen" wählen, dann drückt ein weiterer
   Controller Start zum Einsteigen. Back: eigene Entwicklung · Back halten: aussteigen. Jeder Leopard hat eigene Stufe und Werte;
   das gemeinsame Spiel hat einen eigenen Spielstand.
+  Familie: Wer einsteigt, ist ein fremder Leopard – ab Stufe 8 können sich Spieler paaren (F bzw. X antippen). Ein Wurf hat ein
+  Junges je Spieler; jeder entscheidet selbst, ob er als Junges weiterspielt. Junge eines Wurfs sind Geschwister: Verwandte paaren sich nicht.
   Wer zu Boden geht, kann von Mitspielern wiederbelebt werden (daneben X bzw. F halten, 3 s), sonst erwacht er nach 20 s im Bau.
 
 ## Aufbau
@@ -46,6 +48,7 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 | `src/hud.js` | Anzeige: Entdeckungswarnung, Kamera, Fadenkreuz, Statusleisten, Ziel, Spürkarte |
 | `src/input.js` | Eingabe über Tastatur, Maus und Touch, Umschalten der Anzeige je nach zuletzt benutzter Eingabe |
 | `src/kin.js` | Partner und Elterntiere am Bau: verteidigen, Futter bringen, beschützen; Wechsel ins Junge |
+| `src/kinship.js` | Verwandtschaft und Familie im gemeinsamen Spiel: wer mit wem verwandt ist, Spieler als Paar, Wurf mit einem Jungen je Spieler |
 | `src/life.js` | Lebenslauf: Hunger, Altern, Fressen aus dem Vorrat |
 | `src/main.js` | Einstieg: Hauptschleife (Bild für Bild: Spieler, Tiere, Kamera, Anzeige) und Spielstart |
 | `src/menu.js` | Pausenmenü, Einstellungen, Steuerungsliste, Neustart |
