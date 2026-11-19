@@ -56,6 +56,7 @@ function stepPlayer(p,dt){
   p.camY=p.y+up;
   const climbing=p.tree!=null&&p.climbT<1;
   const g=p.g; g.scale.setScalar(sc); g.position.set(p.x,p.y+jump+up,p.z); g.rotation.y=p.rot;
+  if(p.roarT>0){ p.roarT=Math.max(0,p.roarT-dt); g.rotation.x=-0.22*Math.sin(Math.PI*(1-p.roarT/0.9)); } else if(g.rotation.x) g.rotation.x=0;
   g.userData.inner.position.y+=(((sneak&&p.pounce<=0)?-0.16:0)-g.userData.inner.position.y)*Math.min(1,dt*10);
   g.userData.inner.rotation.x=climbing?-1.1:p.pounce>0?(p.leap?0.35:-0.3):0;
   if(climbing) animLegs(g,p.walkT,0.7); else if(moving||p.pounce>0){ p.walkT+=dt*(5+spd*1.4); animLegs(g,p.walkT,p.pounce>0?1.1:sprint?0.85:sneak?0.3:0.55); } else animLegs(g,p.walkT,0.02);
