@@ -3,13 +3,14 @@ import { animals, placeAnimal } from './animals.js';
 import { initAudio } from './audio.js';
 import { canvas } from './engine.js';
 import { keys, touchUI } from './input.js';
-import { bookOpen, clockStr, dead, padUI, rebuildCub, regionsOpen, reloadWorld, respawn, settingsOpen, sleeping, updateUI } from './main.js';
+import { bookOpen, clockStr, dead, padUI, rebuildCub, respawn, settingsOpen, sleeping, updateUI } from './main.js';
 import { P, rebuildPlayer } from './player.js';
 import { D, REG, REG_ID, S, maxHp, maxSt, resetState, save } from './save.js';
 import { toggleSkills } from './skills.js';
 import { G } from './state.js';
 import { toast } from './ui.js';
 import { $ } from './util.js';
+import { regionsOpen, reloadWorld } from './regions.js';
 
 /* Pausenmenü (Esc oder Menü-Knopf) */
 G.menuT=0; let hadLock=false, restartArm=false;
