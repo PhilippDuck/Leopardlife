@@ -6,7 +6,6 @@ import { ICOL, QUAL, TRAITS, ico } from './data.js';
 import { puff } from './effects.js';
 import { scene } from './engine.js';
 import { keys } from './input.js';
-import { moveAnimal } from './main.js';
 import { animLegs, buildQuad, furName, makeFur } from './models.js';
 import { P, dropModel } from './player.js';
 import { quality } from './quality.js';
@@ -20,6 +19,7 @@ import { eatFood } from './life.js';
 import { canSleepNow, sleepOnTree } from './daynight.js';
 import { nearCarcass, takeMeat } from './carcass.js';
 import { goalEvent } from './goals.js';
+import { moveAnimal } from './ai.js';
 
 /* ---------- Familie: Partner, Junges, Futter, Überfälle ---------- */
 const FOOD_MAX=20, CUB_HOME={x:7,z:5};
