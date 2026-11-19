@@ -30,7 +30,7 @@ const doc={ querySelectorAll:()=>[], getElementById:el, addEventListener(){}, cr
 let raf=null;
 const g={ window:win, document:doc, navigator:{maxTouchPoints:0}, localStorage:{getItem:k=>(k in ls?ls[k]:null),setItem:(k,v)=>{ls[k]=String(v);}}, THREE:win.THREE,
   requestAnimationFrame:fn=>{ if(fn.name==='frame') raf=fn; else fn(); }, setTimeout:fn=>{ fn(); } };
-const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame};';
+const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls};';
 new Function(...Object.keys(g), body)(...Object.values(g));
 const T=globalThis.__T; const rnd2=()=>Math.random()*8-4; const localStorageDump=()=>ls['jaguar-lines'];
 els.btnPlay.onclick();
@@ -160,4 +160,20 @@ console.log('audio nodes created',ACs&&ACs.count());
 { const bad=Object.keys(T.G).filter(k=>typeof T.G[k]==='number'&&isNaN(T.G[k]));
   if(bad.length){ console.log('FEHLER: NaN in G:',bad.join(',')); process.exit(1); }
   console.log('G geprüft:',Object.keys(T.G).length,'Felder, birdT =',T.G.birdT.toFixed(1)); }
+// Zweiter Leopard: unabhängig von Spieler 1 steuerbar, bewegbar und verletzbar (Grundlage für Splitscreen)
+{ const P=T.P; T.unpause(); if(P.dead) T.respawn();
+  const Q=T.makePlayer({source:'test',x:40,z:-40,fur:null}); T.players.push(Q);
+  const before={px:P.x,pz:P.z,php:P.hp,qx:Q.x,qz:Q.z};
+  Q.ctl.fw=1; Q.ctl.rt=0; Q.ctl.sprint=false; Q.cam.yaw=0;
+  for(let i=0;i<30;i++){ T.readControls(Q,1/30); T.stepPlayer(Q,1/30); }
+  const qd=Math.hypot(Q.x-before.qx,Q.z-before.qz);
+  if(!(qd>2)) { console.log('FEHLER: zweiter Spieler bewegt sich nicht',qd); process.exit(1); }
+  if(Q.ctl.fw!==1) { console.log('FEHLER: Steuerung des zweiten Spielers überschrieben'); process.exit(1); }
+  if(P.x!==before.px||P.z!==before.pz) { console.log('FEHLER: Spieler 1 hat sich mitbewegt'); process.exit(1); }
+  Q.st=100; Q.pcd=0; T.doPounce(Q); if(!(Q.pounce>0)||P.pounce>0) { console.log('FEHLER: Sprung des zweiten Spielers'); process.exit(1); }
+  const hp0=Q.hp; T.hurtPlayer(3,{sp:{id:'jack',n:'Schakal'}},true,Q);
+  if(!(Q.hp<hp0)||P.hp!==before.php) { console.log('FEHLER: Schaden landet beim falschen Spieler'); process.exit(1); }
+  if(Q.cam===P.cam||Q.ctl===P.ctl) { console.log('FEHLER: Spieler teilen Kamera oder Steuerung'); process.exit(1); }
+  console.log('zweiter Spieler: bewegt',qd.toFixed(1),'m, Sprung ok, Schaden',(hp0-Q.hp).toFixed(1),'nur bei ihm');
+  T.players.pop(); }
 console.log('ALL OK');

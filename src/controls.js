@@ -8,6 +8,7 @@ import { G } from './state.js';
 /** Liest die Eingaben für Spieler p und schreibt p.ctl (fw/rt: Laufrichtung -1…1, sprint) sowie die Kameratasten. */
 function readControls(p,dt){
   const c=p.ctl;
+  if(c.source!=='local') return;   // andere Quellen (Controller N, Test) füllen p.ctl selbst
   // Kameratasten
   if(keys.ArrowLeft) p.cam.yaw+=dt*2; if(keys.ArrowRight) p.cam.yaw-=dt*2;
   if(keys.ArrowUp) p.cam.pitch=Math.max(0.08,p.cam.pitch-dt); if(keys.ArrowDown) p.cam.pitch=Math.min(1.25,p.cam.pitch+dt);
