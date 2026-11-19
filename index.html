@@ -79,6 +79,11 @@
   .ripple{position:fixed;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;border:3px solid var(--gold);pointer-events:none;animation:rip .45s ease-out forwards}
   @keyframes rip{from{transform:scale(.3);opacity:1}to{transform:scale(1.4);opacity:0}}
   #hudTog{display:none;color:var(--mut);font-size:11px;margin-left:6px}
+  #bookTree{overflow:auto;max-height:46vh;padding:4px 0 8px}
+  .tree{position:relative;margin:0 auto} .tree svg{position:absolute;left:0;top:0} .tree path{fill:none;stroke:rgba(255,255,255,.35);stroke-width:1.5}
+  .tn{position:absolute;box-sizing:border-box;padding:5px 6px 4px 30px;border:1px solid var(--line);border-radius:8px;background:rgba(20,26,18,.95);font-size:11.5px;line-height:1.2;overflow:hidden}
+  .tn.me{border-color:var(--gold)} .tn .sw{position:absolute;left:6px;top:7px;width:18px;height:18px;border-radius:50%;border:1px solid rgba(255,255,255,.3)}
+  .tn small{display:block;color:var(--mut);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .anc{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
   .anc small{display:block;color:var(--mut);font-size:11.5px;margin-top:2px}
   .anc .sw{width:22px;height:22px;border-radius:5px;border:1px solid rgba(255,255,255,.3);margin-top:2px}
@@ -338,7 +343,8 @@ body.quad .ph{--rad:92px}
 
 <div id="book" class="overlay" style="display:none"><div class="card panel">
   <h2>Ahnenbuch</h2>
-  <div id="bookList"></div>
+  <div class="sect">Stammbaum</div><div id="bookTree"></div>
+  <div class="sect">Lebensläufe</div><div id="bookList"></div>
   <div class="sect">Frühere Blutlinien</div><div id="bookLines"></div>
   <div style="margin-top:14px"><button id="btnBookBack">Zurück</button></div>
 </div></div>

@@ -287,4 +287,18 @@ console.log('audio nodes created',ACs&&ACs.count());
   if(L.a.str!==a0||L.b.nose!==b0||L.pts!==7){ console.log('FEHLER: Zurücksetzen',L.a.str,a0,L.b.nose,b0,L.pts); process.exit(1); }
   T.resetSkills(P,null); if(L.pts!==7){ console.log('FEHLER: doppeltes Zurücksetzen erstattet erneut'); process.exit(1); }
   console.log('Entwicklung: Auswahl zurückgesetzt, 3 Punkte erstattet, neu verdiente bleiben'); }
+{ const S=T.S(), F=T.fam; const savedCub=S.cub, savedFur=S.fur;
+  S.fur={albino:false,melan:false,l:0.71,s:1,sn:1,ss:1}; S.partner=true; F[0].famOn=true; F[0].fur={albino:false,melan:true,l:0.9,s:1,sn:1,ss:1};
+  S.cub={full:70,grow:1,hp:1,n:2,gen:(S.gen||1)+1,parents:[S.id,'x'],fur:{albino:false,melan:false,l:1,s:1,sn:1,ss:1}};
+  T.becomeCub(true);
+  const ok=F[1].fur.l===0.71&&F[2].fur.melan===true&&!F[1].fur.albino&&S.famFur&&S.famFur[1].l===0.71;
+  if(!ok){ console.log('FEHLER: Elterntiere haben falsches Fell',F[1].fur,F[2].fur); process.exit(1); }
+  console.log('Elterntiere behalten ihr Fell: altes Ich und Partner'); }
+{ const S=T.S(), sv=[S.anc,S.id,S.parents,S.mates];
+  S.anc=[{i:'G1',p:[]},{i:'G2',p:[]},{i:'C1',p:['G1','G2']},{i:'C2',p:['G1','G2']},{i:'X',p:[]},{i:'Y',p:[]}]; S.id='zz'; S.parents=[]; S.mates={};
+  const L=(id,p)=>({id,parents:p}), cousinA=L('K1',['C1','X']), cousinB=L('K2',['C2','Y']);
+  const r=[T.related(cousinA,cousinB), T.related(L('C2',['G1','G2']),cousinA), T.related(L('G1',[]),cousinA), T.related(L('C1',['G1','G2']),L('C2',['G1','G2']))];
+  S.anc=sv[0]; S.id=sv[1]; S.parents=sv[2]; S.mates=sv[3];
+  if(r.join()!=='false,true,true,true'){ console.log('FEHLER: Verwandtschaft',r); process.exit(1); }
+  console.log('Verwandtschaft: Cousins dürfen, Tante/Neffe, Großeltern und Geschwister nicht'); }
 console.log('ALL OK');

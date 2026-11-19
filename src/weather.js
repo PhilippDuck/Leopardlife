@@ -1,6 +1,6 @@
 // LeopardLife – Wetter: Regen und Gewitter.
 import { animals } from './animals.js';
-import { AC, master, nbuf, snd } from './audio.js';
+import { AC, hasSample, master, nbuf, snd } from './audio.js';
 import { startFlee } from './carcass.js';
 import { camera, scene, windU } from './engine.js';
 import { P } from './player.js';
@@ -43,7 +43,7 @@ function updateWeather(dt){
   rainMat.uniforms.uOp.value=W.rain*0.85; rainMat.uniforms.uCam.value.copy(camera.position); rainMat.uniforms.uTime.value+=dt;
   if(AC&&master&&!rainGain){ try{ const s=AC.createBufferSource(); s.buffer=nbuf; s.loop=true; const f=AC.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1700; f.Q.value=0.5;
     rainGain=AC.createGain(); rainGain.gain.value=0; s.connect(f); f.connect(rainGain); rainGain.connect(master); s.start(); }catch(e){} }
-  if(rainGain) rainGain.gain.setTargetAtTime(W.rain*0.16,AC.currentTime,0.4);
+  if(rainGain) rainGain.gain.setTargetAtTime(W.rain*(hasSample('rain')?0.03:0.16),AC.currentTime,0.4);   // mit Regen-Aufnahme nur noch leises Rauschen darunter
 }
 
 export { W, updateWeather };
