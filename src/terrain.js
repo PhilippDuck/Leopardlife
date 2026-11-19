@@ -35,11 +35,12 @@ const tileOf=(x,z)=>Math.max(0,Math.min(TN-1,Math.floor((x+TOFF)/TILE)))*TN+Math
 const tileCenter=k=>({x:Math.floor(k/TN)*TILE-TOFF+TILE/2,z:(k%TN)*TILE-TOFF+TILE/2});
 const cullList=[], _fr=new THREE.Frustum(), _pm=new THREE.Matrix4(), _sp=new THREE.Sphere();
 function registerTile(mesh,k,r){ const c=tileCenter(k); mesh.frustumCulled=false; cullList.push({mesh,s:new THREE.Sphere(new THREE.Vector3(c.x,H(c.x,c.z)+5,c.z),r)}); }
-function cullTiles(){
-  camera.updateMatrixWorld(); _pm.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse); _fr.setFromProjectionMatrix(_pm);
+/** Blendet Kacheln außerhalb des Sichtfelds von cam aus (beim Splitscreen vor jedem Ausschnitt). */
+function cullTiles(cam=camera){
+  cam.updateMatrixWorld(); _pm.multiplyMatrices(cam.projectionMatrix,cam.matrixWorldInverse); _fr.setFromProjectionMatrix(_pm);
   const far=scene.fog.far+10;
   for(let i=0;i<cullList.length;i++){ const t=cullList[i]; _sp.center.copy(t.s.center); _sp.radius=t.s.radius+35;
-    t.mesh.visible=t.s.center.distanceTo(camera.position)-t.s.radius<far&&_fr.intersectsSphere(_sp); }
+    t.mesh.visible=t.s.center.distanceTo(cam.position)-t.s.radius<far&&_fr.intersectsSphere(_sp); }
 }
 const hash2=(x,z)=>{ const h=Math.sin(x*12.9898+z*78.233)*43758.5453; return h-Math.floor(h); };
 

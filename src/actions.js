@@ -5,7 +5,7 @@ import { DAT, FOOD } from './data.js';
 import { puff } from './effects.js';
 import { canvas } from './engine.js';
 import { keys, touchUI } from './input.js';
-import { P, START_ROT, START_YAW, rebuildPlayer } from './player.js';
+import { P, START_ROT, START_YAW, players, rebuildPlayer } from './player.js';
 import { reloadWorld } from './regions.js';
 import { D, REG, REG_ID, S, beaten, dmg, maxHp, maxSt, pScale, resetState, save, xpNeed } from './save.js';
 import { G } from './state.js';
@@ -20,6 +20,8 @@ import { archiveLine, makeCarcass, recordAncestor, startFlee } from './carcass.j
 import { goalEvent } from './goals.js';
 import { padUI, rumble } from './gamepad.js';
 import { updateUI, updateWarn } from './hud.js';
+import { downPlayer, othersAlive } from './coop.js';
+import { emit } from './events.js';
 
 /* ---------- Aktionen ---------- */
 /** Index des nächsten erreichbaren Baums für Spieler p, sonst -1. */
@@ -30,6 +32,7 @@ function nearestTree(p=P){
 function leaveTree(p,rate){ p.dropY=p.upNow; p.dropRate=rate; p.tree=null; p.safe=false; p.upNow=0; }
 /** Klettern bzw. vom Baum herunter für Spieler p. Fähigkeiten und Ausdauer-Anzeige gelten noch gemeinsam. */
 function doClimb(p=P){
+  if(p.dead) return;
   if(G.paused||p.pounce>0) return;
   if(p.tree!=null){ leaveTree(p,24); p.x+=Math.sin(p.rot)*1.6; p.z+=Math.cos(p.rot)*1.6; snd.step(0.25); return; }
   if(S.b.climb<1){ toast('Klettern ist noch nicht gelernt (Tab)','#b9b7a6'); return; }
@@ -44,6 +47,7 @@ function noStamina(){
 }
 /** Sprungangriff von Spieler p in Blickrichtung seiner Kamera (vom Baum: Sprung nach unten). */
 function doPounce(p=P){
+  if(p.dead) return;
   if(G.paused||p.pounce>0||p.pcd>0) return;
   if(p.tree!=null&&p.climbT<1) return;
   if(p.st<15){ noStamina(); return; }
@@ -54,6 +58,7 @@ function doPounce(p=P){
 }
 /** Brüllen von Spieler p: Raubtiere fliehen, Beute erstarrt. */
 function doRoar(p=P){
+  if(p.dead) return;
   if(G.paused) return;
   if(S.b.roar<1){ toast('Brüllen ist noch nicht gelernt (Tab)','#b9b7a6'); return; }
   if(p.rcd>0) return;
@@ -75,10 +80,20 @@ function hurtPlayer(d,a,force,p=P){
   if(p.dead||(p.safe&&!force)) return;
   if(!force) d*=D().dmg;
   snd.hurt();
-  p.hp-=d; p.combatT=5; p.cam.shake=Math.max(p.cam.shake,Math.min(0.6,0.15+d/maxHp())); if(padUI()) rumble(Math.min(1,0.35+d/maxHp()),0.5,220); $('hurt').style.opacity=0.8; p.hurtT=0.25;
+  p.hp-=d; p.combatT=5; p.cam.shake=Math.max(p.cam.shake,Math.min(0.6,0.15+d/maxHp()));
+  if(p===P){ if(padUI()) rumble(Math.min(1,0.35+d/maxHp()),0.5,220); $('hurt').style.opacity=0.8; } else if(p.pad!=null) rumble(Math.min(1,0.35+d/maxHp()),0.5,220,p.pad);
+  p.hurtT=0.25;
   floatText('-'+Math.round(d),p.x,p.camY+1.5*pScale(),p.z,'#ff7a5c');
   if(p.hp<=0){
-    p.hp=0; G.heirPending=!!S.cub; G.lineageEnd=!S.cub&&(a.sp.id==='age'||D().perma); let lost=0; if(!G.heirPending&&!G.lineageEnd){ lost=Math.floor(S.xp*D().xpLoss); S.xp-=lost; } save();
+    // Koop: zu Boden gehen, solange ein anderer noch steht; fällt der Letzte, endet es für alle wie im Einzelspiel (über Spieler 1)
+    if(players.length>1){ if(othersAlive(p)){ downPlayer(p,a); return; } p.dead=true; p.downT=null; die(P,a); return; }
+    die(p,a);
+  }
+}
+/** Endgültiger Tod (Einzelspiel bzw. alle Spieler am Boden): Todesfenster, Erbe, Ende der Blutlinie. */
+function die(p,a){
+  {
+    p.hp=0; p.downT=null; G.heirPending=!!S.cub; G.lineageEnd=!S.cub&&(a.sp.id==='age'||D().perma); let lost=0; if(!G.heirPending&&!G.lineageEnd){ lost=Math.floor(S.xp*D().xpLoss); S.xp-=lost; } save();
     p.dead=true; G.paused=true; p.pounce=0; for(const k in keys) keys[k]=false; G.drag=false;
     if(document.exitPointerLock) document.exitPointerLock();
     p.g.rotation.z=Math.PI/2; p.g.position.y=p.y+0.25*pScale();
@@ -117,6 +132,7 @@ function respawn(p=P){
   p.tree=null; p.safe=false; p.dropY=0; p.upNow=0; p.x=sx; p.z=sz; p.rot=START_ROT; p.cam.yaw=START_YAW; p.hp=maxHp(); p.st=maxSt(); p.pounce=0; p.pcd=0; p.sneak=false; p.combatT=0; p.g.rotation.z=0;
   animals.forEach(o=>{ o.aggro=0; o.sus=0; o.near=false; if(o.state==='chase'){ o.state='wander'; o.timer=0; } });
   updateWarn(0); $('hurt').style.opacity=0; $('dead').style.display='none'; p.dead=false; G.paused=false; initAudio(); snd.click();
+  emit('respawn');
   if(!touchUI()){ try{ const r=canvas.requestPointerLock(); if(r&&r.catch) r.catch(()=>{}); }catch(e){} }
 }
 $('btnRespawn').onclick=()=>respawn();

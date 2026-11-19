@@ -145,6 +145,23 @@
   @media (max-height:400px){
     :root{--ts:.7}
   }
+/* Splitscreen: Fadenkreuz und Hinweise von Spieler 1 sitzen in der Mitte seines Ausschnitts (--cx/--cy setzt coop.js) */
+body.split #cross,body.split #stRing,body.split #warnRing{left:var(--cx);top:var(--cy)}
+body.split #eye{left:var(--cx);top:calc(var(--cy) - 62px)}
+body.split #ctxHint{left:var(--cx);top:calc(var(--cy) + 64px)}
+body.split #crossMsg{left:var(--cx);top:calc(var(--cy) + 40px)}
+body.split #cds{left:var(--cx)}
+body.split #warn,body.split #target{left:var(--cx);max-width:calc(var(--vw) - 16px)}
+.pv{position:fixed;pointer-events:none;box-sizing:border-box;border-left:2px solid rgba(0,0,0,.55);border-top:2px solid rgba(0,0,0,.55);padding:8px 10px;z-index:4}
+.pvName{font-weight:bold;font-size:14px;text-shadow:0 1px 3px #000}
+.pvBar{width:140px;max-width:40%;height:7px;background:rgba(0,0,0,.5);border-radius:4px;margin-top:4px;overflow:hidden}
+.pvBar i{display:block;height:100%;width:100%;transition:width .15s}
+.pvBar .hp{background:#e0573c}.pvBar .st{background:#e8c25a}.pvBar .rev{background:#8fe07a;width:0}
+.pvCross{position:absolute;left:50%;top:50%;width:14px;height:14px;margin:-9px 0 0 -9px;border:2px solid #fff;border-radius:50%;opacity:.75;filter:drop-shadow(0 0 2px #000)}
+.pvMsg{position:absolute;left:50%;top:62%;transform:translateX(-50%);font-size:13px;font-weight:bold;text-shadow:0 1px 4px #000;opacity:0;transition:opacity .3s;white-space:nowrap}
+.pvDown{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(70,0,0,.35);text-align:center;padding:0 14px;font-size:13px;text-shadow:0 1px 4px #000}
+.pvDown b{font-size:20px;color:#ff8a70}.pvDown .pvBar{width:180px;max-width:70%}
+#splitEmpty{position:fixed;left:50%;top:50%;width:50%;height:50%;display:none;align-items:center;justify-content:center;text-align:center;color:#9a947f;font-size:14px;pointer-events:none;border-left:2px solid rgba(0,0,0,.55);border-top:2px solid rgba(0,0,0,.55)}
 </style>
 </head>
 <body>
@@ -317,5 +334,6 @@
 
 <script src="vendor/three.min.js"></script>
 <script type="module" src="src/main.js"></script>
+<div id="splitEmpty">Freier Platz<br>Weiterer Controller: Start drücken zum Mitspielen</div>
 </body>
 </html>

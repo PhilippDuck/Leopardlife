@@ -31,7 +31,7 @@ const doc={ querySelectorAll:()=>[], getElementById:el, addEventListener(){}, cr
 let raf=null;
 const g={ window:win, document:doc, navigator:{maxTouchPoints:0}, localStorage:{getItem:k=>(k in ls?ls[k]:null),setItem:(k,v)=>{ls[k]=String(v);}}, THREE:win.THREE,
   requestAnimationFrame:fn=>{ if(fn.name==='frame') raf=fn; else fn(); }, setTimeout:fn=>{ fn(); } };
-const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls};';
+const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer};';
 new Function(...Object.keys(g), body)(...Object.values(g));
 const T=globalThis.__T; const rnd2=()=>Math.random()*8-4; const localStorageDump=()=>ls['jaguar-lines'];
 els.btnPlay.onclick();
@@ -177,4 +177,20 @@ console.log('audio nodes created',ACs&&ACs.count());
   if(Q.cam===P.cam||Q.ctl===P.ctl) { console.log('FEHLER: Spieler teilen Kamera oder Steuerung'); process.exit(1); }
   console.log('zweiter Spieler: bewegt',qd.toFixed(1),'m, Sprung ok, Schaden',(hp0-Q.hp).toFixed(1),'nur bei ihm');
   T.players.pop(); }
+// Koop: am Boden, Wiederbeleben durch Mitspieler, Erwachen im Bau, alle am Boden = Tod wie im Einzelspiel
+{ const P=T.P; if(P.dead) T.respawn(); T.unpause();
+  const Q=T.makePlayer({source:'test',x:P.x+1,z:P.z,fur:null}); T.players.push(Q);
+  const lion={sp:{id:'lion',n:'Löwe',hunt:99}};
+  T.hurtPlayer(9999,lion,true,Q);
+  if(!Q.dead||!(Q.downT>0)||P.dead||T.G.paused) { console.log('FEHLER: Mitspieler sollte am Boden liegen, Spiel weiterlaufen'); process.exit(1); }
+  P.ctl.act=true; for(let i=0;i<40;i++) T.updateCoop(0.1); P.ctl.act=false;
+  if(Q.dead||!(Q.hp>0)) { console.log('FEHLER: Wiederbeleben hat nicht geklappt'); process.exit(1); }
+  T.hurtPlayer(9999,lion,true,Q); for(let i=0;i<220;i++) T.updateCoop(0.1);
+  if(Q.dead||Math.hypot(Q.x-2,Q.z-2)>0.01) { console.log('FEHLER: Erwachen im Bau nach Ablauf'); process.exit(1); }
+  T.hurtPlayer(9999,lion,true,Q); T.hurtPlayer(9999,lion,true,P);
+  if(!P.dead||!T.G.paused) { console.log('FEHLER: alle am Boden sollte das Todesfenster öffnen'); process.exit(1); }
+  T.respawn();
+  if(P.dead||Q.dead) { console.log('FEHLER: nach dem Neuerwachen sollten alle stehen'); process.exit(1); }
+  console.log('Koop: am Boden, Wiederbeleben, Bau, gemeinsamer Tod ok');
+  T.players.pop(); T.unpause(); }
 console.log('ALL OK');

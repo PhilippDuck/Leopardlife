@@ -101,16 +101,17 @@ function blobGeo(detail){
   trees.forEach((t,i)=>{ t.parts.forEach(p=>{ p.mesh=(p.leaf?LM:WM)[p.k]; p.mesh.setColorAt(p.i,c.setHex(p.c)); }); setTree(i); addCol(t.x,t.z,t.tr+0.1); });
   woodMeshes.concat(leafMeshes).forEach(m=>{ m.castShadow=true; m.receiveShadow=true; scene.add(m); });
 })();
-function updateTrees(dt){
+/** Blendet Baumkronen aus, die auf der Sichtlinie Kamera → Leopard liegen. views: [{camera, p}] je Spieler (beim Splitscreen mehrere). */
+function updateTrees(dt,views){
   // Nur Bäume ausblenden, deren Krone wirklich auf der Sichtlinie Kamera -> Leopard liegt (3D-Test)
-  const cx=camera.position.x, cy=camera.position.y, cz=camera.position.z;
-  const sx=P.x-cx, sy=(P.camY+pScale()*0.6)-cy, sz=P.z-cz, len2=sx*sx+sy*sy+sz*sz||1; let ch=false;
+  const L=views.map(({camera:c,p})=>{ const cx=c.position.x, cy=c.position.y, cz=c.position.z, sx=p.x-cx, sy=(p.camY+pScale()*0.6)-cy, sz=p.z-cz; return [cx,cy,cz,sx,sy,sz,sx*sx+sy*sy+sz*sz||1,p.tree]; });
   for(let i=0;i<trees.length;i++){
-    const t=trees[i], kx=t.x+t.cx, ky=t.y+t.cy, kz=t.z+t.cz;
-    let u=((kx-cx)*sx+(ky-cy)*sy+(kz-cz)*sz)/len2; u=Math.max(0,Math.min(1,u));
-    const dx=(kx-(cx+sx*u))/t.rx, dy=(ky-(cy+sy*u))/t.ry, dz=(kz-(cz+sz*u))/t.rx;
-    const target=(i!==P.tree&&dx*dx+dy*dy+dz*dz<1)?0.001:1;
-    if(t.f!==target){ const d=target-t.f, stp=dt*5; t.f=Math.abs(d)<=stp?target:t.f+Math.sign(d)*stp; setTree(i); ch=true; }
+    const t=trees[i], kx=t.x+t.cx, ky=t.y+t.cy, kz=t.z+t.cz; let target=1;
+    for(let j=0;j<L.length;j++){ const [cx,cy,cz,sx,sy,sz,len2,own]=L[j]; if(i===own) continue;
+      let u=((kx-cx)*sx+(ky-cy)*sy+(kz-cz)*sz)/len2; u=Math.max(0,Math.min(1,u));
+      const dx=(kx-(cx+sx*u))/t.rx, dy=(ky-(cy+sy*u))/t.ry, dz=(kz-(cz+sz*u))/t.rx;
+      if(dx*dx+dy*dy+dz*dz<1){ target=0.001; break; } }
+    if(t.f!==target){ const d=target-t.f, stp=dt*5; t.f=Math.abs(d)<=stp?target:t.f+Math.sign(d)*stp; setTree(i); }
   }
   if(dirtyTree.size){ dirtyTree.forEach(m=>{ m.instanceMatrix.needsUpdate=true; }); dirtyTree.clear(); }
 }

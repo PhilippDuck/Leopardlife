@@ -14,6 +14,8 @@ durch Savanne und Sumpf.
 - Tag-Nacht-Wechsel, Regen und Gewitter, Tagesziele, drei Schwierigkeitsgrade
 - Gebiete: Savanne und Sumpf (mit Krokodilen); weitere geplant
 - Steuerung mit Tastatur und Maus, Touch oder Xbox-Controller
+- Splitscreen für bis zu 4 Spieler: weiterer Controller drückt Start zum Einsteigen, Back zweimal zum Aussteigen.
+  Wer zu Boden geht, kann von Mitspielern wiederbelebt werden (daneben X bzw. F halten, 3 s), sonst erwacht er nach 20 s im Bau.
 
 ## Aufbau
 
@@ -28,6 +30,7 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 | `src/audio.js` | Ton: Geräusche, Umgebung (Wind, Vögel) und laufend erzeugte Musik, alles synthetisch über WebAudio |
 | `src/carcass.js` | Kadaver, Aasfresser, Herden und Ahnenbuch |
 | `src/controls.js` | Steuerquellen: übersetzen Tastatur, Maus, Touch oder Controller in den Steuerwunsch eines Spielers |
+| `src/coop.js` | Mitspieler am selben Gerät: Beitreten per Controller, geteiltes Bild, eigene Anzeige, am Boden und Wiederbeleben |
 | `src/crocodile.js` | Krokodile: lauern im Wasser und schnellen hervor |
 | `src/data.js` | Feste Spieldaten: Eigenschaften, Fähigkeiten, Erbanlagen, Schwierigkeitsgrade, Gebiete, |
 | `src/daynight.js` | Tag und Nacht: Sonne, Mond, Himmelsfarben, Nebel, Nachtsicht, Schlafen auf Bäumen |
@@ -67,6 +70,7 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 | `tests/typecheck.js`, `jsconfig.json`, `types/` | Typprüfung aller Module mit TypeScript (ohne Build-Schritt; der Editor nutzt dieselben Einstellungen) |
 | `tests/check-names.js` | Meldet Namen, die ein Modul benutzt, aber weder anlegt noch importiert |
 | `tools/add-imports.py` | Ergänzt solche fehlenden Importe automatisch aus den Exporten der anderen Module |
+| `tools/coop-shot.py` | Splitscreen-Browsertest mit simulierten Controllern (Einsteigen, Bewegen, Aussteigen, Pause) |
 | `tools/shot.py` | Startet das Spiel in Headless-Chrome, öffnet alle Fenster, macht Bildschirmfotos und meldet Fehler |
 
 Nach Änderungen am Spiel `python3 tools/bump-sw.py` ausführen: Das trägt alle Module in den Service-Worker-Cache ein und zählt die Version hoch, sonst behalten installierte Geräte den alten Stand.
