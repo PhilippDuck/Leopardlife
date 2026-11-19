@@ -18,7 +18,7 @@ function floatText(txt,x,y,z,c){
   const el=document.createElement('div'); el.className='float'; el.textContent=txt; el.style.color=c||'#fff';
   el.style.left=((v3.x*0.5+0.5)*window.innerWidth-20)+'px'; el.style.top=((-v3.y*0.5+0.5)*window.innerHeight-20)+'px';
   document.body.appendChild(el);
-  requestAnimationFrame(()=>{ el.style.transform='translateY(-60px)'; el.style.opacity=0; });
+  requestAnimationFrame(()=>{ el.style.transform='translateY(-60px)'; el.style.opacity='0'; });
   setTimeout(()=>el.remove(),1050);
 }
 

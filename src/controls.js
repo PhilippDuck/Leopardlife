@@ -6,6 +6,7 @@ import { keys } from './input.js';
 import { G } from './state.js';
 
 /** Liest die Eingaben für Spieler p und schreibt p.ctl (fw/rt: Laufrichtung -1…1, sprint) sowie die Kameratasten. */
+/** @param {import('./player.js').Player} p */
 function readControls(p,dt){
   const c=p.ctl;
   if(c.source!=='local') return;   // andere Quellen (Controller N, Test) füllen p.ctl selbst

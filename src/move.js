@@ -14,6 +14,7 @@ import { W } from './weather.js';
 import { $ } from './util.js';
 
 /** Bewegt Spieler p um dt Sekunden. Gibt die Tarnung zurück (0 = unsichtbar, 1 = normal sichtbar). */
+/** @param {import('./player.js').Player} p */
 function stepPlayer(p,dt){
   const fw=p.ctl.fw, rt=p.ctl.rt, il=Math.hypot(fw,rt);
   const s=Math.sin(p.cam.yaw), c=Math.cos(p.cam.yaw);

@@ -10,7 +10,7 @@ setMuteLabel();
 function initAudio(){
   if(AC){ if(AC.state==='suspended') AC.resume().catch(()=>{}); return; }
   try{
-    AC=new (window.AudioContext||window.webkitAudioContext)();
+    AC=new (window.AudioContext||/** @type {any} */(window).webkitAudioContext)();
     master=AC.createGain(); master.gain.value=muted?0:0.55; master.connect(AC.destination);
     nbuf=AC.createBuffer(1,AC.sampleRate*2,AC.sampleRate); const d=nbuf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
     // Umgebung: leiser Wind

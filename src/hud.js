@@ -52,6 +52,7 @@ function updateWarn(dt){
   beatT-=dt; if(maxSus>0&&beatT<=0){ beatT=0.95-0.6*maxSus; snd.beat(maxSus); }
 }
 /** Setzt die Kamera cam hinter Spieler p (Abstand, Neigung, Jagd-Ansicht, Wackeln). Beim Splitscreen hat jeder Spieler seine. */
+/** @param {import('./player.js').Player} p */
 function updateCamera(p,cam){
   p.cam.huntF+=(((p.sneak&&p.tree==null&&!p.dead&&!G.paused)?1:0)-p.cam.huntF)*0.06;
   const sc=pScale(), dist=(5+sc*6.5)*p.cam.zoom*(1-0.3*p.cam.huntF), ty=p.camY+sc*1.1+dist*0.16;
