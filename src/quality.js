@@ -1,10 +1,10 @@
 // LeopardLife – Grafikstufen (niedrig/hoch/ultra) anwenden: Auflösung, Schatten, Gras, Nebel, Sichtweite.
 import { QUAL } from './data.js';
 import { renderer, resize, sun } from './engine.js';
-import { updateDayNight } from './main.js';
 import { G } from './state.js';
 import { $ } from './util.js';
 import { leafGeoHi, leafGeoLo, leafMeshes, tallGeo } from './vegetation.js';
+import { emit } from './events.js';
 
 /* Grafikqualität: niedrig / hoch / ultra (weitere Sicht, schärfere und weitere Schatten, mehr Gras) */
 let quality='high', VIEW_D=170; G.pxScale=1; let PX_BASE=1;
@@ -23,7 +23,7 @@ function applyQuality(){
   if(G.grassGeo){ G.grassGeo.instanceCount=q.grass; G.grassMat.uniforms.uS.value=q.gS; }
   if(tallGeo) tallGeo.forEach(t=>{ t.g.instanceCount=Math.floor(t.n*q.tall); });
   leafMeshes.forEach(m=>{ m.geometry=quality==='low'?leafGeoLo:leafGeoHi; });
-  G.FOG_BASE=q.fog; VIEW_D=q.view; if(typeof updateDayNight==='function') updateDayNight(0);
+  G.FOG_BASE=q.fog; VIEW_D=q.view; emit('quality');
   resize();
   $('gfx').textContent='Grafik: '+q.n;
 }
