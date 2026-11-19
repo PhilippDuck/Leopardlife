@@ -77,6 +77,13 @@ function takeFromLitter(){ const c=S.cub; if(!c) return; c.n=(c.n||1)-1; c.taken
 /** Übrig gebliebene Junge eines Wurfs, aus dem schon ein Spieler stammt, wandern ab, wenn sie groß sind. */
 function litterLeaves(){ toast('Dein übriges Geschwister ist groß geworden und wandert ab, um ein eigenes Revier zu suchen.','#ff9ad0'); S.cub=null; S.food=0; save(); }
 
+/** Was die Aktionstaste von Mitspieler p gerade tun würde (für den Hinweis unter dem Fadenkreuz), sonst null. */
+function mateContextInfo(p){
+  if(p.dead||G.paused) return null;
+  const q=pairCandidate(p); if(q&&canPair(p,q)) return {label:'Paaren mit '+nameOf(q)};
+  if(S.cub&&S.cub.grow<1&&S.food>0&&S.cub.full<97&&Math.hypot(cub.x-p.x,cub.z-p.z)<4.5) return {label:'Füttern'};
+  return null;
+}
 /** Aktionstaste eines Mitspielers (X antippen): paaren, Junges füttern. */
 function mateContext(p){
   if(p.dead||G.paused) return;
@@ -87,4 +94,4 @@ function mateContext(p){
 
 ensureKin(S);
 
-export { newId, ensureKin, related, canPair, pairCandidate, pairPlayers, litterSize, mateBecomeCub, takeFromLitter, litterLeaves, mateContext };
+export { mateContextInfo, newId, ensureKin, related, canPair, pairCandidate, pairPlayers, litterSize, mateBecomeCub, takeFromLitter, litterLeaves, mateContext };

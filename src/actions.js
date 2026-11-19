@@ -20,7 +20,7 @@ import { archiveLine, makeCarcass, recordAncestor, startFlee } from './carcass.j
 import { goalEvent } from './goals.js';
 import { padUI, rumble } from './gamepad.js';
 import { updateUI, updateWarn } from './hud.js';
-import { downPlayer, othersAlive, tell } from './coop.js';
+import { downPlayer, hEl, othersAlive, tell } from './coop.js';
 import { emit } from './events.js';
 
 /* ---------- Aktionen ---------- */
@@ -37,20 +37,21 @@ function doClimb(p=P){
   if(p.tree!=null){ leaveTree(p,24); p.x+=Math.sin(p.rot)*1.6; p.z+=Math.cos(p.rot)*1.6; snd.step(0.25); return; }
   if(p.L.b.climb<1){ tell(p,'Klettern ist noch nicht gelernt (Tab)','#b9b7a6'); return; }
   const i=nearestTree(p); if(i<0){ toast('Kein Baum in Reichweite','#b9b7a6'); return; }
-  const cost=45-5*(p.L.b.climb-1); if(p.st<cost){ noStamina(); return; } p.st-=cost;
+  const cost=45-5*(p.L.b.climb-1); if(p.st<cost){ noStamina(p); return; } p.st-=cost;
   goalEvent('climb',1); p.tree=i; p.climbT=0; p.fromX=p.x; p.fromZ=p.z; p.sneak=false; p.dropY=0; snd.climb();
 }
 G.noStT=0;
-function noStamina(){
-  const r=$('stRing'); r.classList.remove('flash'); void r.getBoundingClientRect(); r.classList.add('flash');
-  $('crossMsg').style.opacity=1; G.noStT=1.1; tone(140,0.12,'square',0.1,100);
+/** Ausdauerring blinkt und der Hinweis 'Zu wenig Ausdauer' erscheint bei Spieler p */
+function noStamina(p=P){
+  const r=hEl(p,'stRing'); r.classList.remove('flash'); void r.getBoundingClientRect(); r.classList.add('flash');
+  const m=hEl(p,'crossMsg'); m.textContent='Zu wenig Ausdauer'; m.style.opacity='1'; if(p===P) G.noStT=1.1; else p.noStT=1.1; tone(140,0.12,'square',0.1,100);
 }
 /** Sprungangriff von Spieler p in Blickrichtung seiner Kamera (vom Baum: Sprung nach unten). */
 function doPounce(p=P){
   if(p.dead) return;
   if(G.paused||p.pounce>0||p.pcd>0) return;
   if(p.tree!=null&&p.climbT<1) return;
-  if(p.st<15){ noStamina(); return; }
+  if(p.st<15){ noStamina(p); return; }
   p.leap=false;
   if(p.tree!=null){ if(p.climbT<1) return; const h=p.upNow; p.leap=true; leaveTree(p,1); p.dropRate=h/(0.55+0.04*p.L.b.jmp); }
   p.st-=15; p.pounce=(p.leap?0.55:0.38)+0.04*p.L.b.jmp; p.pT=p.pounce; p.pcd=1.3-0.2*p.L.b.jmp; p.hit=false; snd.pounce();
@@ -84,7 +85,7 @@ function hurtPlayer(d,a,force,p=P){
   if(!force) d*=D().dmg;
   snd.hurt();
   p.hp-=d; p.combatT=5; p.cam.shake=Math.max(p.cam.shake,Math.min(0.6,0.15+d/maxHp(p.L)));
-  buzz(p,Math.min(1,0.35+d/maxHp(p.L)),0.5,220); if(p===P) $('hurt').style.opacity=0.8;
+  buzz(p,Math.min(1,0.35+d/maxHp(p.L)),0.5,220); hEl(p,'hurt').style.opacity='0.8';
   p.hurtT=0.25;
   floatText('-'+Math.round(d),p.x,p.camY+1.5*pScale(p.L),p.z,'#ff7a5c');
   if(p.hp<=0){

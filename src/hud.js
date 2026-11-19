@@ -19,7 +19,8 @@ import { H, PONDS } from './terrain.js';
 import { $ } from './util.js';
 import { patches } from './vegetation.js';
 import { W } from './weather.js';
-import { viewMin } from './coop.js';
+import { hEl, nameOf, viewMin } from './coop.js';
+import { mateContextInfo } from './kinship.js';
 
 const rc=$('rc').getContext('2d');   // Spürkarte
 const waPool=[]; let beatT=0;
@@ -60,17 +61,19 @@ function warnArrows(p,ring,pool,R){
   for(let i=n;i<pool.length;i++) pool[i].style.display='none';
   return {top,maxSus};
 }
-/** Warnung für Spieler 1: Pfeile, Hinweiszeile oben, Herzschlag. */
-function updateWarn(dt){
-  const {top,maxSus}=warnArrows(P,$('warnRing'),waPool,viewMin(P)*0.33);
-  const w=$('warn');
+/** Warnung für Spieler p: Pfeile, Hinweiszeile oben, Herzschlag (nur Spieler 1). @param {import('./player.js').Player} [p] */
+function updateWarn(dt,p=P){
+  const h=id=>hEl(p,id), me=p===P;
+  const {top,maxSus}=warnArrows(p,h('warnRing'),me?waPool:(p.waPool||(p.waPool=[])),viewMin(p)*0.33);
+  const w=h('warn');
   if(top){
     const v=top._v, nm=top.sp.n, m=Math.round(top._d)+' m';
-    w.style.display='block'; $('warnBar').style.display=(v>0&&v<2)?'block':'none';
-    if(v>=2){ $('warnTxt').textContent='⚠ '+nm+' jagt dich! ('+m+')'; w.style.color='#ff6a50'; }
-    else if(v>0){ $('warnTxt').textContent='⚠ '+nm+' wird misstrauisch – zieh dich zurück! ('+m+')'; w.style.color='#ffb04a'; $('bW').style.width=(v*100)+'%'; }
-    else { $('warnTxt').textContent=nm+' in der Nähe – noch unbemerkt ('+m+')'; w.style.color='#f2d04b'; }
+    w.style.display='block'; h('warnBar').style.display=(v>0&&v<2)?'block':'none';
+    if(v>=2){ h('warnTxt').textContent='⚠ '+nm+' jagt dich! ('+m+')'; w.style.color='#ff6a50'; }
+    else if(v>0){ h('warnTxt').textContent='⚠ '+nm+' wird misstrauisch – zieh dich zurück! ('+m+')'; w.style.color='#ffb04a'; h('bW').style.width=(v*100)+'%'; }
+    else { h('warnTxt').textContent=nm+' in der Nähe – noch unbemerkt ('+m+')'; w.style.color='#f2d04b'; }
   } else w.style.display='none';
+  if(!me) return;
   beatT-=dt; if(maxSus>0&&beatT<=0){ beatT=0.95-0.6*maxSus; snd.beat(maxSus); }
 }
 /** Setzt die Kamera cam hinter Spieler p (Abstand, Neigung, Jagd-Ansicht, Wackeln). Beim Splitscreen hat jeder Spieler seine. */
@@ -85,71 +88,79 @@ function updateCamera(p,cam){
   if(p.cam.shake>0){ cx+=(Math.random()-0.5)*p.cam.shake; cy+=(Math.random()-0.5)*p.cam.shake; cz+=(Math.random()-0.5)*p.cam.shake; p.cam.shake=Math.max(0,p.cam.shake*0.86-0.005); }
   cam.position.set(cx,cy,cz); cam.lookAt(p.x,ty,p.z);
 }
-function updateCross(){
+/** Fadenkreuz und Ausdauerring von Spieler p @param {import('./player.js').Player} [p] */
+function updateCross(p=P){
+  const h=id=>hEl(p,id);
   // Fadenkreuz leuchtet, wenn ein Tier in Sprungrichtung und -reichweite ist
-  const fx=-Math.sin(P.cam.yaw), fz=-Math.cos(P.cam.yaw), sc=pScale();
-  const range=(19+3*S.b.jmp+baseSpeed()*0.5)*(0.38+0.04*S.b.jmp);
+  const fx=-Math.sin(p.cam.yaw), fz=-Math.cos(p.cam.yaw), sc=pScale(p.L);
+  const range=(19+3*p.L.b.jmp+baseSpeed(p.L)*0.5)*(0.38+0.04*p.L.b.jmp);
   let on=false;
-  for(const a of animals){ if(a.dead||a.sp.friend||!a.g.visible) continue; const dx=a.x-P.x, dz=a.z-P.z, along=dx*fx+dz*fz;
+  for(const a of animals){ if(a.dead||a.sp.friend||!a.g.visible) continue; const dx=a.x-p.x, dz=a.z-p.z, along=dx*fx+dz*fz;
     if(along<0||along>range+a.rad) continue; const side=Math.abs(dx*fz-dz*fx);
     if(side<a.rad+0.5+sc*0.8){ on=true; break; } }
-  const low=P.st<15, cr=$('cross'), ring=$('stRing'), fr=Math.max(0,Math.min(1,P.st/maxSt()));
-  cr.classList.toggle('on',on&&P.pcd<=0&&!low); cr.classList.toggle('no',low);
-  $('stArc').style.strokeDashoffset=169.65*(1-fr);
+  const low=p.st<15, cr=h('cross'), ring=h('stRing'), fr=Math.max(0,Math.min(1,p.st/maxSt(p.L)));
+  cr.classList.toggle('on',on&&p.pcd<=0&&!low); cr.classList.toggle('no',low);
+  h('stArc').style.strokeDashoffset=169.65*(1-fr);
   ring.classList.toggle('low',low);
   ring.style.opacity=low?1:Math.max(0,Math.min(1,(0.5-fr)/0.2))*0.9;
 }
-function updateUI(){
-  $('lvl').textContent='Stufe '+S.lvl+(S.gen>1?' · Gen. '+S.gen:'');
-  renderGoals();
-  $('size').textContent=(W.rain>0.3?(W.storm?'⛈ ':'☔ '):dayF>0.5?'☀ ':'☾ ')+clockStr()+' · '+(S.lvl<4?'Jungtier':S.lvl<8?'Halbstark':oldF()>0?'Alt':S.lvl<12?'Ausgewachsen':'Alpha')+(S.lvl>=8?' · noch '+Math.max(1,Math.ceil((DIE_AT()-S.age)/60))+' min':'');
-  $('bHu').style.width=S.hunger+'%'; $('bHu').classList.toggle('low',S.hunger<25); $('tHu').textContent=S.hunger<=0?'verhungert!':S.hunger<25?'hungrig':Math.round(S.hunger)+' %';
-  const mh=maxHp(), ms=maxSt(), xn=xpNeed(S.lvl);
-  $('bHp').style.width=Math.max(0,P.hp/mh*100)+'%'; $('tHp').textContent=Math.ceil(P.hp)+' / '+mh;
-  $('bSt').style.width=Math.max(0,P.st/ms*100)+'%'; $('tSt').textContent=Math.floor(P.st)+' / '+ms;
-  $('bXp').style.width=(S.xp/xn*100)+'%'; $('tXp').textContent=S.xp+' / '+xn;
-  const stEl=$('status');
-  const nt=(S.b.climb>0&&P.tree==null)?nearestTree():-1;
-  const sm=(touchUI()||padUI()||window.innerWidth<=820||window.innerHeight<=520)&&!hudExp;
+/**
+ * Anzeige von Spieler p auffrischen: Stufe, Leisten, Status, Familie, Aufträge, Punkte, Fähigkeitenleiste, Ziel.
+ * Mitspieler haben dieselbe Anzeige als Kopie (coop.js hEl).
+ * @param {import('./player.js').Player} [p]
+ */
+function updateUI(p=P){
+  const h=id=>hEl(p,id), me=p===P;
+  h('lvl').textContent=(me?'':nameOf(p)+' · ')+'Stufe '+p.L.lvl+(S.gen>1?' · Gen. '+S.gen:'');
+  if(me) renderGoals(); else h('goalBox').innerHTML=$('goalBox').innerHTML;
+  h('size').textContent=(W.rain>0.3?(W.storm?'⛈ ':'☔ '):dayF>0.5?'☀ ':'☾ ')+clockStr()+' · '+(p.L.lvl<4?'Jungtier':p.L.lvl<8?'Halbstark':oldF(p.L)>0?'Alt':p.L.lvl<12?'Ausgewachsen':'Alpha')+(p.L.lvl>=8?' · noch '+Math.max(1,Math.ceil((DIE_AT(p.L)-p.L.age)/60))+' min':'');
+  h('bHu').style.width=p.L.hunger+'%'; h('bHu').classList.toggle('low',p.L.hunger<25); h('tHu').textContent=p.L.hunger<=0?'verhungert!':p.L.hunger<25?'hungrig':Math.round(p.L.hunger)+' %';
+  const mh=maxHp(p.L), ms=maxSt(p.L), xn=xpNeed(p.L.lvl);
+  h('bHp').style.width=Math.max(0,p.hp/mh*100)+'%'; h('tHp').textContent=Math.ceil(p.hp)+' / '+mh;
+  h('bSt').style.width=Math.max(0,p.st/ms*100)+'%'; h('tSt').textContent=Math.floor(p.st)+' / '+ms;
+  h('bXp').style.width=(p.L.xp/xn*100)+'%'; h('tXp').textContent=p.L.xp+' / '+xn;
+  const stEl=h('status');
+  const nt=(p.L.b.climb>0&&p.tree==null)?nearestTree(p):-1;
+  const sm=(!me||players.length>1||touchUI()||padUI()||window.innerWidth<=820||window.innerHeight<=520)&&!hudExp;
   const setSt=(long,short,col)=>{ stEl.textContent='● '+(sm?short:long); stEl.style.color=col; };
-  const ctx=context();
+  const ctx=me?context():mateContextInfo(p);
   if(ctx) setSt('F: '+ctx.label,ctx.label+' möglich','#ff9ad0');
-  else if(P.tree!=null){ if(P.safe) setSt('Sicher auf dem Baum – E: runter · Leertaste: Sprung von oben','Sicher auf dem Baum','var(--green)'); else setSt('Klettert …','Klettert …','var(--green)'); }
+  else if(p.tree!=null){ if(p.safe) setSt('Sicher auf dem Baum – E: runter · Leertaste: Sprung von oben','Sicher auf dem Baum','var(--green)'); else setSt('Klettert …','Klettert …','var(--green)'); }
   else if(nt>=0) setSt('Baum in Reichweite – E zum Klettern','Baum: klettern','var(--green)');
-  else if(P.grass&&(P.sneak||S.lvl<4)) setSt(P.sneak?'Versteckt im hohen Gras':'Versteckt im hohen Gras – als Jungtier auch ohne Schleichen','Versteckt','var(--green)');
-  else if(P.grass) setSt('Im Gras – schleiche (C), um dich zu verstecken','Im Gras – schleichen!','var(--mut)');
-  else if(P.sneak) setSt('Schleicht','Schleicht','var(--gold)');
+  else if(p.grass&&(p.sneak||p.L.lvl<4)) setSt(p.sneak?'Versteckt im hohen Gras':'Versteckt im hohen Gras – als Jungtier auch ohne Schleichen','Versteckt','var(--green)');
+  else if(p.grass) setSt('Im Gras – schleiche (C), um dich zu verstecken','Im Gras – schleichen!','var(--mut)');
+  else if(p.sneak) setSt('Schleicht','Schleicht','var(--gold)');
   else setSt('Sichtbar','Sichtbar','var(--mut)');
   // Familie
-  const cb=$('cubBox'), cu=S.cub;
+  const cb=h('cubBox'), cu=S.cub;
   const kid=kidMode();
   if(cu||S.preg>0||(canMate()&&seekT<15)||kid){
-    cb.style.display='block'; $('cubBars').style.display=cu&&cu.grow<1?'block':'none'; let msg='';
+    cb.style.display='block'; h('cubBars').style.display=cu&&cu.grow<1?'block':'none'; let msg='';
     if(cu&&cu.grow<1){
-      $('cubT').textContent='Junges · satt '+Math.round(cu.full)+' % · groß '+Math.round(cu.grow*100)+' %'; $('foodT').textContent='Futter '+S.food+'/'+FOOD_MAX;
-      $('bCf').style.width=cu.full+'%'; $('bCg').style.width=(cu.grow*100)+'%';
+      h('cubT').textContent='Junges · satt '+Math.round(cu.full)+' % · groß '+Math.round(cu.grow*100)+' %'; h('foodT').textContent='Futter '+S.food+'/'+FOOD_MAX;
+      h('bCf').style.width=cu.full+'%'; h('bCg').style.width=(cu.grow*100)+'%';
       msg=G.raider?(G.raider.found?'⚠ Dein Junges wird angegriffen!':'⚠ Räuber sucht dein Junges!'):cu.hp<1?'Leben des Jungen: '+Math.max(0,Math.round(cu.hp*100))+' %':cu.full<25?'Dein Junges hat Hunger':'';
-    } else if(cu){ $('cubT').textContent='Nachwuchs ausgewachsen'; $('foodT').textContent='dein Erbe'; }
-    else if(S.preg>0){ $('cubT').textContent='Junges kommt bald im Bau zur Welt'; $('foodT').textContent=''; }
-    else if(canMate()){ $('cubT').textContent=S.partner?'Dein Partner wartet':'Partner suchen'; $('foodT').textContent='rosa Punkt auf der Spürkarte'; }
-    else { $('cubT').textContent='Eltern: '+((S.p1?1:0)+(S.p2?1:0)); $('foodT').textContent='bringen Futter'; }
-    $('cubMsg').textContent=msg;
+    } else if(cu){ h('cubT').textContent='Nachwuchs ausgewachsen'; h('foodT').textContent='dein Erbe'; }
+    else if(S.preg>0){ h('cubT').textContent='Junges kommt bald im Bau zur Welt'; h('foodT').textContent=''; }
+    else if(canMate()){ h('cubT').textContent=S.partner?'Dein Partner wartet':'Partner suchen'; h('foodT').textContent='rosa Punkt auf der Spürkarte'; }
+    else { h('cubT').textContent='Eltern: '+((S.p1?1:0)+(S.p2?1:0)); h('foodT').textContent='bringen Futter'; }
+    h('cubMsg').textContent=msg;
   } else cb.style.display='none';
-  if(touchUI()){ const fb=$('tbF'); fb.style.display=ctx?'block':'none'; if(ctx) fb.textContent=ctx.label; }
-  const ch=$('ctxHint'); ch.style.display=ctx?'block':'none'; if(ctx) ch.innerHTML=padUI()?xb('Ⓧ')+' – '+esc(ctx.label):touchUI()?'Rosa Knopf: '+esc(ctx.label):'F – '+esc(ctx.label);
-  $('tapHelp').style.display=(touchUI()&&G.started&&!G.paused&&tapLearned<2)?'block':'none';
-  const pe=$('pts'); if(S.pts>0){ pe.style.display='block'; pe.textContent=S.pts+' Punkt'+(S.pts===1?'':'e')+(sm?' ▸':' zu vergeben – Tab'); } else pe.style.display='none';
-  $('cdP').style.width=(1-P.pcd/1.3)*100+'%';
-  $('cdRbox').style.opacity=S.b.roar?1:0.35; $('cdR').style.width=S.b.roar?(1-P.rcd/(22-3*S.b.roar))*100+'%':'0%';
-  $('cdEbox').style.opacity=S.b.climb?1:0.35; $('cdE').style.width=(P.tree!=null?P.climbT*100:nt>=0?100:0)+'%';
-  if(touchUI()){ $('tbE').style.opacity=S.b.climb?1:0.35; $('tbE').classList.toggle('on',P.tree!=null); $('tbC').classList.toggle('on',P.sneak); $('tbR').style.opacity=S.b.roar?1:0.35; }
+  if(me&&touchUI()){ const fb=$('tbF'); fb.style.display=ctx?'block':'none'; if(ctx) fb.textContent=ctx.label; }
+  const ch=h('ctxHint'); ch.style.display=ctx?'block':'none'; if(ctx) ch.innerHTML=(!me||padUI())?xb('Ⓧ')+' – '+esc(ctx.label):touchUI()?'Rosa Knopf: '+esc(ctx.label):'F – '+esc(ctx.label);
+  if(me) $('tapHelp').style.display=(touchUI()&&G.started&&!G.paused&&tapLearned<2)?'block':'none';
+  const pe=h('pts'); if(p.L.pts>0){ pe.style.display='block'; pe.textContent=p.L.pts+' Punkt'+(p.L.pts===1?'':'e')+(sm?' ▸':me?' zu vergeben – Tab':' zu vergeben – Back'); } else pe.style.display='none';
+  h('cdP').style.width=(1-p.pcd/1.3)*100+'%';
+  h('cdRbox').style.opacity=p.L.b.roar?1:0.35; h('cdR').style.width=p.L.b.roar?(1-p.rcd/(22-3*p.L.b.roar))*100+'%':'0%';
+  h('cdEbox').style.opacity=p.L.b.climb?1:0.35; h('cdE').style.width=(p.tree!=null?p.climbT*100:nt>=0?100:0)+'%';
+  if(me&&touchUI()){ $('tbE').style.opacity=p.L.b.climb?1:0.35; $('tbE').classList.toggle('on',p.tree!=null); $('tbC').classList.toggle('on',p.sneak); $('tbR').style.opacity=p.L.b.roar?1:0.35; }
   // Ziel
   let best=null, bd=28;
   if(G.lastHitT>0&&G.lastHit&&!G.lastHit.dead) best=G.lastHit;
-  else for(const a of animals){ if(a.dead||!a.g.visible) continue; const d=Math.hypot(a.x-P.x,a.z-P.z); if(d<bd){ bd=d; best=a; } }
-  const te=$('target');
-  if(best){ te.style.display='block'; $('tName').textContent=(best.fur&&best.fur.albino?'Albino-':'')+best.sp.n; $('bT').style.width=Math.max(0,best.hp/best.sp.hp*100)+'%';
-    const tg=$('tTag'); const hostile=best.sp.hunt&&S.lvl<best.sp.hunt;
+  else for(const a of animals){ if(a.dead||!a.g.visible) continue; const d=Math.hypot(a.x-p.x,a.z-p.z); if(d<bd){ bd=d; best=a; } }
+  const te=h('target');
+  if(best){ te.style.display='block'; h('tName').textContent=(best.fur&&best.fur.albino?'Albino-':'')+best.sp.n; h('bT').style.width=Math.max(0,best.hp/best.sp.hp*100)+'%';
+    const tg=h('tTag'); const hostile=best.sp.hunt&&p.L.lvl<best.sp.hunt;
     if(best.sp.friend){ const fi=fam.indexOf(best); tg.textContent=fi===0?'· dein Partner':fi<3?'· dein Elterntier':'· Artgenosse'; tg.style.color='#ff9ad0'; }
     else if(hostile){ tg.textContent='· Gefahr – jagt dich!'; tg.style.color='var(--red)'; }
     else if(best.sp.fight){ tg.textContent='· wehrt sich'; tg.style.color='var(--gold)'; }
@@ -171,9 +182,9 @@ radarBg.width=radarBg.height=RW*2*RB;
  * Ohne Angaben: die große Spürkarte von Spieler 1.
  * @param {import('./player.js').Player} [p]
  */
-function drawRadar(p=P,cv=$('rc'),ctx=rc){
+function drawRadar(p=P,cv=/** @type {HTMLCanvasElement} */(hEl(p,'rc')),ctx=p===P?rc:cv.getContext('2d')){
   const rc=ctx, css=cv.clientWidth||140, want=Math.round(css*Math.min(window.devicePixelRatio||1,2));
-  if(want>0&&want!==cv._px){ cv._px=want; cv.width=cv.height=want; }
+  const cvA=/** @type {any} */(cv); if(want>0&&want!==cvA._px){ cvA._px=want; cv.width=cv.height=want; }
   const W=cv.width||280, R=45+22*p.L.b.nose+(has('nase',p.L)?25:0), k=W/2/R, sc=W/280;
   rc.setTransform(1,0,0,1,0,0); rc.clearRect(0,0,W,W); rc.fillStyle='rgba(30,50,25,.55)'; rc.fillRect(0,0,W,W);
   rc.save(); rc.translate(W/2,W/2); rc.rotate(p.cam.yaw);

@@ -34,7 +34,7 @@ with sync_playwright() as p:
     pg.keyboard.down('KeyW'); pg.wait_for_timeout(600); pg.keyboard.up('KeyW')
     # Controller 0: Start = Spieler 2 steigt ein (Spieler 1 spielt mit Tastatur)
     pg.evaluate("__pad(0,{b:[9]})"); pg.wait_for_timeout(700); pg.evaluate("__pad(0,{})"); pg.wait_for_timeout(600)
-    joined = pg.locator('.pv').count()
+    joined = (pg.locator('.ph').count()-1)
     # Spieler 2 läuft nach vorn und dreht die Kamera
     pg.evaluate("__pad(0,{ax:[0.3,-1,0.4,0]})"); pg.wait_for_timeout(1500); pg.evaluate("__pad(0,{})"); pg.wait_for_timeout(300)
     shot(pg, '1-zwei-spieler')
@@ -46,7 +46,7 @@ with sync_playwright() as p:
     pg.evaluate("__pad(2,{b:[9]})"); pg.wait_for_timeout(700); pg.evaluate("__pad(2,{})"); pg.wait_for_timeout(300)
     pg.evaluate("__pad(2,{ax:[-1,-0.5,0,0]})"); pg.wait_for_timeout(1200); pg.evaluate("__pad(2,{})"); pg.wait_for_timeout(300)
     shot(pg, '3-vier-spieler')
-    four = pg.locator('.pv').count()
+    four = (pg.locator('.ph').count()-1)
     # Spieler 2 öffnet seine Entwicklung (Back kurz), blättert mit dem Steuerkreuz und schließt mit B
     pg.evaluate("__pad(0,{b:[8]})"); pg.wait_for_timeout(700); pg.evaluate("__pad(0,{})"); pg.wait_for_timeout(500)
     skills = pg.locator('#skills').is_visible(); who = pg.locator('#skWho').text_content()
@@ -59,7 +59,7 @@ with sync_playwright() as p:
     pg.evaluate("__pad(1,{b:[8]})"); pg.wait_for_timeout(1000)
     print('Back gehalten:', pg.evaluate("JSON.stringify(__leopard.players.map(p=>[p.pad,p.leaveT,p.padPrev&&p.padPrev[8]]))"))
     pg.wait_for_timeout(1600); pg.evaluate("__pad(1,{})"); pg.wait_for_timeout(500)
-    after = pg.locator('.pv').count()
+    after = (pg.locator('.ph').count()-1)
     shot(pg, '4-nach-aussteigen')
     # Freier Controller 3: Ⓐ kurz = nur Hinweis; Ⓐ 2 s halten = Spieler 1 (Tastatur) übernimmt ihn
     pg.keyboard.press('KeyC'); pg.keyboard.press('KeyC'); pg.wait_for_timeout(300)   # Spieler 1 nutzt die Tastatur

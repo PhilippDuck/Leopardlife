@@ -145,37 +145,31 @@
   @media (max-height:400px){
     :root{--ts:.7}
   }
-/* Splitscreen: Fadenkreuz und Hinweise von Spieler 1 sitzen in der Mitte seines Ausschnitts (--cx/--cy setzt coop.js) */
-body.split #cross,body.split #stRing,body.split #warnRing{left:var(--cx);top:var(--cy)}
-body.split #eye{left:var(--cx);top:calc(var(--cy) - 62px)}
-body.split #ctxHint{left:var(--cx);top:calc(var(--cy) + 64px)}
-body.split #crossMsg{left:var(--cx);top:calc(var(--cy) + 40px)}
-body.split #cds{left:var(--cx)}
-body.split #radar{right:calc(var(--rr) + 10px);top:calc(var(--rt) + 10px);--rad:120px}
-body.split #menuBtn{right:calc(var(--rr) + 10px);top:calc(var(--rt) + 138px)}
-.pvRadar{position:absolute;right:8px;top:8px;width:min(110px,28%);aspect-ratio:1;border-radius:50%;box-shadow:0 0 0 2px rgba(0,0,0,.5)}
-.pvRing{position:absolute;left:50%;top:50%;width:0;height:0}
-.pvWarn{position:absolute;left:50%;top:10px;transform:translateX(-50%);font-size:12px;font-weight:bold;text-shadow:0 1px 4px #000;white-space:nowrap;display:none;max-width:60%;overflow:hidden;text-overflow:ellipsis}
-body.split #warn,body.split #target{left:var(--cx);max-width:calc(var(--vw) - 16px)}
-.pv{position:fixed;pointer-events:none;box-sizing:border-box;border-left:2px solid rgba(0,0,0,.55);border-top:2px solid rgba(0,0,0,.55);padding:8px 10px;z-index:4}
-.pvName{font-weight:bold;font-size:14px;text-shadow:0 1px 3px #000}
+/* Splitscreen: Anzeige-Rahmen je Spieler (coop.js); Spürkarte etwas kleiner */
+body.split .ph{--rad:110px}
+/* Viertel (3–4 Spieler): Statusfeld, Leiste und Spürkarte kleiner */
+body.quad .ph #hud{transform:scale(.72);transform-origin:0 0}
+body.quad .ph #cds{transform:translateX(-50%) scale(.8);transform-origin:50% 100%}
+body.quad .ph{--rad:92px}
 .pvBar{width:140px;max-width:40%;height:7px;background:rgba(0,0,0,.5);border-radius:4px;margin-top:4px;overflow:hidden}
 .pvBar i{display:block;height:100%;width:100%;transition:width .15s}
-.pvBar .hp{background:#e0573c}.pvBar .st{background:#e8c25a}.pvBar .rev{background:#8fe07a;width:0}
-.pvCross{position:absolute;left:50%;top:50%;width:14px;height:14px;margin:-9px 0 0 -9px;border:2px solid #fff;border-radius:50%;opacity:.75;filter:drop-shadow(0 0 2px #000)}
-.pvMsg{position:absolute;left:50%;top:62%;transform:translateX(-50%);font-size:13px;font-weight:bold;text-shadow:0 1px 4px #000;opacity:0;transition:opacity .3s;white-space:nowrap}
+.pvBar .rev{background:#8fe07a;width:0}
 .pvDown{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(70,0,0,.35);text-align:center;padding:0 14px;font-size:13px;text-shadow:0 1px 4px #000}
 .pvDown b{font-size:20px;color:#ff8a70}.pvDown .pvBar{width:180px;max-width:70%}
 #splitEmpty{position:fixed;left:50%;top:50%;width:50%;height:50%;display:none;align-items:center;justify-content:center;text-align:center;color:#9a947f;font-size:14px;pointer-events:none;border-left:2px solid rgba(0,0,0,.55);border-top:2px solid rgba(0,0,0,.55)}
+/* Rahmen der Spieler-Anzeige: alles darin richtet sich nach diesem Rahmen statt nach dem ganzen Fenster (transform macht ihn zum Bezug für position:fixed) */
+.ph{position:fixed;left:0;top:0;width:100%;height:100%;transform:translateZ(0);pointer-events:none;overflow:hidden;z-index:3}
+.ph>*{pointer-events:auto}
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
+
+<!-- Anzeige eines Spielers. Im geteilten Bild sitzt der Rahmen über dem Ausschnitt des Spielers; Mitspieler bekommen eine Kopie (coop.js). -->
+<div id="ph0" class="ph">
 <div id="hideV"></div>
-<div id="sleepFx" style="position:fixed;inset:0;background:#02040a;display:none;align-items:center;justify-content:center;opacity:0;transition:opacity .8s;z-index:15;color:#9fb4ff;font-size:20px;letter-spacing:2px">Du schläfst …</div>
 <div id="hurt"></div>
 <div id="eye"></div>
-
 <div id="hud" class="panel">
   <div class="row"><span id="lvl">Stufe 1</span><span id="hudTog">▾</span></div>
   <div id="size" style="color:var(--mut);font-size:11px;margin-bottom:3px"></div>
@@ -198,14 +192,24 @@ body.split #warn,body.split #target{left:var(--cx);max-width:calc(var(--vw) - 16
 <div id="warnRing"><div id="famArrow" class="wa" style="border-bottom-color:#ff7ab8"></div></div>
 <div id="warn" class="panel"><span id="warnTxt"></span><div class="bar" id="warnBar"><i id="bW"></i></div></div>
 <div id="ctxHint"></div>
-<div id="fps" style="position:fixed;left:50%;bottom:58px;transform:translateX(-50%);font-size:11px;color:#cfe;background:rgba(0,0,0,.45);padding:2px 8px;border-radius:6px;pointer-events:none;display:none;z-index:5"></div>
-<div id="tapHelp"><b>●●</b><br>Rechts doppeltippen:<br>Sprungangriff</div>
 <div id="toast"></div>
 <div id="cds">
   <div class="cd panel"><b>Sprung</b><span class="kh">Leertaste</span><i id="cdP"></i></div>
   <div class="cd panel" id="cdRbox"><b>Brüllen</b><span class="kh">R</span><i id="cdR"></i></div>
   <div class="cd panel" id="cdEbox"><b>Klettern</b><span class="kh">E</span><i id="cdE"></i></div>
 </div>
+</div>
+<div id="sleepFx" style="position:fixed;inset:0;background:#02040a;display:none;align-items:center;justify-content:center;opacity:0;transition:opacity .8s;z-index:15;color:#9fb4ff;font-size:20px;letter-spacing:2px">Du schläfst …</div>
+
+
+
+
+
+
+
+<div id="fps" style="position:fixed;left:50%;bottom:58px;transform:translateX(-50%);font-size:11px;color:#cfe;background:rgba(0,0,0,.45);padding:2px 8px;border-radius:6px;pointer-events:none;display:none;z-index:5"></div>
+<div id="tapHelp"><b>●●</b><br>Rechts doppeltippen:<br>Sprungangriff</div>
+
 
 <div id="touch">
   <div id="joy"><i id="knob"></i></div>

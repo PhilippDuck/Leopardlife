@@ -55,15 +55,17 @@ const JAG={col:0xe0a23c,col2:0xf0c98a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.44
  * @property {number} [stepT] Zeit bis zum nächsten Schrittgeräusch
  * @property {number} [pad] Controller-Index eines Mitspielers (coop.js)
  * @property {number} [num] Spielernummer 2…4 eines Mitspielers
- * @property {HTMLElement} [hud] kleine Anzeige eines Mitspielers
+ * @property {HTMLElement} [hud] Anzeige-Rahmen eines Mitspielers (Kopie von #ph0)
  * @property {boolean[]} [padPrev] Tasten im letzten Bild
  * @property {number} [leaveT] wie lange Back gehalten wird, in Sekunden (Aussteigen)
  * @property {number} [leaveAt] Zeitpunkt, an dem Back gedrückt wurde
- * @property {number} [msgT] Restzeit des Hinweises in der kleinen Anzeige
  * @property {number|null} [downT] Restzeit am Boden bis zum Erwachen im Bau (Koop)
  * @property {number} [revT] Fortschritt beim Wiederbeleben in Sekunden
  * @property {number} [lastS] zuletzt angezeigte Sekunde am Boden
- * @property {HTMLElement[]} [waPool] Warnpfeile in der kleinen Anzeige
+ * @property {HTMLElement[]} [waPool] Warnpfeile in der Anzeige eines Mitspielers
+ * @property {Record<string, HTMLElement>} [hc] gefundene Elemente seiner Anzeige (coop.js hEl)
+ * @property {number} [toastT] Restzeit seiner Meldung
+ * @property {number} [noStT] Restzeit des Hinweises 'Zu wenig Ausdauer'
  */
 
 /**
