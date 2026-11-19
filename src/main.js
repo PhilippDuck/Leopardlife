@@ -52,7 +52,6 @@ function updateEnv(dt,now){
 
 
 /* ---------- Hauptschleife ---------- */
-const rc=$('rc').getContext('2d');
 G.last=performance.now(); G.uiT=0;
 
 
@@ -128,6 +127,7 @@ function step(dt){
   G.uiT-=dt; if(G.uiT<=0){ G.uiT=0.1; updateUI(); }
   drawRadar();
 }
+const rc=$('rc').getContext('2d');   // Spürkarte
 const waPool=[]; let beatT=0;
 function updateWarn(dt){
   const ring=$('warnRing'), R=Math.min(window.innerWidth,window.innerHeight)*0.33, s=Math.sin(G.camYaw), c=Math.cos(G.camYaw);
