@@ -2,12 +2,13 @@
 import { snd } from './audio.js';
 import { ABIL, ATTR, ICOL, TRAITS, ico } from './data.js';
 import { keys } from './input.js';
-import { dead, sleeping } from './main.js';
+import { sleeping } from './main.js';
 import { P } from './player.js';
 import { S, ancF, attrCap, save } from './save.js';
 import { G } from './state.js';
 import { $ } from './util.js';
 import { menuOpen } from './menu.js';
+import { dead } from './actions.js';
 
 /* Icons für Eigenschaften, Fähigkeiten und Erbanlagen: 24er-Raster, Strichzeichnung in der jeweiligen Farbe */
 function renderSkills(){

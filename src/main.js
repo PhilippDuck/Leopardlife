@@ -19,6 +19,7 @@ import { floatText, showToast, toast, toastQ } from './ui.js';
 import { toggleSkills } from './skills.js';
 import { hudExp, menuOpen, renderKeys, showDiff, toggleMenu, xb } from './menu.js';
 import { reloadWorld } from './regions.js';
+import { dead, doClimb, doPounce, doRoar, gainXp, hitAnimal, hurtPlayer, nearestTree } from './actions.js';
 if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }); }
 if(!window.THREE){ $('err').textContent='Three.js konnte nicht geladen werden. Bitte Seite neu laden.'; $('btnPlay').disabled=true; throw new Error('three.js fehlt'); }
 
@@ -36,127 +37,6 @@ function updateEnv(dt,now){
   for(let i=0;i<waters.length;i++){ const w=waters[i]; w.position.y=w.userData.y+Math.sin(t*0.8+i)*0.03; }
 }
 
-
-/* ---------- Aktionen ---------- */
-function nearestTree(){
-  let bi=-1, bd=1e9; for(let i=0;i<trees.length;i++){ const t=trees[i], d=Math.hypot(t.x-P.x,t.z-P.z); if(d<bd){ bd=d; bi=i; } }
-  return bd<3.4+pScale()*0.8?bi:-1;
-}
-function leaveTree(rate){ P.dropY=P.upNow; P.dropRate=rate; P.tree=null; P.safe=false; P.upNow=0; }
-function doClimb(){
-  if(G.paused||P.pounce>0) return;
-  if(P.tree!=null){ leaveTree(24); P.x+=Math.sin(P.rot)*1.6; P.z+=Math.cos(P.rot)*1.6; snd.step(0.25); return; }
-  if(S.b.climb<1){ toast('Klettern ist noch nicht gelernt (Tab)','#b9b7a6'); return; }
-  const i=nearestTree(); if(i<0){ toast('Kein Baum in Reichweite','#b9b7a6'); return; }
-  const cost=45-5*(S.b.climb-1); if(P.st<cost){ noStamina(); return; } P.st-=cost;
-  goalEvent('climb',1); P.tree=i; P.climbT=0; P.fromX=P.x; P.fromZ=P.z; P.sneak=false; P.dropY=0; snd.climb();
-}
-G.noStT=0;
-function noStamina(){
-  const r=$('stRing'); r.classList.remove('flash'); void r.getBoundingClientRect(); r.classList.add('flash');
-  $('crossMsg').style.opacity=1; G.noStT=1.1; tone(140,0.12,'square',0.1,100);
-}
-function doPounce(){
-  if(G.paused||P.pounce>0||P.pcd>0) return;
-  if(P.tree!=null&&P.climbT<1) return;
-  if(P.st<15){ noStamina(); return; }
-  P.leap=false;
-  if(P.tree!=null){ if(P.climbT<1) return; const h=P.upNow; P.leap=true; leaveTree(1); P.dropRate=h/(0.55+0.04*S.b.jmp); }
-  P.st-=15; P.pounce=(P.leap?0.55:0.38)+0.04*S.b.jmp; P.pT=P.pounce; P.pcd=1.3-0.2*S.b.jmp; P.hit=false; snd.pounce();
-  P.rot=Math.atan2(-Math.sin(G.camYaw),-Math.cos(G.camYaw));
-}
-function doRoar(){
-  if(G.paused) return;
-  if(S.b.roar<1){ toast('Brüllen ist noch nicht gelernt (Tab)','#b9b7a6'); return; }
-  if(P.rcd>0) return;
-  P.rcd=22-3*S.b.roar; const R=16+7*S.b.roar;
-  puff(P.x,P.y+1,P.z,0xffffff,10,0.6); toast('ROAAAR!','#f2b84b'); snd.roar();
-  animals.forEach(a=>{ if(a.dead) return; const d=Math.hypot(a.x-P.x,a.z-P.z); if(d>R) return;
-    if(a.sp.pred){ if(!a.sp.hunt||S.lvl+2*S.b.roar>=a.sp.hunt-3){ a.state='flee'; a.fleeT=0; a.aggro=0; a.scared=5; } }
-    else if(!a.sp.boss&&!a.sp.friend){ a.stun=1.2+0.5*S.b.roar; } });
-}
-function gainXp(n){
-  const lv0=S.lvl; S.xp+=n; let up=false;
-  while(S.xp>=xpNeed(S.lvl)){ S.xp-=xpNeed(S.lvl); S.lvl++; S.pts+=2; up=true; }
-  if(up){ P.hp=maxHp(); toast('Stufe '+S.lvl+'! Du wächst. +2 Punkte (Tab)','#f2b84b'); puff(P.x,P.y+1,P.z,0xf2b84b,14,0.7); snd.level();
-    if(lv0<8&&S.lvl>=8&&!S.cub) setTimeout(()=>toast('Du bist ausgewachsen. Andere Leoparden streifen jetzt umher – du findest sie als rosa Punkte auf der Spürkarte.','#ff9ad0'),3200); }
-  save();
-}
-let dead=false;
-function hurtPlayer(d,a,force){
-  if(dead||(P.safe&&!force)) return;
-  if(!force) d*=D().dmg;
-  snd.hurt();
-  P.hp-=d; P.combatT=5; G.shakeA=Math.max(G.shakeA,Math.min(0.6,0.15+d/maxHp())); if(padUI()) rumble(Math.min(1,0.35+d/maxHp()),0.5,220); $('hurt').style.opacity=0.8; P.hurtT=0.25;
-  floatText('-'+Math.round(d),P.x,P.camY+1.5*pScale(),P.z,'#ff7a5c');
-  if(P.hp<=0){
-    P.hp=0; G.heirPending=!!S.cub; G.lineageEnd=!S.cub&&(a.sp.id==='age'||D().perma); let lost=0; if(!G.heirPending&&!G.lineageEnd){ lost=Math.floor(S.xp*D().xpLoss); S.xp-=lost; } save();
-    dead=true; G.paused=true; P.pounce=0; for(const k in keys) keys[k]=false; G.drag=false;
-    if(document.exitPointerLock) document.exitPointerLock();
-    P.g.rotation.z=Math.PI/2; P.g.position.y=P.y+0.25*pScale();
-    snd.death();
-    const fem=(a.sp.id==='hyena'||a.sp.id==='giant');
-    G.lastCause=a.sp.id==='hunger'?'verhungert':a.sp.id==='age'?'an Altersschwäche gestorben':'von '+(DAT[a.sp.id]||'einem '+a.sp.n)+' getötet';
-    const cause=a.sp.id==='hunger'?'Du bist verhungert.':a.sp.id==='age'?'Du bist an Altersschwäche gestorben.':'Ein'+(fem?'e ':' ')+a.sp.n+' hat dich erwischt.';
-    $('deadTxt').textContent=cause+(lost>0?' Du verlierst '+lost+' Erfahrung.':'')+' Stufe, Eigenschaften und Fähigkeiten bleiben dir erhalten.';
-    $('deadTip').textContent=a.sp.hunt&&S.lvl<a.sp.hunt
-      ? 'Tipp: '+(a.sp.id==='jack'?'Schakale':a.sp.id==='hyena'?'Hyänen':'Löwen')+' jagen dich bis Stufe '+a.sp.hunt+'. Schleiche (C) ins hohe Gras, bis sie dich verlieren.'
-      : 'Tipp: Dieses Tier wehrt sich. Greife aus dem Hinterhalt an und zieh dich zurück, wenn dein Leben knapp wird.';
-    if(G.heirPending){
-      $('deadTxt').textContent=cause+' Aber dein Junges lebt: Du spielst als dein Junges weiter (Stufe '+heirLevel()+'). Es erbt die Erbanlagen deiner Linie und 10 % deiner Punkte.';
-      $('deadTip').textContent='Je mehr du es gefüttert hast, desto größer startet es.';
-      $('btnRespawn').textContent='Als Junges weiterleben';
-    } else $('btnRespawn').textContent='Im Bau neu erwachen';
-    if(a.sp.id==='hunger'&&!G.heirPending) $('deadTip').textContent='Tipp: Erlegte Beute macht satt. Hast du ein Junges, wandert sie in den Vorrat – friss mit F daraus, wenn du hungrig bist.';
-    if(G.lineageEnd){
-      $('deadTxt').textContent=(a.sp.id==='age'?'Du bist an Altersschwäche gestorben und hast keinen Nachwuchs.':cause+' Auf „Schwer" gibt es ohne Nachwuchs kein Zurück.')+' Deine Blutlinie endet in Generation '+(S.gen||1)+'.';
-      $('deadTip').textContent='Beim nächsten Mal: Ab Stufe 8 einen Partner suchen und rechtzeitig ein Junges großziehen.';
-      $('btnRespawn').textContent='Neue Blutlinie beginnen';
-    }
-    $('hurt').style.opacity=0.55; $('dead').style.display='flex'; updateUI();
-  }
-}
-function respawn(){
-  let sx=2, sz=2;
-  if(G.heirPending&&S.cub){
-    sx=cub.x; sz=cub.z; becomeCub(false);
-    toast('Generation '+S.gen+': Du bist jetzt dein Junges – mit den Erbanlagen deiner Linie und 10 % der Punkte.'+(S.p2?' Dein anderes Elterntier sorgt weiter für dich.':''),'#ff9ad0');
-  }
-  else if(G.lineageEnd){ recordAncestor(G.lastCause); archiveLine(); const df=S.diff; resetState(); S.diff=df; save(); if(REG_ID!=='savanne'){ reloadWorld(false); return; } rebuildPlayer(); rebuildCub(); animals.forEach(placeAnimal); G.raider=null; toast('Eine neue Blutlinie beginnt.','#f2b84b'); }
-  else S.hunger=Math.max(S.hunger,70);
-  G.heirPending=false; G.lineageEnd=false;
-  P.tree=null; P.safe=false; P.dropY=0; P.upNow=0; P.x=sx; P.z=sz; P.rot=START_ROT; G.camYaw=START_YAW; P.hp=maxHp(); P.st=maxSt(); P.pounce=0; P.pcd=0; P.sneak=false; P.combatT=0; P.g.rotation.z=0;
-  animals.forEach(o=>{ o.aggro=0; o.sus=0; o.near=false; if(o.state==='chase'){ o.state='wander'; o.timer=0; } });
-  updateWarn(0); $('hurt').style.opacity=0; $('dead').style.display='none'; dead=false; G.paused=false; initAudio(); snd.click();
-  if(!touchUI()){ try{ const r=canvas.requestPointerLock(); if(r&&r.catch) r.catch(()=>{}); }catch(e){} }
-}
-$('btnRespawn').onclick=respawn;
-function hitAnimal(a){
-  let d=dmg(), amb=false;
-  if(a.state==='wander'||a.state==='lurk'||a.stun>0){ d*=2+0.6*S.b.amb; amb=true; }
-  if(P.leap){ d*=1.25+0.25*S.b.climb; P.leap=false; floatText('Sprung vom Baum!',P.x,P.camY+2*pScale(),P.z,'#9be07f'); }
-  d=Math.round(d*rnd(0.9,1.1));
-  a.hp-=d; P.combatT=5;
-  floatText((amb?'Hinterhalt! ':'')+'-'+d,a.x,H(a.x,a.z)+a.sp.size*1.8,a.z,amb?'#f2b84b':'#fff');
-  puff(a.x,H(a.x,a.z)+a.sp.size,a.z,0xc0392b,4,0.5);
-  G.lastHit=a; G.lastHitT=6; snd.hit(); if(amb){ snd.ambush(); goalEvent('amb',1); if(padUI()) rumble(0.25,0.6,120); G.slowT=Math.max(G.slowT,0.16); G.shakeA=Math.max(G.shakeA,0.3*pScale()); }
-  if(a.hp<=0){ snd.kill(); if(padUI()) rumble(0.5,0.8,180); G.slowT=Math.max(G.slowT,0.22); G.shakeA=Math.max(G.shakeA,0.4*pScale()); }
-  if(a.hp<=0){
-    a.dead=true; a.respawn=rnd(18,30); S.kills=(S.kills||0)+1; goalEvent('kill',1,{sp:a.sp.id,night:dayF<0.5,herd:!!a.herd});
-    { const n=FOOD[a.sp.id]||1, now=n>=4?Math.ceil(n/2):n; let rest=now;
-      if(S.cub&&S.cub.grow<1){ const k=Math.min(FOOD_MAX-S.food,now); S.food+=k; rest=n-k; if(k>0) floatText('+'+k+' Futter im Vorrat',a.x,H(a.x,a.z)+a.sp.size*1.2,a.z,'#ff9ad0'); }
-      if(rest>0) S.hunger=Math.min(100,S.hunger+rest*10);
-      if(n>=4) makeCarcass(a,n-now); else a.g.visible=false; }
-    puff(a.x,H(a.x,a.z)+a.sp.size*0.7,a.z,a.sp.m.col,10,0.5+a.sp.size*0.5);
-    P.hp=Math.min(maxHp(),P.hp+maxHp()*0.25+a.sp.xp*0.1);
-    const xpv=a.sp.xp*(a.fur&&a.fur.albino?2:1); if(a.fur&&a.fur.albino) toast('Seltene Beute: ein Albino! Doppelte Erfahrung.','#f2b84b');
-    floatText('+'+xpv+' EP',P.x,P.y+2*pScale(),P.z,'#8ad4ef');
-    gainXp(xpv);
-    if(a.sp.boss&&!beaten(REG_ID)){ S.beat=Object.assign({},S.beat,{[REG_ID]:true}); if(REG_ID==='savanne') S.won=true; save(); $('winTitle').textContent=REG.winT; $('winText').textContent=REG.winX; setTimeout(()=>{ snd.win(); $('win').style.display='flex'; G.paused=true; if(document.exitPointerLock) document.exitPointerLock(); },900); }
-  } else if(a.sp.fight){ a.state='chase'; a.aggro=10; a.scared=0; }
-  else startFlee(a);
-}
-G.lastHit=null; G.lastHitT=0;
 
 /* ---------- Familie: Partner, Junges, Futter, Überfälle ---------- */
 const FOOD_MAX=20, CUB_HOME={x:7,z:5};
@@ -1076,4 +956,4 @@ drawRadar();
 requestAnimationFrame(frame);
 
 // Von anderen Modulen zur Laufzeit benutzt
-export { bookOpen, clockStr, closeBook, closeSettings, dead, doClimb, doContext, doPounce, doRoar, padSynth, padUI, rebuildCub, respawn, settingsOpen, sleeping, updateDayNight, updateUI };
+export { FOOD_MAX, archiveLine, becomeCub, bookOpen, clockStr, closeBook, closeSettings, cub, dayF, doContext, goalEvent, heirLevel, makeCarcass, padSynth, padUI, rebuildCub, recordAncestor, rumble, settingsOpen, sleeping, startFlee, updateDayNight, updateUI, updateWarn };
