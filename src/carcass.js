@@ -4,7 +4,6 @@ import { snd } from './audio.js';
 import { DIFF, ICOL, TRAITS, ico } from './data.js';
 import { puff } from './effects.js';
 import { FOOD_MAX } from './family.js';
-import { goalEvent } from './main.js';
 import { renderKeys } from './menu.js';
 import { animLegs, furColor, furName } from './models.js';
 import { P } from './player.js';
@@ -13,6 +12,7 @@ import { G } from './state.js';
 import { H } from './terrain.js';
 import { floatText, toast } from './ui.js';
 import { $ } from './util.js';
+import { goalEvent } from './goals.js';
 
 /* ---------- Kadaver, Aasfresser, Herden, Ahnenbuch ---------- */
 // Größere Beute bleibt als Kadaver liegen: Du frisst gleich die Hälfte, der Rest bleibt für später – und lockt Hyänen und Schakale an.
