@@ -20,6 +20,7 @@ import { toggleSkills } from './skills.js';
 import { ensureKin, mateContext, newId } from './kinship.js';
 import { PCOL, drawRadar, updateCross, updateUI, updateWarn, warnArrows } from './hud.js';
 import { esc } from './carcass.js';
+import { sleepVotes } from './daynight.js';
 
 /** Höchstens so viele Spieler teilen sich den Bildschirm */
 const MAX_PLAYERS=4;
@@ -152,6 +153,7 @@ function downPlayer(p,a){
 /** Pro Bild: Wiederbeleben durch einen Mitspieler in der Nähe, sonst nach Ablauf im Bau erwachen. */
 function updateCoop(dt){
   if(players.length<2) return;
+  sleepVotes();
   // Wer steht nah bei einem Mitspieler am Boden? (für den Hinweis mit Fortschritt in seiner Anzeige)
   for(const o of players){ o.reviveNear=null; if(o.dead) continue; let bd=REVIVE_DIST*2.5;
     for(const p of players){ if(p===o||!p.dead||p.downT==null) continue; const d=Math.hypot(o.x-p.x,o.z-p.z); if(d<bd){ bd=d; o.reviveNear=p; } } }

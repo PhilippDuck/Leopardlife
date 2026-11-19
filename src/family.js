@@ -6,7 +6,7 @@ import { puff } from './effects.js';
 import { scene } from './engine.js';
 import { keys } from './input.js';
 import { animLegs, buildQuad, furName, makeFur } from './models.js';
-import { P, dropModel } from './player.js';
+import { P, dropModel, players } from './player.js';
 import { quality } from './quality.js';
 import { D, S, has, save } from './save.js';
 import { G } from './state.js';
@@ -36,7 +36,7 @@ const heirLevel=()=>1+Math.floor(Math.min(1,S.cub.grow)*7);
 function nearestMate(){ let b=null, bd=1e9; for(const a of (S.partner?[fam[0]]:fam.slice(3))){ if(S.partner&&!a.famOn) continue; const d=Math.hypot(a.x-P.x,a.z-P.z); if(d<bd){ bd=d; b=a; } } return b?{a:b,d:bd}:null; }
 function context(){
   if(P.dead||G.paused) return null;
-  if(P.tree!=null) return (P.safe&&P.climbT>=1&&canSleepNow())?{label:'Schlafen',fn:sleepOnTree}:null;
+  if(P.tree!=null) return (P.safe&&P.climbT>=1&&canSleepNow())?{label:P.wantSleep?'Wartet auf die anderen …':players.some(o=>o!==P&&o.wantSleep)?'Schlafen (die anderen warten)':'Schlafen',fn:()=>sleepOnTree(P)}:null;
   if(S.cub&&!cubGrown()&&S.food>0&&S.cub.full<97&&Math.hypot(cub.x-P.x,cub.z-P.z)<4.5) return {label:'Füttern',fn:feedCub};
   { const cc=nearCarcass(); if(cc){ if(S.cub&&S.cub.grow<1&&S.food<FOOD_MAX) return {label:'Fleisch mitnehmen',fn:()=>takeMeat(cc,true)}; if(S.hunger<90) return {label:'Fressen',fn:()=>takeMeat(cc,false)}; } }
   if(S.food>0&&S.hunger<50) return {label:'Fressen',fn:eatFood};

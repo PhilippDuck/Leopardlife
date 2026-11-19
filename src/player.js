@@ -66,6 +66,7 @@ const JAG={col:0xe0a23c,col2:0xf0c98a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.44
  * @property {Record<string, HTMLElement>} [hc] gefundene Elemente seiner Anzeige (coop.js hEl)
  * @property {number} [toastT] Restzeit seiner Meldung
  * @property {number} [noStT] Restzeit des Hinweises 'Zu wenig Ausdauer'
+ * @property {boolean} [wantSleep] will im gemeinsamen Spiel schlafen (wartet auf die anderen)
  * @property {number} [pingT] Restzeit der Markierungen der Mitspieler
  * @property {HTMLElement[]} [marks] Markierungen in seiner Anzeige
  * @property {any} [reviveNear] Mitspieler am Boden in der Nähe (Hinweis zum Wiederbeleben)

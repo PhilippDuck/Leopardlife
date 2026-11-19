@@ -31,7 +31,7 @@ const doc={ querySelectorAll:()=>[], getElementById:el, addEventListener(){}, cr
 let raf=null;
 const g={ window:win, document:doc, navigator:{maxTouchPoints:0}, localStorage:{getItem:k=>(k in ls?ls[k]:null),setItem:(k,v)=>{ls[k]=String(v);}}, THREE:win.THREE,
   requestAnimationFrame:fn=>{ if(fn.name==='frame') raf=fn; else fn(); }, setTimeout:fn=>{ fn(); } };
-const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass};';
+const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,sleepOnTree,sleepingNow:()=>sleeping};';
 new Function(...Object.keys(g), body)(...Object.values(g));
 const T=globalThis.__T; const rnd2=()=>Math.random()*8-4; const localStorageDump=()=>ls['jaguar-lines'];
 els.btnPlay.onclick();
@@ -262,4 +262,14 @@ console.log('audio nodes created',ACs&&ACs.count());
   a.carc=keep[3]; a.dead=keep[2]; a.x=keep[0]; a.z=keep[1]; T.players.pop();
   if(!info||info.label!=='Fressen'||!fed) { console.log('FEHLER: Mitspieler kann nicht fressen',info); process.exit(1); }
   console.log('Kadaver: Mitspieler frisst ('+Math.round(Q.L.hunger)+' % satt)'); }
+// Gemeinsam schlafen: erst wenn alle wollen (zuletzt im Test, weil der Schlaf das Spiel kurz anhält)
+{ const P=T.P, S=T.S(); if(P.dead) T.respawn(); T.unpause(); S.tod=0.9;
+  const Q=T.makePlayer({source:'test',x:P.x+3,z:P.z,fur:null,L:T.copyLeopard(S)}); Q.num=2; T.players.push(Q);
+  for(const [p,i] of [[P,0],[Q,1]]){ p.tree=i; p.safe=true; p.climbT=1; }
+  T.sleepOnTree(P);
+  if(T.sleepingNow()||!P.wantSleep) { console.log('FEHLER: Spieler 1 sollte auf Spieler 2 warten'); process.exit(1); }
+  const info=T.mateContextInfo(Q); T.mateContext(Q);
+  if(!(Math.abs(S.tod-0.27)<0.01)) { console.log('FEHLER: Schlaf sollte beginnen, wenn beide wollen',info,S.tod); process.exit(1); }
+  console.log('Schlafen: Spieler 1 wartet, Spieler 2 wählt „'+info.label+'" → beide schlafen bis zum Morgen');
+  for(const p of [P,Q]){ p.tree=null; p.safe=false; } }
 console.log('ALL OK');
