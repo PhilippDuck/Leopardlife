@@ -1,15 +1,11 @@
 // LeopardLife – Spiellogik (Einstiegsmodul).
-// Wird in den nächsten Schritten in Module nach Zuständigkeit aufgeteilt; bis dahin unverändert aus index.html übernommen.
+// Wird Schritt für Schritt in Module nach Zuständigkeit aufgeteilt.
 import { ATTR, ABIL, TRAITS, DIFF, REGIONS, QUAL, SPECIES, FOOD, DAT, ART, ICONS, ICOL, ico } from './data.js';
 import { $, rnd } from './util.js';
 import { G } from './state.js';
 import { AC, master, nbuf, initAudio, tone, snd, musicTick } from './audio.js';
 if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }); }
-(function(){
-'use strict';
-// Gemeinsamer veränderlicher Zustand, den mehrere Teile des Spiels lesen und schreiben (Vorstufe für die Aufteilung in Module).
-const G={};
-if(!window.THREE){ $('err').textContent='Three.js konnte nicht geladen werden. Bitte Seite neu laden.'; $('btnPlay').disabled=true; return; }
+if(!window.THREE){ $('err').textContent='Three.js konnte nicht geladen werden. Bitte Seite neu laden.'; $('btnPlay').disabled=true; throw new Error('three.js fehlt'); }
 
 /* ---------- Spielstand ---------- */
 const fresh=()=>({region:'savanne',beat:{},day:0,goals:null,kills:0,anc:[],diff:'normal',tod:0.3,lvl:1,xp:0,pts:0,won:false,gen:1,fur:null,cub:null,food:0,preg:0,partner:false,p1:false,p2:false,hunger:100,age:0,traits:[],a:{str:0,spd:0,sta:0,vit:0,cam:0},b:{amb:0,jmp:0,roar:0,nose:0,climb:0,night:0}});
@@ -1814,4 +1810,3 @@ setInputMode(inputMode); setResLabel(); if(!S.goals) newGoals();
 updateUI();
 drawRadar();
 requestAnimationFrame(frame);
-})();

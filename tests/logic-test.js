@@ -28,8 +28,7 @@ const doc={ querySelectorAll:()=>[], getElementById:el, addEventListener(){}, cr
 let raf=null;
 const g={ window:win, document:doc, navigator:{maxTouchPoints:0}, localStorage:{getItem:k=>(k in ls?ls[k]:null),setItem:(k,v)=>{ls[k]=String(v);}}, THREE:win.THREE,
   requestAnimationFrame:fn=>{ if(fn.name==='frame') raf=fn; else fn(); }, setTimeout:fn=>{ fn(); } };
-const body=code.replace(/\}\)\(\);\s*$/, ';globalThis.__trees=trees;globalThis.__T={W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>dead,frame};})();');
-if(body===code) throw new Error('hook not inserted');
+const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>dead,frame};';
 new Function(...Object.keys(g), body)(...Object.values(g));
 const T=globalThis.__T; const rnd2=()=>Math.random()*8-4; const localStorageDump=()=>ls['jaguar-lines'];
 els.btnPlay.onclick();
@@ -155,4 +154,8 @@ console.log('audio nodes created',ACs&&ACs.count());
   console.log(' goals after 2 kills',S0.goals.list.map(g=>g.id+':'+g.have+(g.done?'✔':'')).join(' '),'xp',l0+'/'+xp0,'->',S0.lvl+'/'+S0.xp);
   S0.tod=0.24999; run(2); console.log(' new day',S0.day,'goals',S0.goals.list.map(g=>g.id).join(','));
 }
+// Zustand prüfen: Kein Zahlenwert in G darf NaN sein (z. B. ein Zähler im falschen Objekt)
+{ const bad=Object.keys(T.G).filter(k=>typeof T.G[k]==='number'&&isNaN(T.G[k]));
+  if(bad.length){ console.log('FEHLER: NaN in G:',bad.join(',')); process.exit(1); }
+  console.log('G geprüft:',Object.keys(T.G).length,'Felder, birdT =',T.G.birdT.toFixed(1)); }
 console.log('ALL OK');
