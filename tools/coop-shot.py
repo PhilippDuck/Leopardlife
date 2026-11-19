@@ -42,8 +42,18 @@ with sync_playwright() as p:
     pg.evaluate("__pad(0,{b:[14]})"); pg.wait_for_timeout(700); pg.evaluate("__pad(0,{})"); pg.wait_for_timeout(600)
     marks = pg.locator('.mk:visible').count()
     shot(pg, '1b-markiert')
-    # Spieler 2 springt (A)
-    pg.evaluate("__pad(0,{b:[0]})"); pg.wait_for_timeout(700); pg.evaluate("__pad(0,{})"); pg.wait_for_timeout(500)
+    # Spieler 2 springt mit RT
+    pg.evaluate("__pad(0,{b:[7]})"); pg.wait_for_timeout(700); pg.evaluate("__pad(0,{})"); pg.wait_for_timeout(200)
+    rt_jump = pg.evaluate("__leopard.players[1].pcd>0")
+    pg.wait_for_timeout(400)
+    # Geburt im gemeinsamen Spiel: im Geburtsfenster für Spieler 2 „als Junges spielen“ wählen
+    pg.evaluate("(()=>{ const S=__leopard.S; S.cub=null; S.preg=0.05; })()"); pg.wait_for_timeout(1500)
+    birth_btns = pg.locator('#birthMates button').count()
+    shot(pg, '1c-geburt')
+    lvl_before = pg.evaluate("__leopard.players[1].L.lvl")
+    pg.locator('#birthMates button').first.click(); pg.wait_for_timeout(300)
+    mate_cub = pg.evaluate("JSON.stringify({lvl:__leopard.players[1].L.lvl,gen:__leopard.players[1].L.gen})")
+    pg.click('#btnStayAdult'); pg.wait_for_timeout(500)
     # Controller 1: Spieler 3
     pg.evaluate("__pad(1,{b:[9]})"); pg.wait_for_timeout(700); pg.evaluate("__pad(1,{})"); pg.wait_for_timeout(800)
     shot(pg, '2-drei-spieler')
@@ -80,6 +90,7 @@ with sync_playwright() as p:
     solo = pg.evaluate("localStorage.getItem('jaguar-save-v1')")
     b.close()
     print('Koop-Spielstand Mitspieler-Plätze:', saved, '| Einzelspielstand angelegt:', solo is not None)
+print('Sprung mit RT:', rt_jump, '| Geburtsfenster Knöpfe für Mitspieler:', birth_btns, '| Spieler 2 vorher Stufe', lvl_before, '→ als Junges', mate_cub)
 print('Markierungen nach Steuerkreuz links:', marks)
 print('Leiste Spieler 1 nach Ⓐ kurz:', repr(hint.strip()[:30]), '| nach Ⓐ 2 s:', repr(took.strip()[:30]))
 print('Entwicklung Spieler 2 im eigenen Ausschnitt:', skills, repr(who), '| Spiel pausiert:', paused, '| wieder zu:', skills_closed)

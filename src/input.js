@@ -57,7 +57,7 @@ const touchUI=()=>inputMode==='touch';
 function setInputMode(m){
   inputMode=m; const t=m==='touch';
   $('touch').style.display=t?'block':'none'; $('cds').style.display=t?'none':'';
-  document.querySelectorAll('#cds .kh').forEach((el,i)=>{ el.textContent=(m==='pad'?['Ⓐ','LB','Ⓨ']:['Leertaste','R','E'])[i]; });
+  document.querySelectorAll('#cds .kh').forEach((el,i)=>{ el.textContent=(m==='pad'?['RT','LB','Ⓨ']:['Leertaste','R','E'])[i]; });
   renderKeys(); if(typeof updateUI==='function'&&S) updateUI();
 }
 window.addEventListener('keydown',()=>{ if(!padSynth&&inputMode!=='kb') setInputMode('kb'); },true);

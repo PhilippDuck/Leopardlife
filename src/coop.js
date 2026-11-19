@@ -122,9 +122,9 @@ function pollCoop(dt,gps){
     if(G.paused||!G.started||p.dead){ c.fw=c.rt=0; c.sprint=false; c.act=B(2); }
     else {
       let fw=-pdz(gp.axes[1]||0), rt=pdz(gp.axes[0]||0); const l=Math.hypot(fw,rt); if(l>1){ fw/=l; rt/=l; }
-      c.fw=fw; c.rt=rt; c.sprint=B(10)||!!(gp.buttons[7]&&gp.buttons[7].value>0.3); c.act=B(2);
+      c.fw=fw; c.rt=rt; c.sprint=B(10)||!!(gp.buttons[6]&&gp.buttons[6].value>0.3); c.act=B(2);   // LT/L3 sprinten
       p.cam.yaw-=pdz(gp.axes[2]||0)*dt*2.8; p.cam.pitch=Math.max(0.08,Math.min(1.25,p.cam.pitch+pdz(gp.axes[3]||0)*dt*1.8));
-      if(hit(0)) doPounce(p);
+      if(hit(0)||hit(7)) doPounce(p);   // RT oder Ⓐ: Sprungangriff
       if(hit(1)) p.sneak=!p.sneak;
       if(hit(3)) doClimb(p);
       if(hit(4)) doRoar(p);
@@ -220,7 +220,7 @@ function makeHud(p){
   const el=cloneWithClasses($('ph0'),'h-'); el.classList.remove('h-ph0');
   el.querySelectorAll('.skp,.mk,.float').forEach(e=>e.remove());   // nur die Anzeige selbst, nicht Fenster und Markierungen von Spieler 1
   q(el,'.h-menuBtn').style.display='none'; q(el,'.h-famArrow').style.display='none';   // Mitspieler: Start öffnet die Pause
-  q(el,'.h-cds').style.display=''; el.querySelectorAll('.h-cds .kh').forEach((k,i)=>{ k.textContent=['Ⓐ','LB','Ⓨ'][i]; });
+  q(el,'.h-cds').style.display=''; el.querySelectorAll('.h-cds .kh').forEach((k,i)=>{ k.textContent=['RT','LB','Ⓨ'][i]; });
   q(el,'.h-toast').style.opacity='0'; q(el,'.h-hurt').style.opacity='0'; q(el,'.h-crossMsg').style.opacity='0';
   q(el,'.h-hudTog').onclick=null;
   el.insertAdjacentHTML('beforeend','<div class="pvDown"><b>Am Boden</b><span></span><div class="pvBar"><i class="rev"></i></div></div>');

@@ -13,7 +13,7 @@ import { G } from './state.js';
 import { H } from './terrain.js';
 import { floatText, toast } from './ui.js';
 import { $, rnd } from './util.js';
-import { canMate, fam, famPlace } from './kin.js';
+import { canMate, fam, famPlace, renderBirthChoices } from './kin.js';
 import { eatFood } from './life.js';
 import { canSleepNow, sleepOnTree } from './daynight.js';
 import { nearCarcass, takeMeat } from './carcass.js';
@@ -105,6 +105,7 @@ function updateCub(dt){
       $('birthTrait').innerHTML=ico(S.cub.trait,ICOL.t,16)+' Erbanlage: '+TRAITS[S.cub.trait][0]+' ('+TRAITS[S.cub.trait][1]+') · Fell: '+furName(S.cub.fur); } cub.x=CUB_HOME.x; cub.z=CUB_HOME.z; cub.t=0; G.raidT=rnd(90,130)*D().raid; save(); snd.mew();
     $('birthTitle').textContent=S.cub.n>1?'Euer Wurf ist geboren: '+S.cub.n+' Junge':'Dein Junges ist geboren';
     $('birthCoop').style.display=S.cub.n>1?'block':'none';
+    { const b=$('btnBeCub'); b.disabled=false; b.textContent='Als Junges spielen'; } renderBirthChoices();
     $('birth').style.display='flex'; G.paused=true; for(const k in keys) keys[k]=false; G.joyX=G.joyY=0; if(document.exitPointerLock) document.exitPointerLock(); } }
   const c=S.cub; if(!c){ cubG.visible=false; return; }
   cubG.visible=true;

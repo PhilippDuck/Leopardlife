@@ -12,7 +12,7 @@ import { MAX_PLAYERS, joinPlayer, leavePlayer, padTaken, panelNav, pingMates, po
 import { MODE } from './save.js';
 
 /* ---------- Controller-Steuerung (Gamepad, Standardbelegung wie Xbox/PlayStation) ----------
-   Linker Stick laufen · rechter Stick Kamera · A Sprung · B Schleichen · X Aktion · Y Klettern · LB Brüllen · RT/L3 Sprinten
+   Linker Stick laufen · rechter Stick Kamera · RT (oder A) Sprung · B Schleichen · X Aktion · Y Klettern · LB Brüllen · LT/L3 Sprinten
    R3 Kamera hinter den Leoparden · Steuerkreuz hoch/runter Zoom · Start Menü · Back/Select Entwicklung.
    In Menüs: Steuerkreuz oder Stick wählt, A bestätigt, B geht zurück. Später steuert Controller N den Spieler N. */
 let padX=0, padY=0, padSprint=false, padAct=false, padIdx=-1, padSynth=false, padNavT=0, padFocusEl=null;
@@ -72,10 +72,10 @@ function pollPads(dt){
     setPadFocus(null);
     if(P.skOpen){ padX=padY=0; padSprint=false; padAct=false; panelNav(P,gp,hit,dt); for(let i=0;i<gp.buttons.length;i++) prev[i]=B(i); return; }   // eigene Entwicklung offen (gemeinsames Spiel)
     padX=pdz(gp.axes[0]||0); padY=pdz(gp.axes[1]||0);
-    padSprint=B(10)||!!(gp.buttons[7]&&gp.buttons[7].value>0.3); padAct=B(2);
+    padSprint=B(10)||!!(gp.buttons[6]&&gp.buttons[6].value>0.3); padAct=B(2);   // LT oder linken Stick drücken: sprinten
     if(!G.paused&&!P.dead){
       P.cam.yaw-=pdz(gp.axes[2]||0)*dt*2.8; P.cam.pitch=Math.max(0.08,Math.min(1.25,P.cam.pitch+pdz(gp.axes[3]||0)*dt*1.8));
-      if(hit(0)) doPounce();
+      if(hit(0)||hit(7)) doPounce();   // RT oder Ⓐ: Sprungangriff
       if(hit(1)) P.sneak=!P.sneak;
       if(hit(2)) doContext();
       if(hit(3)) doClimb();

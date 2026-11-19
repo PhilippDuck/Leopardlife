@@ -72,7 +72,8 @@ function toggleSkillPanel(p){
 /** Ins Junge wechseln (zweimal drücken zum Bestätigen) */
 function cubSwitch(p,root){
   const b=root?q0(root,'.s-btnSkCub'):$('btnSkCub');
-  if(!p.cubArm){ p.cubArm=true; b.textContent='Wirklich? Du startest neu als Junges'; return; }
+  if(!p.cubArm){ p.cubArm=true; b.textContent='Nochmal drücken: wirklich als Junges neu starten'; b.style.background='#e0573c'; b.style.color='#fff'; return; }
+  b.style.background='#d86fa8'; b.style.color='#2a0a1c';
   p.cubArm=false; toggleSkills(p); mateBecomeCub(p);
 }
 $('btnClose').onclick=()=>toggleSkills(skP);

@@ -41,8 +41,8 @@ const XB={'Ⓐ':'#5fbf4a','Ⓑ':'#e0533d','Ⓧ':'#3f8fe0','Ⓨ':'#f2c230'};
 const xb=t=>t.replace(/[ⒶⒷⓍⓎ]/g,c=>'<b style="color:'+XB[c]+';font-size:1.15em">'+c+'</b>');
 function renderKeys(){ $('keysMode').textContent=padUI()?'Xbox-Controller':touchUI()?'Touch':'Tastatur und Maus';
   $('keysBox').innerHTML=(padUI()?[
-  ['Linker Stick','Laufen'],['Rechter Stick','Kamera und Fadenkreuz drehen'],['RT oder linken Stick drücken','Sprinten (kostet Ausdauer)'],
-  ['Ⓐ','Sprungangriff in Richtung Fadenkreuz'],['Ⓑ','Schleichen an/aus'],['Ⓧ','Aktion: paaren, füttern, fressen, schlafen'],['Ⓨ','Auf einen Baum klettern / herunter'],
+  ['Linker Stick','Laufen'],['Rechter Stick','Kamera und Fadenkreuz drehen'],['LT oder linken Stick drücken','Sprinten (kostet Ausdauer)'],
+  ['RT oder Ⓐ','Sprungangriff in Richtung Fadenkreuz'],['Ⓑ','Schleichen an/aus'],['Ⓧ','Aktion: paaren, füttern, fressen, schlafen'],['Ⓨ','Auf einen Baum klettern / herunter'],
   ['LB','Brüllen'],['Rechten Stick drücken','Kamera hinter den Leoparden'],['Steuerkreuz ↑ ↓','Zoomen'],['Steuerkreuz ←','Mitspieler kurz markieren'],['Ⓧ halten','Mitspieler am Boden wiederbeleben'],['Menü-Taste ☰','Pause-Menü'],['Ansicht-Taste ⧉','Eigenschaften & Fähigkeiten'],
   ['In Menüs','Steuerkreuz wählt, Ⓐ bestätigt, Ⓑ zurück']
 ]:touchUI()?[
