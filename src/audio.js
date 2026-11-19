@@ -67,7 +67,7 @@ const hasSample=k=>!!bufs[k];
 /** @type {Record<string, GainNode>} */ const amb={};
 const BEDS={day:['windA','windB'],night:['night'],bugs:['dayA','dayB']}, bedNext={day:0,night:0,bugs:0}, BED_GAP={day:[0.35,0.6],night:[0.35,0.6],bugs:[1.5,4]};
 // Ereignisse tagsüber: Aufnahmen, Abstand in s, Lautstärke
-const EVENTS=[{ks:['birdA','birdB'],gap:[15,45],vol:[0.15,0.4]},{ks:['doveA','doveB'],gap:[30,70],vol:[0.15,0.35]},{ks:['fly'],gap:[25,70],vol:[0.2,0.5]},{ks:['gust'],gap:[14,40],vol:[0.25,0.5]}];
+const EVENTS=[{ks:['birdA','birdB'],gap:[15,45],vol:[0.15,0.4]},{ks:['doveA','doveB'],gap:[30,70],vol:[0.15,0.35]},{ks:['fly'],gap:[25,70],vol:[0.2,0.5]},{ks:['gust'],gap:[40,100],vol:[0.2,0.4]}];
 const evNext=EVENTS.map(()=>0);
 function bus(k){ if(!amb[k]){ amb[k]=AC.createGain(); amb[k].gain.value=0; amb[k].connect(master); } return amb[k]; }
 function oneShot(k,vol,pan,rate){
@@ -92,16 +92,17 @@ function ambLoop(k){
   const g=AC.createGain(); g.gain.value=0; s.connect(g); g.connect(master); s.start(0,(lp?lp[0]:0)+Math.random()*5); amb[k]=g; return g;
 }
 /** Lautstärken der Umgebung nachführen und neue Ausschnitte starten: day 0…1 (Tageslicht), rain 0…1 */
-function ambTick(day,rain){
+/** storm: Gewitter – dann schweigen Vögel, Fliege, Insekten und Grillen, nur Wind, Regen und Donner bleiben */
+function ambTick(day,rain,storm){
   if(!AC||AC.state!=='running') return;
-  const t=AC.currentTime, dry=1-0.6*rain, lv={day:0.3*day*dry,night:0.3*(1-day)*dry,bugs:0.2*day*dry};
+  const t=AC.currentTime, dry=1-0.6*rain, calm=storm?Math.max(0,1-2*rain):1, lv={day:0.22*day*dry,night:0.3*(1-day)*dry*calm,bugs:0.2*day*dry*calm};
   if(!bufs.windA&&!bufs.windB){ BEDS.day=['dayA','dayB']; lv.bugs=0; lv.day=0.28*day*dry; } else BEDS.day=['windA','windB'];   // ohne Wind-Aufnahmen wie bisher
   for(const bed in BEDS){
     bus(bed).gain.setTargetAtTime(lv[bed],t,0.8);
     if(lv[bed]>0.01&&t>=bedNext[bed]){ const d=grain(bed), g=BED_GAP[bed]; bedNext[bed]=t+(d?d*rnd(g[0],g[1]):2); }
   }
-  bus('ev').gain.setTargetAtTime(day*dry,t,0.8);
-  if(day>0.3) EVENTS.forEach((e,i)=>{ if(t<evNext[i]) return; if(evNext[i]>0){ const ks=e.ks.filter(k=>bufs[k]); if(ks.length) oneShot(ks[Math.floor(Math.random()*ks.length)],rnd(e.vol[0],e.vol[1]),rnd(-0.85,0.85),rnd(0.9,1.1)); }
+  bus('ev').gain.setTargetAtTime(day*dry*calm,t,0.8);
+  if(day>0.3&&calm>0.2) EVENTS.forEach((e,i)=>{ if(t<evNext[i]) return; if(evNext[i]>0){ const ks=e.ks.filter(k=>bufs[k]); if(ks.length) oneShot(ks[Math.floor(Math.random()*ks.length)],rnd(e.vol[0],e.vol[1]),rnd(-0.85,0.85),rnd(0.9,1.1)); }
     evNext[i]=t+rnd(e.gap[0],e.gap[1]); });
   const rg=ambLoop('rain'); if(rg) rg.gain.setTargetAtTime(0.7*rain,t,0.8);
   if(windG&&(bufs.dayA||bufs.windA||bufs.night)) windG.gain.value=0.02;   // Synth-Wind nur noch leise darunter
@@ -127,7 +128,7 @@ const snd={
   death(){ [392,330,262,196].forEach((f,i)=>tone(f,0.5,'sawtooth',0.14,f*0.9,i*0.28)); },
   win(){ [523,659,784,659,784,1047].forEach((f,i)=>tone(f,0.4,'triangle',0.2,0,i*0.16)); },
   click(){ tone(700,0.07,'triangle',0.12,1000); },
-  thunder(){ if(sample('thunder',rnd(0.55,1),rnd(0.85,1.1))) return; noise(0.25,0.35,2600,900,'bandpass'); noise(2.8,0.5,220,60,'lowpass',0.05); tone(48,2.2,'sine',0.22,30,0.05); },
+  thunder(){ { const ks=['thunder','thunderMid','thunderMid2','thunderFar','thunderFar'].filter(hasSample); if(ks.length){ const k=ks[Math.floor(Math.random()*ks.length)]; sample(k,k==='thunderFar'?rnd(0.6,1):rnd(0.5,0.95),rnd(0.82,1.08)); return; } } noise(0.25,0.35,2600,900,'bandpass'); noise(2.8,0.5,220,60,'lowpass',0.05); tone(48,2.2,'sine',0.22,30,0.05); },
   splash(){ noise(0.16,0.16,1800,700,'bandpass'); },
   step(v){ noise(0.06,v,260,120,'lowpass'); },
   bird(){ const b=rnd(1800,3200); for(let i=0;i<3;i++) tone(b*rnd(0.9,1.15),0.09,'sine',0.035,b*rnd(1.1,1.4),i*0.13); }
