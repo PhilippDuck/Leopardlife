@@ -18,7 +18,7 @@ import { updateUI } from './hud.js';
 
 /* ---------- Tag und Nacht ---------- */
 // S.tod: 0 = Mitternacht, 0.25 = Sonnenaufgang, 0.5 = Mittag, 0.75 = Sonnenuntergang. Ein ganzer Tag dauert DAY_LEN Sekunden.
-const DAY_LEN=480;
+const DAY_LEN=960;   // 16 Minuten je Tag
 let dayF=1, nightToastDone=false, sleeping=false, sleepCount=0;
 try{ sleepCount=+localStorage.getItem('jaguar-sleeps')||0; }catch(e){}
 const C_DAY_TOP=new THREE.Color(0x3f8fd6), C_DAY_HOR=new THREE.Color(HORIZON), C_NIGHT_TOP=new THREE.Color(0x040814), C_NIGHT_HOR=new THREE.Color(0x101a2e), C_DUSK=new THREE.Color(0xf08a4a);

@@ -4,7 +4,7 @@ import { snd } from './audio.js';
 import { nameOf, tell } from './coop.js';
 import { TRAITS } from './data.js';
 import { puff } from './effects.js';
-import { cub, feedCub, heirLevel } from './family.js';
+import { FOOD_MAX, cub, feedCub, heirLevel } from './family.js';
 import { fam, famPlace } from './kin.js';
 import { makeFur } from './models.js';
 import { P, players, rebuildPlayer } from './player.js';
@@ -12,7 +12,7 @@ import { S, fresh, maxHp, maxSt, save } from './save.js';
 import { G } from './state.js';
 import { toast } from './ui.js';
 import { rnd } from './util.js';
-import { recordAncestor } from './carcass.js';
+import { nearCarcass, recordAncestor, takeMeat } from './carcass.js';
 
 /** Neue Kennung für einen Leoparden */
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -82,6 +82,7 @@ function mateContextInfo(p){
   if(p.dead||G.paused) return null;
   const q=pairCandidate(p); if(q&&canPair(p,q)) return {label:'Paaren mit '+nameOf(q)};
   if(S.cub&&S.cub.grow<1&&S.food>0&&S.cub.full<97&&Math.hypot(cub.x-p.x,cub.z-p.z)<4.5) return {label:'Füttern'};
+  const cc=nearCarcass(p); if(cc){ if(p.L.hunger<90) return {label:'Fressen'}; if(S.cub&&S.cub.grow<1&&S.food<FOOD_MAX) return {label:'Fleisch mitnehmen'}; }
   return null;
 }
 /** Aktionstaste eines Mitspielers (X antippen): paaren, Junges füttern. */
@@ -90,6 +91,7 @@ function mateContext(p){
   const q=pairCandidate(p); if(q&&canPair(p,q)){ pairPlayers(p,q); return; }
   if(q&&related(p.L,q.L)&&p.L.lvl>=8&&!S.cub&&!(S.preg>0)){ tell(p,'Ihr seid verwandt – Verwandte paaren sich nicht.','#ff9ad0'); return; }
   if(S.cub&&S.cub.grow<1&&S.food>0&&S.cub.full<97&&Math.hypot(cub.x-p.x,cub.z-p.z)<4.5){ feedCub(); return; }
+  const cc=nearCarcass(p); if(cc){ if(p.L.hunger<90){ takeMeat(cc,false,p); return; } if(S.cub&&S.cub.grow<1&&S.food<FOOD_MAX){ takeMeat(cc,true,p); return; } }
 }
 
 ensureKin(S);

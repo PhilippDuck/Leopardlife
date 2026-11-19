@@ -19,7 +19,7 @@ durch Savanne und Sumpf.
   das gemeinsame Spiel hat einen eigenen Spielstand.
   Familie: Wer einsteigt, ist ein fremder Leopard – ab Stufe 8 können sich Spieler paaren (F bzw. X antippen). Ein Wurf hat ein
   Junges je Spieler; jeder entscheidet selbst, ob er als Junges weiterspielt. Junge eines Wurfs sind Geschwister: Verwandte paaren sich nicht.
-  Wer zu Boden geht, kann von Mitspielern wiederbelebt werden (daneben X bzw. F halten, 3 s), sonst erwacht er nach 20 s im Bau.
+  Wer zu Boden geht, kann von Mitspielern wiederbelebt werden (daneben X bzw. F halten, 3 s), sonst erwacht er nach einer Minute im Bau.
 
 ## Aufbau
 

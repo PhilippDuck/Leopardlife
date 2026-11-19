@@ -26,11 +26,13 @@ function makeCarcass(a,meat){
   if(sc.length&&Math.hypot(P.x-a.x,P.z-a.z)<80){ const hy=sc[0].sp.id==='hyena';
     setTimeout(()=>toast((hy?'Hyänen':'Schakale')+' haben die Beute gewittert und kommen!'+(sc[0].sp.hunt&&S.lvl<sc[0].sp.hunt?' Nimm dir, was du brauchst, und verschwinde.':''),'#f2b84b'),1200); }
 }
-function nearCarcass(){ for(const a of animals){ if(a.carc&&a.carc.meat>0&&Math.hypot(a.x-P.x,a.z-P.z)<a.rad+2.6) return a; } return null; }
-function takeMeat(c,store){
-  const n=store?Math.min(c.carc.meat,FOOD_MAX-S.food):Math.min(c.carc.meat,Math.max(1,Math.ceil((100-S.hunger)/10)));
+/** Kadaver mit Fleisch in Reichweite von Spieler p, sonst null */
+function nearCarcass(p=P){ for(const a of animals){ if(a.carc&&a.carc.meat>0&&Math.hypot(a.x-p.x,a.z-p.z)<a.rad+2.6) return a; } return null; }
+/** Spieler p frisst vom Kadaver c (store: Fleisch für das Junge in den Vorrat mitnehmen) */
+function takeMeat(c,store,p=P){
+  const L=p.L, n=store?Math.min(c.carc.meat,FOOD_MAX-S.food):Math.min(c.carc.meat,Math.max(1,Math.ceil((100-L.hunger)/10)));
   if(n<=0) return;
-  if(store) S.food+=n; else { S.hunger=Math.min(100,S.hunger+n*10); P.hp=Math.min(maxHp(),P.hp+maxHp()*0.05*n); }
+  if(store) S.food+=n; else { L.hunger=Math.min(100,L.hunger+n*10); p.hp=Math.min(maxHp(L),p.hp+maxHp(L)*0.05*n); }
   c.carc.meat-=n; snd.eat(); if(!store) goalEvent('meat',1); puff(c.x,H(c.x,c.z)+0.6,c.z,0xc0392b,5,0.4);
   floatText(store?'+'+n+' Futter im Vorrat':'gefressen',c.x,H(c.x,c.z)+1.4,c.z,store?'#ff9ad0':'#e0a060');
 }

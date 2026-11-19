@@ -23,7 +23,7 @@ import { drawRadar, updateCross, updateUI, updateWarn, warnArrows } from './hud.
 /** Höchstens so viele Spieler teilen sich den Bildschirm */
 const MAX_PLAYERS=4;
 /** Sekunden am Boden, bevor ein Spieler von selbst im Bau erwacht, und Haltezeit fürs Wiederbeleben */
-const DOWN_TIME=20, REVIVE_TIME=3, REVIVE_DIST=3;
+const DOWN_TIME=60, REVIVE_TIME=3, REVIVE_DIST=3;
 const NAMES=['Spieler 1','Spieler 2','Spieler 3','Spieler 4'];
 // Fell der Mitspieler: deutlich unterscheidbar, aber natürlich (hell, dunkler, kräftig)
 const FURS=[null,{l:1.12,s:0.8,sn:0.8,ss:1.2},{l:0.86,s:1.1,sn:1.4,ss:0.9},{l:1.02,s:1.25,sn:1.1,ss:1.35}];
