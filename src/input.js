@@ -1,6 +1,6 @@
 // LeopardLife – Eingabe über Tastatur, Maus und Touch, Umschalten der Anzeige je nach zuletzt benutzter Eingabe.
 import { canvas } from './engine.js';
-import { P, START_YAW } from './player.js';
+import { P } from './player.js';
 import { S } from './save.js';
 import { G } from './state.js';
 import { $ } from './util.js';
@@ -14,7 +14,7 @@ import { padSynth } from './gamepad.js';
 import { updateUI } from './hud.js';
 
 /* ---------- Eingabe ---------- */
-const keys={}; G.camYaw=START_YAW; G.camPitch=0.42; G.camZoom=1; G.paused=true; G.started=false;
+const keys={}; G.paused=true; G.started=false;
 G.joyX=0; G.joyY=0; G.tSprint=false;
 window.addEventListener('keydown',e=>{
   if(e.code==='Tab'){ e.preventDefault(); if(G.started) toggleSkills(); return; }
@@ -38,10 +38,10 @@ canvas.addEventListener('mousedown',e=>{ if(G.paused||touchUI()) return; G.drag=
 window.addEventListener('mouseup',e=>{ if(G.drag&&!touchUI()&&dragMoved<6&&e.button===0&&!G.paused&&document.pointerLockElement!==canvas&&e.target===canvas) doPounce(); G.drag=false; });
 window.addEventListener('mousemove',e=>{
   if(G.paused) return;
-  if(document.pointerLockElement===canvas){ G.camYaw-=e.movementX*0.0028; G.camPitch=Math.max(0.08,Math.min(1.25,G.camPitch+e.movementY*0.0022)); }
-  else if(G.drag){ const dx=e.clientX-lx, dy=e.clientY-ly; lx=e.clientX; ly=e.clientY; dragMoved+=Math.abs(dx)+Math.abs(dy); G.camYaw-=dx*0.005; G.camPitch=Math.max(0.08,Math.min(1.25,G.camPitch+dy*0.004)); }
+  if(document.pointerLockElement===canvas){ P.cam.yaw-=e.movementX*0.0028; P.cam.pitch=Math.max(0.08,Math.min(1.25,P.cam.pitch+e.movementY*0.0022)); }
+  else if(G.drag){ const dx=e.clientX-lx, dy=e.clientY-ly; lx=e.clientX; ly=e.clientY; dragMoved+=Math.abs(dx)+Math.abs(dy); P.cam.yaw-=dx*0.005; P.cam.pitch=Math.max(0.08,Math.min(1.25,P.cam.pitch+dy*0.004)); }
 });
-window.addEventListener('wheel',e=>{ if(G.paused) return; e.preventDefault(); G.camZoom=Math.max(0.45,Math.min(2.6,G.camZoom*(e.deltaY>0?1.12:1/1.12))); },{passive:false});
+window.addEventListener('wheel',e=>{ if(G.paused) return; e.preventDefault(); P.cam.zoom=Math.max(0.45,Math.min(2.6,P.cam.zoom*(e.deltaY>0?1.12:1/1.12))); },{passive:false});
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
 
 /* Touch */
@@ -80,7 +80,7 @@ if(isTouch){
   } },{passive:false});
   window.addEventListener('touchmove',e=>{ for(const t of e.changedTouches){
     if(t.identifier===joyId){ let dx=(t.clientX-jx0)/jr, dy=(t.clientY-jy0)/jr; const l=Math.hypot(dx,dy); if(l>1){dx/=l;dy/=l;} G.joyX=dx; G.joyY=dy; knob.style.transform='translate('+dx*jr*0.8+'px,'+dy*jr*0.8+'px)'; }
-    else if(t.identifier===camId){ G.camYaw-=(t.clientX-cx)*0.006; G.camPitch=Math.max(0.08,Math.min(1.25,G.camPitch+(t.clientY-cy)*0.005)); cx=t.clientX; cy=t.clientY; }
+    else if(t.identifier===camId){ P.cam.yaw-=(t.clientX-cx)*0.006; P.cam.pitch=Math.max(0.08,Math.min(1.25,P.cam.pitch+(t.clientY-cy)*0.005)); cx=t.clientX; cy=t.clientY; }
   } },{passive:false});
   const end=e=>{ for(const t of e.changedTouches){
     if(t.identifier===joyId){ joyId=null; G.joyX=G.joyY=0; knob.style.transform=''; joy.style.left=''; joy.style.top=''; joy.style.bottom=''; joy.classList.remove('act'); }

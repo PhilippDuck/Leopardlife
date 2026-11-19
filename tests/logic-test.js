@@ -1,5 +1,6 @@
 // Logiktest für LeopardLife: führt das Spielskript ohne Browser und ohne three.js aus.
 require('./check-imports.js');
+require('./check-names.js');
 // THREE, DOM und Audio werden durch Platzhalter ersetzt; geprüft wird die Spiellogik
 // (Jagd, Familie, Tag/Nacht, Wetter, Ziele, Klettern, Schwierigkeit …). Aufruf: node tests/logic-test.js
 // Führt das Spielskript mit Platzhaltern für THREE und DOM aus, um Laufzeitfehler (ReferenceError, TypeError) zu finden.

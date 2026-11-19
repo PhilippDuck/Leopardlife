@@ -47,7 +47,7 @@ function doPounce(){
   P.leap=false;
   if(P.tree!=null){ if(P.climbT<1) return; const h=P.upNow; P.leap=true; leaveTree(1); P.dropRate=h/(0.55+0.04*S.b.jmp); }
   P.st-=15; P.pounce=(P.leap?0.55:0.38)+0.04*S.b.jmp; P.pT=P.pounce; P.pcd=1.3-0.2*S.b.jmp; P.hit=false; snd.pounce();
-  P.rot=Math.atan2(-Math.sin(G.camYaw),-Math.cos(G.camYaw));
+  P.rot=Math.atan2(-Math.sin(P.cam.yaw),-Math.cos(P.cam.yaw));
 }
 function doRoar(){
   if(G.paused) return;
@@ -71,7 +71,7 @@ function hurtPlayer(d,a,force){
   if(dead||(P.safe&&!force)) return;
   if(!force) d*=D().dmg;
   snd.hurt();
-  P.hp-=d; P.combatT=5; G.shakeA=Math.max(G.shakeA,Math.min(0.6,0.15+d/maxHp())); if(padUI()) rumble(Math.min(1,0.35+d/maxHp()),0.5,220); $('hurt').style.opacity=0.8; P.hurtT=0.25;
+  P.hp-=d; P.combatT=5; P.cam.shake=Math.max(P.cam.shake,Math.min(0.6,0.15+d/maxHp())); if(padUI()) rumble(Math.min(1,0.35+d/maxHp()),0.5,220); $('hurt').style.opacity=0.8; P.hurtT=0.25;
   floatText('-'+Math.round(d),P.x,P.camY+1.5*pScale(),P.z,'#ff7a5c');
   if(P.hp<=0){
     P.hp=0; G.heirPending=!!S.cub; G.lineageEnd=!S.cub&&(a.sp.id==='age'||D().perma); let lost=0; if(!G.heirPending&&!G.lineageEnd){ lost=Math.floor(S.xp*D().xpLoss); S.xp-=lost; } save();
@@ -109,7 +109,7 @@ function respawn(){
   else if(G.lineageEnd){ recordAncestor(G.lastCause); archiveLine(); const df=S.diff; resetState(); S.diff=df; save(); if(REG_ID!=='savanne'){ reloadWorld(false); return; } rebuildPlayer(); rebuildCub(); animals.forEach(placeAnimal); G.raider=null; toast('Eine neue Blutlinie beginnt.','#f2b84b'); }
   else S.hunger=Math.max(S.hunger,70);
   G.heirPending=false; G.lineageEnd=false;
-  P.tree=null; P.safe=false; P.dropY=0; P.upNow=0; P.x=sx; P.z=sz; P.rot=START_ROT; G.camYaw=START_YAW; P.hp=maxHp(); P.st=maxSt(); P.pounce=0; P.pcd=0; P.sneak=false; P.combatT=0; P.g.rotation.z=0;
+  P.tree=null; P.safe=false; P.dropY=0; P.upNow=0; P.x=sx; P.z=sz; P.rot=START_ROT; P.cam.yaw=START_YAW; P.hp=maxHp(); P.st=maxSt(); P.pounce=0; P.pcd=0; P.sneak=false; P.combatT=0; P.g.rotation.z=0;
   animals.forEach(o=>{ o.aggro=0; o.sus=0; o.near=false; if(o.state==='chase'){ o.state='wander'; o.timer=0; } });
   updateWarn(0); $('hurt').style.opacity=0; $('dead').style.display='none'; dead=false; G.paused=false; initAudio(); snd.click();
   if(!touchUI()){ try{ const r=canvas.requestPointerLock(); if(r&&r.catch) r.catch(()=>{}); }catch(e){} }
@@ -123,8 +123,8 @@ function hitAnimal(a){
   a.hp-=d; P.combatT=5;
   floatText((amb?'Hinterhalt! ':'')+'-'+d,a.x,H(a.x,a.z)+a.sp.size*1.8,a.z,amb?'#f2b84b':'#fff');
   puff(a.x,H(a.x,a.z)+a.sp.size,a.z,0xc0392b,4,0.5);
-  G.lastHit=a; G.lastHitT=6; snd.hit(); if(amb){ snd.ambush(); goalEvent('amb',1); if(padUI()) rumble(0.25,0.6,120); G.slowT=Math.max(G.slowT,0.16); G.shakeA=Math.max(G.shakeA,0.3*pScale()); }
-  if(a.hp<=0){ snd.kill(); if(padUI()) rumble(0.5,0.8,180); G.slowT=Math.max(G.slowT,0.22); G.shakeA=Math.max(G.shakeA,0.4*pScale()); }
+  G.lastHit=a; G.lastHitT=6; snd.hit(); if(amb){ snd.ambush(); goalEvent('amb',1); if(padUI()) rumble(0.25,0.6,120); G.slowT=Math.max(G.slowT,0.16); P.cam.shake=Math.max(P.cam.shake,0.3*pScale()); }
+  if(a.hp<=0){ snd.kill(); if(padUI()) rumble(0.5,0.8,180); G.slowT=Math.max(G.slowT,0.22); P.cam.shake=Math.max(P.cam.shake,0.4*pScale()); }
   if(a.hp<=0){
     a.dead=true; a.respawn=rnd(18,30); S.kills=(S.kills||0)+1; goalEvent('kill',1,{sp:a.sp.id,night:dayF<0.5,herd:!!a.herd});
     { const n=FOOD[a.sp.id]||1, now=n>=4?Math.ceil(n/2):n; let rest=now;

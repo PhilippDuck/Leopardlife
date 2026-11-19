@@ -45,15 +45,15 @@ function pollPads(dt){
     padX=pdz(gp.axes[0]||0); padY=pdz(gp.axes[1]||0);
     padSprint=B(10)||!!(gp.buttons[7]&&gp.buttons[7].value>0.3);
     if(!G.paused){
-      G.camYaw-=pdz(gp.axes[2]||0)*dt*2.8; G.camPitch=Math.max(0.08,Math.min(1.25,G.camPitch+pdz(gp.axes[3]||0)*dt*1.8));
+      P.cam.yaw-=pdz(gp.axes[2]||0)*dt*2.8; P.cam.pitch=Math.max(0.08,Math.min(1.25,P.cam.pitch+pdz(gp.axes[3]||0)*dt*1.8));
       if(hit(0)) doPounce();
       if(hit(1)) P.sneak=!P.sneak;
       if(hit(2)) doContext();
       if(hit(3)) doClimb();
       if(hit(4)) doRoar();
-      if(hit(11)) G.camYaw=P.rot+Math.PI;
-      if(hit(12)) G.camZoom=Math.max(0.45,G.camZoom/1.15);
-      if(hit(13)) G.camZoom=Math.min(2.6,G.camZoom*1.15);
+      if(hit(11)) P.cam.yaw=P.rot+Math.PI;
+      if(hit(12)) P.cam.zoom=Math.max(0.45,P.cam.zoom/1.15);
+      if(hit(13)) P.cam.zoom=Math.min(2.6,P.cam.zoom*1.15);
     }
     if(hit(9)&&G.started) toggleMenu();
     if(hit(8)&&G.started) toggleSkills();

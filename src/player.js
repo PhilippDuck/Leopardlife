@@ -8,7 +8,8 @@ import { S, maxHp, maxSt } from './save.js';
 /* Spieler */
 // Blick beim Start und beim Aufwachen im Bau: seitlich an den Felsen vorbei ins offene Gelände
 const START_YAW=-1.9, START_ROT=1.24;
-const P={tree:null,climbT:0,safe:false,dropY:0,dropRate:20,upNow:0,camY:0,leap:false,x:2,z:2,y:0,rot:START_ROT,hp:1,st:1,pounce:0,pcd:0,rcd:0,sneak:false,hurtT:0,combatT:0,hidden:1,g:null,moving:0,walkT:0};
+// cam: eigene Kamera je Spieler (Blickrichtung, Neigung, Zoom, Jagd-Ansicht, Wackeln)
+const P={cam:{yaw:START_YAW,pitch:0.42,zoom:1,huntF:0,shake:0},tree:null,climbT:0,safe:false,dropY:0,dropRate:20,upNow:0,camY:0,leap:false,x:2,z:2,y:0,rot:START_ROT,hp:1,st:1,pounce:0,pcd:0,rcd:0,sneak:false,hurtT:0,combatT:0,hidden:1,g:null,moving:0,walkT:0};
 const JAG={col:0xe0a23c,col2:0xf0c98a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.44,ears:0.15,tail:1.1,tailTip:0x2a1c10,spots:1};
 function dropModel(g){ if(!g) return; scene.remove(g); const i=blobs.indexOf(g.userData.blob); if(i>=0) blobs.splice(i,1); }
 function rebuildPlayer(){ dropModel(P.g); P.g=buildQuad(JAG,S.fur||null); P.g.userData.blob.visible=!QUAL[quality].sh; scene.add(P.g); }

@@ -125,7 +125,7 @@ function updateFamArrow(dt){
   if(S.cub&&!cubGrown()&&(G.raider||S.cub.full<20)){ tx=cub.x; tz=cub.z; }
   else if(canMate()&&seekT<15){ const m=nearestMate(); if(m){ tx=m.a.x; tz=m.a.z; } }
   if(tx===null||Math.hypot(tx-P.x,tz-P.z)<9){ el.style.display='none'; return; }
-  const dx=tx-P.x, dz=tz-P.z, s=Math.sin(G.camYaw), c=Math.cos(G.camYaw), ang=Math.atan2(dx*c-dz*s,-(dx*s+dz*c)), R=Math.min(window.innerWidth,window.innerHeight)*0.27;
+  const dx=tx-P.x, dz=tz-P.z, s=Math.sin(P.cam.yaw), c=Math.cos(P.cam.yaw), ang=Math.atan2(dx*c-dz*s,-(dx*s+dz*c)), R=Math.min(window.innerWidth,window.innerHeight)*0.27;
   el.style.display='block'; el.style.transform='rotate('+ang+'rad) translateY('+(-R)+'px) scale(0.8)';
 }
 

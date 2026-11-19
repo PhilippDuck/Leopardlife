@@ -23,7 +23,7 @@ import { W } from './weather.js';
 const rc=$('rc').getContext('2d');   // Spürkarte
 const waPool=[]; let beatT=0;
 function updateWarn(dt){
-  const ring=$('warnRing'), R=Math.min(window.innerWidth,window.innerHeight)*0.33, s=Math.sin(G.camYaw), c=Math.cos(G.camYaw);
+  const ring=$('warnRing'), R=Math.min(window.innerWidth,window.innerHeight)*0.33, s=Math.sin(P.cam.yaw), c=Math.cos(P.cam.yaw);
   let n=0, top=null, topV=-1, maxSus=0;
   for(const a of animals){
     if(a.dead||!a.sp.fight) continue;
@@ -52,18 +52,18 @@ function updateWarn(dt){
   beatT-=dt; if(maxSus>0&&beatT<=0){ beatT=0.95-0.6*maxSus; snd.beat(maxSus); }
 }
 function updateCamera(){
-  G.huntF+=(((P.sneak&&P.tree==null&&!dead&&!G.paused)?1:0)-G.huntF)*0.06;
-  const sc=pScale(), dist=(5+sc*6.5)*G.camZoom*(1-0.3*G.huntF), ty=P.camY+sc*1.1+dist*0.16;
-  const fov=60-8*G.huntF; if(Math.abs(camera.fov-fov)>0.05){ camera.fov=fov; camera.updateProjectionMatrix(); }
-  const cp=Math.cos(G.camPitch);
-  let cx=P.x+Math.sin(G.camYaw)*dist*cp, cz=P.z+Math.cos(G.camYaw)*dist*cp, cy=ty+Math.sin(G.camPitch)*dist;
+  P.cam.huntF+=(((P.sneak&&P.tree==null&&!dead&&!G.paused)?1:0)-P.cam.huntF)*0.06;
+  const sc=pScale(), dist=(5+sc*6.5)*P.cam.zoom*(1-0.3*P.cam.huntF), ty=P.camY+sc*1.1+dist*0.16;
+  const fov=60-8*P.cam.huntF; if(Math.abs(camera.fov-fov)>0.05){ camera.fov=fov; camera.updateProjectionMatrix(); }
+  const cp=Math.cos(P.cam.pitch);
+  let cx=P.x+Math.sin(P.cam.yaw)*dist*cp, cz=P.z+Math.cos(P.cam.yaw)*dist*cp, cy=ty+Math.sin(P.cam.pitch)*dist;
   cy=Math.max(cy,H(cx,cz)+0.6);
-  if(G.shakeA>0){ cx+=(Math.random()-0.5)*G.shakeA; cy+=(Math.random()-0.5)*G.shakeA; cz+=(Math.random()-0.5)*G.shakeA; G.shakeA=Math.max(0,G.shakeA*0.86-0.005); }
+  if(P.cam.shake>0){ cx+=(Math.random()-0.5)*P.cam.shake; cy+=(Math.random()-0.5)*P.cam.shake; cz+=(Math.random()-0.5)*P.cam.shake; P.cam.shake=Math.max(0,P.cam.shake*0.86-0.005); }
   camera.position.set(cx,cy,cz); camera.lookAt(P.x,ty,P.z);
 }
 function updateCross(){
   // Fadenkreuz leuchtet, wenn ein Tier in Sprungrichtung und -reichweite ist
-  const fx=-Math.sin(G.camYaw), fz=-Math.cos(G.camYaw), sc=pScale();
+  const fx=-Math.sin(P.cam.yaw), fz=-Math.cos(P.cam.yaw), sc=pScale();
   const range=(19+3*S.b.jmp+baseSpeed()*0.5)*(0.38+0.04*S.b.jmp);
   let on=false;
   for(const a of animals){ if(a.dead||a.sp.friend||!a.g.visible) continue; const dx=a.x-P.x, dz=a.z-P.z, along=dx*fx+dz*fz;
@@ -147,7 +147,7 @@ function drawRadar(){
   if(want>0&&want!==radarPx){ radarPx=want; cv.width=cv.height=want; }
   const W=cv.width||280, R=45+22*S.b.nose+(has('nase')?25:0), k=W/2/R, sc=W/280;
   rc.setTransform(1,0,0,1,0,0); rc.clearRect(0,0,W,W); rc.fillStyle='rgba(30,50,25,.55)'; rc.fillRect(0,0,W,W);
-  rc.save(); rc.translate(W/2,W/2); rc.rotate(G.camYaw);
+  rc.save(); rc.translate(W/2,W/2); rc.rotate(P.cam.yaw);
   rc.save(); rc.scale(k/RB,k/RB); rc.drawImage(radarBg,-(P.x+RW)*RB,-(P.z+RW)*RB); rc.restore();
   if(S.cub){ const dx=cub.x-P.x, dz=cub.z-P.z; if(dx*dx+dz*dz<R*R){ rc.fillStyle='#ff7ab8'; rc.fillRect(dx*k-6*sc,dz*k-6*sc,12*sc,12*sc); } }
   for(let g=0;g<4;g++){
@@ -164,7 +164,7 @@ function drawRadar(){
   let sense=0; for(const sp of SPECIES){ if(sp.hunt&&S.lvl<sp.hunt&&sp.sense>sense) sense=sp.sense; }
   const danger=sense>0; if(!danger) sense=24;
   const base=sense*P.hidden*D().sense;
-  rc.save(); rc.translate(W/2,W/2); rc.rotate(G.camYaw);
+  rc.save(); rc.translate(W/2,W/2); rc.rotate(P.cam.yaw);
   if(base*k>3){ rc.strokeStyle=danger?'rgba(255,110,80,.9)':'rgba(155,224,127,.9)'; rc.lineWidth=3*sc; rc.setLineDash([9*sc,7*sc]); rc.beginPath();
     for(let i=0;i<=48;i++){ const t=i/48*6.283, ux=Math.cos(t), uz=Math.sin(t), r=Math.min(base*windMulDir(ux,uz),R)*k; if(i) rc.lineTo(ux*r,uz*r); else rc.moveTo(ux*r,uz*r); }
     rc.stroke(); rc.setLineDash([]); }

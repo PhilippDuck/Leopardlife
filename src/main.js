@@ -67,12 +67,12 @@ function frame(now){
 }
 function step(dt){
   // Kameratasten
-  if(keys.ArrowLeft) G.camYaw+=dt*2; if(keys.ArrowRight) G.camYaw-=dt*2;
-  if(keys.ArrowUp) G.camPitch=Math.max(0.08,G.camPitch-dt); if(keys.ArrowDown) G.camPitch=Math.min(1.25,G.camPitch+dt);
+  if(keys.ArrowLeft) P.cam.yaw+=dt*2; if(keys.ArrowRight) P.cam.yaw-=dt*2;
+  if(keys.ArrowUp) P.cam.pitch=Math.max(0.08,P.cam.pitch-dt); if(keys.ArrowDown) P.cam.pitch=Math.min(1.25,P.cam.pitch+dt);
   // Bewegung
   let fw=(keys.KeyW?1:0)-(keys.KeyS?1:0)-G.joyY-padY, rt=(keys.KeyD?1:0)-(keys.KeyA?1:0)+G.joyX+padX;
   const il=Math.hypot(fw,rt); if(il>1){ fw/=il; rt/=il; }
-  const s=Math.sin(G.camYaw), c=Math.cos(G.camYaw);
+  const s=Math.sin(P.cam.yaw), c=Math.cos(P.cam.yaw);
   let mx=-s*fw+c*rt, mz=-c*fw-s*rt;
   const moving=il>0.1&&P.tree==null;
   const wantSprint=(keys.ShiftLeft||keys.ShiftRight||G.tSprint||padSprint)&&moving&&!P.sneak;
