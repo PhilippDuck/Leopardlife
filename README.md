@@ -4,7 +4,7 @@ Third-Person-Jagdspiel im Browser (Three.js, installierbar als PWA). Du beginnst
 jagst, versteckst dich vor Raubtieren, wächst, gründest eine Familie und führst deine Blutlinie über Generationen
 durch Savanne und Sumpf.
 
-**Spielen:** https://philippduck.github.io/leopardlife/
+**Spielen:** https://philippduck.github.io/Leopardlife/
 
 ## Inhalt
 
@@ -22,21 +22,47 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 | Datei | Zweck |
 |---|---|
 | `index.html` | Seite, Stile und Oberfläche |
-| `src/main.js` | Einstieg und restliche Spiellogik (wird weiter aufgeteilt) |
-| `src/data.js` | Feste Spieldaten: Tierarten, Gebiete, Erbanlagen, Eigenschaften, Schwierigkeit, Icons |
-| `src/save.js` | Spielstand, Gebiet, Schwierigkeit und abgeleitete Werte (Leben, Schaden, Tempo …) |
-| `src/engine.js` | Renderer, Szene, Kamera, Licht, Wind |
-| `src/sky.js` | Himmel, Wolken, Sterne |
-| `src/terrain.js` | Gelände, Wasserlöcher, Kacheln, Boden, Hindernisse |
-| `src/vegetation.js` | Bäume, Büsche, Gras, Verstecke |
-| `src/audio.js` | Geräusche, Umgebungston und Musik (WebAudio) |
-| `src/state.js` | Gemeinsamer veränderlicher Zustand `G` |
-| `src/util.js` | Kleine Hilfsfunktionen |
+| `src/actions.js` | Aktionen des Leoparden: Sprung, Klettern, Brüllen, Treffer austeilen und einstecken, Tod und Neubeginn |
+| `src/ai.js` | Tierverhalten: Rudeljagd, Flucht, Angriff, Herden |
+| `src/animals.js` | Alle Tiere der Welt: Anlegen pro Gebiet, Platzieren und Herden bilden |
+| `src/audio.js` | Ton: Geräusche, Umgebung (Wind, Vögel) und laufend erzeugte Musik, alles synthetisch über WebAudio |
+| `src/carcass.js` | Kadaver, Aasfresser, Herden und Ahnenbuch |
+| `src/crocodile.js` | Krokodile: lauern im Wasser und schnellen hervor |
+| `src/data.js` | Feste Spieldaten: Eigenschaften, Fähigkeiten, Erbanlagen, Schwierigkeitsgrade, Gebiete, |
+| `src/daynight.js` | Tag und Nacht: Sonne, Mond, Himmelsfarben, Nebel, Nachtsicht, Schlafen auf Bäumen |
+| `src/effects.js` | Partikel-Wolken (Staub, Blut, Blasen) |
+| `src/engine.js` | Darstellung: Zeichenfläche, Renderer, Szene, Kamera, Licht (Himmelslicht, Sonne/Mond), Wind und Fenstergröße |
+| `src/events.js` | Einfache Ereignisse zwischen Modulen, damit sich niedrige Schichten (Grafik, Welt) |
+| `src/family.js` | Partnersuche, Paarung, Junges (Füttern, Wachsen, Überfälle) und Weiterleben als Junges |
+| `src/gamepad.js` | Controller-Steuerung (Xbox-Belegung) und Menübedienung per Controller |
+| `src/goals.js` | Tagesziele |
+| `src/hide.js` | Versteck-Anzeige am Fadenkreuz und dunkler Bildrand |
+| `src/hud.js` | Anzeige: Entdeckungswarnung, Kamera, Fadenkreuz, Statusleisten, Ziel, Spürkarte |
+| `src/input.js` | Eingabe über Tastatur, Maus und Touch, Umschalten der Anzeige je nach zuletzt benutzter Eingabe |
+| `src/kin.js` | Partner und Elterntiere am Bau: verteidigen, Futter bringen, beschützen; Wechsel ins Junge |
+| `src/life.js` | Lebenslauf: Hunger, Altern, Fressen aus dem Vorrat |
+| `src/main.js` | Einstieg: Hauptschleife (Bild für Bild: Spieler, Tiere, Kamera, Anzeige) und Spielstart |
+| `src/menu.js` | Pausenmenü, Einstellungen, Steuerungsliste, Neustart |
+| `src/models.js` | Tiermodelle aus Blöcken, Fellvarianten (inkl. Albino und Panther), Zusammenführen starrer Teile, Laufanimation |
+| `src/perf.js` | Leistung: Schattentakt, automatische Auflösung, Bildratenanzeige |
+| `src/player.js` | Der Leopard des Spielers: Zustand, Startposition und Modell |
+| `src/quality.js` | Grafikstufen (niedrig/hoch/ultra) anwenden: Auflösung, Schatten, Gras, Nebel, Sichtweite |
+| `src/regions.js` | Gebiete-Fenster und Wandern zwischen Gebieten |
+| `src/save.js` | Spielstand: Laden/Speichern, Gebiet, Schwierigkeit und daraus abgeleitete Werte (Leben, Ausdauer, Schaden, Tempo …) |
+| `src/skills.js` | Entwicklungsfenster: Eigenschaften, Fähigkeiten, Erbanlagen, Ahnenkraft |
+| `src/sky.js` | Himmel: Farbverlauf mit Sonne, Wolken und Sterne |
+| `src/state.js` | Gemeinsamer veränderlicher Zustand, den mehrere Teile des Spiels lesen und schreiben |
+| `src/terrain.js` | Gelände: Höhenformel und Wasserlöcher, Kacheln mit Sichtbarkeitsprüfung, Boden, fernes Umland, Wasser und Hindernisse (Kollision) |
+| `src/tracks.js` | Spuren und Fährten der Tiere |
+| `src/ui.js` | Meldungen (mit Warteschlange) und schwebende Texte |
+| `src/util.js` | Kleine Hilfsfunktionen ohne Spielzustand |
+| `src/vegetation.js` | Pflanzen: Bäume (mit Ausblenden vor der Kamera), Büsche, Felsen, Stämme, Blumen, Bodengras, hohes Gras als Versteck und die Felsen am Bau |
+| `src/weather.js` | Wetter: Regen und Gewitter |
 | `vendor/three.min.js` | three.js r128 |
 | `sw.js` | Service Worker für Installation und Offline-Betrieb |
 | `manifest.webmanifest`, `icon-*.png` | PWA-Angaben und Icons |
-| `tests/logic-test.js` | Logiktest ohne Browser |
-| `tools/shot.py` | Startet das Spiel in Headless-Chrome und macht Bildschirmfotos |
+| `tests/logic-test.js` | Logiktest ohne Browser (prüft vorher mit `tests/check-imports.js`, dass jeder Import exportiert wird) |
+| `tools/shot.py` | Startet das Spiel in Headless-Chrome, öffnet alle Fenster, macht Bildschirmfotos und meldet Fehler |
 
 Nach Änderungen am Spiel `python3 tools/bump-sw.py` ausführen: Das trägt alle Module in den Service-Worker-Cache ein und zählt die Version hoch, sonst behalten installierte Geräte den alten Stand.
 
