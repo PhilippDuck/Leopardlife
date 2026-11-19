@@ -11,6 +11,7 @@ import { GLSL_H, GLSL_PONDMASK, H, PONDS, WATER_D, WORLD, addCol, collide, cullT
 import { _tm, _tv, inGrass, leafGeoHi, leafGeoLo, leafMeshes, leafTime, patches, tallGeo, tallMat, trees, updateTrees } from './vegetation.js';
 import { PX_BASE, VIEW_D, applyQuality, blobs, quality } from './quality.js';
 import { animLegs, buildQuad, furColor, furName, makeFur } from './models.js';
+import { P, START_ROT, START_YAW, dropModel, rebuildPlayer } from './player.js';
 if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }); }
 if(!window.THREE){ $('err').textContent='Three.js konnte nicht geladen werden. Bitte Seite neu laden.'; $('btnPlay').disabled=true; throw new Error('three.js fehlt'); }
 
@@ -28,16 +29,6 @@ function updateEnv(dt,now){
   for(let i=0;i<waters.length;i++){ const w=waters[i]; w.position.y=w.userData.y+Math.sin(t*0.8+i)*0.03; }
 }
 
-
-/* Spieler */
-// Blick beim Start und beim Aufwachen im Bau: seitlich an den Felsen vorbei ins offene Gelände
-const START_YAW=-1.9, START_ROT=1.24;
-const P={tree:null,climbT:0,safe:false,dropY:0,dropRate:20,upNow:0,camY:0,leap:false,x:2,z:2,y:0,rot:START_ROT,hp:1,st:1,pounce:0,pcd:0,rcd:0,sneak:false,hurtT:0,combatT:0,hidden:1,g:null,moving:0,walkT:0};
-const JAG={col:0xe0a23c,col2:0xf0c98a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.44,ears:0.15,tail:1.1,tailTip:0x2a1c10,spots:1};
-function dropModel(g){ if(!g) return; scene.remove(g); const i=blobs.indexOf(g.userData.blob); if(i>=0) blobs.splice(i,1); }
-function rebuildPlayer(){ dropModel(P.g); P.g=buildQuad(JAG,S.fur||null); P.g.userData.blob.visible=!QUAL[quality].sh; scene.add(P.g); }
-rebuildPlayer();
-scene.add(P.g); P.hp=maxHp(); P.st=maxSt();
 
 /* ---------- Tierarten ---------- */
 // ring: Abstand vom Zentrum. hunt: jagt Spieler unter dieser Stufe. fight: wehrt sich.
@@ -1300,4 +1291,4 @@ drawRadar();
 requestAnimationFrame(frame);
 
 // Von anderen Modulen zur Laufzeit benutzt
-export { P, updateDayNight };
+export { updateDayNight };

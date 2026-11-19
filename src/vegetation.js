@@ -1,10 +1,10 @@
 // LeopardLife – Pflanzen: Bäume (mit Ausblenden vor der Kamera), Büsche, Felsen, Stämme, Blumen, Bodengras, hohes Gras als Versteck und die Felsen am Bau.
 import { camera, grassLight, scene, windU } from './engine.js';
-import { P } from './main.js';
 import { REG, pScale } from './save.js';
 import { G } from './state.js';
 import { GLSL_H, GLSL_PONDMASK, H, PONDS, WORLD, addCol, pondAt, registerTile, tileOf } from './terrain.js';
 import { rnd } from './util.js';
+import { P } from './player.js';
 
 /* Bäume: aus mehreren Teilen (Stamm, Äste, Wurzeln, Laubballen). Arten: Urwaldbaum, Urwaldriese, Schirmakazie, toter Baum, Palme am Wasser.
    Werden ausgeblendet, wenn ihre Krone zwischen Kamera und Leopard steht. */
