@@ -46,9 +46,6 @@ function updateEnv(dt,now){
 }
 
 
-/* ---------- Trefferfeedback und Jagd-Ansicht ---------- */
-// slowT: kurze Zeitlupe nach Hinterhalt und Beute; shakeA: Kamerawackeln; huntF: Kamera rückt beim Schleichen näher
-G.slowT=0; G.shakeA=0; G.huntF=0;
 
 /* ---------- Krokodile: lauern abgetaucht im Wasser, schnellen hervor, wenn du zu nah kommst, und ziehen sich danach zurück ---------- */
 function crocStep(a,dt,d,dx,dz,stealth,hostile){
