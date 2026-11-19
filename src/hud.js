@@ -1,5 +1,5 @@
 // LeopardLife – Anzeige: Entdeckungswarnung, Kamera, Fadenkreuz, Statusleisten, Ziel, Spürkarte.
-import { nearestTree } from './actions.js';
+import { POUNCE, nearestTree } from './actions.js';
 import { animals } from './animals.js';
 import { snd } from './audio.js';
 import { esc } from './carcass.js';
@@ -92,14 +92,14 @@ function updateCamera(p,cam){
 function updateCross(p=P){
   const h=id=>hEl(p,id);
   // Fadenkreuz leuchtet, wenn ein Tier in Sprungrichtung und -reichweite ist
-  const fx=-Math.sin(p.cam.yaw), fz=-Math.cos(p.cam.yaw), sc=pScale(p.L);
+  const fx=POUNCE.run?Math.sin(p.rot):-Math.sin(p.cam.yaw), fz=POUNCE.run?Math.cos(p.rot):-Math.cos(p.cam.yaw), sc=pScale(p.L);
   const range=(19+3*p.L.b.jmp+baseSpeed(p.L)*0.5)*(0.38+0.04*p.L.b.jmp);
   let on=false;
   for(const a of animals){ if(a.dead||a.sp.friend||!a.g.visible) continue; const dx=a.x-p.x, dz=a.z-p.z, along=dx*fx+dz*fz;
     if(along<0||along>range+a.rad) continue; const side=Math.abs(dx*fz-dz*fx);
     if(side<a.rad+0.5+sc*0.8){ on=true; break; } }
   const low=p.st<15, cr=h('cross'), ring=h('stRing'), fr=Math.max(0,Math.min(1,p.st/maxSt(p.L)));
-  cr.classList.toggle('on',on&&p.pcd<=0&&!low); cr.classList.toggle('no',low);
+  cr.classList.toggle('on',on&&p.pcd<=0&&!low); cr.classList.toggle('no',low); cr.classList.toggle('run',POUNCE.run);
   h('stArc').style.strokeDashoffset=169.65*(1-fr);
   ring.classList.toggle('low',low);
   ring.style.opacity=low?1:Math.max(0,Math.min(1,(0.5-fr)/0.2))*0.9;

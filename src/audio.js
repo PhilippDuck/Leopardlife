@@ -189,9 +189,9 @@ function mSchedule(i,t){
   mNoise(t,0.05,s%2?0.028:0.014,6500);                                            // Rassel
 }
 /* Aufgenommene Musik: leise im Hintergrund, ein Stück nach dem anderen in zufälliger Reihenfolge,
-   dazwischen 20–60 s Pause; bei Gewitter oder Gefahr tritt sie zurück. Solange keine Aufnahme geladen ist, spielt die Synth-Musik. */
+   vier bis sieben Stücke am Stück (übergeblendet), dann 5–15 s Pause; bei Gewitter oder Gefahr tritt sie zurück. Solange keine Aufnahme geladen ist, spielt die Synth-Musik. */
 const MUSIC=['music1','music2','music3','music4'], MUSIC_VOL=0.16;
-let mFileNext=8, mFileGain=null, mLast='';
+let mFileNext=8, mFileGain=null, mLast='', mRun=0;
 const musicFilesReady=()=>MUSIC.some(k=>bufs[k]);
 function musicFiles(t,duck){
   if(!musicFilesReady()) return;
@@ -202,7 +202,9 @@ function musicFiles(t,duck){
   const b=bufs[k], s=AC.createBufferSource(); s.buffer=b; const g=AC.createGain(), d=b.duration;
   g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(MUSIC_VOL,t+3); g.gain.setValueAtTime(MUSIC_VOL,t+d-4); g.gain.linearRampToValueAtTime(0.0001,t+d);
   s.connect(g); g.connect(mFileGain); s.start(t);
-  mFileNext=t+d+rnd(20,60);
+  // mehrere Stücke am Stück, weich übergeblendet; danach nur eine kurze Pause
+  if(mRun<=0) mRun=Math.floor(rnd(4,8)); mRun--;
+  mFileNext=mRun>0?t+d-3:t+d+rnd(5,15);
 }
 function musicTick(){
   if(!AC||!musicOn||AC.state!=='running'||musicFilesReady()) return;
