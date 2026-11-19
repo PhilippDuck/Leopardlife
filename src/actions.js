@@ -22,40 +22,44 @@ import { padUI, rumble } from './gamepad.js';
 import { updateUI, updateWarn } from './hud.js';
 
 /* ---------- Aktionen ---------- */
-function nearestTree(){
-  let bi=-1, bd=1e9; for(let i=0;i<trees.length;i++){ const t=trees[i], d=Math.hypot(t.x-P.x,t.z-P.z); if(d<bd){ bd=d; bi=i; } }
+/** Index des nächsten erreichbaren Baums für Spieler p, sonst -1. */
+function nearestTree(p=P){
+  let bi=-1, bd=1e9; for(let i=0;i<trees.length;i++){ const t=trees[i], d=Math.hypot(t.x-p.x,t.z-p.z); if(d<bd){ bd=d; bi=i; } }
   return bd<3.4+pScale()*0.8?bi:-1;
 }
-function leaveTree(rate){ P.dropY=P.upNow; P.dropRate=rate; P.tree=null; P.safe=false; P.upNow=0; }
-function doClimb(){
-  if(G.paused||P.pounce>0) return;
-  if(P.tree!=null){ leaveTree(24); P.x+=Math.sin(P.rot)*1.6; P.z+=Math.cos(P.rot)*1.6; snd.step(0.25); return; }
+function leaveTree(p,rate){ p.dropY=p.upNow; p.dropRate=rate; p.tree=null; p.safe=false; p.upNow=0; }
+/** Klettern bzw. vom Baum herunter für Spieler p. Fähigkeiten und Ausdauer-Anzeige gelten noch gemeinsam. */
+function doClimb(p=P){
+  if(G.paused||p.pounce>0) return;
+  if(p.tree!=null){ leaveTree(p,24); p.x+=Math.sin(p.rot)*1.6; p.z+=Math.cos(p.rot)*1.6; snd.step(0.25); return; }
   if(S.b.climb<1){ toast('Klettern ist noch nicht gelernt (Tab)','#b9b7a6'); return; }
-  const i=nearestTree(); if(i<0){ toast('Kein Baum in Reichweite','#b9b7a6'); return; }
-  const cost=45-5*(S.b.climb-1); if(P.st<cost){ noStamina(); return; } P.st-=cost;
-  goalEvent('climb',1); P.tree=i; P.climbT=0; P.fromX=P.x; P.fromZ=P.z; P.sneak=false; P.dropY=0; snd.climb();
+  const i=nearestTree(p); if(i<0){ toast('Kein Baum in Reichweite','#b9b7a6'); return; }
+  const cost=45-5*(S.b.climb-1); if(p.st<cost){ noStamina(); return; } p.st-=cost;
+  goalEvent('climb',1); p.tree=i; p.climbT=0; p.fromX=p.x; p.fromZ=p.z; p.sneak=false; p.dropY=0; snd.climb();
 }
 G.noStT=0;
 function noStamina(){
   const r=$('stRing'); r.classList.remove('flash'); void r.getBoundingClientRect(); r.classList.add('flash');
   $('crossMsg').style.opacity=1; G.noStT=1.1; tone(140,0.12,'square',0.1,100);
 }
-function doPounce(){
-  if(G.paused||P.pounce>0||P.pcd>0) return;
-  if(P.tree!=null&&P.climbT<1) return;
-  if(P.st<15){ noStamina(); return; }
-  P.leap=false;
-  if(P.tree!=null){ if(P.climbT<1) return; const h=P.upNow; P.leap=true; leaveTree(1); P.dropRate=h/(0.55+0.04*S.b.jmp); }
-  P.st-=15; P.pounce=(P.leap?0.55:0.38)+0.04*S.b.jmp; P.pT=P.pounce; P.pcd=1.3-0.2*S.b.jmp; P.hit=false; snd.pounce();
-  P.rot=Math.atan2(-Math.sin(P.cam.yaw),-Math.cos(P.cam.yaw));
+/** Sprungangriff von Spieler p in Blickrichtung seiner Kamera (vom Baum: Sprung nach unten). */
+function doPounce(p=P){
+  if(G.paused||p.pounce>0||p.pcd>0) return;
+  if(p.tree!=null&&p.climbT<1) return;
+  if(p.st<15){ noStamina(); return; }
+  p.leap=false;
+  if(p.tree!=null){ if(p.climbT<1) return; const h=p.upNow; p.leap=true; leaveTree(p,1); p.dropRate=h/(0.55+0.04*S.b.jmp); }
+  p.st-=15; p.pounce=(p.leap?0.55:0.38)+0.04*S.b.jmp; p.pT=p.pounce; p.pcd=1.3-0.2*S.b.jmp; p.hit=false; snd.pounce();
+  p.rot=Math.atan2(-Math.sin(p.cam.yaw),-Math.cos(p.cam.yaw));
 }
-function doRoar(){
+/** Brüllen von Spieler p: Raubtiere fliehen, Beute erstarrt. */
+function doRoar(p=P){
   if(G.paused) return;
   if(S.b.roar<1){ toast('Brüllen ist noch nicht gelernt (Tab)','#b9b7a6'); return; }
-  if(P.rcd>0) return;
-  P.rcd=22-3*S.b.roar; const R=16+7*S.b.roar;
-  puff(P.x,P.y+1,P.z,0xffffff,10,0.6); toast('ROAAAR!','#f2b84b'); snd.roar();
-  animals.forEach(a=>{ if(a.dead) return; const d=Math.hypot(a.x-P.x,a.z-P.z); if(d>R) return;
+  if(p.rcd>0) return;
+  p.rcd=22-3*S.b.roar; const R=16+7*S.b.roar;
+  puff(p.x,p.y+1,p.z,0xffffff,10,0.6); toast('ROAAAR!','#f2b84b'); snd.roar();
+  animals.forEach(a=>{ if(a.dead) return; const d=Math.hypot(a.x-p.x,a.z-p.z); if(d>R) return;
     if(a.sp.pred){ if(!a.sp.hunt||S.lvl+2*S.b.roar>=a.sp.hunt-3){ a.state='flee'; a.fleeT=0; a.aggro=0; a.scared=5; } }
     else if(!a.sp.boss&&!a.sp.friend){ a.stun=1.2+0.5*S.b.roar; } });
 }
@@ -115,16 +119,17 @@ function respawn(){
   if(!touchUI()){ try{ const r=canvas.requestPointerLock(); if(r&&r.catch) r.catch(()=>{}); }catch(e){} }
 }
 $('btnRespawn').onclick=respawn;
-function hitAnimal(a){
+/** Spieler p trifft Tier a: Schaden, Hinterhalt, Beute, Erfahrung (Erfahrung und Stufe sind noch gemeinsam). */
+function hitAnimal(a,p=P){
   let d=dmg(), amb=false;
   if(a.state==='wander'||a.state==='lurk'||a.stun>0){ d*=2+0.6*S.b.amb; amb=true; }
-  if(P.leap){ d*=1.25+0.25*S.b.climb; P.leap=false; floatText('Sprung vom Baum!',P.x,P.camY+2*pScale(),P.z,'#9be07f'); }
+  if(p.leap){ d*=1.25+0.25*S.b.climb; p.leap=false; floatText('Sprung vom Baum!',p.x,p.camY+2*pScale(),p.z,'#9be07f'); }
   d=Math.round(d*rnd(0.9,1.1));
-  a.hp-=d; P.combatT=5;
+  a.hp-=d; p.combatT=5;
   floatText((amb?'Hinterhalt! ':'')+'-'+d,a.x,H(a.x,a.z)+a.sp.size*1.8,a.z,amb?'#f2b84b':'#fff');
   puff(a.x,H(a.x,a.z)+a.sp.size,a.z,0xc0392b,4,0.5);
-  G.lastHit=a; G.lastHitT=6; snd.hit(); if(amb){ snd.ambush(); goalEvent('amb',1); if(padUI()) rumble(0.25,0.6,120); G.slowT=Math.max(G.slowT,0.16); P.cam.shake=Math.max(P.cam.shake,0.3*pScale()); }
-  if(a.hp<=0){ snd.kill(); if(padUI()) rumble(0.5,0.8,180); G.slowT=Math.max(G.slowT,0.22); P.cam.shake=Math.max(P.cam.shake,0.4*pScale()); }
+  G.lastHit=a; G.lastHitT=6; snd.hit(); if(amb){ snd.ambush(); goalEvent('amb',1); if(padUI()) rumble(0.25,0.6,120); G.slowT=Math.max(G.slowT,0.16); p.cam.shake=Math.max(p.cam.shake,0.3*pScale()); }
+  if(a.hp<=0){ snd.kill(); if(padUI()) rumble(0.5,0.8,180); G.slowT=Math.max(G.slowT,0.22); p.cam.shake=Math.max(p.cam.shake,0.4*pScale()); }
   if(a.hp<=0){
     a.dead=true; a.respawn=rnd(18,30); S.kills=(S.kills||0)+1; goalEvent('kill',1,{sp:a.sp.id,night:dayF<0.5,herd:!!a.herd});
     { const n=FOOD[a.sp.id]||1, now=n>=4?Math.ceil(n/2):n; let rest=now;
@@ -132,9 +137,9 @@ function hitAnimal(a){
       if(rest>0) S.hunger=Math.min(100,S.hunger+rest*10);
       if(n>=4) makeCarcass(a,n-now); else a.g.visible=false; }
     puff(a.x,H(a.x,a.z)+a.sp.size*0.7,a.z,a.sp.m.col,10,0.5+a.sp.size*0.5);
-    P.hp=Math.min(maxHp(),P.hp+maxHp()*0.25+a.sp.xp*0.1);
+    p.hp=Math.min(maxHp(),p.hp+maxHp()*0.25+a.sp.xp*0.1);
     const xpv=a.sp.xp*(a.fur&&a.fur.albino?2:1); if(a.fur&&a.fur.albino) toast('Seltene Beute: ein Albino! Doppelte Erfahrung.','#f2b84b');
-    floatText('+'+xpv+' EP',P.x,P.y+2*pScale(),P.z,'#8ad4ef');
+    floatText('+'+xpv+' EP',p.x,p.y+2*pScale(),p.z,'#8ad4ef');
     gainXp(xpv);
     if(a.sp.boss&&!beaten(REG_ID)){ S.beat=Object.assign({},S.beat,{[REG_ID]:true}); if(REG_ID==='savanne') S.won=true; save(); $('winTitle').textContent=REG.winT; $('winText').textContent=REG.winX; setTimeout(()=>{ snd.win(); $('win').style.display='flex'; G.paused=true; if(document.exitPointerLock) document.exitPointerLock(); },900); }
   } else if(a.sp.fight){ a.state='chase'; a.aggro=10; a.scared=0; }

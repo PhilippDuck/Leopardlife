@@ -18,6 +18,8 @@ with sync_playwright() as p:
     pg.screenshot(path=f'{out}/2-spiel.png')
     pg.keyboard.down('KeyW'); pg.wait_for_timeout(2500); pg.keyboard.up('KeyW')
     pg.screenshot(path=f'{out}/3-gelaufen.png')
+    # Aktionen auslösen: Sprung, Klettern (ohne Fähigkeit nur Hinweis), Brüllen, Schleichen
+    for k in ['Space','KeyE','KeyR','KeyC','KeyC']: pg.keyboard.press(k); pg.wait_for_timeout(350)
     pg.keyboard.press('Escape'); pg.wait_for_timeout(600)
     pg.screenshot(path=f'{out}/4-menue.png')
     # Alle Fenster einmal öffnen und mit Escape zurück ins Menü

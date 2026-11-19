@@ -49,7 +49,7 @@ function updateAnimal(a,dt,stealth){
   const hostile=sp.hunt&&S.lvl<sp.hunt&&!(a.scared>0);
   const detect=sp.sense*stealth*D().sense*(sp.pred?1+0.25*(1-dayF):1)*(d>0.1?windMulDir(-dx/d,-dz/d):1);
   if(sp.croc){ if(a.stun>0) a.stun-=dt; else crocStep(a,dt,d,dx,dz,stealth*D().sense,hostile);
-    if(P.pounce>0&&!P.hit&&d<a.rad+0.5+pScale()*0.8){ P.hit=true; P.pounce=Math.min(P.pounce,0.08); hitAnimal(a); }
+    if(P.pounce>0&&!P.hit&&d<a.rad+0.5+pScale()*0.8){ P.hit=true; P.pounce=Math.min(P.pounce,0.08); hitAnimal(a,P); }
     return; }
   if(a.stun>0){ a.stun-=dt; animLegs(a.g,a.ph,0.05); }
   else if(a.state==='wander'){
@@ -126,7 +126,7 @@ function updateAnimal(a,dt,stealth){
   const inn=a.g.userData.inner; inn.position.z*=0.85;
   a.g.position.set(a.x,H(a.x,a.z),a.z);
   // Sprungtreffer
-  if(P.pounce>0&&!P.hit&&!sp.friend&&d<a.rad+0.5+pScale()*0.8){ P.hit=true; P.pounce=Math.min(P.pounce,0.08); hitAnimal(a); }
+  if(P.pounce>0&&!P.hit&&!sp.friend&&d<a.rad+0.5+pScale()*0.8){ P.hit=true; P.pounce=Math.min(P.pounce,0.08); hitAnimal(a,P); }
 }
 
 export { moveAnimal, updateAnimal };
