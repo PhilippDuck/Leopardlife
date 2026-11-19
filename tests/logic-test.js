@@ -31,7 +31,7 @@ const doc={ querySelectorAll:()=>[], getElementById:el, addEventListener(){}, cr
 let raf=null;
 const g={ window:win, document:doc, navigator:{maxTouchPoints:0}, localStorage:{getItem:k=>(k in ls?ls[k]:null),setItem:(k,v)=>{ls[k]=String(v);}}, THREE:win.THREE,
   requestAnimationFrame:fn=>{ if(fn.name==='frame') raf=fn; else fn(); }, setTimeout:fn=>{ fn(); } };
-const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows};';
+const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam};';
 new Function(...Object.keys(g), body)(...Object.values(g));
 const T=globalThis.__T; const rnd2=()=>Math.random()*8-4; const localStorageDump=()=>ls['jaguar-lines'];
 els.btnPlay.onclick();
@@ -232,4 +232,19 @@ console.log('audio nodes created',ACs&&ACs.count());
   if(wP.top===a||wQ.top!==a) { console.log('FEHLER: Warnung beim falschen Spieler'); process.exit(1); }
   console.log('Warnpfeile: '+a.sp.n+' jagt Spieler 2 → nur Spieler 2 gewarnt');
   T.players.pop(); }
+// Elterntiere versorgen auch ein Mitspieler-Junges (Spieler 1 ist erwachsen)
+{ const P=T.P, S=T.S(); if(P.dead) T.respawn(); T.unpause(); const keep=[S.p1,S.lvl];
+  S.p1=true; S.lvl=9;
+  const Q=T.makePlayer({source:'test',x:P.x+5,z:P.z,fur:null,L:Object.assign(T.copyLeopard(S),{lvl:2,hunger:20})}); T.players.push(Q);
+  T.fam.forEach(f=>{ f.feeding=false; f.feedFor=null; });
+  for(let i=0;i<300&&!T.fam.some(f=>f.feeding);i++) T.updateFamily(1);
+  const f=T.fam.find(f=>f.feeding), ok=!!f&&f.feedFor===Q;
+  [S.p1,S.lvl]=keep; T.players.pop(); T.fam.forEach(x=>{ x.feeding=false; x.feedFor=null; });
+  if(!ok) { console.log('FEHLER: Elterntier sollte zum Mitspieler-Jungen laufen'); process.exit(1); }
+  console.log('Elterntiere: Futter für das Mitspieler-Junge unterwegs'); }
+// Ahnenbuch zeigt Mitspieler mit Verwandtschaft zu Spieler 1
+{ const S=T.S(); const keep=S.mates; S.mates={2:Object.assign(T.copyLeopard(S),{id:'m2',parents:[]})};
+  el('btnBook').onclick(); const html=String(el('bookList').innerHTML); S.mates=keep; el('book').style.display='none';
+  if(html.indexOf('Spieler 2')<0||html.indexOf('nicht verwandt mit Spieler 1')<0) { console.log('FEHLER: Ahnenbuch ohne Mitspieler'); process.exit(1); }
+  console.log('Ahnenbuch: Mitspieler mit Verwandtschaft eingetragen'); }
 console.log('ALL OK');

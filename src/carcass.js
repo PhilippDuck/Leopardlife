@@ -13,6 +13,7 @@ import { H } from './terrain.js';
 import { floatText, toast } from './ui.js';
 import { $ } from './util.js';
 import { goalEvent } from './goals.js';
+import { related } from './kinship.js';
 
 /* ---------- Kadaver, Aasfresser, Herden, Ahnenbuch ---------- */
 // Größere Beute bleibt als Kadaver liegen: Du frisst gleich die Hälfte, der Rest bleibt für später – und lockt Hyänen und Schakale an.
@@ -40,7 +41,8 @@ function startFlee(a){
   if(a.herd) for(const m of a.herd) if(m!==a&&!m.dead&&m.state==='wander'&&Math.hypot(m.x-a.x,m.z-a.z)<40){ m.state='flee'; m.fleeT=0; m.sus=0; }
 }
 // Ahnenbuch: jede Generation der Blutlinie mit Fell, Erbanlagen, Stufe, Beute und Schicksal
-function recordAncestor(cause){ S.anc=(S.anc||[]).concat({g:S.gen||1,l:S.lvl,f:S.fur?Object.assign({},S.fur):null,t:S.traits.slice(),k:S.kills||0,c:cause}).slice(-40); }
+/** Trägt einen Leoparden ins Ahnenbuch ein. L: seine Werte (Standard Spieler 1), who: Name eines Mitspielers */
+function recordAncestor(cause,L=S,who){ S.anc=(S.anc||[]).concat({g:L.gen||S.gen||1,l:L.lvl,f:L.fur?Object.assign({},L.fur):null,t:(L.traits||[]).slice(),k:L.kills||0,c:cause,w:who||null}).slice(-40); }
 function archiveLine(){
   let L=[]; try{ L=JSON.parse(localStorage.getItem(LINES_KEY)||'[]'); }catch(e){}
   L.unshift({g:S.gen||1,d:S.diff,at:Date.now()}); try{ localStorage.setItem(LINES_KEY,JSON.stringify(L.slice(0,10))); }catch(e){}
@@ -49,12 +51,14 @@ const hex6=n=>'#'+n.toString(16).padStart(6,'0');
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function renderBook(){
   const row=(e,me)=>{ const col=e.f?furColor(0xe0a23c,e.f):0xe0a23c;
-    return '<div class="anc"><span class="sw" style="background:'+hex6(col)+'"></span><div><b>Generation '+e.g+(me?' · du':'')+'</b>'+
+    return '<div class="anc"><span class="sw" style="background:'+hex6(col)+'"></span><div><b>Generation '+e.g+(me?' · du':'')+(e.w?' · '+esc(e.w):'')+'</b>'+
       '<small>Stufe '+e.l+' · Fell: '+esc(furName(e.f))+' · '+e.k+' Beutetier'+(e.k===1?'':'e')+'</small>'+
       '<small>'+(e.t.length?e.t.map(t=>'<span class="tchip">'+ico(t,ICOL.t,13)+(TRAITS[t]?TRAITS[t][0]:t)+'</span>').join(''):'Erbanlagen: keine')+'</small>'+
       '<small style="color:'+(me?'#9be07f':'var(--txt)')+'">'+esc(e.c)+'</small></div></div>'; };
   const cur={g:S.gen||1,l:S.lvl,f:S.fur,t:S.traits,k:S.kills||0,c:'lebt'};
-  $('bookList').innerHTML=row(cur,true)+(S.anc||[]).slice().reverse().map(e=>row(e,false)).join('');
+  // Mitspieler im gemeinsamen Spiel: lebende Leoparden der Familie, mit Verwandtschaft zu Spieler 1
+  const mates=Object.keys(S.mates||{}).sort().map(n=>{ const L=S.mates[n]; return {g:L.gen||S.gen||1,l:L.lvl,f:L.fur,t:L.traits||[],k:L.kills||0,w:'Spieler '+n,c:'lebt'+(related(S,L)?' · verwandt mit Spieler 1':' · nicht verwandt mit Spieler 1')}; });
+  $('bookList').innerHTML=row(cur,true)+mates.map(e=>row(e,false)).join('')+(S.anc||[]).slice().reverse().map(e=>row(e,false)).join('');
   let L=[]; try{ L=JSON.parse(localStorage.getItem(LINES_KEY)||'[]'); }catch(e){}
   $('bookLines').innerHTML=L.length?L.map(l=>'<div style="font-size:12px;color:var(--mut);padding:2px 0">Endete in Generation '+l.g+' · '+(DIFF[l.d]?DIFF[l.d].n:'Normal')+' · '+new Date(l.at).toLocaleDateString('de-DE')+'</div>').join(''):'<div style="font-size:12px;color:var(--mut)">Noch keine.</div>';
 }

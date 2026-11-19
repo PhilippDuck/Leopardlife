@@ -12,6 +12,7 @@ import { S, fresh, maxHp, maxSt, save } from './save.js';
 import { G } from './state.js';
 import { toast } from './ui.js';
 import { rnd } from './util.js';
+import { recordAncestor } from './carcass.js';
 
 /** Neue Kennung für einen Leoparden */
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -59,7 +60,8 @@ function mateBecomeCub(p){
   const L=p.L, old=ensureKin(L);
   const sum=o=>Object.keys(o).reduce((x,k)=>x+o[k],0), total=sum(L.a)+2*sum(L.b)+L.pts;
   const traits=(S.traits||[]).slice(); if(c.trait&&TRAITS[c.trait]&&traits.indexOf(c.trait)<0) traits.push(c.trait);
-  const nl={id:newId(),parents:(c.parents||[]).slice(),lvl:heirLevel(),xp:0,pts:Math.round(total*0.1),a:fresh().a,b:fresh().b,traits:traits.slice(-3),fur:makeFur(),hunger:80,age:0,gen:c.gen||((S.gen||1)+1)};
+  const nl={id:newId(),parents:(c.parents||[]).slice(),lvl:heirLevel(),xp:0,pts:Math.round(total*0.1),a:fresh().a,b:fresh().b,traits:traits.slice(-3),fur:makeFur(),hunger:80,age:0,kills:0,gen:c.gen||((S.gen||1)+1)};
+  recordAncestor('zog sein Junges groß und lebt als Elterntier weiter',L,nameOf(p));
   S.mates[p.num]=nl; p.L=nl; p.fur=nl.fur; rebuildPlayer(p);
   // Der alte Leopard bleibt als Elterntier am Bau (Platz 2), falls frei
   if(!S.p2){ S.p2=true; famPlace(fam[2],p.x,p.z); }

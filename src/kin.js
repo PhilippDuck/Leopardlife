@@ -8,7 +8,7 @@ import { canvas } from './engine.js';
 import { CUB_HOME, cub, endRaid, heirLevel } from './family.js';
 import { touchUI } from './input.js';
 import { animLegs } from './models.js';
-import { P, rebuildPlayer } from './player.js';
+import { P, players, rebuildPlayer } from './player.js';
 import { S, fresh, has, maxHp, maxSt, save, xpNeed } from './save.js';
 import { G } from './state.js';
 import { H } from './terrain.js';
@@ -18,6 +18,7 @@ import { recordAncestor } from './carcass.js';
 import { moveAnimal } from './ai.js';
 import { updateUI } from './hud.js';
 import { newId, takeFromLitter } from './kinship.js';
+import { tell } from './coop.js';
 
 /* Familienmitglieder: Partner (Platz 0) und Elterntiere (Plätze 1, 2) leben am Bau, verteidigen das Junge
    und versorgen und beschützen den Spieler, solange er selbst noch nicht ausgewachsen ist. Sie können endgültig sterben. */
@@ -40,20 +41,25 @@ function famTarget(a,role){
   for(const o of animals){ if(o.dead||o.state!=='fightFam') continue; const d=Math.hypot(o.x-a.x,o.z-a.z); if((o.foe===a||d<60)&&d<bd){ bd=d; best=o; } }
   if(best) return best;
   if(G.raider&&!G.raider.pAway&&S.cub&&Math.hypot(G.raider.x-cub.x,G.raider.z-cub.z)<16) return G.raider;
-  if(role!=='partner'&&S.lvl<8&&!P.dead){
+  const kids=youngPlayers();
+  if(role!=='partner'&&kids.length){
     bd=130;
     for(const o of animals){
       if(o.dead||o.state!=='chase') continue;
-      const dp=Math.hypot(o.x-P.x,o.z-P.z); if(!(P.hp<maxHp()*0.6||dp<25)) continue;   // nur bei großer Gefahr: Verfolger ist nah oder das Leben niedrig
+      // nur bei großer Gefahr für ein junges Familienmitglied: Verfolger ist nah oder dessen Leben niedrig
+      if(!kids.some(p=>p.hp<maxHp(p.L)*0.6||Math.hypot(o.x-p.x,o.z-p.z)<25)) continue;
       const d=Math.hypot(o.x-a.x,o.z-a.z); if(d<bd){ bd=d; best=o; }
     }
   }
   return best;
 }
-function deliverFood(a){
-  P.hp=Math.min(maxHp(),P.hp+maxHp()*0.5); S.hunger=Math.min(100,S.hunger+60); snd.eat(); puff(P.x,P.y+1,P.z,0xff7ab8,8,0.4);
-  toast('Ein Elterntier bringt dir Beute: Leben aufgefüllt, Erfahrung erhalten.','#ff9ad0');
-  gainXp(Math.round(xpNeed(S.lvl)*0.35));
+/** Junge Spieler der Familie (unter Stufe 8), um die sich die Elterntiere kümmern */
+const youngPlayers=()=>(S.p1||S.p2)?players.filter(p=>!p.dead&&p.L.lvl<8):[];
+/** Elterntier a übergibt Beute an Spieler p */
+function deliverFood(a,p=P){
+  const L=p.L; p.hp=Math.min(maxHp(L),p.hp+maxHp(L)*0.5); L.hunger=Math.min(100,L.hunger+60); snd.eat(); puff(p.x,p.y+1,p.z,0xff7ab8,8,0.4);
+  tell(p,'Ein Elterntier bringt dir Beute: Leben aufgefüllt, Erfahrung erhalten.','#ff9ad0');
+  gainXp(Math.round(xpNeed(L.lvl)*0.35),p);
 }
 function famStep(a,dt,role){
   a.g.visible=true; a.cd-=dt;
@@ -72,9 +78,10 @@ function famStep(a,dt,role){
       }
     }
   } else if(a.feeding){
-    const dx=P.x-a.x, dz=P.z-a.z, d=Math.hypot(dx,dz);
-    if(P.dead||P.tree!=null&&d<4){ animLegs(a.g,a.ph,0.03); }
-    else if(d>3) moveAnimal(a,dx,dz,9.5,dt); else { a.feeding=false; deliverFood(a); famHome(a); }
+    const T=a.feedFor||P, dx=T.x-a.x, dz=T.z-a.z, d=Math.hypot(dx,dz);
+    if(players.indexOf(T)<0||T.L.lvl>=8){ a.feeding=false; famHome(a); }   // ausgestiegen oder inzwischen groß
+    else if(T.dead||T.tree!=null&&d<4){ animLegs(a.g,a.ph,0.03); }
+    else if(d>3) moveAnimal(a,dx,dz,9.5,dt); else { a.feeding=false; deliverFood(a,T); famHome(a); }
   } else {
     a.timer-=dt; if(a.timer<=0||Math.hypot(a.tx-a.x,a.tz-a.z)<1){ famHome(a); a.idle=rnd(1,5); }
     if(a.idle>0){ a.idle-=dt; animLegs(a.g,a.ph,0.03); }
@@ -84,9 +91,13 @@ function famStep(a,dt,role){
 }
 function updateFamily(dt){
   for(let i=0;i<3;i++){ const a=fam[i], r=famRole(i); if(r&&!a.famOn) famPlace(a,CUB_HOME.x+rnd(-9,9),CUB_HOME.z+rnd(-9,9)); if(!r) a.famOn=false; }
-  if(kidMode()&&!P.dead){
-    feedT-=dt;
-    if(feedT<=0){ feedT=rnd(70,110); let b=null, bd=1e9; for(let i=1;i<3;i++){ const a=fam[i]; if(!a.famOn||a.feeding) continue; const d=Math.hypot(a.x-P.x,a.z-P.z); if(d<bd){ bd=d; b=a; } } if(b) b.feeding=true; }
+  // Elterntiere bringen jungen Spielern ab und zu Beute: dem hungrigsten, das nächste freie Elterntier läuft los
+  const kids=youngPlayers();
+  if(kids.length){
+    feedT-=dt*(kids.length>1?1.6:1);
+    if(feedT<=0){ feedT=rnd(70,110); const T=kids.slice().sort((x,y)=>x.L.hunger-y.L.hunger)[0];
+      let b=null, bd=1e9; for(let i=1;i<3;i++){ const a=fam[i]; if(!a.famOn||a.feeding) continue; const d=Math.hypot(a.x-T.x,a.z-T.z); if(d<bd){ bd=d; b=a; } }
+      if(b){ b.feeding=true; b.feedFor=T; } }
   }
 }
 // Wechsel ins Junge: freiwillig (das alte Ich bleibt als Elterntier) oder nach dem Tod

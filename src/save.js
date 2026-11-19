@@ -36,6 +36,7 @@ const xpNeed=l=>Math.round(20*Math.pow(l,1.4));
  * @property {string} [id] Kennung für die Verwandtschaft
  * @property {string[]} [parents] Kennungen der Eltern
  * @property {number} [gen] Generation dieses Leoparden
+ * @property {number} [kills] erlegte Beutetiere (Ahnenbuch)
  */
 /* Abgeleitete Werte eines Leoparden. L: dessen Werte (lvl, xp, pts, a, b, traits, fur, hunger, age); Standard ist Spieler 1 = Spielstand S */
 /** @type {(t:string, L?:Leopard)=>boolean} */
@@ -65,7 +66,7 @@ const baseSpeed=(L=S)=>(7+0.12*(L.lvl-1)+0.45*at('spd',L))*(has('flink',L)?1.1:1
 /** @type {(L?:Leopard)=>number} */
 const pScale=(L=S)=>Math.min(2.0,0.5+0.075*(L.lvl-1));
 /** Die Werte, die je Leopard gelten (der Rest des Spielstands gehört der ganzen Familie). */
-const LEOPARD_KEYS=['lvl','xp','pts','a','b','traits','fur','hunger','age','id','parents','gen'];
+const LEOPARD_KEYS=['lvl','xp','pts','a','b','traits','fur','hunger','age','id','parents','gen','kills'];
 /** Eigene Werte für einen Mitspieler: tiefe Kopie der Werte von L (Standard: Spieler 1). */
 /** @type {(L?:Leopard)=>Leopard} */
 const copyLeopard=(L=S)=>{ const o=/** @type {any} */({}); for(const k of LEOPARD_KEYS) o[k]=JSON.parse(JSON.stringify(L[k]===undefined?null:L[k])); return o; };

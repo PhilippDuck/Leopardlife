@@ -38,7 +38,7 @@ function joinPlayer(i,gp){
   // Eigene Werte: startet als Geschwister auf der Stufe von Spieler 1 und entwickelt sich ab dann selbst
   // Gespeicherte Werte dieses Platzes, sonst neu (Kopie von Spieler 1); liegen im Spielstand und werden mit ihm gespeichert
   S.mates=S.mates||{};
-  let L=S.mates[num]; if(!L){ L=copyLeopard(S); L.fur=FURS[num-1]; L.hunger=100; L.age=0; L.gen=S.gen||1; S.mates[num]=L; }
+  let L=S.mates[num]; if(!L){ L=copyLeopard(S); L.fur=FURS[num-1]; L.hunger=100; L.age=0; L.kills=0; L.gen=S.gen||1; S.mates[num]=L; }
   // Wer neu einsteigt, ist ein fremder Leopard (nicht verwandt) – erst eure Jungen sind miteinander verwandt
   if(!L.id||L.id===S.id){ L.id=newId(); L.parents=[]; } ensureKin(L); save();
   const p=makePlayer({source:'pad'+i,camera:cam,x:P.x+Math.sin(ang)*r,z:P.z+Math.cos(ang)*r,fur:L.fur||FURS[num-1],L});
