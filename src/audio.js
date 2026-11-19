@@ -58,21 +58,37 @@ function sample(k,vol,rate){
 /** Ist die Aufnahme k geladen? */
 const hasSample=k=>!!bufs[k];
 
-/* ---------- Umgebung: Schleifen für Tag (zwei Aufnahmen, die sich langsam abwechseln), Nacht und Regen ---------- */
+/* ---------- Umgebung ----------
+   Tag und Nacht laufen nicht als starre Schleife, sondern als Folge zufälliger Ausschnitte: Jeder Ausschnitt nimmt eine der
+   Aufnahmen ab zufälliger Stelle, 5–11 s lang, leicht verstimmt, links/rechts verschoben, weich ein- und ausgeblendet.
+   Zwei bis drei überlappen sich immer – so kommt das Insektensummen mal früher, mal später, mal links, mal leiser. Regen bleibt eine Schleife. */
 /** @type {Record<string, GainNode>} */ const amb={};
+const BEDS={day:['dayA','dayB'],night:['night']}, bedNext={day:0,night:0};
+function bus(k){ if(!amb[k]){ amb[k]=AC.createGain(); amb[k].gain.value=0; amb[k].connect(master); } return amb[k]; }
+function grain(bed){
+  const ks=BEDS[bed].filter(k=>bufs[k]); if(!ks.length) return 0;
+  const k=ks[Math.floor(Math.random()*ks.length)], b=bufs[k], lp=loopPts[k]||[0,b.duration];
+  const t=AC.currentTime+0.05, dur=rnd(5,11), fade=rnd(1.4,2.6), rate=rnd(0.93,1.07);
+  const s=AC.createBufferSource(); s.buffer=b; s.loop=true; s.loopStart=lp[0]; s.loopEnd=lp[1]; s.playbackRate.value=rate;
+  const pk=rnd(0.6,1), g=AC.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(pk,t+fade); g.gain.setValueAtTime(pk,t+dur-fade); g.gain.linearRampToValueAtTime(0.0001,t+dur);
+  let out=g; if(AC.createStereoPanner){ const p=AC.createStereoPanner(); p.pan.value=rnd(-0.7,0.7); g.connect(p); out=p; }
+  s.connect(g); out.connect(bus(bed)); s.start(t,lp[0]+Math.random()*(lp[1]-lp[0])); s.stop(t+dur+0.1);
+  return dur;
+}
 function ambLoop(k){
   if(amb[k]||!bufs[k]) return amb[k]||null;
   const s=AC.createBufferSource(); s.buffer=bufs[k]; s.loop=true; const lp=loopPts[k]; if(lp){ s.loopStart=lp[0]; s.loopEnd=lp[1]; }
   const g=AC.createGain(); g.gain.value=0; s.connect(g); g.connect(master); s.start(0,(lp?lp[0]:0)+Math.random()*5); amb[k]=g; return g;
 }
-/** Lautstärken der Umgebung nachführen: day 0…1 (Tageslicht), rain 0…1 */
+/** Lautstärken der Umgebung nachführen und neue Ausschnitte starten: day 0…1 (Tageslicht), rain 0…1 */
 function ambTick(day,rain){
   if(!AC||AC.state!=='running') return;
-  const t=AC.currentTime, dry=1-0.6*rain, mix=0.5+0.5*Math.sin(t/23);
-  const set=(k,v)=>{ const g=ambLoop(k); if(g) g.gain.setTargetAtTime(v,t,0.8); };
-  const day2=bufs.dayB?mix:0;
-  set('dayA',0.42*day*dry*(1-day2*0.85)); set('dayB',0.42*day*dry*day2);
-  set('night',0.45*(1-day)*dry); set('rain',0.7*rain);
+  const t=AC.currentTime, dry=1-0.6*rain, lv={day:0.28*day*dry,night:0.3*(1-day)*dry}   // mehrere Ausschnitte überlagern sich, daher leiser je Bus;
+  for(const bed in BEDS){
+    bus(bed).gain.setTargetAtTime(lv[bed],t,0.8);
+    if(lv[bed]>0.01&&t>=bedNext[bed]){ const d=grain(bed); bedNext[bed]=t+(d?d*rnd(0.35,0.6):2); }
+  }
+  const rg=ambLoop('rain'); if(rg) rg.gain.setTargetAtTime(0.7*rain,t,0.8);
   if(windG&&(bufs.dayA||bufs.night)) windG.gain.value=0.025;   // Synth-Wind nur noch leise darunter
 }
 const snd={
