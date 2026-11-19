@@ -62,7 +62,7 @@
   #settings .card{width:min(520px,94vw)} #settings button{display:block;width:100%;margin-top:7px;padding:9px 12px;font-size:13.5px}
   .setrow{display:grid;grid-template-columns:1fr 1fr;gap:8px} #btnRestart{background:#5a2a22!important;color:#ffd9d0!important}
   #ctxHint{position:fixed;left:50%;top:calc(50% + 64px);transform:translateX(-50%);padding:6px 14px;border-radius:8px;background:#d86fa8;text-shadow:none;color:#2a0a1c;font-weight:bold;font-size:14px;display:none;pointer-events:none;white-space:nowrap}
-  #hideV{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .45s;background:radial-gradient(ellipse at center,transparent 30%,rgba(4,24,6,.5) 62%,rgba(2,14,4,.9) 88%,rgba(1,8,2,.97) 100%)}
+  #hideV{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .45s;background:radial-gradient(ellipse at center,transparent 30%,rgba(var(--veil1,4,24,6),.5) 62%,rgba(var(--veil2,2,14,4),.9) 88%,rgba(var(--veil3,1,8,2),.97) 100%)}
   #eye{position:fixed;left:50%;top:calc(50% - 62px);width:30px;height:30px;margin-left:-15px;pointer-events:none;opacity:0;transition:opacity .3s,color .3s;color:#fff;filter:drop-shadow(0 0 3px #000)}
   #eye svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
   .diffb.on{background:var(--gold)!important;color:#2a1d00!important;font-weight:bold}

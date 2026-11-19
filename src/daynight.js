@@ -21,6 +21,14 @@ import { nameOf, tell } from './coop.js';
 // S.tod: 0 = Mitternacht, 0.25 = Sonnenaufgang, 0.5 = Mittag, 0.75 = Sonnenuntergang. Ein ganzer Tag dauert DAY_LEN Sekunden.
 const DAY_LEN=960;   // 16 Minuten je Tag
 let dayF=1, nightToastDone=false, sleeping=false, sleepCount=0;
+/** Versteck-Schleier: tagsüber dunkelgrün, nachts anthrazit (grün wirkt im Dunkeln fremd); nur bei spürbarer Änderung neu setzen */
+let veilF=-1;
+function setVeil(f){
+  if(Math.abs(f-veilF)<0.03) return; veilF=f;
+  const mix=(day,night)=>day.map((v,i)=>Math.round(night[i]+(v-night[i])*f)).join(',');
+  const st=document.documentElement&&document.documentElement.style; if(!st) return;
+  st.setProperty('--veil1',mix([4,24,6],[26,28,32])); st.setProperty('--veil2',mix([2,14,4],[16,17,20])); st.setProperty('--veil3',mix([1,8,2],[9,10,12]));
+}
 try{ sleepCount=+localStorage.getItem('jaguar-sleeps')||0; }catch(e){}
 const C_DAY_TOP=new THREE.Color(0x3f8fd6), C_DAY_HOR=new THREE.Color(HORIZON), C_NIGHT_TOP=new THREE.Color(0x040814), C_NIGHT_HOR=new THREE.Color(0x101a2e), C_DUSK=new THREE.Color(0xf08a4a);
 const C_SUN=new THREE.Color(0xffe6b8), C_SUNLOW=new THREE.Color(0xff9a55), C_MOON=new THREE.Color(0x9fb4ff);
@@ -32,6 +40,7 @@ function updateDayNight(dt){
   if(dt>0){ const t0=S.tod; S.tod=(S.tod+dt/DAY_LEN)%1; if(t0<0.25&&S.tod>=0.25){ S.day=(S.day||0)+1; newGoals(); setTimeout(()=>toast('Ein neuer Tag – neue Tagesziele.','#9be07f'),400); } }
   const a=(S.tod-0.25)*2*Math.PI, el=Math.sin(a), NV=S.b.night||0;
   let d=Math.max(0,Math.min(1,(el+0.1)/0.35)); dayF=d*d*(3-2*d);
+  setVeil(dayF);
   const duskF=Math.max(0,1-Math.abs(el)/0.3);
   const nl=0.2+0.15*NV, L=nl+(1-nl)*dayF;
   // Licht kommt am Tag von der Sonne, nachts vom Mond (gegenüber); flach stehendes Licht wird begrenzt, damit Schatten nicht ausufern

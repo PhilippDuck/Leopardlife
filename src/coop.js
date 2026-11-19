@@ -250,6 +250,7 @@ function updateCoopHud(dt){
   }
   // Spieler 1 am Boden (nur im Koop): Hinweis in der großen Anzeige
   if(players.length>1&&P.dead&&P.downT!=null){ const s=Math.ceil(P.downT); if(s!==P.lastS){ P.lastS=s; $('crossMsg').textContent='Am Boden – Mitspieler: X halten · Bau in '+s+' s'; $('crossMsg').style.opacity='1'; } }
+  else if(P.lastS!=null){ P.lastS=null; $('crossMsg').style.opacity='0'; }   // wieder auf den Beinen (auch nach dem gemeinsamen Tod)
 }
 
 /* ---------- Mitspieler markieren ---------- */

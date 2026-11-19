@@ -31,7 +31,7 @@ const doc={ querySelectorAll:()=>[], getElementById:el, addEventListener(){}, cr
 let raf=null;
 const g={ window:win, document:doc, navigator:{maxTouchPoints:0}, localStorage:{getItem:k=>(k in ls?ls[k]:null),setItem:(k,v)=>{ls[k]=String(v);}}, THREE:win.THREE,
   requestAnimationFrame:fn=>{ if(fn.name==='frame') raf=fn; else fn(); }, setTimeout:fn=>{ fn(); } };
-const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,sleepOnTree,sleepingNow:()=>sleeping};';
+const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping};';
 new Function(...Object.keys(g), body)(...Object.values(g));
 const T=globalThis.__T; const rnd2=()=>Math.random()*8-4; const localStorageDump=()=>ls['jaguar-lines'];
 els.btnPlay.onclick();
@@ -187,21 +187,23 @@ console.log('audio nodes created',ACs&&ACs.count());
   if(Q.dead||!(Q.hp>0)) { console.log('FEHLER: Wiederbeleben hat nicht geklappt'); process.exit(1); }
   T.hurtPlayer(9999,lion,true,Q); for(let i=0;i<620;i++) T.updateCoop(0.1);
   if(Q.dead||Math.hypot(Q.x-2,Q.z-2)>0.01) { console.log('FEHLER: Erwachen im Bau nach Ablauf'); process.exit(1); }
-  T.hurtPlayer(9999,lion,true,Q); T.hurtPlayer(9999,lion,true,P);
+  T.hurtPlayer(9999,lion,true,P); for(let i=0;i<3;i++){ T.updateCoop(0.1); T.updateCoopHud(0.1); } T.hurtPlayer(9999,lion,true,Q);
   if(!P.dead||!T.G.paused) { console.log('FEHLER: alle am Boden sollte das Todesfenster öffnen'); process.exit(1); }
   T.respawn();
   if(P.dead||Q.dead) { console.log('FEHLER: nach dem Neuerwachen sollten alle stehen'); process.exit(1); }
+  for(let i=0;i<3;i++) T.updateCoopHud(0.1);
+  if(String(el('crossMsg').style.opacity)!=='0'||P.downT!=null) { console.log('FEHLER: Hinweis Am Boden bleibt nach dem gemeinsamen Tod stehen'); process.exit(1); }
   console.log('Koop: am Boden, Wiederbeleben, Bau, gemeinsamer Tod ok');
   T.players.pop(); T.unpause(); }
-// Eigene Werte je Leopard: Erfahrung und Stufe eines Mitspielers ändern Spieler 1 nicht
-{ const P=T.P, S=T.S(); const lv=S.lvl, xp=S.xp;
+// Gemeinsames Spiel: Erfahrung wird geteilt (beide steigen auf), Eigenschaften bleiben je Leopard getrennt
+{ const P=T.P, S=T.S(); const lv=S.lvl, str=S.a.str, keep={lvl:S.lvl,xp:S.xp,pts:S.pts};
   const Q=T.makePlayer({source:'test',x:P.x+3,z:P.z,fur:null,L:T.copyLeopard(S)}); T.players.push(Q);
   T.gainXp(5000,Q);
-  if(!(Q.L.lvl>lv)||S.lvl!==lv||S.xp!==xp) { console.log('FEHLER: Erfahrung landet beim falschen Leoparden',Q.L.lvl,S.lvl); process.exit(1); }
-  if(!(T.maxHpOf(Q.L)>T.maxHpOf(S))) { console.log('FEHLER: höhere Stufe sollte mehr Leben geben'); process.exit(1); }
-  if(Q.L.a===S.a||Q.L.b===S.b) { console.log('FEHLER: Mitspieler teilt Eigenschaften mit Spieler 1'); process.exit(1); }
-  console.log('eigene Werte: Mitspieler Stufe',Q.L.lvl,'· Spieler 1 bleibt Stufe',S.lvl,'· Leben',T.maxHpOf(Q.L),'vs',T.maxHpOf(S));
-  T.players.pop(); }
+  if(!(Q.L.lvl>lv)||!(S.lvl>lv)) { console.log('FEHLER: Erfahrung sollte im gemeinsamen Spiel geteilt werden',Q.L.lvl,S.lvl); process.exit(1); }
+  Q.L.a.str++;
+  if(Q.L.a===S.a||S.a.str!==str) { console.log('FEHLER: Mitspieler teilt Eigenschaften mit Spieler 1'); process.exit(1); }
+  console.log('Erfahrung geteilt: Spieler 2 Stufe',Q.L.lvl,'· Spieler 1 Stufe',S.lvl,'· Eigenschaften getrennt');
+  Object.assign(S,keep); P.hp=Math.min(P.hp,T.maxHp()); T.players.pop(); }
 // Familie im gemeinsamen Spiel: Fremde paaren sich, Wurf mit einem Jungen je Spieler, danach sind die Jungen Geschwister
 { const P=T.P, S=T.S(); if(P.dead) T.respawn(); T.unpause();
   // Grundregeln der Verwandtschaft

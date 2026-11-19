@@ -74,7 +74,7 @@ $('btnRestart').onclick=()=>{
 // Esc beendet im Browser zuerst die Mausfixierung; dann öffnet sich das Menü darüber
 document.addEventListener('pointerlockchange',()=>{
   if(document.pointerLockElement===canvas){ hadLock=true; return; }
-  if(hadLock&&G.started&&!G.paused&&!menuOpen()){ hadLock=false; toggleMenu(); }
+  if(hadLock&&G.started&&!G.paused&&!menuOpen()&&!P.skOpen){ hadLock=false; toggleMenu(); }   // eigene Entwicklung offen: Maus gewollt frei, kein Pausemenü
   hadLock=false;
 }); $('pts').onclick=()=>toggleSkills();
 $('btnPlay').onclick=()=>{ try{ if(!localStorage.getItem('jaguar-windtip')){ localStorage.setItem('jaguar-windtip','1'); setTimeout(()=>toast('Achte auf den Wind (blauer Pfeil an der Spürkarte): Weht er von dir zu einem Tier, wittert es dich früher.','#96cdff'),8000); } }catch(e){} initAudio(); $('start').style.display='none'; $('diffRow').style.display='none'; save(); G.paused=false; G.started=true; if(!touchUI()){ try{ const r=canvas.requestPointerLock(); if(r&&r.catch) r.catch(()=>{}); }catch(e){} } };
