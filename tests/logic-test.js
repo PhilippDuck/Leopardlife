@@ -5,9 +5,13 @@
 const fs=require('fs');
 const path=require('path');
 // Spielskript aus src/main.js holen; importierte Module werden eingefügt (einfacher Bündler für den Test)
+const included=new Set();
 function bundle(file){
+  if(included.has(file)) return '';
+  included.add(file);
   const c=fs.readFileSync(file,'utf8');
-  return c.replace(/^import \{[^}]*\} from '\.\/([\w-]+\.js)';\n/mg,(m,f)=>bundle(path.join(path.dirname(file),f)).replace(/^export /mg,'')+'\n');
+  return c.replace(/^import \{[^}]*\} from '\.\/([\w-]+\.js)';\n/mg,(m,f)=>bundle(path.join(path.dirname(file),f)))
+          .replace(/^export \{[^}]*\};?\n?/mg,'').replace(/^export /mg,'');
 }
 const code=bundle(path.join(__dirname,'..','src','main.js'));
 function U(name){ const store={}; const f=function(){};

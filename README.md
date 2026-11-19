@@ -23,6 +23,10 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 |---|---|
 | `index.html` | Seite, Stile und Oberfläche |
 | `src/main.js` | Spiellogik (wird gerade in Module aufgeteilt) |
+| `src/data.js` | Feste Spieldaten: Tierarten, Gebiete, Erbanlagen, Eigenschaften, Schwierigkeit, Icons |
+| `src/audio.js` | Geräusche, Umgebungston und Musik (WebAudio) |
+| `src/state.js` | Gemeinsamer veränderlicher Zustand `G` |
+| `src/util.js` | Kleine Hilfsfunktionen |
 | `vendor/three.min.js` | three.js r128 |
 | `sw.js` | Service Worker für Installation und Offline-Betrieb |
 | `manifest.webmanifest`, `icon-*.png` | PWA-Angaben und Icons |
