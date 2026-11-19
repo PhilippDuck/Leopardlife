@@ -121,3 +121,4 @@ $('btnMenuCub').onclick=()=>{
 };
 
 export { canMate, fam, famHurt, famRole, famStep, kidMode, updateFamily };
+export { becomeCub, famPlace };

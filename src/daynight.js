@@ -86,3 +86,4 @@ function sleepOnTree(){
 on('quality',()=>updateDayNight(0));
 
 export { clockStr, dayF, updateDayNight };
+export { canSleepNow, sleepOnTree, sleeping };

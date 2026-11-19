@@ -64,3 +64,4 @@ window.addEventListener('gamepadconnected',e=>{ toast('Controller verbunden: '+S
 window.addEventListener('gamepaddisconnected',e=>{ if(e.gamepad.index===padIdx){ padIdx=-1; padX=padY=0; toast('Controller getrennt','#f2b84b'); } });
 
 export { padSprint, padUI, padX, padY, pollPads };
+export { padSynth, rumble };

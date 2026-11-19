@@ -13,7 +13,7 @@ import { regionsOpen, reloadWorld } from './regions.js';
 import { dead, respawn } from './actions.js';
 import { rebuildCub } from './family.js';
 import { clockStr, sleeping } from './daynight.js';
-import { bookOpen, settingsOpen } from './carcass.js';
+import { bookOpen } from './carcass.js';
 import { padUI } from './gamepad.js';
 import { updateUI } from './hud.js';
 
@@ -82,4 +82,10 @@ document.querySelectorAll('.diffb').forEach(b=>b.addEventListener('click',()=>{ 
 $('btnReset').onclick=()=>{ if(!resetArm){ resetArm=true; $('btnReset').textContent='Wirklich? Fortschritt löschen'; return; } resetState(); save(); if(REG_ID!=='savanne'){ reloadWorld(true); return; } rebuildPlayer(); rebuildCub(); P.hp=maxHp(); P.st=maxSt(); $('btnReset').style.display='none'; $('btnPlay').textContent='Spielen'; showDiff(); };
 if($('btnReset').style.display==='none') showDiff();
 
-export { hudExp, menuOpen, renderKeys, showDiff, toggleMenu, xb };
+/* Einstellungsfenster */
+function openSettings(){ renderKeys(); $('menu').style.display='none'; $('settings').style.display='flex'; }
+function closeSettings(){ $('settings').style.display='none'; $('menu').style.display='flex'; G.menuT=performance.now(); }
+const settingsOpen=()=>$('settings').style.display==='flex';
+$('btnSettings').onclick=openSettings; $('btnSetBack').onclick=closeSettings;
+
+export { hudExp, menuOpen, renderKeys, showDiff, toggleMenu, xb, closeSettings, settingsOpen };

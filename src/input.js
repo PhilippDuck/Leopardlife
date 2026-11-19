@@ -5,11 +5,11 @@ import { S } from './save.js';
 import { G } from './state.js';
 import { $ } from './util.js';
 import { toggleSkills } from './skills.js';
-import { menuOpen, renderKeys, toggleMenu } from './menu.js';
+import { menuOpen, renderKeys, toggleMenu, closeSettings, settingsOpen } from './menu.js';
 import { closeRegions, regionsOpen } from './regions.js';
 import { doClimb, doPounce, doRoar } from './actions.js';
 import { doContext } from './family.js';
-import { bookOpen, closeBook, closeSettings, settingsOpen } from './carcass.js';
+import { bookOpen, closeBook } from './carcass.js';
 import { padSynth } from './gamepad.js';
 import { updateUI } from './hud.js';
 

@@ -4,7 +4,7 @@ import { snd } from './audio.js';
 import { DIFF, ICOL, TRAITS, ico } from './data.js';
 import { puff } from './effects.js';
 import { FOOD_MAX } from './family.js';
-import { renderKeys } from './menu.js';
+
 import { animLegs, furColor, furName } from './models.js';
 import { P } from './player.js';
 import { S, maxHp } from './save.js';
@@ -62,9 +62,7 @@ function openBook(){ renderBook(); $('menu').style.display='none'; $('book').sty
 function closeBook(){ $('book').style.display='none'; $('menu').style.display='flex'; G.menuT=performance.now(); }
 const bookOpen=()=>$('book').style.display==='flex';
 $('btnBook').onclick=openBook;
-function openSettings(){ renderKeys(); $('menu').style.display='none'; $('settings').style.display='flex'; }
-function closeSettings(){ $('settings').style.display='none'; $('menu').style.display='flex'; G.menuT=performance.now(); }
-const settingsOpen=()=>$('settings').style.display==='flex';
-$('btnSettings').onclick=openSettings; $('btnSetBack').onclick=closeSettings; $('btnBookBack').onclick=closeBook;
+$('btnBookBack').onclick=closeBook;
 
 export { esc, herdLead, startFlee };
+export { archiveLine, bookOpen, closeBook, makeCarcass, nearCarcass, recordAncestor, takeMeat };

@@ -35,3 +35,5 @@ function crocStep(a,dt,d,dx,dz,stealth,hostile){
   const inW=Math.hypot(a.x-p.x,a.z-p.z)<p.r*0.95, gy=H(a.x,a.z);
   a.g.position.set(a.x,inW&&a.state==='lurk'?Math.max(gy,wl-0.22*sp.size):gy,a.z);
 }
+
+export { crocStep };

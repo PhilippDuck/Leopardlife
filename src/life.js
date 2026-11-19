@@ -23,3 +23,4 @@ function updateLife(dt){
 }
 
 export { updateLife };
+export { eatFood };

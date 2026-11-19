@@ -20,7 +20,15 @@ with sync_playwright() as p:
     pg.screenshot(path=f'{out}/3-gelaufen.png')
     pg.keyboard.press('Escape'); pg.wait_for_timeout(600)
     pg.screenshot(path=f'{out}/4-menue.png')
+    # Alle Fenster einmal öffnen und mit Escape zurück ins Menü
+    for i,btn in enumerate(['#btnSettings','#btnBook','#btnRegions','#btnMenuSkills']):
+        if pg.locator(btn).count() and pg.locator(btn).is_visible():
+            pg.click(btn); pg.wait_for_timeout(400); pg.screenshot(path=f'{out}/5-{i}-{btn[4:].lower()}.png')
+            pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
+            if not pg.locator('#menu').is_visible(): pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
+        else: errors.append('info: Knopf fehlt '+btn)
     fps = pg.evaluate("document.getElementById('fps') ? document.getElementById('fps').textContent : ''")
     b.close()
+errors=[e for e in errors if 'GPU stall' not in e]
 print('Fehler/Warnungen:', len(errors))
 for e in errors[:15]: print(' ', e[:200])

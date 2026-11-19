@@ -31,3 +31,4 @@ try{ if(sessionStorage.getItem('jaguar-showdiff')){ sessionStorage.removeItem('j
 $('btnWin').onclick=()=>{ $('win').style.display='none'; G.paused=false; };
 
 export { reloadWorld };
+export { closeRegions, regionsOpen };

@@ -143,3 +143,4 @@ function hitAnimal(a){
 G.lastHit=null; G.lastHitT=0;
 
 export { dead, doClimb, doPounce, doRoar, gainXp, hitAnimal, hurtPlayer, nearestTree };
+export { respawn };

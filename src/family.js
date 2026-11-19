@@ -130,3 +130,4 @@ function updateFamArrow(dt){
 }
 
 export { CUB_HOME, FOOD_MAX, context, cub, doContext, endRaid, heirLevel, raidStep, seekT, seeking, updateCub, updateFamArrow };
+export { rebuildCub };
