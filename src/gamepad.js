@@ -16,7 +16,7 @@ import { MODE } from './save.js';
    R3 Kamera hinter den Leoparden · Steuerkreuz hoch/runter Zoom · Start Menü · Back/Select Entwicklung.
    In Menüs: Steuerkreuz oder Stick wählt, A bestätigt, B geht zurück. Später steuert Controller N den Spieler N. */
 let padX=0, padY=0, padSprint=false, padAct=false, padIdx=-1, padSynth=false, padNavT=0, padFocusEl=null;
-const padPrev=[], joinPrev=[];
+const padPrev=[], joinPrev=[], holdA=[]; let hintT=-1e9;
 /** Controller i bedient ab jetzt das offene Fenster; seine gerade gedrückten Tasten zählen dort nicht als neuer Druck. */
 function claimOverlay(i,gp){ G.ovPad=i; padPrev[i]=gp.buttons.map(b=>!!b.pressed); }
 function padUI(){ return inputMode==='pad'; }   // als Funktion, weil die Anzeige sie schon vor diesem Abschnitt braucht
@@ -37,7 +37,17 @@ function pollPads(dt){
     if(startDown&&!was&&G.started&&!topOverlay()&&(cur||inputMode!=='pad')){
       if(MODE==='coop'&&players.length<MAX_PLAYERS){ joinPlayer(g.index,g); continue; }
       if(MODE!=='coop'&&cur){ toast('Zu zweit spielen? Im Startmenü „Gemeinsam spielen" wählen.','#b9b7a6'); continue; } }
-    if(!cur&&(g.buttons.some((b,i)=>b.pressed&&i!==9)||g.axes.some(a=>Math.abs(a)>0.35))) padIdx=g.index;
+    const active=g.buttons.some((b,i)=>b.pressed&&i!==9)||g.axes.some(a=>Math.abs(a)>0.35);
+    // Gemeinsames Spiel, Spieler 1 an Tastatur/Maus/Touch: ein freier Controller gehört nicht automatisch ihm.
+    // Start = mitspielen; Ⓐ 2 s halten = Spieler 1 übernimmt diesen Controller.
+    if(!cur&&MODE==='coop'&&G.started&&inputMode!=='pad'&&!topOverlay()){
+      const aDown=!!(g.buttons[0]&&g.buttons[0].pressed), now=performance.now();
+      if(aDown){ if(!holdA[g.index]) holdA[g.index]=now; else if(now-holdA[g.index]>2000){ holdA[g.index]=0; padIdx=g.index; setInputMode('pad'); toast('Spieler 1 spielt jetzt mit diesem Controller.','#9be07f'); continue; } }
+      else holdA[g.index]=0;
+      if(active&&now-hintT>6000){ hintT=now; toast('Freier Controller: Start = mitspielen · Ⓐ 2 s halten = Spieler 1 nimmt ihn','#b9b7a6'); }
+      continue;
+    }
+    if(!cur&&active) padIdx=g.index;
   }
   pollCoop(dt,gps);
   const ov0=G.ovPad!=null?topOverlay():null; if(G.ovPad!=null&&!ov0) G.ovPad=null;

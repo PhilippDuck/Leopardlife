@@ -61,6 +61,12 @@ with sync_playwright() as p:
     pg.wait_for_timeout(1600); pg.evaluate("__pad(1,{})"); pg.wait_for_timeout(500)
     after = pg.locator('.pv').count()
     shot(pg, '4-nach-aussteigen')
+    # Freier Controller 3: Ⓐ kurz = nur Hinweis; Ⓐ 2 s halten = Spieler 1 (Tastatur) übernimmt ihn
+    pg.keyboard.press('KeyC'); pg.keyboard.press('KeyC'); pg.wait_for_timeout(300)   # Spieler 1 nutzt die Tastatur
+    pg.evaluate("__pad(3,{b:[0]})"); pg.wait_for_timeout(300); pg.evaluate("__pad(3,{})"); pg.wait_for_timeout(500)
+    hint = pg.locator('#cds').text_content()
+    pg.evaluate("__pad(3,{b:[0]})"); pg.wait_for_timeout(2800); pg.evaluate("__pad(3,{})"); pg.wait_for_timeout(500)
+    took = pg.locator('#cds').text_content()
     # Pause über Controller 0 (Start) und wieder zurück
     pg.evaluate("__pad(0,{b:[9]})"); pg.wait_for_timeout(700); pg.evaluate("__pad(0,{})"); pg.wait_for_timeout(400)
     menu = pg.locator('#menu').is_visible()
@@ -69,6 +75,7 @@ with sync_playwright() as p:
     solo = pg.evaluate("localStorage.getItem('jaguar-save-v1')")
     b.close()
     print('Koop-Spielstand Mitspieler-Plätze:', saved, '| Einzelspielstand angelegt:', solo is not None)
+print('Leiste Spieler 1 nach Ⓐ kurz:', repr(hint.strip()[:30]), '| nach Ⓐ 2 s:', repr(took.strip()[:30]))
 print('Entwicklung Spieler 2:', skills, repr(who), '| wieder zu:', skills_closed)
 print('eingestiegen:', joined, '| bei vier:', four, '| nach Aussteigen:', after, '| Pause per Controller:', menu)
 print('Fehler/Warnungen:', len(errors))
