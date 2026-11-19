@@ -160,6 +160,8 @@ body.quad .ph{--rad:92px}
 /* Rahmen der Spieler-Anzeige: alles darin richtet sich nach diesem Rahmen statt nach dem ganzen Fenster (transform macht ihn zum Bezug für position:fixed) */
 .ph{position:fixed;left:0;top:0;width:100%;height:100%;transform:translateZ(0);pointer-events:none;overflow:hidden;z-index:3}
 .ph>*{pointer-events:auto}
+/* Modus-Knopf: eigene Farbe, damit er nicht wie gesperrt wirkt */
+#btnMode{background:#7fc8f2;color:#0d2230}
 </style>
 </head>
 <body>
@@ -263,7 +265,7 @@ body.quad .ph{--rad:92px}
   <div style="display:flex;gap:10px;align-items:center;margin-top:14px">
     <button id="btnPlay">Spielen</button>
     <button id="btnReset" class="sec" style="display:none">Neu anfangen</button>
-    <button id="btnMode" class="sec">Gemeinsam spielen (Splitscreen)</button>
+    <button id="btnMode">👥 Gemeinsam spielen (Splitscreen)</button>
   </div>
   <div id="err" style="color:var(--red);margin-top:10px;font-size:13px"></div>
 </div></div>
