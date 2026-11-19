@@ -31,7 +31,7 @@ const doc={ querySelectorAll:()=>[], getElementById:el, addEventListener(){}, cr
 let raf=null;
 const g={ window:win, document:doc, navigator:{maxTouchPoints:0}, localStorage:{getItem:k=>(k in ls?ls[k]:null),setItem:(k,v)=>{ls[k]=String(v);}}, THREE:win.THREE,
   requestAnimationFrame:fn=>{ if(fn.name==='frame') raf=fn; else fn(); }, setTimeout:fn=>{ fn(); } };
-const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls};';
+const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam};';
 new Function(...Object.keys(g), body)(...Object.values(g));
 const T=globalThis.__T; const rnd2=()=>Math.random()*8-4; const localStorageDump=()=>ls['jaguar-lines'];
 els.btnPlay.onclick();
@@ -177,4 +177,80 @@ console.log('audio nodes created',ACs&&ACs.count());
   if(Q.cam===P.cam||Q.ctl===P.ctl) { console.log('FEHLER: Spieler teilen Kamera oder Steuerung'); process.exit(1); }
   console.log('zweiter Spieler: bewegt',qd.toFixed(1),'m, Sprung ok, Schaden',(hp0-Q.hp).toFixed(1),'nur bei ihm');
   T.players.pop(); }
+// Koop: am Boden, Wiederbeleben durch Mitspieler, Erwachen im Bau, alle am Boden = Tod wie im Einzelspiel
+{ const P=T.P; if(P.dead) T.respawn(); T.unpause();
+  const Q=T.makePlayer({source:'test',x:P.x+1,z:P.z,fur:null}); T.players.push(Q);
+  const lion={sp:{id:'lion',n:'Löwe',hunt:99}};
+  T.hurtPlayer(9999,lion,true,Q);
+  if(!Q.dead||!(Q.downT>0)||P.dead||T.G.paused) { console.log('FEHLER: Mitspieler sollte am Boden liegen, Spiel weiterlaufen'); process.exit(1); }
+  P.ctl.act=true; for(let i=0;i<40;i++) T.updateCoop(0.1); P.ctl.act=false;
+  if(Q.dead||!(Q.hp>0)) { console.log('FEHLER: Wiederbeleben hat nicht geklappt'); process.exit(1); }
+  T.hurtPlayer(9999,lion,true,Q); for(let i=0;i<220;i++) T.updateCoop(0.1);
+  if(Q.dead||Math.hypot(Q.x-2,Q.z-2)>0.01) { console.log('FEHLER: Erwachen im Bau nach Ablauf'); process.exit(1); }
+  T.hurtPlayer(9999,lion,true,Q); T.hurtPlayer(9999,lion,true,P);
+  if(!P.dead||!T.G.paused) { console.log('FEHLER: alle am Boden sollte das Todesfenster öffnen'); process.exit(1); }
+  T.respawn();
+  if(P.dead||Q.dead) { console.log('FEHLER: nach dem Neuerwachen sollten alle stehen'); process.exit(1); }
+  console.log('Koop: am Boden, Wiederbeleben, Bau, gemeinsamer Tod ok');
+  T.players.pop(); T.unpause(); }
+// Eigene Werte je Leopard: Erfahrung und Stufe eines Mitspielers ändern Spieler 1 nicht
+{ const P=T.P, S=T.S(); const lv=S.lvl, xp=S.xp;
+  const Q=T.makePlayer({source:'test',x:P.x+3,z:P.z,fur:null,L:T.copyLeopard(S)}); T.players.push(Q);
+  T.gainXp(5000,Q);
+  if(!(Q.L.lvl>lv)||S.lvl!==lv||S.xp!==xp) { console.log('FEHLER: Erfahrung landet beim falschen Leoparden',Q.L.lvl,S.lvl); process.exit(1); }
+  if(!(T.maxHpOf(Q.L)>T.maxHpOf(S))) { console.log('FEHLER: höhere Stufe sollte mehr Leben geben'); process.exit(1); }
+  if(Q.L.a===S.a||Q.L.b===S.b) { console.log('FEHLER: Mitspieler teilt Eigenschaften mit Spieler 1'); process.exit(1); }
+  console.log('eigene Werte: Mitspieler Stufe',Q.L.lvl,'· Spieler 1 bleibt Stufe',S.lvl,'· Leben',T.maxHpOf(Q.L),'vs',T.maxHpOf(S));
+  T.players.pop(); }
+// Familie im gemeinsamen Spiel: Fremde paaren sich, Wurf mit einem Jungen je Spieler, danach sind die Jungen Geschwister
+{ const P=T.P, S=T.S(); if(P.dead) T.respawn(); T.unpause();
+  // Grundregeln der Verwandtschaft
+  const a={id:'a',parents:[]}, b={id:'b',parents:[]}, c1={id:'c1',parents:['a','b']}, c2={id:'c2',parents:['a','x']};
+  if(T.related(a,b)||!T.related(a,c1)||!T.related(c1,c2)||T.related(b,c2)) { console.log('FEHLER: Verwandtschaftsregeln'); process.exit(1); }
+  S.cub=null; S.preg=0; S.lvl=8;
+  const Q=T.makePlayer({source:'test',x:P.x+1,z:P.z,fur:null,L:T.ensureKin(Object.assign(T.copyLeopard(S),{id:T.newId(),parents:[],lvl:8}))}); Q.num=2; S.mates[2]=Q.L; T.players.push(Q);
+  if(!T.canPair(P,Q)) { console.log('FEHLER: Fremde sollten sich paaren können'); process.exit(1); }
+  T.pairPlayers(P,Q); if(!(S.preg>0)) { console.log('FEHLER: keine Trächtigkeit nach Paarung'); process.exit(1); }
+  const pId=S.id, qId=Q.L.id;
+  for(let i=0;i<40&&!S.cub;i++) T.updateCub(1); T.unpause(); el('birth').style.display='none';
+  if(!S.cub||S.cub.n!==2||S.cub.parents.join()!==[pId,qId].join()) { console.log('FEHLER: Wurf',JSON.stringify(S.cub)); process.exit(1); }
+  const gen0=S.gen||1;
+  if(!T.mateBecomeCub(Q)||S.cub.n!==1||Q.L.gen!==gen0+1||Q.L.parents.join()!==[pId,qId].join()) { console.log('FEHLER: Mitspieler als Junges',JSON.stringify(Q.L)); process.exit(1); }
+  T.becomeCub(true);
+  if(S.cub||S.gen!==gen0+1||!T.related(S,Q.L)||S.id===pId) { console.log('FEHLER: Spieler 1 als Junges / Geschwister'); process.exit(1); }
+  S.lvl=8; Q.L.lvl=8;
+  if(T.canPair(P,Q)) { console.log('FEHLER: Geschwister dürfen sich nicht paaren'); process.exit(1); }
+  console.log('Familie: Fremde paaren sich, Wurf mit 2 Jungen, beide als Junge (Generation',S.gen+'), jetzt Geschwister – keine Paarung');
+  T.players.pop(); delete S.mates[2]; }
+// Warnpfeile je Spieler: ein Raubtier, das Spieler 2 jagt, warnt nur Spieler 2
+{ const P=T.P; if(P.dead) T.respawn(); T.unpause();
+  const Q=T.makePlayer({source:'test',x:P.x+30,z:P.z,fur:null,L:T.copyLeopard(T.S())}); T.players.push(Q);
+  const a=T.animals.find(o=>!o.dead&&o.sp.fight&&!o.sp.friend); const st=[a.state,a.tgt,a.x,a.z];
+  a.state='chase'; a.tgt=Q; a.x=Q.x+10; a.z=Q.z;
+  const ring={appendChild(){}}, wP=T.warnArrows(P,ring,[],100), wQ=T.warnArrows(Q,ring,[],100);
+  [a.state,a.tgt,a.x,a.z]=st;
+  if(wP.top===a||wQ.top!==a) { console.log('FEHLER: Warnung beim falschen Spieler'); process.exit(1); }
+  console.log('Warnpfeile: '+a.sp.n+' jagt Spieler 2 → nur Spieler 2 gewarnt');
+  T.players.pop(); }
+// Elterntiere versorgen auch ein Mitspieler-Junges (Spieler 1 ist erwachsen)
+{ const P=T.P, S=T.S(); if(P.dead) T.respawn(); T.unpause(); const keep=[S.p1,S.lvl];
+  S.p1=true; S.lvl=9;
+  const Q=T.makePlayer({source:'test',x:P.x+5,z:P.z,fur:null,L:Object.assign(T.copyLeopard(S),{lvl:2,hunger:20})}); T.players.push(Q);
+  T.fam.forEach(f=>{ f.feeding=false; f.feedFor=null; });
+  for(let i=0;i<300&&!T.fam.some(f=>f.feeding);i++) T.updateFamily(1);
+  const f=T.fam.find(f=>f.feeding), ok=!!f&&f.feedFor===Q;
+  [S.p1,S.lvl]=keep; T.players.pop(); T.fam.forEach(x=>{ x.feeding=false; x.feedFor=null; });
+  if(!ok) { console.log('FEHLER: Elterntier sollte zum Mitspieler-Jungen laufen'); process.exit(1); }
+  console.log('Elterntiere: Futter für das Mitspieler-Junge unterwegs'); }
+// Ahnenbuch zeigt Mitspieler mit Verwandtschaft zu Spieler 1
+{ const S=T.S(); const keep=S.mates; S.mates={2:Object.assign(T.copyLeopard(S),{id:'m2',parents:[]})};
+  el('btnBook').onclick(); const html=String(el('bookList').innerHTML); S.mates=keep; el('book').style.display='none';
+  if(html.indexOf('Spieler 2')<0||html.indexOf('nicht verwandt mit Spieler 1')<0) { console.log('FEHLER: Ahnenbuch ohne Mitspieler'); process.exit(1); }
+  console.log('Ahnenbuch: Mitspieler mit Verwandtschaft eingetragen'); }
+// Schleichen + Sprint gehalten: es wird gesprintet, nach dem Loslassen wieder geschlichen
+{ const P=T.P; const run=(spr)=>{ const Q=T.makePlayer({source:'test',x:60,z:-60,fur:null}); Q.sneak=true; Q.cam.yaw=0; Q.ctl.fw=1; Q.ctl.rt=0; Q.ctl.sprint=spr;
+    const x0=Q.x,z0=Q.z; for(let i=0;i<20;i++) T.stepPlayer(Q,1/30); const d=Math.hypot(Q.x-x0,Q.z-z0); Q.ctl.sprint=false; T.stepPlayer(Q,1/30); return [d,Q.sneak]; };
+  const [ds]=run(false), [dr,still]=run(true);
+  if(!(dr>ds*2)||!still) { console.log('FEHLER: Sprint aus dem Schleichen',ds.toFixed(2),dr.toFixed(2),still); process.exit(1); }
+  console.log('Schleichen+Sprint: '+dr.toFixed(1)+' m statt '+ds.toFixed(1)+' m, danach wieder Schleichen'); }
 console.log('ALL OK');

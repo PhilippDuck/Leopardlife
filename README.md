@@ -14,6 +14,12 @@ durch Savanne und Sumpf.
 - Tag-Nacht-Wechsel, Regen und Gewitter, Tagesziele, drei Schwierigkeitsgrade
 - Gebiete: Savanne und Sumpf (mit Krokodilen); weitere geplant
 - Steuerung mit Tastatur und Maus, Touch oder Xbox-Controller
+- Gemeinsames Spiel (Splitscreen) für bis zu 4 Spieler: im Startmenü „Gemeinsam spielen" wählen, dann drückt ein weiterer
+  Controller Start zum Einsteigen. Back: eigene Entwicklung · Back halten: aussteigen. Jeder Leopard hat eigene Stufe und Werte;
+  das gemeinsame Spiel hat einen eigenen Spielstand.
+  Familie: Wer einsteigt, ist ein fremder Leopard – ab Stufe 8 können sich Spieler paaren (F bzw. X antippen). Ein Wurf hat ein
+  Junges je Spieler; jeder entscheidet selbst, ob er als Junges weiterspielt. Junge eines Wurfs sind Geschwister: Verwandte paaren sich nicht.
+  Wer zu Boden geht, kann von Mitspielern wiederbelebt werden (daneben X bzw. F halten, 3 s), sonst erwacht er nach 20 s im Bau.
 
 ## Aufbau
 
@@ -28,6 +34,7 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 | `src/audio.js` | Ton: Geräusche, Umgebung (Wind, Vögel) und laufend erzeugte Musik, alles synthetisch über WebAudio |
 | `src/carcass.js` | Kadaver, Aasfresser, Herden und Ahnenbuch |
 | `src/controls.js` | Steuerquellen: übersetzen Tastatur, Maus, Touch oder Controller in den Steuerwunsch eines Spielers |
+| `src/coop.js` | Mitspieler am selben Gerät: Beitreten per Controller, geteiltes Bild, eigene Anzeige, am Boden und Wiederbeleben |
 | `src/crocodile.js` | Krokodile: lauern im Wasser und schnellen hervor |
 | `src/data.js` | Feste Spieldaten: Eigenschaften, Fähigkeiten, Erbanlagen, Schwierigkeitsgrade, Gebiete, |
 | `src/daynight.js` | Tag und Nacht: Sonne, Mond, Himmelsfarben, Nebel, Nachtsicht, Schlafen auf Bäumen |
@@ -41,6 +48,7 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 | `src/hud.js` | Anzeige: Entdeckungswarnung, Kamera, Fadenkreuz, Statusleisten, Ziel, Spürkarte |
 | `src/input.js` | Eingabe über Tastatur, Maus und Touch, Umschalten der Anzeige je nach zuletzt benutzter Eingabe |
 | `src/kin.js` | Partner und Elterntiere am Bau: verteidigen, Futter bringen, beschützen; Wechsel ins Junge |
+| `src/kinship.js` | Verwandtschaft und Familie im gemeinsamen Spiel: wer mit wem verwandt ist, Spieler als Paar, Wurf mit einem Jungen je Spieler |
 | `src/life.js` | Lebenslauf: Hunger, Altern, Fressen aus dem Vorrat |
 | `src/main.js` | Einstieg: Hauptschleife (Bild für Bild: Spieler, Tiere, Kamera, Anzeige) und Spielstart |
 | `src/menu.js` | Pausenmenü, Einstellungen, Steuerungsliste, Neustart |
@@ -67,6 +75,7 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 | `tests/typecheck.js`, `jsconfig.json`, `types/` | Typprüfung aller Module mit TypeScript (ohne Build-Schritt; der Editor nutzt dieselben Einstellungen) |
 | `tests/check-names.js` | Meldet Namen, die ein Modul benutzt, aber weder anlegt noch importiert |
 | `tools/add-imports.py` | Ergänzt solche fehlenden Importe automatisch aus den Exporten der anderen Module |
+| `tools/coop-shot.py` | Splitscreen-Browsertest mit simulierten Controllern (Einsteigen, Bewegen, Aussteigen, Pause) |
 | `tools/shot.py` | Startet das Spiel in Headless-Chrome, öffnet alle Fenster, macht Bildschirmfotos und meldet Fehler |
 
 Nach Änderungen am Spiel `python3 tools/bump-sw.py` ausführen: Das trägt alle Module in den Service-Worker-Cache ein und zählt die Version hoch, sonst behalten installierte Geräte den alten Stand.

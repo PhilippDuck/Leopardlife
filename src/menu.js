@@ -4,7 +4,7 @@ import { initAudio } from './audio.js';
 import { canvas } from './engine.js';
 import { keys, touchUI } from './input.js';
 import { P, rebuildPlayer } from './player.js';
-import { D, REG, REG_ID, S, maxHp, maxSt, resetState, save } from './save.js';
+import { D, MODE, REG, REG_ID, S, maxHp, maxSt, resetState, save, setMode } from './save.js';
 import { toggleSkills } from './skills.js';
 import { G } from './state.js';
 import { toast } from './ui.js';
@@ -74,11 +74,14 @@ document.addEventListener('pointerlockchange',()=>{
   if(document.pointerLockElement===canvas){ hadLock=true; return; }
   if(hadLock&&G.started&&!G.paused&&!menuOpen()){ hadLock=false; toggleMenu(); }
   hadLock=false;
-}); $('pts').onclick=toggleSkills;
+}); $('pts').onclick=()=>toggleSkills();
 $('btnPlay').onclick=()=>{ try{ if(!localStorage.getItem('jaguar-windtip')){ localStorage.setItem('jaguar-windtip','1'); setTimeout(()=>toast('Achte auf den Wind (blauer Pfeil an der Spürkarte): Weht er von dir zu einem Tier, wittert es dich früher.','#96cdff'),8000); } }catch(e){} initAudio(); $('start').style.display='none'; $('diffRow').style.display='none'; save(); G.paused=false; G.started=true; if(!touchUI()){ try{ const r=canvas.requestPointerLock(); if(r&&r.catch) r.catch(()=>{}); }catch(e){} } };
 let resetArm=false;
 function showDiff(){ $('diffRow').style.display='block'; document.querySelectorAll('.diffb').forEach((/** @type {HTMLElement} */ b)=>b.classList.toggle('on',b.dataset.d===S.diff)); $('diffTxt').textContent=D().d; }
 document.querySelectorAll('.diffb').forEach((/** @type {HTMLElement} */ b)=>b.addEventListener('click',()=>{ S.diff=b.dataset.d; showDiff(); }));
+// Modus-Umschalter auf dem Startbildschirm
+if(MODE==='coop'){ $('btnMode').textContent='Allein spielen'; const h=document.querySelector('#start h1 + div'); if(h) h.insertAdjacentHTML('afterend','<div style="color:#9be07f;font-weight:bold;margin:-4px 0 8px">Gemeinsames Spiel · weitere Controller drücken im Spiel Start</div>'); }
+$('btnMode').onclick=()=>setMode(MODE==='coop'?'solo':'coop');
 $('btnReset').onclick=()=>{ if(!resetArm){ resetArm=true; $('btnReset').textContent='Wirklich? Fortschritt löschen'; return; } resetState(); save(); if(REG_ID!=='savanne'){ reloadWorld(true); return; } rebuildPlayer(); rebuildCub(); P.hp=maxHp(); P.st=maxSt(); $('btnReset').style.display='none'; $('btnPlay').textContent='Spielen'; showDiff(); };
 if($('btnReset').style.display==='none') showDiff();
 

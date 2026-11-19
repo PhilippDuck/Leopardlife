@@ -1,7 +1,7 @@
 // LeopardLife – Steuerquellen: übersetzen Tastatur, Maus, Touch oder Controller in den Steuerwunsch eines Spielers.
 // p.ctl.source sagt, woher ein Spieler gesteuert wird. 'local' = alles zusammen (Einzelspieler).
 // Für Splitscreen kommen später 'pad0' … 'pad3' dazu: dann liest jeder Spieler nur seinen Controller.
-import { padSprint, padX, padY } from './gamepad.js';
+import { padAct, padSprint, padX, padY } from './gamepad.js';
 import { keys } from './input.js';
 import { G } from './state.js';
 
@@ -16,7 +16,7 @@ function readControls(p,dt){
   // Bewegung
   let fw=(keys.KeyW?1:0)-(keys.KeyS?1:0)-G.joyY-padY, rt=(keys.KeyD?1:0)-(keys.KeyA?1:0)+G.joyX+padX;
   const il=Math.hypot(fw,rt); if(il>1){ fw/=il; rt/=il; }
-  c.fw=fw; c.rt=rt; c.sprint=!!(keys.ShiftLeft||keys.ShiftRight||G.tSprint||padSprint);
+  c.fw=fw; c.rt=rt; c.sprint=!!(keys.ShiftLeft||keys.ShiftRight||G.tSprint||padSprint); c.act=!!(keys.KeyF||padAct);
 }
 
 export { readControls };
