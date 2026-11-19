@@ -126,6 +126,16 @@ function buildQuad(o,v){
 }
 function animLegs(g,t,amp){ const l=g.userData.legs; const a=Math.sin(t)*amp; l[0].rotation.x=a; l[3].rotation.x=a; l[1].rotation.x=-a; l[2].rotation.x=-a; if(g.userData.tail) g.userData.tail.rotation.y=Math.sin(t*0.5)*0.3; }
 
+/* Spieler */
+// Blick beim Start und beim Aufwachen im Bau: seitlich an den Felsen vorbei ins offene Gelände
+const START_YAW=-1.9, START_ROT=1.24;
+const P={tree:null,climbT:0,safe:false,dropY:0,dropRate:20,upNow:0,camY:0,leap:false,x:2,z:2,y:0,rot:START_ROT,hp:1,st:1,pounce:0,pcd:0,rcd:0,sneak:false,hurtT:0,combatT:0,hidden:1,g:null,moving:0,walkT:0};
+const JAG={col:0xe0a23c,col2:0xf0c98a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.44,ears:0.15,tail:1.1,tailTip:0x2a1c10,spots:1};
+function dropModel(g){ if(!g) return; scene.remove(g); const i=blobs.indexOf(g.userData.blob); if(i>=0) blobs.splice(i,1); }
+function rebuildPlayer(){ dropModel(P.g); P.g=buildQuad(JAG,S.fur||null); P.g.userData.blob.visible=!QUAL[quality].sh; scene.add(P.g); }
+rebuildPlayer();
+scene.add(P.g); P.hp=maxHp(); P.st=maxSt();
+
 /* ---------- Tierarten ---------- */
 // ring: Abstand vom Zentrum. hunt: jagt Spieler unter dieser Stufe. fight: wehrt sich.
 const animals=[];
@@ -139,20 +149,10 @@ function placeAnimal(a){
   a.x=x; a.z=z; a.hp=sp.hp; a.state='wander'; a.tx=x; a.tz=z; a.timer=0; a.aggro=0; a.lost=0; a.fleeT=0; a.cd=0; a.stun=0; a.sus=0; a.near=false; a.dead=false; a.ph=Math.random()*6; if(sp.croc) a.state='lurk';
   a.g.visible=true;
 }
-// Blick beim Start und beim Aufwachen im Bau: seitlich an den Felsen vorbei ins offene Gelände
-const START_YAW=-1.9, START_ROT=1.24;
-const P={tree:null,climbT:0,safe:false,dropY:0,dropRate:20,upNow:0,camY:0,leap:false,x:2,z:2,y:0,rot:START_ROT,hp:1,st:1,pounce:0,pcd:0,rcd:0,sneak:false,hurtT:0,combatT:0,hidden:1,g:null,moving:0,walkT:0};
 SPECIES.forEach(sp=>{ const cnt=(REG.counts&&REG.counts[sp.id]!==undefined)?REG.counts[sp.id]:sp.count; for(let i=0;i<cnt;i++){ const fur=makeFur(), g=buildQuad(sp.m,fur); g.scale.setScalar(sp.size); scene.add(g); const a={sp,g,fur,rad:sp.size*0.8+0.25,uid:animals.length}; placeAnimal(a); animals.push(a); } });
 ['capy','deer','anti'].forEach(id=>{ const L=animals.filter(a=>a.sp.id===id);
   for(let i=0;i<L.length;){ const n=Math.min(L.length-i,3+Math.floor(Math.random()*2)), grp=L.slice(i,i+n);
     grp.forEach((a,j)=>{ a.herd=grp; if(j>0){ a.x=grp[0].x+rnd(-6,6); a.z=grp[0].z+rnd(-6,6); a.tx=a.x; a.tz=a.z; } }); i+=n; } });
-
-/* Spieler */
-const JAG={col:0xe0a23c,col2:0xf0c98a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.44,ears:0.15,tail:1.1,tailTip:0x2a1c10,spots:1};
-function dropModel(g){ if(!g) return; scene.remove(g); const i=blobs.indexOf(g.userData.blob); if(i>=0) blobs.splice(i,1); }
-function rebuildPlayer(){ dropModel(P.g); P.g=buildQuad(JAG,S.fur||null); P.g.userData.blob.visible=!QUAL[quality].sh; scene.add(P.g); }
-rebuildPlayer();
-scene.add(P.g); P.hp=maxHp(); P.st=maxSt();
 
 /* Partikel */
 const puffs=[]; const puffGeo=new THREE.BoxGeometry(0.25,0.25,0.25);
