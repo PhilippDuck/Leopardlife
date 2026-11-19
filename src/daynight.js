@@ -3,7 +3,7 @@ import { animals } from './animals.js';
 import { HORIZON, SUN_OFF, grassLight, hemi, scene, sun } from './engine.js';
 import { endRaid } from './family.js';
 import { keys, touchUI } from './input.js';
-import { W, newGoals, padUI, updateUI } from './main.js';
+import { newGoals, padUI, updateUI } from './main.js';
 import { menuOpen } from './menu.js';
 import { P } from './player.js';
 import { D, S, maxHp, maxSt, save } from './save.js';
@@ -12,6 +12,7 @@ import { G } from './state.js';
 import { toast } from './ui.js';
 import { $, rnd } from './util.js';
 import { on } from './events.js';
+import { W } from './weather.js';
 
 /* ---------- Tag und Nacht ---------- */
 // S.tod: 0 = Mitternacht, 0.25 = Sonnenaufgang, 0.5 = Mittag, 0.75 = Sonnenuntergang. Ein ganzer Tag dauert DAY_LEN Sekunden.
