@@ -12,6 +12,7 @@ import { H, WORLD, collide, inWater } from './terrain.js';
 import { inGrass, trees } from './vegetation.js';
 import { W } from './weather.js';
 import { $ } from './util.js';
+import { P } from './player.js';
 
 /** Bewegt Spieler p um dt Sekunden. Gibt die Tarnung zurück (0 = unsichtbar, 1 = normal sichtbar). */
 /** @param {import('./player.js').Player} p */
@@ -24,7 +25,7 @@ function stepPlayer(p,dt){
   let sprint=wantSprint&&p.st>1;
   let spd=baseSpeed()*(sprint?1.6:p.sneak?0.45:1); if(p.wet) spd*=0.65;
   if(sprint) p.st-=20*dt; else p.st=Math.min(maxSt(),p.st+(12+2*at('sta'))*(S.hunger<25?0.5:1)*(moving?0.7:1.3)*dt);
-  if(p.st<=1&&G.tSprint){ G.tSprint=false; $('tbS').classList.remove('on'); }
+  if(p===P&&p.st<=1&&G.tSprint){ G.tSprint=false; $('tbS').classList.remove('on'); }
   const sc=pScale();
   if(p.tree!=null){
     const t=trees[p.tree]; p.climbT=Math.min(1,p.climbT+dt/(1.3-0.3*S.b.climb));
@@ -60,8 +61,9 @@ function stepPlayer(p,dt){
   const grass=inGrass(p.x,p.z); p.wet=p.tree==null&&inWater(p.x,p.z);
   let st=1; if(p.sneak) st*=0.5; if(sprint) st*=1.3; if(grass) st*=p.sneak?0.3:(0.32+0.38*Math.min(1,(S.lvl-1)/7)); st*=(1-0.05*at('cam'))*(has('dunkel')?0.8:1)*(S.fur&&S.fur.albino?1.15:S.fur&&S.fur.melan?0.9:1); st*=0.8+0.025*S.lvl; st*=0.7+0.3*dayF; st*=1-0.25*W.rain; if(p.safe) st=0;
   p.hidden=st; p.grass=grass;
-  { const lv=(p.safe||(grass&&(p.sneak||S.lvl<4)))?2:(grass||p.sneak)?1:0; if(lv!==p.hideLv) setHide(lv);
+  { const lv=(p.safe||(grass&&(p.sneak||S.lvl<4)))?2:(grass||p.sneak)?1:0; if(lv!==p.hideLv){ if(p===P) setHide(lv); else p.hideLv=lv; }   // Anzeige am Fadenkreuz: vorerst nur Spieler 1
     if(lv===2&&S.goals&&S.goals.list.some(g=>g.id==='hide'&&!g.done)&&animals.some(a=>!a.dead&&a.sp.hunt&&S.lvl<a.sp.hunt&&Math.hypot(a.x-p.x,a.z-p.z)<25)) goalEvent('hide',dt); }
+  p.stealth=st;   // für die Tiere: wie gut dieser Spieler gerade getarnt ist
   return st;
 }
 

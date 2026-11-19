@@ -29,6 +29,7 @@ const JAG={col:0xe0a23c,col2:0xf0c98a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.44
  * @property {boolean} dead
  * @property {boolean} sneak
  * @property {number} hidden Tarnung 0 (unsichtbar) … über 1 (auffällig)
+ * @property {number} [stealth] Tarnwert dieses Bildes für die Tiere (move.js)
  * @property {boolean} [grass] steht im hohen Gras
  * @property {boolean} [wet] steht im Wasser
  * @property {number} [hideLv] Stufe der Versteck-Anzeige 0/1/2
