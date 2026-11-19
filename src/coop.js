@@ -18,7 +18,8 @@ import { $ } from './util.js';
 import { applyTreeView, tallMat } from './vegetation.js';
 import { toggleSkills } from './skills.js';
 import { ensureKin, mateContext, newId } from './kinship.js';
-import { drawRadar, updateCross, updateUI, updateWarn, warnArrows } from './hud.js';
+import { PCOL, drawRadar, updateCross, updateUI, updateWarn, warnArrows } from './hud.js';
+import { esc } from './carcass.js';
 
 /** Höchstens so viele Spieler teilen sich den Bildschirm */
 const MAX_PLAYERS=4;
@@ -124,6 +125,7 @@ function pollCoop(dt,gps){
       if(hit(4)) doRoar(p);
       if(hit(2)) mateContext(p);   // X antippen: paaren, Junges füttern (X halten: wiederbeleben)
       if(hit(11)) p.cam.yaw=p.rot+Math.PI;
+      if(hit(14)) pingMates(p);   // Steuerkreuz links: Mitspieler markieren
       if(hit(12)) p.cam.zoom=Math.max(0.45,p.cam.zoom/1.15);
       if(hit(13)) p.cam.zoom=Math.min(2.6,p.cam.zoom*1.15);
     }
@@ -150,6 +152,9 @@ function downPlayer(p,a){
 /** Pro Bild: Wiederbeleben durch einen Mitspieler in der Nähe, sonst nach Ablauf im Bau erwachen. */
 function updateCoop(dt){
   if(players.length<2) return;
+  // Wer steht nah bei einem Mitspieler am Boden? (für den Hinweis mit Fortschritt in seiner Anzeige)
+  for(const o of players){ o.reviveNear=null; if(o.dead) continue; let bd=REVIVE_DIST*2.5;
+    for(const p of players){ if(p===o||!p.dead||p.downT==null) continue; const d=Math.hypot(o.x-p.x,o.z-p.z); if(d<bd){ bd=d; o.reviveNear=p; } } }
   for(const p of players){
     if(!p.dead||p.downT==null) continue;
     const helper=players.find(o=>o!==p&&!o.dead&&o.ctl.act&&Math.hypot(o.x-p.x,o.z-p.z)<REVIVE_DIST);
@@ -208,6 +213,7 @@ on('toast',(t,c)=>{ for(const p of players) if(p!==P&&p.hud) mateToast(p,t,c); }
 /** Anzeige der Mitspieler auffrischen: dieselbe Anzeige wie bei Spieler 1, mit ihren eigenen Werten. */
 function updateCoopHud(dt){
   hudTick++;
+  for(const v of players) updateMarks(v,dt);
   for(const p of players){
     if(!p.hud) continue; const h=p.hud;
     if((hudTick+(p.num||0))%6===0) updateUI(p);
@@ -222,4 +228,36 @@ function updateCoopHud(dt){
   if(players.length>1&&P.dead&&P.downT!=null){ const s=Math.ceil(P.downT); if(s!==P.lastS){ P.lastS=s; $('crossMsg').textContent='Am Boden – Mitspieler: X halten · Bau in '+s+' s'; $('crossMsg').style.opacity='1'; } }
 }
 
-export { hEl, mateToast, viewMin, tell, MAX_PLAYERS, joinPlayer, leavePlayer, renderAll, pollCoop, padTaken, downPlayer, updateCoop, updateCoopHud, othersAlive, nameOf };
+/* ---------- Mitspieler markieren ---------- */
+/** Spieler p will die anderen sehen: für einige Sekunden Markierungen mit Name und Entfernung */
+function pingMates(p){ if(players.length<2) return; p.pingT=6; snd.click(); }
+const _mv=new THREE.Vector3();
+/**
+ * Markierungen in der Anzeige von Spieler v: über dem Kopf eines Mitspielers, wenn er im Bild ist, sonst Pfeil am Rand.
+ * Gezeigt werden alle nach Q/Steuerkreuz links und immer die, die am Boden liegen.
+ */
+function updateMarks(v,dt){
+  if(v.pingT>0) v.pingT-=dt;
+  const frame=v===P?$('ph0'):v.hud; if(!frame) return;
+  const pool=v.marks||(v.marks=[]); let n=0;
+  if(players.length>1&&!v.dead) for(const q of players){
+    if(q===v||!(v.pingT>0||(q.dead&&q.downT!=null))) continue;
+    let el=pool[n]; if(!el){ el=document.createElement('div'); el.className='mk'; frame.appendChild(el); pool.push(el); } n++;
+    const W=frame.clientWidth, Hh=frame.clientHeight, d=Math.round(Math.hypot(q.x-v.x,q.z-v.z)), col=PCOL[(q.num||1)-1];
+    _mv.set(q.x,q.y+1.4*pScale(q.L)+0.6,q.z).project(v.camera);
+    const label=(q.dead?'⚠ ':'')+nameOf(q)+' · '+d+' m';
+    el.style.display='block'; el.style.color=col;
+    if(_mv.z<1&&Math.abs(_mv.x)<0.95&&Math.abs(_mv.y)<0.95){   // im Bild: über dem Kopf
+      el.className='mk'; el.innerHTML=esc(label)+'<br>▼';
+      el.style.left=((_mv.x*0.5+0.5)*W)+'px'; el.style.top=((-_mv.y*0.5+0.5)*Hh)+'px'; el.style.transform='translate(-50%,-100%)';
+    } else {   // außerhalb: Pfeil am Rand in seine Richtung
+      const dx=q.x-v.x, dz=q.z-v.z, s=Math.sin(v.cam.yaw), c=Math.cos(v.cam.yaw), ang=Math.atan2(dx*c-dz*s,-(dx*s+dz*c)), R=Math.min(W,Hh)*0.36;
+      el.className='mk edge'; el.innerHTML='<i style="border-bottom-color:'+col+';transform:rotate('+ang+'rad)"></i><span>'+esc(label)+'</span>';
+      el.style.left=(W/2+Math.sin(ang)*R)+'px'; el.style.top=(Hh/2-Math.cos(ang)*R)+'px'; el.style.transform='translate(-50%,-50%)';
+    }
+  }
+  for(let i=n;i<pool.length;i++) pool[i].style.display='none';
+}
+/** Hinweis zum Wiederbeleben für Spieler o (oder null): wen, wie weit, Fortschritt 0…1 */
+function reviveHint(o){ const p=o.reviveNear; if(!p) return null; const d=Math.hypot(o.x-p.x,o.z-p.z); return {name:nameOf(p),close:d<REVIVE_DIST,progress:p.revT/REVIVE_TIME,left:Math.max(0,REVIVE_TIME-p.revT)}; }
+export { pingMates, updateMarks, reviveHint, hEl, mateToast, viewMin, tell, MAX_PLAYERS, joinPlayer, leavePlayer, renderAll, pollCoop, padTaken, downPlayer, updateCoop, updateCoopHud, othersAlive, nameOf };

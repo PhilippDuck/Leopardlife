@@ -8,7 +8,7 @@ import { toggleSkills } from './skills.js';
 import { G } from './state.js';
 import { toast } from './ui.js';
 import { $ } from './util.js';
-import { MAX_PLAYERS, joinPlayer, leavePlayer, padTaken, pollCoop } from './coop.js';
+import { MAX_PLAYERS, joinPlayer, leavePlayer, padTaken, pingMates, pollCoop } from './coop.js';
 import { MODE } from './save.js';
 
 /* ---------- Controller-Steuerung (Gamepad, Standardbelegung wie Xbox/PlayStation) ----------
@@ -80,6 +80,7 @@ function pollPads(dt){
       if(hit(3)) doClimb();
       if(hit(4)) doRoar();
       if(hit(11)) P.cam.yaw=P.rot+Math.PI;
+      if(hit(14)) pingMates(P);   // Steuerkreuz links: Mitspieler markieren
       if(hit(12)) P.cam.zoom=Math.max(0.45,P.cam.zoom/1.15);
       if(hit(13)) P.cam.zoom=Math.min(2.6,P.cam.zoom*1.15);
     }

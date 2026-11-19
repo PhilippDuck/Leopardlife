@@ -43,7 +43,7 @@ function renderKeys(){ $('keysMode').textContent=padUI()?'Xbox-Controller':touch
   $('keysBox').innerHTML=(padUI()?[
   ['Linker Stick','Laufen'],['Rechter Stick','Kamera und Fadenkreuz drehen'],['RT oder linken Stick drücken','Sprinten (kostet Ausdauer)'],
   ['Ⓐ','Sprungangriff in Richtung Fadenkreuz'],['Ⓑ','Schleichen an/aus'],['Ⓧ','Aktion: paaren, füttern, fressen, schlafen'],['Ⓨ','Auf einen Baum klettern / herunter'],
-  ['LB','Brüllen'],['Rechten Stick drücken','Kamera hinter den Leoparden'],['Steuerkreuz ↑ ↓','Zoomen'],['Menü-Taste ☰','Pause-Menü'],['Ansicht-Taste ⧉','Eigenschaften & Fähigkeiten'],
+  ['LB','Brüllen'],['Rechten Stick drücken','Kamera hinter den Leoparden'],['Steuerkreuz ↑ ↓','Zoomen'],['Steuerkreuz ←','Mitspieler kurz markieren'],['Ⓧ halten','Mitspieler am Boden wiederbeleben'],['Menü-Taste ☰','Pause-Menü'],['Ansicht-Taste ⧉','Eigenschaften & Fähigkeiten'],
   ['In Menüs','Steuerkreuz wählt, Ⓐ bestätigt, Ⓑ zurück']
 ]:touchUI()?[
   ['Linke Bildschirmhälfte','Laufen – der Joystick entsteht, wo der Daumen aufsetzt'],
@@ -56,7 +56,7 @@ function renderKeys(){ $('keysMode').textContent=padUI()?'Xbox-Controller':touch
 ]:[
   ['<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>','Laufen'],['<kbd>Maus</kbd> / <kbd>←</kbd><kbd>→</kbd>','Kamera und Fadenkreuz drehen'],['<kbd>Mausrad</kbd>','Zoomen'],
   ['<kbd>Shift</kbd>','Sprinten (kostet Ausdauer)'],['<kbd>C</kbd>','Schleichen an/aus'],['<kbd>Leertaste</kbd> / <kbd>Klick</kbd>','Sprungangriff in Richtung Fadenkreuz'],
-  ['<kbd>R</kbd>','Brüllen (Fähigkeit)'],['<kbd>E</kbd>','Auf einen Baum klettern / herunter (Fähigkeit)'],['<kbd>F</kbd>','Paaren / Junges füttern / fressen / Fleisch mitnehmen / schlafen'],
+  ['<kbd>R</kbd>','Brüllen (Fähigkeit)'],['<kbd>E</kbd>','Auf einen Baum klettern / herunter (Fähigkeit)'],['<kbd>F</kbd>','Paaren / Junges füttern / fressen / Fleisch mitnehmen / schlafen'],['<kbd>Q</kbd>','Mitspieler kurz markieren (gemeinsames Spiel)'],
   ['<kbd>Tab</kbd> / <kbd>K</kbd>','Eigenschaften & Fähigkeiten'],['<kbd>Esc</kbd>','Pause-Menü']
 ]).map(r=>'<span>'+xb(r[0])+'</span><span>'+r[1]+'</span>').join(''); }
 // (Die Liste wird beim Start über setInputMode() gefüllt, sobald die Eingabeart feststeht.)

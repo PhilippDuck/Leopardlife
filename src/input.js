@@ -12,6 +12,7 @@ import { doContext } from './family.js';
 import { bookOpen, closeBook } from './carcass.js';
 import { padSynth } from './gamepad.js';
 import { updateUI } from './hud.js';
+import { pingMates } from './coop.js';
 
 /* ---------- Eingabe ---------- */
 const keys={}; G.paused=true; G.started=false;
@@ -28,6 +29,7 @@ window.addEventListener('keydown',e=>{
   if(e.code==='KeyR'){ doRoar(); }
   if(e.code==='KeyE'){ doClimb(); }
   if(e.code==='KeyF'){ doContext(); }
+  if(e.code==='KeyQ'){ pingMates(P); }   // Mitspieler markieren
 });
 window.addEventListener('keyup',e=>{ keys[e.code]=false; });
 window.addEventListener('blur',()=>{ for(const k in keys) keys[k]=false; });

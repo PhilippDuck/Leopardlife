@@ -38,6 +38,10 @@ with sync_playwright() as p:
     # Spieler 2 läuft nach vorn und dreht die Kamera
     pg.evaluate("__pad(0,{ax:[0.3,-1,0.4,0]})"); pg.wait_for_timeout(1500); pg.evaluate("__pad(0,{})"); pg.wait_for_timeout(300)
     shot(pg, '1-zwei-spieler')
+    # Spieler 2 markiert die anderen (Steuerkreuz links)
+    pg.evaluate("__pad(0,{b:[14]})"); pg.wait_for_timeout(700); pg.evaluate("__pad(0,{})"); pg.wait_for_timeout(600)
+    marks = pg.locator('.mk:visible').count()
+    shot(pg, '1b-markiert')
     # Spieler 2 springt (A)
     pg.evaluate("__pad(0,{b:[0]})"); pg.wait_for_timeout(700); pg.evaluate("__pad(0,{})"); pg.wait_for_timeout(500)
     # Controller 1: Spieler 3
@@ -75,6 +79,7 @@ with sync_playwright() as p:
     solo = pg.evaluate("localStorage.getItem('jaguar-save-v1')")
     b.close()
     print('Koop-Spielstand Mitspieler-Plätze:', saved, '| Einzelspielstand angelegt:', solo is not None)
+print('Markierungen nach Steuerkreuz links:', marks)
 print('Leiste Spieler 1 nach Ⓐ kurz:', repr(hint.strip()[:30]), '| nach Ⓐ 2 s:', repr(took.strip()[:30]))
 print('Entwicklung Spieler 2:', skills, repr(who), '| wieder zu:', skills_closed)
 print('eingestiegen:', joined, '| bei vier:', four, '| nach Aussteigen:', after, '| Pause per Controller:', menu)
