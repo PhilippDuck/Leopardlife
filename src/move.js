@@ -20,9 +20,11 @@ function stepPlayer(p,dt){
   const s=Math.sin(p.cam.yaw), c=Math.cos(p.cam.yaw);
   let mx=-s*fw+c*rt, mz=-c*fw-s*rt;
   const moving=il>0.1&&p.tree==null;
-  const wantSprint=p.ctl.sprint&&moving&&!p.sneak;
+  // Sprinten geht auch aus dem Schleichen heraus: solange Sprint gehalten wird, wird gesprintet, danach schleicht er weiter
+  const wantSprint=p.ctl.sprint&&moving;
   let sprint=wantSprint&&p.st>1;
-  let spd=baseSpeed()*(sprint?1.6:p.sneak?0.45:1); if(p.wet) spd*=0.65;
+  const sneak=p.sneak&&!sprint;   // beim Sprinten ruht das Schleichen
+  let spd=baseSpeed()*(sprint?1.6:sneak?0.45:1); if(p.wet) spd*=0.65;
   if(sprint) p.st-=20*dt; else p.st=Math.min(maxSt(),p.st+(12+2*at('sta'))*(S.hunger<25?0.5:1)*(moving?0.7:1.3)*dt);
   if(p.st<=1&&G.tSprint){ G.tSprint=false; $('tbS').classList.remove('on'); }
   const sc=pScale();
@@ -52,15 +54,15 @@ function stepPlayer(p,dt){
   p.camY=p.y+up;
   const climbing=p.tree!=null&&p.climbT<1;
   const g=p.g; g.scale.setScalar(sc); g.position.set(p.x,p.y+jump+up,p.z); g.rotation.y=p.rot;
-  g.userData.inner.position.y+=(((p.sneak&&p.pounce<=0)?-0.16:0)-g.userData.inner.position.y)*Math.min(1,dt*10);
+  g.userData.inner.position.y+=(((sneak&&p.pounce<=0)?-0.16:0)-g.userData.inner.position.y)*Math.min(1,dt*10);
   g.userData.inner.rotation.x=climbing?-1.1:p.pounce>0?(p.leap?0.35:-0.3):0;
-  if(climbing) animLegs(g,p.walkT,0.7); else if(moving||p.pounce>0){ p.walkT+=dt*(5+spd*1.4); animLegs(g,p.walkT,p.pounce>0?1.1:sprint?0.85:p.sneak?0.3:0.55); } else animLegs(g,p.walkT,0.02);
-  if(moving&&p.pounce<=0){ p.stepT=(p.stepT||0)-dt*(sprint?1.7:p.sneak?0.55:1); if(p.stepT<=0){ p.stepT=0.3; if(p.wet) snd.splash(); else snd.step(p.sneak?0.04:sprint?0.2:0.12); } }
+  if(climbing) animLegs(g,p.walkT,0.7); else if(moving||p.pounce>0){ p.walkT+=dt*(5+spd*1.4); animLegs(g,p.walkT,p.pounce>0?1.1:sprint?0.85:sneak?0.3:0.55); } else animLegs(g,p.walkT,0.02);
+  if(moving&&p.pounce<=0){ p.stepT=(p.stepT||0)-dt*(sprint?1.7:sneak?0.55:1); if(p.stepT<=0){ p.stepT=0.3; if(p.wet) snd.splash(); else snd.step(sneak?0.04:sprint?0.2:0.12); } }
   // Tarnung
   const grass=inGrass(p.x,p.z); p.wet=p.tree==null&&inWater(p.x,p.z);
-  let st=1; if(p.sneak) st*=0.5; if(sprint) st*=1.3; if(grass) st*=p.sneak?0.3:(0.32+0.38*Math.min(1,(S.lvl-1)/7)); st*=(1-0.05*at('cam'))*(has('dunkel')?0.8:1)*(S.fur&&S.fur.albino?1.15:S.fur&&S.fur.melan?0.9:1); st*=0.8+0.025*S.lvl; st*=0.7+0.3*dayF; st*=1-0.25*W.rain; if(p.safe) st=0;
+  let st=1; if(sneak) st*=0.5; if(sprint) st*=1.3; if(grass) st*=sneak?0.3:(0.32+0.38*Math.min(1,(S.lvl-1)/7)); st*=(1-0.05*at('cam'))*(has('dunkel')?0.8:1)*(S.fur&&S.fur.albino?1.15:S.fur&&S.fur.melan?0.9:1); st*=0.8+0.025*S.lvl; st*=0.7+0.3*dayF; st*=1-0.25*W.rain; if(p.safe) st=0;
   p.hidden=st; p.grass=grass;
-  { const lv=(p.safe||(grass&&(p.sneak||S.lvl<4)))?2:(grass||p.sneak)?1:0; if(lv!==p.hideLv) setHide(lv);
+  { const lv=(p.safe||(grass&&(sneak||S.lvl<4)))?2:(grass||sneak)?1:0; if(lv!==p.hideLv) setHide(lv);
     if(lv===2&&S.goals&&S.goals.list.some(g=>g.id==='hide'&&!g.done)&&animals.some(a=>!a.dead&&a.sp.hunt&&S.lvl<a.sp.hunt&&Math.hypot(a.x-p.x,a.z-p.z)<25)) goalEvent('hide',dt); }
   return st;
 }
