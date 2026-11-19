@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "checkJs": true,
+    "allowJs": true,
+    "noEmit": true,
+    "target": "ES2020",
+    "module": "ESNext",
+    "lib": ["ES2020", "DOM"],
+    "strict": false,
+    "noImplicitAny": false
+  },
+  "include": ["src/**/*.js", "types/**/*.d.ts"]
+}
