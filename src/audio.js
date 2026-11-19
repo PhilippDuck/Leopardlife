@@ -118,7 +118,7 @@ function ambTick(day,rain,storm,hour,tense){
   if(calm>0.2) EVENTS.forEach((e,i)=>{ if(t<evNext[i]) return; const fq=e.f(hour||12,day);
     if(evNext[i]>0&&fq>0.05){ const ks=e.ks.filter(k=>bufs[k]); if(ks.length) oneShot(ks[Math.floor(Math.random()*ks.length)],rnd(e.vol[0],e.vol[1]),rnd(-0.85,0.85),rnd(0.9,1.1)); }
     evNext[i]=t+rnd(e.gap[0],e.gap[1])/Math.max(0.15,fq); });
-  musicFiles(t,storm&&rain>0.4||tense);
+  musicFiles(t,storm&&rain>0.4||tense,rain);
   const rg=ambLoop('rain'); if(rg) rg.gain.setTargetAtTime(0.7*rain,t,0.8);
   if(windG&&(bufs.dayA||bufs.windA||bufs.night)) windG.gain.value=0.02;   // Synth-Wind nur noch leise darunter
 }
@@ -189,22 +189,26 @@ function mSchedule(i,t){
   mNoise(t,0.05,s%2?0.028:0.014,6500);                                            // Rassel
 }
 /* Aufgenommene Musik: leise im Hintergrund, ein Stück nach dem anderen in zufälliger Reihenfolge,
-   vier bis sieben Stücke am Stück (übergeblendet), dann 5–15 s Pause; bei Gewitter oder Gefahr tritt sie zurück. Solange keine Aufnahme geladen ist, spielt die Synth-Musik. */
-const MUSIC=['music1','music2','music3','music4'], MUSIC_VOL=0.16;
-let mFileNext=8, mFileGain=null, mLast='', mRun=0;
+   drei bis sechs Stücke am Stück (übergeblendet), dann meist 10–30 s, manchmal 1–2½ min Pause; bei Regen still und danach noch eine Weile; bei Gewitter oder Gefahr tritt sie zurück. Solange keine Aufnahme geladen ist, spielt die Synth-Musik. */
+const MUSIC=['music1','music2','music3','music4'], MUSIC_VOL=0.11;
+let mFileNext=8, mFileGain=null, mLast='', mRun=0, mRain=false;
 const musicFilesReady=()=>MUSIC.some(k=>bufs[k]);
-function musicFiles(t,duck){
+function musicFiles(t,duck,rain){
   if(!musicFilesReady()) return;
+  // Regen: Musik schweigt; hört er auf, bleibt es noch eine Weile still
+  if(rain>0.35) mRain=true; else if(mRain&&rain<0.1){ mRain=false; mRun=0; mFileNext=Math.max(mFileNext,t+rnd(30,90)); }
+  duck=duck||mRain;
   if(!mFileGain){ mFileGain=AC.createGain(); mFileGain.gain.value=0; mFileGain.connect(master); }
   mFileGain.gain.setTargetAtTime(musicOn&&!duck?1:0,t,duck?0.6:2.5);
-  if(t<mFileNext||!musicOn) return;
+  if(t<mFileNext||!musicOn||duck) return;
   const ks=MUSIC.filter(k=>bufs[k]&&k!==mLast), k=ks.length?ks[Math.floor(Math.random()*ks.length)]:mLast; if(!bufs[k]) return; mLast=k;
   const b=bufs[k], s=AC.createBufferSource(); s.buffer=b; const g=AC.createGain(), d=b.duration;
   g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(MUSIC_VOL,t+3); g.gain.setValueAtTime(MUSIC_VOL,t+d-4); g.gain.linearRampToValueAtTime(0.0001,t+d);
   s.connect(g); g.connect(mFileGain); s.start(t);
   // mehrere Stücke am Stück, weich übergeblendet; danach nur eine kurze Pause
-  if(mRun<=0) mRun=Math.floor(rnd(4,8)); mRun--;
-  mFileNext=mRun>0?t+d-3:t+d+rnd(5,15);
+  if(mRun<=0) mRun=Math.floor(rnd(3,7)); mRun--;
+  // Pausen: meist kurz, manchmal länger
+  mFileNext=mRun>0?t+d-3:t+d+(Math.random()<0.6?rnd(10,30):rnd(60,150));
 }
 function musicTick(){
   if(!AC||!musicOn||AC.state!=='running'||musicFilesReady()) return;
