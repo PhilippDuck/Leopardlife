@@ -188,7 +188,7 @@ const hash2=(x,z)=>{ const h=Math.sin(x*12.9898+z*78.233)*43758.5453; return h-M
     return (H0(x0,z0)*(1-u)+H0(x0+CS,z0)*u)*(1-v)+(H0(x0,z0+CS)*(1-u)+H0(x0+CS,z0+CS)*u)*v-0.15; };
   const N=280, m=new THREE.Matrix4(), q=new THREE.Quaternion(), s=new THREE.Vector3(), v=new THREE.Vector3(), cc=new THREE.Color();
   const tr=new THREE.InstancedMesh(new THREE.CylinderGeometry(0.3,0.45,5,5),new THREE.MeshLambertMaterial({color:0x6b4a2b}),N);
-  const tp=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(3,0),new THREE.MeshLambertMaterial({color:0xffffff,flatShading:true}),N);
+  const tp=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(3,0),new THREE.MeshLambertMaterial({color:0xffffff}),N);
   for(let i=0;i<N;i++){
     let x,z; do{ const r=rnd(320,820), a=Math.random()*6.283; x=Math.cos(a)*r; z=Math.sin(a)*r; }while(Math.max(Math.abs(x),Math.abs(z))<325);
     const k=rnd(0.8,1.5), y=Hc(x,z), w=rnd(1.5,2.1);
@@ -347,7 +347,7 @@ function updateTrees(dt){
 
 /* Büsche, Felsen, Stämme, Blumen */
 (function(){
-  const mat=new THREE.MeshLambertMaterial({color:0xffffff,flatShading:true});
+  const mat=new THREE.MeshLambertMaterial({color:0xffffff});
   const m=new THREE.Matrix4(), q=new THREE.Quaternion(), s=new THREE.Vector3(), v=new THREE.Vector3(), e=new THREE.Euler(), c=new THREE.Color();
   function scatter(n,geo,fn,shadow){
     const by={};
@@ -463,7 +463,7 @@ function inGrass(x,z){ for(let i=0;i<patches.length;i++){ const p=patches[i], dx
 
 /* Bau (Startpunkt) */
 (function(){
-  const mat=new THREE.MeshLambertMaterial({color:0x8a8a80,flatShading:true});
+  const mat=new THREE.MeshLambertMaterial({color:0x8a8a80});
   [[-3,0,-3,2.2],[-0.5,0,-4.2,2.8],[2.2,0,-3.2,2]].forEach(r=>{ const m=new THREE.Mesh(new THREE.DodecahedronGeometry(r[3],0),mat); m.position.set(r[0],H(r[0],r[2])+r[3]*0.5,r[2]); m.rotation.set(Math.random(),Math.random(),0); m.castShadow=true; m.receiveShadow=true; scene.add(m); addCol(r[0],r[2],r[3]*0.9); });
 })();
 
@@ -557,7 +557,9 @@ function placeAnimal(a){
   a.x=x; a.z=z; a.hp=sp.hp; a.state='wander'; a.tx=x; a.tz=z; a.timer=0; a.aggro=0; a.lost=0; a.fleeT=0; a.cd=0; a.stun=0; a.sus=0; a.near=false; a.dead=false; a.ph=Math.random()*6; if(sp.croc) a.state='lurk';
   a.g.visible=true;
 }
-const P={tree:null,climbT:0,safe:false,dropY:0,dropRate:20,upNow:0,camY:0,leap:false,x:2,z:2,y:0,rot:0,hp:1,st:1,pounce:0,pcd:0,rcd:0,sneak:false,hurtT:0,combatT:0,hidden:1,g:null,moving:0,walkT:0};
+// Blick beim Start und beim Aufwachen im Bau: seitlich an den Felsen vorbei ins offene Gelände
+const START_YAW=-1.9, START_ROT=1.24;
+const P={tree:null,climbT:0,safe:false,dropY:0,dropRate:20,upNow:0,camY:0,leap:false,x:2,z:2,y:0,rot:START_ROT,hp:1,st:1,pounce:0,pcd:0,rcd:0,sneak:false,hurtT:0,combatT:0,hidden:1,g:null,moving:0,walkT:0};
 SPECIES.forEach(sp=>{ const cnt=(REG.counts&&REG.counts[sp.id]!==undefined)?REG.counts[sp.id]:sp.count; for(let i=0;i<cnt;i++){ const fur=makeFur(), g=buildQuad(sp.m,fur); g.scale.setScalar(sp.size); scene.add(g); const a={sp,g,fur,rad:sp.size*0.8+0.25,uid:animals.length}; placeAnimal(a); animals.push(a); } });
 ['capy','deer','anti'].forEach(id=>{ const L=animals.filter(a=>a.sp.id===id);
   for(let i=0;i<L.length;){ const n=Math.min(L.length-i,3+Math.floor(Math.random()*2)), grp=L.slice(i,i+n);
@@ -575,7 +577,7 @@ const puffs=[]; const puffGeo=new THREE.BoxGeometry(0.25,0.25,0.25);
 function puff(x,y,z,c,n,s){ for(let i=0;i<n;i++){ const m=new THREE.Mesh(puffGeo,new THREE.MeshBasicMaterial({color:c,transparent:true})); m.position.set(x,y,z); m.scale.setScalar(s*rnd(0.6,1.4)); scene.add(m); puffs.push({m,vx:rnd(-3,3),vy:rnd(2,6),vz:rnd(-3,3),t:0.7}); } }
 
 /* ---------- Eingabe ---------- */
-const keys={}; G.camYaw=0.6; G.camPitch=0.42; G.camZoom=1; G.paused=true; G.started=false;
+const keys={}; G.camYaw=START_YAW; G.camPitch=0.42; G.camZoom=1; G.paused=true; G.started=false;
 G.joyX=0; G.joyY=0; G.tSprint=false;
 window.addEventListener('keydown',e=>{
   if(e.code==='Tab'){ e.preventDefault(); if(G.started) toggleSkills(); return; }
@@ -969,7 +971,7 @@ function respawn(){
   else if(G.lineageEnd){ recordAncestor(G.lastCause); archiveLine(); const df=S.diff; resetState(); S.diff=df; save(); if(REG_ID!=='savanne'){ reloadWorld(false); return; } rebuildPlayer(); rebuildCub(); animals.forEach(placeAnimal); G.raider=null; toast('Eine neue Blutlinie beginnt.','#f2b84b'); }
   else S.hunger=Math.max(S.hunger,70);
   G.heirPending=false; G.lineageEnd=false;
-  P.tree=null; P.safe=false; P.dropY=0; P.upNow=0; P.x=sx; P.z=sz; P.rot=0; P.hp=maxHp(); P.st=maxSt(); P.pounce=0; P.pcd=0; P.sneak=false; P.combatT=0; P.g.rotation.z=0;
+  P.tree=null; P.safe=false; P.dropY=0; P.upNow=0; P.x=sx; P.z=sz; P.rot=START_ROT; G.camYaw=START_YAW; P.hp=maxHp(); P.st=maxSt(); P.pounce=0; P.pcd=0; P.sneak=false; P.combatT=0; P.g.rotation.z=0;
   animals.forEach(o=>{ o.aggro=0; o.sus=0; o.near=false; if(o.state==='chase'){ o.state='wander'; o.timer=0; } });
   updateWarn(0); $('hurt').style.opacity=0; $('dead').style.display='none'; dead=false; G.paused=false; initAudio(); snd.click();
   if(!touchUI()){ try{ const r=canvas.requestPointerLock(); if(r&&r.catch) r.catch(()=>{}); }catch(e){} }
