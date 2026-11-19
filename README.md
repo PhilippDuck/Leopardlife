@@ -17,14 +17,17 @@ durch Savanne und Sumpf.
 
 ## Aufbau
 
-Alles steckt in einer Datei (`index.html`), ohne Build-Schritt. three.js (r128) wird von cdnjs geladen.
+Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Lizenz) liegt in `vendor/`, damit das Spiel ohne fremden Server und offline läuft.
 
 | Datei | Zweck |
 |---|---|
-| `index.html` | Das ganze Spiel: Welt, Tiere, Logik, Oberfläche |
+| `index.html` | Seite, Stile und Oberfläche |
+| `src/main.js` | Spiellogik (wird gerade in Module aufgeteilt) |
+| `vendor/three.min.js` | three.js r128 |
 | `sw.js` | Service Worker für Installation und Offline-Betrieb |
 | `manifest.webmanifest`, `icon-*.png` | PWA-Angaben und Icons |
 | `tests/logic-test.js` | Logiktest ohne Browser |
+| `tools/shot.py` | Startet das Spiel in Headless-Chrome und macht Bildschirmfotos |
 
 Nach Änderungen an `index.html` die Konstante `VERSION` in `sw.js` hochzählen, sonst behalten installierte Geräte den alten Stand.
 
