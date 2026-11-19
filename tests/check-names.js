@@ -7,7 +7,7 @@ const files=fs.readdirSync(dir).filter(f=>f.endsWith('.js')).map(f=>path.join(di
 const prog=ts.createProgram(files,{allowJs:true,checkJs:true,noEmit:true,target:ts.ScriptTarget.ES2020,module:ts.ModuleKind.ESNext,lib:['lib.es2020.d.ts','lib.dom.d.ts']});
 const OK=new Set(['THREE']); let bad=0;
 for(const sf of prog.getSourceFiles()){ if(!sf.fileName.startsWith(dir)) continue;
-  for(const d of prog.getSemanticDiagnostics(sf)){ if(d.code!==2304&&d.code!==2552) continue;
+  for(const d of prog.getSemanticDiagnostics(sf)){ if(d.code!==2304&&d.code!==2552&&!(d.code>=2580&&d.code<=2593)) continue;
     const name=ts.flattenDiagnosticMessageText(d.messageText,' ').match(/'([^']+)'/)[1]; if(OK.has(name)) continue;
     const {line}=sf.getLineAndCharacterOfPosition(d.start); console.log('UNBEKANNT: '+path.basename(sf.fileName)+':'+(line+1)+' '+name); bad++; } }
 console.log(bad?bad+' unbekannte Namen':'Namen OK'); if(bad) process.exit(1);

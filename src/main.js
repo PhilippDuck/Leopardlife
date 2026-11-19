@@ -33,6 +33,8 @@ import { setHide } from './hide.js';
 import { perfTick, setResLabel } from './perf.js';
 import { padSprint, padUI, padX, padY, pollPads } from './gamepad.js';
 import { drawRadar, updateCamera, updateCross, updateUI, updateWarn } from './hud.js';
+import { readControls } from './controls.js';
+import { stepPlayer } from './move.js';
 if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }); }
 if(!window.THREE){ $('err').textContent='Three.js konnte nicht geladen werden. Bitte Seite neu laden.'; $('btnPlay').disabled=true; throw new Error('three.js fehlt'); }
 
@@ -66,58 +68,9 @@ function frame(now){
   renderer.render(scene,camera);
 }
 function step(dt){
-  // Kameratasten
-  if(keys.ArrowLeft) P.cam.yaw+=dt*2; if(keys.ArrowRight) P.cam.yaw-=dt*2;
-  if(keys.ArrowUp) P.cam.pitch=Math.max(0.08,P.cam.pitch-dt); if(keys.ArrowDown) P.cam.pitch=Math.min(1.25,P.cam.pitch+dt);
-  // Bewegung
-  let fw=(keys.KeyW?1:0)-(keys.KeyS?1:0)-G.joyY-padY, rt=(keys.KeyD?1:0)-(keys.KeyA?1:0)+G.joyX+padX;
-  const il=Math.hypot(fw,rt); if(il>1){ fw/=il; rt/=il; }
-  const s=Math.sin(P.cam.yaw), c=Math.cos(P.cam.yaw);
-  let mx=-s*fw+c*rt, mz=-c*fw-s*rt;
-  const moving=il>0.1&&P.tree==null;
-  const wantSprint=(keys.ShiftLeft||keys.ShiftRight||G.tSprint||padSprint)&&moving&&!P.sneak;
-  let sprint=wantSprint&&P.st>1;
-  let spd=baseSpeed()*(sprint?1.6:P.sneak?0.45:1); if(P.wet) spd*=0.65;
-  if(sprint) P.st-=20*dt; else P.st=Math.min(maxSt(),P.st+(12+2*at('sta'))*(S.hunger<25?0.5:1)*(moving?0.7:1.3)*dt);
-  if(P.st<=1&&G.tSprint){ G.tSprint=false; $('tbS').classList.remove('on'); }
-  const sc=pScale();
-  if(P.tree!=null){
-    const t=trees[P.tree]; P.climbT=Math.min(1,P.climbT+dt/(1.3-0.3*S.b.climb));
-    const e=P.climbT*P.climbT*(3-2*P.climbT);
-    const tx=t.x+t.perch[0], tz=t.z+t.perch[2]; P.x=P.fromX+(tx-P.fromX)*e; P.z=P.fromZ+(tz-P.fromZ)*e;
-    if(P.climbT<1){ P.rot=Math.atan2(tx-P.fromX,tz-P.fromZ); P.walkT+=dt*14; }
-    P.safe=P.climbT>0.5;
-  } else if(P.pounce>0){
-    P.pounce-=dt; if(P.pounce<=0) P.leap=false; const ps=19+3*S.b.jmp+baseSpeed()*0.5;
-    P.x+=Math.sin(P.rot)*ps*dt; P.z+=Math.cos(P.rot)*ps*dt;
-  } else if(moving){
-    P.x+=mx*spd*dt; P.z+=mz*spd*dt;
-    let tr=Math.atan2(mx,mz), df=tr-P.rot; while(df>Math.PI) df-=6.283; while(df<-Math.PI) df+=6.283; P.rot+=df*Math.min(1,dt*12);
-  }
-  const pr=Math.hypot(P.x,P.z); if(pr>WORLD){ P.x*=WORLD/pr; P.z*=WORLD/pr; }
-  if(P.tree==null){ const c=collide(P.x,P.z,0.3+0.4*sc,P.pounce>0); P.x=c.x; P.z=c.z; }
-  P.pcd=Math.max(0,P.pcd-dt); P.rcd=Math.max(0,P.rcd-dt); P.combatT=Math.max(0,P.combatT-dt);
-  if(P.combatT<=0&&S.hunger>25) P.hp=Math.min(maxHp(),P.hp+maxHp()*0.015*dt);
-  if(P.hurtT>0){ P.hurtT-=dt; if(P.hurtT<=0) $('hurt').style.opacity=0; }
-  const jump=P.pounce>0?Math.sin(Math.PI*(1-P.pounce/P.pT))*1.1*sc:0;
-  P.y=H(P.x,P.z);
-  let up=0;
-  if(P.tree!=null){ const t=trees[P.tree], e=P.climbT*P.climbT*(3-2*P.climbT); up=(t.y+t.perch[1]-P.y)*e; P.upNow=up; }
-  else if(P.dropY>0){ P.dropY=Math.max(0,P.dropY-P.dropRate*dt); up=P.dropY; }
-  P.camY=P.y+up;
-  const climbing=P.tree!=null&&P.climbT<1;
-  const g=P.g; g.scale.setScalar(sc); g.position.set(P.x,P.y+jump+up,P.z); g.rotation.y=P.rot;
-  g.userData.inner.position.y+=(((P.sneak&&P.pounce<=0)?-0.16:0)-g.userData.inner.position.y)*Math.min(1,dt*10);
-  g.userData.inner.rotation.x=climbing?-1.1:P.pounce>0?(P.leap?0.35:-0.3):0;
-  if(climbing) animLegs(g,P.walkT,0.7); else if(moving||P.pounce>0){ P.walkT+=dt*(5+spd*1.4); animLegs(g,P.walkT,P.pounce>0?1.1:sprint?0.85:P.sneak?0.3:0.55); } else animLegs(g,P.walkT,0.02);
-  if(moving&&P.pounce<=0){ P.stepT=(P.stepT||0)-dt*(sprint?1.7:P.sneak?0.55:1); if(P.stepT<=0){ P.stepT=0.3; if(P.wet) snd.splash(); else snd.step(P.sneak?0.04:sprint?0.2:0.12); } }
+  readControls(P,dt);
+  const st=stepPlayer(P,dt);
   G.birdT-=dt; if(G.birdT<=0){ G.birdT=rnd(4,11); snd.bird(); }
-  // Tarnung
-  const grass=inGrass(P.x,P.z); P.wet=P.tree==null&&inWater(P.x,P.z);
-  let st=1; if(P.sneak) st*=0.5; if(sprint) st*=1.3; if(grass) st*=P.sneak?0.3:(0.32+0.38*Math.min(1,(S.lvl-1)/7)); st*=(1-0.05*at('cam'))*(has('dunkel')?0.8:1)*(S.fur&&S.fur.albino?1.15:S.fur&&S.fur.melan?0.9:1); st*=0.8+0.025*S.lvl; st*=0.7+0.3*dayF; st*=1-0.25*W.rain; if(P.safe) st=0;
-  P.hidden=st; P.grass=grass;
-  { const lv=(P.safe||(grass&&(P.sneak||S.lvl<4)))?2:(grass||P.sneak)?1:0; if(lv!==P.hideLv) setHide(lv);
-    if(lv===2&&S.goals&&S.goals.list.some(g=>g.id==='hide'&&!g.done)&&animals.some(a=>!a.dead&&a.sp.hunt&&S.lvl<a.sp.hunt&&Math.hypot(a.x-P.x,a.z-P.z)<25)) goalEvent('hide',dt); }
   updateWeather(dt);
   for(let i=0;i<animals.length;i++) updateAnimal(animals[i],dt,st);
   for(let i=puffs.length-1;i>=0;i--){ const p=puffs[i]; p.t-=dt; p.vy-=12*dt; p.m.position.x+=p.vx*dt; p.m.position.y+=p.vy*dt; p.m.position.z+=p.vz*dt; p.m.material.opacity=Math.max(0,p.t/0.7); if(p.t<=0){ scene.remove(p.m); p.m.material.dispose(); puffs.splice(i,1); } }
