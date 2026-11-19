@@ -1,5 +1,4 @@
 // LeopardLife – Versteck-Anzeige am Fadenkreuz und dunkler Bildrand.
-import { snd } from './audio.js';
 import { P } from './player.js';
 import { $ } from './util.js';
 import { hEl } from './coop.js';
@@ -14,7 +13,6 @@ const EYES=[
 function setHide(lv,p=P){
   const e=hEl(p,'eye'); e.innerHTML=EYES[lv]; e.style.color=lv===2?'#8fe07a':lv===1?'#f2b84b':'#fff'; e.style.opacity=String(lv===0?0:1);
   hEl(p,'hideV').style.opacity=String(lv===2?1:lv===1?0.4:0);
-  if(lv===2&&p.hideLv!==2) snd.rustle();
   p.hideLv=lv;
 }
 setHide(0);

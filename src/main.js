@@ -66,7 +66,7 @@ function frame(now){
   // Zeitlupe nach Hinterhalt/Beute verlangsamt die ganze Welt – im gemeinsamen Spiel nicht (die anderen spielen ja weiter)
   if(G.slowT>0){ G.slowT-=dt; if(players.length===1) dt*=0.25; }
   if(!G.paused) step(dt);
-  for(const p of players) updateCamera(p,p.camera); updateTrees(dt,players.map(p=>({camera:p.camera,p}))); updateEnv(dt,now); musicTick(); ambTick(dayF,W.rain);
+  for(const p of players) updateCamera(p,p.camera); updateTrees(dt,players.map(p=>({camera:p.camera,p}))); updateEnv(dt,now); musicTick(); ambTick(dayF,W.rain,W.storm);
   renderAll();
 }
 function step(dt){
