@@ -1,6 +1,6 @@
 // LeopardLife – Eingabe über Tastatur, Maus und Touch, Umschalten der Anzeige je nach zuletzt benutzter Eingabe.
 import { canvas } from './engine.js';
-import { bookOpen, closeBook, closeSettings, doContext, padSynth, settingsOpen, updateUI } from './main.js';
+import { bookOpen, closeBook, closeSettings, padSynth, settingsOpen, updateUI } from './main.js';
 import { P, START_YAW } from './player.js';
 import { S } from './save.js';
 import { G } from './state.js';
@@ -9,6 +9,7 @@ import { toggleSkills } from './skills.js';
 import { menuOpen, renderKeys, toggleMenu } from './menu.js';
 import { closeRegions, regionsOpen } from './regions.js';
 import { doClimb, doPounce, doRoar } from './actions.js';
+import { doContext } from './family.js';
 
 /* ---------- Eingabe ---------- */
 const keys={}; G.camYaw=START_YAW; G.camPitch=0.42; G.camZoom=1; G.paused=true; G.started=false;

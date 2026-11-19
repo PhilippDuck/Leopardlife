@@ -5,7 +5,7 @@ import { DAT, FOOD } from './data.js';
 import { puff } from './effects.js';
 import { canvas } from './engine.js';
 import { keys, touchUI } from './input.js';
-import { FOOD_MAX, archiveLine, becomeCub, cub, dayF, goalEvent, heirLevel, makeCarcass, padUI, rebuildCub, recordAncestor, rumble, startFlee, updateUI, updateWarn } from './main.js';
+import { archiveLine, becomeCub, dayF, goalEvent, makeCarcass, padUI, recordAncestor, rumble, startFlee, updateUI, updateWarn } from './main.js';
 import { P, START_ROT, START_YAW, rebuildPlayer } from './player.js';
 import { reloadWorld } from './regions.js';
 import { D, REG, REG_ID, S, beaten, dmg, maxHp, maxSt, pScale, resetState, save, xpNeed } from './save.js';
@@ -14,6 +14,7 @@ import { H } from './terrain.js';
 import { floatText, toast } from './ui.js';
 import { $, rnd } from './util.js';
 import { trees } from './vegetation.js';
+import { FOOD_MAX, cub, heirLevel, rebuildCub } from './family.js';
 
 /* ---------- Aktionen ---------- */
 function nearestTree(){
