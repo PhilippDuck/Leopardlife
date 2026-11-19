@@ -10,7 +10,7 @@ import { G } from './state.js';
 import { toast } from './ui.js';
 import { $ } from './util.js';
 import { regionsOpen, reloadWorld } from './regions.js';
-import { respawn } from './actions.js';
+import { respawn, setPounceLabel } from './actions.js';
 import { rebuildCub } from './family.js';
 import { clockStr, sleeping } from './daynight.js';
 import { bookOpen } from './carcass.js';
@@ -85,7 +85,7 @@ if($('btnReset').style.display==='none') showDiff();
 $('btnReset').onclick=()=>{ if(!resetArm){ resetArm=true; $('btnReset').textContent='Wirklich? Fortschritt löschen'; return; } resetState(); save(); if(REG_ID!=='savanne'){ reloadWorld(true); return; } rebuildPlayer(); rebuildCub(); P.hp=maxHp(); P.st=maxSt(); $('btnReset').style.display='none'; $('btnPlay').textContent='Spielen'; showDiff(); };
 
 /* Einstellungsfenster */
-function openSettings(){ renderKeys(); $('menu').style.display='none'; $('settings').style.display='flex'; }
+function openSettings(){ setPounceLabel(); renderKeys(); $('menu').style.display='none'; $('settings').style.display='flex'; }
 function closeSettings(){ $('settings').style.display='none'; $('menu').style.display='flex'; G.menuT=performance.now(); }
 const settingsOpen=()=>$('settings').style.display==='flex';
 $('btnSettings').onclick=openSettings; $('btnSetBack').onclick=closeSettings;
