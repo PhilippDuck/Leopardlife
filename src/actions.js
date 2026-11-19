@@ -56,8 +56,14 @@ function doPounce(p=P){
   p.leap=false;
   if(p.tree!=null){ if(p.climbT<1) return; const h=p.upNow; p.leap=true; leaveTree(p,1); p.dropRate=h/(0.55+0.04*p.L.b.jmp); }
   p.st-=15; p.pounce=(p.leap?0.55:0.38)+0.04*p.L.b.jmp; p.pT=p.pounce; p.pcd=1.3-0.2*p.L.b.jmp; p.hit=false; snd.pounce();
-  p.rot=Math.atan2(-Math.sin(p.cam.yaw),-Math.cos(p.cam.yaw));
+  if(!POUNCE.run) p.rot=Math.atan2(-Math.sin(p.cam.yaw),-Math.cos(p.cam.yaw));   // sonst: in die Richtung, in die er gerade läuft bzw. schaut
 }
+/** Richtung des Sprungangriffs: zum Fadenkreuz (Kamera) oder in die aktuelle Laufrichtung (Einstellung, für alle Spieler) */
+const POUNCE={run:false};
+try{ POUNCE.run=localStorage.getItem('jaguar-pounce')==='run'; }catch(e){}
+function setPounceLabel(){ $('btnPounceDir').textContent='Sprungangriff: '+(POUNCE.run?'in Laufrichtung':'zum Fadenkreuz'); }
+setPounceLabel();
+$('btnPounceDir').onclick=()=>{ POUNCE.run=!POUNCE.run; try{ localStorage.setItem('jaguar-pounce',POUNCE.run?'run':'aim'); }catch(e){} setPounceLabel(); };
 /** Brüllen von Spieler p: Raubtiere fliehen, Beute erstarrt. */
 function doRoar(p=P){
   if(p.dead) return;
@@ -181,5 +187,5 @@ function hitAnimal(a,p=P){
 }
 G.lastHit=null; G.lastHitT=0;
 
-export { doClimb, doPounce, doRoar, gainXp, hitAnimal, hurtPlayer, nearestTree };
+export { POUNCE, doClimb, doPounce, doRoar, gainXp, hitAnimal, hurtPlayer, nearestTree };
 export { respawn };
