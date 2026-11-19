@@ -8,7 +8,7 @@ import { toggleSkills } from './skills.js';
 import { G } from './state.js';
 import { toast } from './ui.js';
 import { $ } from './util.js';
-import { MAX_PLAYERS, joinPlayer, leavePlayer, padTaken, pingMates, pollCoop } from './coop.js';
+import { MAX_PLAYERS, joinPlayer, leavePlayer, padTaken, panelNav, pingMates, pollCoop } from './coop.js';
 import { MODE } from './save.js';
 
 /* ---------- Controller-Steuerung (Gamepad, Standardbelegung wie Xbox/PlayStation) ----------
@@ -70,6 +70,7 @@ function pollPads(dt){
     if(hit(8)&&ov.id==='skills') toggleSkills(players.find(p=>p.pad===G.ovPad)||P);
   } else {
     setPadFocus(null);
+    if(P.skOpen){ padX=padY=0; padSprint=false; padAct=false; panelNav(P,gp,hit,dt); for(let i=0;i<gp.buttons.length;i++) prev[i]=B(i); return; }   // eigene Entwicklung offen (gemeinsames Spiel)
     padX=pdz(gp.axes[0]||0); padY=pdz(gp.axes[1]||0);
     padSprint=B(10)||!!(gp.buttons[7]&&gp.buttons[7].value>0.3); padAct=B(2);
     if(!G.paused&&!P.dead){

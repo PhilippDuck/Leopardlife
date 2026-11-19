@@ -22,6 +22,7 @@ import { padUI, rumble } from './gamepad.js';
 import { updateUI, updateWarn } from './hud.js';
 import { downPlayer, hEl, othersAlive, tell } from './coop.js';
 import { emit } from './events.js';
+import { toggleSkills } from './skills.js';
 
 /* ---------- Aktionen ---------- */
 /** Index des nächsten erreichbaren Baums für Spieler p, sonst -1. */
@@ -84,6 +85,7 @@ function hurtPlayer(d,a,force,p=P){
   if(p.dead||(p.safe&&!force)) return;
   if(!force) d*=D().dmg;
   snd.hurt();
+  if(p.skOpen) toggleSkills(p);   // angegriffen: Entwicklung zu, damit man reagieren kann
   p.hp-=d; p.combatT=5; p.cam.shake=Math.max(p.cam.shake,Math.min(0.6,0.15+d/maxHp(p.L)));
   buzz(p,Math.min(1,0.35+d/maxHp(p.L)),0.5,220); hEl(p,'hurt').style.opacity='0.8';
   p.hurtT=0.25;

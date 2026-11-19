@@ -3,7 +3,7 @@ import { animals, placeAnimal } from './animals.js';
 import { initAudio, snd } from './audio.js';
 import { canvas } from './engine.js';
 import { keys, touchUI } from './input.js';
-import { P, rebuildPlayer } from './player.js';
+import { P, players, rebuildPlayer } from './player.js';
 import { D, MODE, REG, REG_ID, S, maxHp, maxSt, resetState, save, setMode } from './save.js';
 import { toggleSkills } from './skills.js';
 import { G } from './state.js';
@@ -62,7 +62,7 @@ function renderKeys(){ $('keysMode').textContent=padUI()?'Xbox-Controller':touch
 // (Die Liste wird beim Start über setInputMode() gefüllt, sobald die Eingabeart feststeht.)
 $('keysMode').textContent='';
 $('menuBtn').onclick=toggleMenu; $('btnResume').onclick=toggleMenu;
-$('btnMenuSkills').onclick=()=>{ $('menu').style.display='none'; toggleSkills(); };
+$('btnMenuSkills').onclick=()=>{ const p=players.find(o=>o!==P&&o.pad===G.ovPad)||P; toggleMenu(); toggleSkills(p); };
 $('btnRestart').onclick=()=>{
   if(!restartArm){ restartArm=true; $('btnRestart').textContent='Wirklich? Stufe und Fähigkeiten gehen verloren'; return; }
   resetState(); save(); if(REG_ID!=='savanne'){ reloadWorld(true); return; }

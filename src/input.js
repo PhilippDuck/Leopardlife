@@ -18,6 +18,7 @@ import { pingMates } from './coop.js';
 const keys={}; G.paused=true; G.started=false;
 G.joyX=0; G.joyY=0; G.tSprint=false;
 window.addEventListener('keydown',e=>{
+  if(P.skOpen&&e.code!=='Tab'&&e.code!=='KeyK'){ if(e.code==='Escape') toggleSkills(P); return; }   // eigene Entwicklung offen (gemeinsames Spiel)
   if(e.code==='Tab'){ e.preventDefault(); if(G.started) toggleSkills(); return; }
   if(e.code==='Escape'){ if(!G.started) return; if(bookOpen()){ closeBook(); return; } if(settingsOpen()){ closeSettings(); return; } if(regionsOpen()){ closeRegions(); return; } if($('skills').style.display!=='none'){ toggleSkills(); return; } if(menuOpen()&&performance.now()-G.menuT<350) return; toggleMenu(); return; }
   if(!G.started) return;
