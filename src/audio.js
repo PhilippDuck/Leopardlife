@@ -67,7 +67,7 @@ const hasSample=k=>!!bufs[k];
 /** @type {Record<string, GainNode>} */ const amb={};
 const BEDS={day:['windA','windB'],night:['night'],bugs:['dayA','dayB']}, bedNext={day:0,night:0,bugs:0}, BED_GAP={day:[0.35,0.6],night:[0.35,0.6],bugs:[1.5,4]};
 // Ereignisse tagsüber: Aufnahmen, Abstand in s, Lautstärke
-const EVENTS=[{ks:['birdA','birdB'],gap:[5,16],vol:[0.18,0.45]},{ks:['doveA','doveB'],gap:[18,45],vol:[0.15,0.35]},{ks:['fly'],gap:[25,70],vol:[0.2,0.5]},{ks:['gust'],gap:[14,40],vol:[0.25,0.5]}];
+const EVENTS=[{ks:['birdA','birdB'],gap:[15,45],vol:[0.15,0.4]},{ks:['doveA','doveB'],gap:[30,70],vol:[0.15,0.35]},{ks:['fly'],gap:[25,70],vol:[0.2,0.5]},{ks:['gust'],gap:[14,40],vol:[0.25,0.5]}];
 const evNext=EVENTS.map(()=>0);
 function bus(k){ if(!amb[k]){ amb[k]=AC.createGain(); amb[k].gain.value=0; amb[k].connect(master); } return amb[k]; }
 function oneShot(k,vol,pan,rate){
