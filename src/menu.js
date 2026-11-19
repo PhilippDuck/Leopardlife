@@ -3,7 +3,7 @@ import { animals, placeAnimal } from './animals.js';
 import { initAudio } from './audio.js';
 import { canvas } from './engine.js';
 import { keys, touchUI } from './input.js';
-import { padUI, updateUI } from './main.js';
+import { updateUI } from './main.js';
 import { P, rebuildPlayer } from './player.js';
 import { D, REG, REG_ID, S, maxHp, maxSt, resetState, save } from './save.js';
 import { toggleSkills } from './skills.js';
@@ -15,6 +15,7 @@ import { dead, respawn } from './actions.js';
 import { rebuildCub } from './family.js';
 import { clockStr, sleeping } from './daynight.js';
 import { bookOpen, settingsOpen } from './carcass.js';
+import { padUI } from './gamepad.js';
 
 /* Pausenmenü (Esc oder Menü-Knopf) */
 G.menuT=0; let hadLock=false, restartArm=false;
