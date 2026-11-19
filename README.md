@@ -22,8 +22,13 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 | Datei | Zweck |
 |---|---|
 | `index.html` | Seite, Stile und Oberfläche |
-| `src/main.js` | Spiellogik (wird gerade in Module aufgeteilt) |
+| `src/main.js` | Einstieg und restliche Spiellogik (wird weiter aufgeteilt) |
 | `src/data.js` | Feste Spieldaten: Tierarten, Gebiete, Erbanlagen, Eigenschaften, Schwierigkeit, Icons |
+| `src/save.js` | Spielstand, Gebiet, Schwierigkeit und abgeleitete Werte (Leben, Schaden, Tempo …) |
+| `src/engine.js` | Renderer, Szene, Kamera, Licht, Wind |
+| `src/sky.js` | Himmel, Wolken, Sterne |
+| `src/terrain.js` | Gelände, Wasserlöcher, Kacheln, Boden, Hindernisse |
+| `src/vegetation.js` | Bäume, Büsche, Gras, Verstecke |
 | `src/audio.js` | Geräusche, Umgebungston und Musik (WebAudio) |
 | `src/state.js` | Gemeinsamer veränderlicher Zustand `G` |
 | `src/util.js` | Kleine Hilfsfunktionen |
@@ -33,7 +38,7 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 | `tests/logic-test.js` | Logiktest ohne Browser |
 | `tools/shot.py` | Startet das Spiel in Headless-Chrome und macht Bildschirmfotos |
 
-Nach Änderungen an `index.html` die Konstante `VERSION` in `sw.js` hochzählen, sonst behalten installierte Geräte den alten Stand.
+Nach Änderungen am Spiel `python3 tools/bump-sw.py` ausführen: Das trägt alle Module in den Service-Worker-Cache ein und zählt die Version hoch, sonst behalten installierte Geräte den alten Stand.
 
 ## Lokal starten und testen
 
