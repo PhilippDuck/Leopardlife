@@ -38,7 +38,8 @@ function noise(dur,vol,f1,f2,type,delay){
   s.connect(f); f.connect(g); g.connect(master); s.start(t,Math.random()); s.stop(t+dur+0.05);
 }
 /* Aufgenommene Geräusche (ElevenLabs); bis sie geladen sind oder offline fehlen, klingt der Synth-Ersatz */
-const SAMPLES={roar:'audio/roar.mp3',dayA:'audio/amb-day-1.mp3',dayB:'audio/amb-day-2.mp3',night:'audio/amb-night.mp3',rain:'audio/rain.mp3',thunder:'audio/thunder.mp3'};
+const SAMPLES={roar:'audio/roar.mp3',dayA:'audio/amb-day-1.mp3',dayB:'audio/amb-day-2.mp3',windA:'audio/amb-wind-1.mp3',windB:'audio/amb-wind-2.mp3',
+  fly:'audio/fly.mp3',birdA:'audio/bird-1.mp3',birdB:'audio/bird-2.mp3',doveA:'audio/dove-1.mp3',doveB:'audio/dove-2.mp3',gust:'audio/gust.mp3',night:'audio/amb-night.mp3',rain:'audio/rain.mp3',thunder:'audio/thunder.mp3'};
 /** @type {Record<string, AudioBuffer>} */ const bufs={};
 /** Für Schleifen: Stille am Anfang und Ende überspringen (MP3 hat dort Polster), damit es nahtlos weiterläuft */
 const loopPts={};
@@ -59,12 +60,22 @@ function sample(k,vol,rate){
 const hasSample=k=>!!bufs[k];
 
 /* ---------- Umgebung ----------
-   Tag und Nacht laufen nicht als starre Schleife, sondern als Folge zufälliger Ausschnitte: Jeder Ausschnitt nimmt eine der
-   Aufnahmen ab zufälliger Stelle, 5–11 s lang, leicht verstimmt, links/rechts verschoben, weich ein- und ausgeblendet.
-   Zwei bis drei überlappen sich immer – so kommt das Insektensummen mal früher, mal später, mal links, mal leiser. Regen bleibt eine Schleife. */
+   Grund ist ruhiger Wind im Gras (tags) bzw. Grillen (nachts), gespielt als Folge zufälliger Ausschnitte: zufällige Stelle,
+   5–11 s, leicht verstimmt, links/rechts verschoben, weich überblendet, zwei bis drei überlappen sich.
+   Darüber kommen einzelne Ereignisse zu zufälligen Zeiten: Vögel, Tauben, eine Fliege, Windböen und selten ein Stück der
+   vollen Savannen-Aufnahme mit Insekten. Regen bleibt eine Schleife. */
 /** @type {Record<string, GainNode>} */ const amb={};
-const BEDS={day:['dayA','dayB'],night:['night']}, bedNext={day:0,night:0};
+const BEDS={day:['windA','windB'],night:['night'],bugs:['dayA','dayB']}, bedNext={day:0,night:0,bugs:0}, BED_GAP={day:[0.35,0.6],night:[0.35,0.6],bugs:[1.5,4]};
+// Ereignisse tagsüber: Aufnahmen, Abstand in s, Lautstärke
+const EVENTS=[{ks:['birdA','birdB'],gap:[5,16],vol:[0.18,0.45]},{ks:['doveA','doveB'],gap:[18,45],vol:[0.15,0.35]},{ks:['fly'],gap:[25,70],vol:[0.2,0.5]},{ks:['gust'],gap:[14,40],vol:[0.25,0.5]}];
+const evNext=EVENTS.map(()=>0);
 function bus(k){ if(!amb[k]){ amb[k]=AC.createGain(); amb[k].gain.value=0; amb[k].connect(master); } return amb[k]; }
+function oneShot(k,vol,pan,rate){
+  const b=bufs[k]; if(!b) return; const t=AC.currentTime+0.02;
+  const s=AC.createBufferSource(); s.buffer=b; s.playbackRate.value=rate; const g=AC.createGain(); g.gain.value=vol;
+  let out=g; if(AC.createStereoPanner){ const p=AC.createStereoPanner(); p.pan.value=pan; g.connect(p); out=p; }
+  s.connect(g); out.connect(bus('ev')); s.start(t);
+}
 function grain(bed){
   const ks=BEDS[bed].filter(k=>bufs[k]); if(!ks.length) return 0;
   const k=ks[Math.floor(Math.random()*ks.length)], b=bufs[k], lp=loopPts[k]||[0,b.duration];
@@ -83,13 +94,17 @@ function ambLoop(k){
 /** Lautstärken der Umgebung nachführen und neue Ausschnitte starten: day 0…1 (Tageslicht), rain 0…1 */
 function ambTick(day,rain){
   if(!AC||AC.state!=='running') return;
-  const t=AC.currentTime, dry=1-0.6*rain, lv={day:0.28*day*dry,night:0.3*(1-day)*dry}   // mehrere Ausschnitte überlagern sich, daher leiser je Bus;
+  const t=AC.currentTime, dry=1-0.6*rain, lv={day:0.3*day*dry,night:0.3*(1-day)*dry,bugs:0.2*day*dry};
+  if(!bufs.windA&&!bufs.windB){ BEDS.day=['dayA','dayB']; lv.bugs=0; lv.day=0.28*day*dry; } else BEDS.day=['windA','windB'];   // ohne Wind-Aufnahmen wie bisher
   for(const bed in BEDS){
     bus(bed).gain.setTargetAtTime(lv[bed],t,0.8);
-    if(lv[bed]>0.01&&t>=bedNext[bed]){ const d=grain(bed); bedNext[bed]=t+(d?d*rnd(0.35,0.6):2); }
+    if(lv[bed]>0.01&&t>=bedNext[bed]){ const d=grain(bed), g=BED_GAP[bed]; bedNext[bed]=t+(d?d*rnd(g[0],g[1]):2); }
   }
+  bus('ev').gain.setTargetAtTime(day*dry,t,0.8);
+  if(day>0.3) EVENTS.forEach((e,i)=>{ if(t<evNext[i]) return; if(evNext[i]>0){ const ks=e.ks.filter(k=>bufs[k]); if(ks.length) oneShot(ks[Math.floor(Math.random()*ks.length)],rnd(e.vol[0],e.vol[1]),rnd(-0.85,0.85),rnd(0.9,1.1)); }
+    evNext[i]=t+rnd(e.gap[0],e.gap[1]); });
   const rg=ambLoop('rain'); if(rg) rg.gain.setTargetAtTime(0.7*rain,t,0.8);
-  if(windG&&(bufs.dayA||bufs.night)) windG.gain.value=0.025;   // Synth-Wind nur noch leise darunter
+  if(windG&&(bufs.dayA||bufs.windA||bufs.night)) windG.gain.value=0.02;   // Synth-Wind nur noch leise darunter
 }
 const snd={
   pounce(){ noise(0.3,0.35,500,2600); tone(180,0.25,'sawtooth',0.06,90); },
