@@ -35,6 +35,7 @@ import { padSprint, padUI, padX, padY, pollPads } from './gamepad.js';
 import { drawRadar, updateCamera, updateCross, updateUI, updateWarn } from './hud.js';
 import { readControls } from './controls.js';
 import { stepPlayer } from './move.js';
+import { renderAll, updateCoop, updateCoopHud } from './coop.js';
 if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }); }
 if(typeof THREE==='undefined'){ $('err').textContent='Three.js konnte nicht geladen werden. Bitte Seite neu laden.'; $('btnPlay').disabled=true; throw new Error('three.js fehlt'); }
 
@@ -64,23 +65,27 @@ function frame(now){
   pollPads(dt);
   if(G.slowT>0){ G.slowT-=dt; dt*=0.25; }
   if(!G.paused) step(dt);
-  for(const p of players) updateCamera(p,p.camera); updateTrees(dt); updateEnv(dt,now); musicTick(); cullTiles();
-  renderer.render(scene,camera);
+  for(const p of players) updateCamera(p,p.camera); updateTrees(dt,players.map(p=>({camera:p.camera,p}))); updateEnv(dt,now); musicTick();
+  renderAll();
 }
 function step(dt){
   for(const p of players) readControls(p,dt);
-  const st=stepPlayer(P,dt);   // Tiere reagieren noch auf die Tarnung des ersten Spielers
+  for(const p of players) if(!p.dead) stepPlayer(p,dt);
+  updateCoop(dt);
   G.birdT-=dt; if(G.birdT<=0){ G.birdT=rnd(4,11); snd.bird(); }
   updateWeather(dt);
-  for(let i=0;i<animals.length;i++) updateAnimal(animals[i],dt,st);
+  for(let i=0;i<animals.length;i++) updateAnimal(animals[i],dt);
   for(let i=puffs.length-1;i>=0;i--){ const p=puffs[i]; p.t-=dt; p.vy-=12*dt; p.m.position.x+=p.vx*dt; p.m.position.y+=p.vy*dt; p.m.position.z+=p.vz*dt; p.m.material.opacity=Math.max(0,p.t/0.7); if(p.t<=0){ scene.remove(p.m); p.m.material.dispose(); puffs.splice(i,1); } }
-  if(G.toastT>0){ G.toastT-=dt; G.toastShown+=dt; if(G.toastT<=0){ if(toastQ.length){ const q=toastQ.shift(); showToast(q[0],q[1]); } else $('toast').style.opacity=0; } }
+  if(G.toastT>0){ G.toastT-=dt; G.toastShown+=dt; if(G.toastT<=0){ if(toastQ.length){ const q=toastQ.shift(); showToast(q[0],q[1],q[2]); } else $('toast').style.opacity=0; } }
   if(G.lastHitT>0) G.lastHitT-=dt;
   updateWarn(dt); updateCross(); updateTracks(dt); updateFamily(dt); updateCub(dt); updateFamArrow(dt); updateLife(dt); updateDayNight(dt);
   if(G.noStT>0){ G.noStT-=dt; if(G.noStT<=0) $('crossMsg').style.opacity=0; }
   G.uiT-=dt; if(G.uiT<=0){ G.uiT=0.1; updateUI(); }
-  drawRadar();
+  drawRadar(); updateCoopHud(dt);
 }
+
+// Für Browsertests (tools/*.py mit ?test): Spielzustand zum Nachsehen
+if(typeof location!=='undefined'&&location.search.includes('test')) window['__leopard']={G,players,S};
 
 applyQuality();
 setInputMode(inputMode); setResLabel(); if(!S.goals) newGoals();

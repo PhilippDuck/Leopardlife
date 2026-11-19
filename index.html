@@ -145,15 +145,31 @@
   @media (max-height:400px){
     :root{--ts:.7}
   }
+/* Splitscreen: Anzeige-Rahmen je Spieler (coop.js); Spürkarte etwas kleiner */
+body.split .ph{--rad:110px}
+/* Viertel (3–4 Spieler): Statusfeld, Leiste und Spürkarte kleiner */
+body.quad .ph #hud{transform:scale(.72);transform-origin:0 0}
+body.quad .ph #cds{transform:translateX(-50%) scale(.8);transform-origin:50% 100%}
+body.quad .ph{--rad:92px}
+.pvBar{width:140px;max-width:40%;height:7px;background:rgba(0,0,0,.5);border-radius:4px;margin-top:4px;overflow:hidden}
+.pvBar i{display:block;height:100%;width:100%;transition:width .15s}
+.pvBar .rev{background:#8fe07a;width:0}
+.pvDown{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(70,0,0,.35);text-align:center;padding:0 14px;font-size:13px;text-shadow:0 1px 4px #000}
+.pvDown b{font-size:20px;color:#ff8a70}.pvDown .pvBar{width:180px;max-width:70%}
+#splitEmpty{position:fixed;left:50%;top:50%;width:50%;height:50%;display:none;align-items:center;justify-content:center;text-align:center;color:#9a947f;font-size:14px;pointer-events:none;border-left:2px solid rgba(0,0,0,.55);border-top:2px solid rgba(0,0,0,.55)}
+/* Rahmen der Spieler-Anzeige: alles darin richtet sich nach diesem Rahmen statt nach dem ganzen Fenster (transform macht ihn zum Bezug für position:fixed) */
+.ph{position:fixed;left:0;top:0;width:100%;height:100%;transform:translateZ(0);pointer-events:none;overflow:hidden;z-index:3}
+.ph>*{pointer-events:auto}
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
+
+<!-- Anzeige eines Spielers. Im geteilten Bild sitzt der Rahmen über dem Ausschnitt des Spielers; Mitspieler bekommen eine Kopie (coop.js). -->
+<div id="ph0" class="ph">
 <div id="hideV"></div>
-<div id="sleepFx" style="position:fixed;inset:0;background:#02040a;display:none;align-items:center;justify-content:center;opacity:0;transition:opacity .8s;z-index:15;color:#9fb4ff;font-size:20px;letter-spacing:2px">Du schläfst …</div>
 <div id="hurt"></div>
 <div id="eye"></div>
-
 <div id="hud" class="panel">
   <div class="row"><span id="lvl">Stufe 1</span><span id="hudTog">▾</span></div>
   <div id="size" style="color:var(--mut);font-size:11px;margin-bottom:3px"></div>
@@ -176,14 +192,24 @@
 <div id="warnRing"><div id="famArrow" class="wa" style="border-bottom-color:#ff7ab8"></div></div>
 <div id="warn" class="panel"><span id="warnTxt"></span><div class="bar" id="warnBar"><i id="bW"></i></div></div>
 <div id="ctxHint"></div>
-<div id="fps" style="position:fixed;left:50%;bottom:58px;transform:translateX(-50%);font-size:11px;color:#cfe;background:rgba(0,0,0,.45);padding:2px 8px;border-radius:6px;pointer-events:none;display:none;z-index:5"></div>
-<div id="tapHelp"><b>●●</b><br>Rechts doppeltippen:<br>Sprungangriff</div>
 <div id="toast"></div>
 <div id="cds">
   <div class="cd panel"><b>Sprung</b><span class="kh">Leertaste</span><i id="cdP"></i></div>
   <div class="cd panel" id="cdRbox"><b>Brüllen</b><span class="kh">R</span><i id="cdR"></i></div>
   <div class="cd panel" id="cdEbox"><b>Klettern</b><span class="kh">E</span><i id="cdE"></i></div>
 </div>
+</div>
+<div id="sleepFx" style="position:fixed;inset:0;background:#02040a;display:none;align-items:center;justify-content:center;opacity:0;transition:opacity .8s;z-index:15;color:#9fb4ff;font-size:20px;letter-spacing:2px">Du schläfst …</div>
+
+
+
+
+
+
+
+<div id="fps" style="position:fixed;left:50%;bottom:58px;transform:translateX(-50%);font-size:11px;color:#cfe;background:rgba(0,0,0,.45);padding:2px 8px;border-radius:6px;pointer-events:none;display:none;z-index:5"></div>
+<div id="tapHelp"><b>●●</b><br>Rechts doppeltippen:<br>Sprungangriff</div>
+
 
 <div id="touch">
   <div id="joy"><i id="knob"></i></div>
@@ -237,12 +263,14 @@
   <div style="display:flex;gap:10px;align-items:center;margin-top:14px">
     <button id="btnPlay">Spielen</button>
     <button id="btnReset" class="sec" style="display:none">Neu anfangen</button>
+    <button id="btnMode" class="sec">Gemeinsam spielen (Splitscreen)</button>
   </div>
   <div id="err" style="color:var(--red);margin-top:10px;font-size:13px"></div>
 </div></div>
 
 <div id="skills" class="overlay" style="display:none"><div class="card panel">
-  <div style="display:flex;justify-content:space-between;align-items:center"><h2>Entwicklung</h2><span id="skPts" style="color:var(--gold);font-weight:bold"></span></div>
+  <div style="display:flex;justify-content:space-between;align-items:center"><h2>Entwicklung<span id="skWho" style="color:var(--mut);font-size:.7em"></span></h2><span id="skPts" style="color:var(--gold);font-weight:bold"></span></div>
+  <button id="btnSkCub" style="display:none;width:100%;margin:6px 0;background:#d86fa8;color:#2a0a1c">Als Junges weiterspielen</button>
   <div class="sect">Eigenschaften · 1 Punkt</div><div id="skA"></div>
   <div class="sect">Fähigkeiten · 2 Punkte</div><div id="skB"></div>
   <div class="sect">Erbanlagen</div><div id="skT"></div>
@@ -276,7 +304,8 @@
 </div></div>
 
 <div id="birth" class="overlay" style="display:none"><div class="card panel" style="text-align:center">
-  <h1 style="color:#ff9ad0">Dein Junges ist geboren</h1>
+  <h1 id="birthTitle" style="color:#ff9ad0">Dein Junges ist geboren</h1>
+  <p id="birthCoop" style="display:none;color:#9be07f;font-size:13px">Ein Junges für jeden, der will: Mitspieler wählen „Als Junges weiterspielen" in ihrer Entwicklung (Back). Junge aus einem Wurf sind Geschwister – Verwandte paaren sich nicht.</p>
   <p id="birthTrait" style="color:#ff9ad0;font-weight:bold"></p>
   <p>Es versteckt sich im Gras am Bau. Wie willst du weiterspielen?</p>
   <p style="font-size:13px;color:var(--mut);text-align:left"><b style="color:var(--txt)">Als Erwachsener:</b> Du bringst dem Jungen Futter (F) und vertreibst Räuber. Stirbst du, lebst du im Jungen weiter.<br><br>
@@ -317,5 +346,6 @@
 
 <script src="vendor/three.min.js"></script>
 <script type="module" src="src/main.js"></script>
+<div id="splitEmpty">Freier Platz<br>Weiterer Controller: Start drücken zum Mitspielen</div>
 </body>
 </html>
