@@ -31,7 +31,7 @@ const doc={ querySelectorAll:()=>[], getElementById:el, addEventListener(){}, cr
 let raf=null;
 const g={ window:win, document:doc, navigator:{maxTouchPoints:0}, localStorage:{getItem:k=>(k in ls?ls[k]:null),setItem:(k,v)=>{ls[k]=String(v);}}, THREE:win.THREE,
   requestAnimationFrame:fn=>{ if(fn.name==='frame') raf=fn; else fn(); }, setTimeout:fn=>{ fn(); } };
-const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping};';
+const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,woundTick,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping};';
 new Function(...Object.keys(g), body)(...Object.values(g));
 const T=globalThis.__T; const rnd2=()=>Math.random()*8-4; const localStorageDump=()=>ls['jaguar-lines'];
 els.btnPlay.onclick();
@@ -332,4 +332,13 @@ console.log('audio nodes created',ACs&&ACs.count());
   S.traits=keep[0]; S.tlv=keep[1];
   if(lv2!==2||!(h2>h1)||drop!=='flink,nase,lunge'||gone!==undefined){ console.log('FEHLER: Erbanlagen',lv2,h1,h2,drop,gone); process.exit(1); }
   console.log('Erbanlagen: doppelte werden verstärkt (mehr Leben), höchstens drei'); }
+{ const P=T.P, a=T.animals.find(o=>o.sp.id==='anti'&&!o.dead)||T.animals.find(o=>o.sp.id==='deer'&&!o.dead), keep=[a.x,a.z,a.hp,a.state];
+  P.dead=false; P.bite=null; a.held=null; a.wound=null;
+  T.startBite(P,a); const held=a.held===P&&!!P.bite, n=P.bite.n;
+  for(let i=0;i<n;i++){ P.bite.pos=0.27; T.biteHit(P); }   // mittelmäßig: kein sicherer Treffer
+  const r1=a.dead?'tot':a.wound?'verwundet':'?';
+  let died=false; if(a.wound&&a.wound.die){ T.woundTick(a,a.wound.die+1); died=a.dead&&!!a.carc; }
+  if(a.carc) T.endCarcass(a); a.dead=false; a.x=keep[0]; a.z=keep[1]; a.hp=keep[2]; a.state=keep[3]; a.wound=null;
+  if(!held||n<4||!(r1==='tot'||(r1==='verwundet'&&died))){ console.log('FEHLER: Festbeißen',held,n,r1,died); process.exit(1); }
+  console.log('Festbeißen: '+n+' Bisse, Ergebnis '+r1+(died?', später an den Wunden verendet (Kadaver)':'')); }
 console.log('ALL OK');

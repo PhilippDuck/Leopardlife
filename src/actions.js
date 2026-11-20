@@ -23,6 +23,7 @@ import { updateUI, updateWarn } from './hud.js';
 import { downPlayer, hEl, othersAlive, tell } from './coop.js';
 import { emit } from './events.js';
 import { toggleSkills } from './skills.js';
+import { bitable, biteHit, startBite } from './bite.js';
 
 /* ---------- Aktionen ---------- */
 /** Index des nächsten erreichbaren Baums für Spieler p, sonst -1. */
@@ -51,6 +52,7 @@ function noStamina(p=P){
 /** Sprungangriff von Spieler p in Blickrichtung seiner Kamera (vom Baum: Sprung nach unten). */
 function doPounce(p=P){
   if(p.dead) return;
+  if(p.bite){ biteHit(p); return; }   // festgebissen: die Sprung-Taste beißt zu
   if(G.paused||p.pounce>0||p.pcd>0||p.drag) return;
   if(p.tree!=null&&p.climbT<1) return;
   if(p.st<15){ noStamina(p); return; }
@@ -169,8 +171,19 @@ function hitAnimal(a,p=P){
   floatText((amb?'Hinterhalt! ':'')+'-'+d,a.x,H(a.x,a.z)+a.sp.size*1.8,a.z,amb?'#f2b84b':'#fff');
   puff(a.x,H(a.x,a.z)+a.sp.size,a.z,0xc0392b,4,0.5);
   G.lastHit=a; G.lastHitT=6; snd.hit(); if(amb){ snd.ambush(); goalEvent('amb',1); buzz(p,0.25,0.6,120); G.slowT=Math.max(G.slowT,0.16); p.cam.shake=Math.max(p.cam.shake,0.3*pScale(p.L)); }
-  if(a.hp<=0){ snd.kill(); buzz(p,0.5,0.8,180); G.slowT=Math.max(G.slowT,0.22); p.cam.shake=Math.max(p.cam.shake,0.4*pScale(p.L)); }
-  if(a.hp<=0){
+  // aus der Deckung auf große Beute: festbeißen (Minispiel entscheidet), statt sofort Schaden zu entscheiden
+  if(amb&&bitable(a)&&a.hp>0&&!a.held&&!players.some(o=>o.bite)){ a.hp+=d; startBite(p,a); return; }
+  if(a.wound) a.hp-=Math.round(d*0.5);   // verwundete Beute ist leichter zu erlegen
+  if(a.hp<=0){ killAnimal(a,p); return; }
+  if(a.sp.fight){ a.state='chase'; a.aggro=10; a.scared=0; }
+  else startFlee(a);
+}
+/** Tier a ist erlegt (von Spieler p); fromWounds: an seinen Wunden gestorben, während der Jäger anderswo ist */
+function killAnimal(a,p=P,fromWounds){
+  if(a.dead) return;
+  if(!fromWounds){ snd.kill(); buzz(p,0.5,0.8,180); G.slowT=Math.max(G.slowT,0.22); p.cam.shake=Math.max(p.cam.shake,0.4*pScale(p.L)); }
+  a.wound=null; a.held=null;
+  {
     a.dead=true; a.respawn=rnd(18,30); p.L.kills=(p.L.kills||0)+1; goalEvent('kill',1,{sp:a.sp.id,night:dayF<0.5,herd:!!a.herd});
     // Kleine Beute (Maus, Hase) ist sofort verschlungen; größere bleibt als Kadaver mit einer Kugel je Bissen liegen,
     // die Jägerin fängt gleich an zu fressen. Ein Junges zuhause bekommt bis zur Hälfte davon in den Vorrat.
@@ -178,17 +191,18 @@ function hitAnimal(a,p=P){
       if(n<3){ p.L.hunger=Math.min(100,p.L.hunger+n*10); a.g.visible=false; }
       else { let m=n;
         if(S.cub&&S.cub.grow<1){ const k=Math.min(FOOD_MAX-S.food,Math.ceil(n/2)); if(k>0){ S.food+=k; m-=k; floatText('+'+k+' Futter im Vorrat',a.x,H(a.x,a.z)+a.sp.size*1.2,a.z,'#ff9ad0'); } }
-        makeCarcass(a,m); if(m>0&&p.L.hunger<100) takeMeat(a,false,p); } }
+        makeCarcass(a,m); if(m>0&&p.L.hunger<100&&!fromWounds) takeMeat(a,false,p); } }
+    if(fromWounds) toast(a.sp.n+': an den Wunden verendet – folge der Blutspur zum Kadaver!','#f2b84b');
     puff(a.x,H(a.x,a.z)+a.sp.size*0.7,a.z,a.sp.m.col,10,0.5+a.sp.size*0.5);
     p.hp=Math.min(maxHp(p.L),p.hp+maxHp(p.L)*0.25+a.sp.xp*0.1);
     const xpv=a.sp.xp*(a.fur&&a.fur.albino?2:1); if(a.fur&&a.fur.albino) toast('Seltene Beute: ein Albino! Doppelte Erfahrung.','#f2b84b');
     floatText('+'+xpv+' EP',p.x,p.y+2*pScale(p.L),p.z,'#8ad4ef');
     gainXp(xpv,p);
     if(a.sp.boss&&!beaten(REG_ID)){ S.beat=Object.assign({},S.beat,{[REG_ID]:true}); if(REG_ID==='savanne') S.won=true; save(); $('winTitle').textContent=REG.winT; $('winText').textContent=REG.winX; setTimeout(()=>{ snd.win(); $('win').style.display='flex'; G.paused=true; if(document.exitPointerLock) document.exitPointerLock(); },900); }
-  } else if(a.sp.fight){ a.state='chase'; a.aggro=10; a.scared=0; }
-  else startFlee(a);
+  }
 }
 G.lastHit=null; G.lastHitT=0;
 
+export { killAnimal };
 export { doClimb, doPounce, pounceLabel, pounceRun, setPounceLabel, togglePounce, doRoar, gainXp, hitAnimal, hurtPlayer, nearestTree };
 export { respawn };

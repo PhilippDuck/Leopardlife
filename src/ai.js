@@ -19,6 +19,7 @@ import { rnd } from './util.js';
 import { crocStep } from './crocodile.js';
 import { syncOrbs } from './effects.js';
 import { growlAt } from './calls.js';
+import { woundSlow, woundTick, woundTrail } from './bite.js';
 
 /* Rudel: Hyänen und Schakale rufen ihre Artgenossen zur Jagd (je nach Schwierigkeit) */
 const PACK={hyena:1,jack:1};
@@ -27,6 +28,7 @@ function recruitPack(a){ if(!PACK[a.sp.id]) return; const sm=SMART(); if(!sm) re
 
 /* ---------- KI ---------- */
 function moveAnimal(a,dx,dz,spd,dt){
+  if(a.wound){ spd*=woundSlow(a); woundTrail(a,spd*dt); }
   const l=Math.hypot(dx,dz)||1; dx/=l; dz/=l;
   a.x+=dx*spd*dt; a.z+=dz*spd*dt;
   const r=Math.hypot(a.x,a.z); if(r>WORLD){ a.x*=WORLD/r; a.z*=WORLD/r; }
@@ -58,6 +60,8 @@ function updateAnimal(a,dt){
   if(a.dead){
     if(a.carc){ a.carc.t-=dt; if(a.carc.t<=0||a.carc.meat<=0){ endCarcass(a); a.g.visible=false; a.g.rotation.z=0; } else syncOrbs(a.carc.orbs,a.carc.meat,a.carc.t,performance.now()/1000); return; }
     a.respawn-=dt; if(a.respawn<=0) placeAnimal(a); return; }
+  if(a.held){ a.ph+=dt*14; animLegs(a.g,a.ph,0.5); return; }   // festgebissen: zappelt, bewegt sich nicht
+  if(a.wound) woundTick(a,dt); if(a.dead) return;
   const sp=a.sp, dx=T.x-a.x, dz=T.z-a.z, d=Math.hypot(dx,dz);
   if(sp.friend){
     const fi=fam.indexOf(a);
