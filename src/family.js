@@ -43,7 +43,20 @@ function updateSibs(c,dt){
 rebuildCub();
 G.raider=null; G.raidT=rnd(90,130)*D().raid; G.heirPending=false;
 const cubGrown=()=>!!S.cub&&S.cub.grow>=1;
-const seeking=()=>canMate()&&!S.partner;
+/** Sucht Spieler p gerade einen Partner? (ab Stufe 8, kein Wurf unterwegs; Spieler 1 nicht, wenn sein Partner schon am Bau ist) */
+const playerSeeks=p=>!!p&&!p.dead&&p.L.lvl>=8&&!S.cub&&!(S.preg>0)&&(p!==P||!S.partner);
+/** Wilde Leoparden zeigen sich, solange irgendein Spieler einen Partner sucht */
+const seeking=()=>players.some(playerSeeks);
+/** Nächster wilder Leopard bei Spieler p */
+function nearestWild(p){ let b=null, bd=1e9; for(const a of fam.slice(3)){ if(!a.g.visible) continue; const d=Math.hypot(a.x-p.x,a.z-p.z); if(d<bd){ bd=d; b=a; } } return b?{a:b,d:bd}:null; }
+/** Mitspieler p paart sich mit einem wilden Leoparden: der Wurf kommt im gemeinsamen Bau zur Welt, der Wilde zieht weiter */
+function mateWild(p,a){
+  if(!playerSeeks(p)) return;
+  const wid=newId(); S.litterTrait=a.trait||''; S.litterParents=[ensureKin(p.L).id,wid]; S.preg=25;
+  recordPartner(wid,a.fur,p.L.gen||1); save(); snd.purr();
+  puff(p.x,p.y+1.2,p.z,0xff7ab8,8,0.45); puff(a.x,H(a.x,a.z)+1.2,a.z,0xff7ab8,8,0.45); placeAnimal(a);
+  toast(nameOf(p)+' hat sich mit einem wilden Leoparden gepaart. Im Bau kommt bald der Wurf zur Welt.','#ff9ad0');
+}
 /** Spieler p ist nah genug an einem Jungen zum Füttern: am Bau oder bei seinem mitlaufenden */
 const nearCub=p=>(denCount()>0&&Math.hypot(cub.x-p.x,cub.z-p.z)<4.5)||(()=>{ const f=followerOf(p); return !!f&&Math.hypot(f.x-p.x,f.z-p.z)<4.5; })();
 const heirLevel=()=>1+Math.floor(Math.min(1,S.cub.grow)*7);
@@ -189,5 +202,5 @@ function updateFamArrow(dt){
 }
 
 export { offerText };
-export { cubDies, nearCub, CUB_HOME, FOOD_MAX, context, cub, doContext, endRaid, heirLevel, raidStep, seekT, seeking, updateCub, updateFamArrow };
+export { mateWild, nearestWild, playerSeeks, cubDies, nearCub, CUB_HOME, FOOD_MAX, context, cub, doContext, endRaid, heirLevel, raidStep, seekT, seeking, updateCub, updateFamArrow };
 export { rebuildCub, feedCub };

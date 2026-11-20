@@ -4,7 +4,7 @@ import { snd } from './audio.js';
 import { nameOf, tell } from './coop.js';
 import { TRAITS } from './data.js';
 import { puff } from './effects.js';
-import { FOOD_MAX, cub, feedCub, heirLevel, nearCub } from './family.js';
+import { FOOD_MAX, cub, feedCub, heirLevel, mateWild, nearCub, nearestWild, offerText, playerSeeks } from './family.js';
 import { fam, famPlace } from './kin.js';
 import { makeFur } from './models.js';
 import { P, players, rebuildPlayer } from './player.js';
@@ -99,6 +99,7 @@ function mateContextInfo(p){
   if(p.tree!=null) return (p.safe&&p.climbT>=1&&canSleepNow())?{label:p.wantSleep?'Wartet auf die anderen …':'Schlafen'}:null;
   const q=pairCandidate(p); if(q&&canPair(p,q)) return {label:'Paaren mit '+nameOf(q)};   // Erbe zeigt das Geburtsfenster
   { const cf=cubFollowContext(p); if(cf) return {label:cf.label}; }
+  if(playerSeeks(p)){ const m=nearestWild(p); if(m&&m.d<4.5) return {label:'Paaren · Erbe: '+offerText(m.a.trait,p.L)}; }
   if(S.cub&&S.cub.grow<1&&S.food>0&&S.cub.full<97&&nearCub(p)) return {label:'Füttern'};
   return null;
 }
@@ -110,6 +111,7 @@ function mateContext(p){
   const q=pairCandidate(p); if(q&&canPair(p,q)){ pairPlayers(p,q); return; }
   if(q&&related(p.L,q.L)&&p.L.lvl>=8&&!S.cub&&!(S.preg>0)){ tell(p,'Ihr seid verwandt – Verwandte paaren sich nicht.','#ff9ad0'); return; }
   { const cf=cubFollowContext(p); if(cf){ cf.fn(); return; } }
+  if(playerSeeks(p)){ const m=nearestWild(p); if(m&&m.d<4.5){ mateWild(p,m.a); return; } }
   if(S.cub&&S.cub.grow<1&&S.food>0&&S.cub.full<97&&nearCub(p)){ feedCub(); return; }
 }
 
