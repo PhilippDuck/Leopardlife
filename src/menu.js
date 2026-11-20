@@ -26,7 +26,7 @@ import { leaveTitle } from './title.js';
 G.menuT=0; let hadLock=false, restartArm=false;
 function menuOpen(){ return $('menu').style.display==='flex'; }
 function toggleMenu(){
-  if(ctrlOpen()||bookOpen()||settingsOpen()||regionsOpen()||sleeping||!G.started||P.dead||$('win').style.display==='flex'||$('birth').style.display==='flex'||$('skills').style.display!=='none') return;
+  if(ctrlOpen()||guideOpen()||bookOpen()||settingsOpen()||regionsOpen()||sleeping||!G.started||P.dead||$('win').style.display==='flex'||$('birth').style.display==='flex'||$('skills').style.display!=='none') return;
   const el=$('menu');
   if(!menuOpen()){
     $('menuInfo').textContent='Gebiet: '+REG.n+' · Schwierigkeit: '+D().n+' · Uhrzeit '+clockStr()+(D().perma?' · ohne Nachwuchs endgültig':'');
@@ -48,7 +48,12 @@ let keysTab=null;
 function openCtrl(){ keysTab=null; renderKeys(); $('ctrlView').style.display='flex'; }
 function closeCtrl(){ $('ctrlView').style.display='none'; }
 const ctrlOpen=()=>$('ctrlView').style.display==='flex';
-$('btnCtrlStart').onclick=e=>{ e.preventDefault(); openCtrl(); }; $('btnCtrlSet').onclick=openCtrl; $('btnCtrlBack').onclick=closeCtrl;
+$('btnCtrlSet').onclick=openCtrl; $('btnCtrlMenu').onclick=openCtrl; $('btnCtrlBack').onclick=closeCtrl;
+/** Spielanleitung (aus dem Pause-Menü) */
+function openGuide(){ $('guide').style.display='flex'; }
+function closeGuide(){ $('guide').style.display='none'; }
+const guideOpen=()=>$('guide').style.display==='flex';
+$('btnGuide').onclick=openGuide; $('btnGuideBack').onclick=closeGuide;
 function renderKeys(){
   const cur=padUI()?'p':touchUI()?'t':'k', m=keysTab||cur;
   $('keysMode').textContent=padUI()?'Xbox-Controller':touchUI()?'Touch':'Tastatur und Maus';
@@ -87,5 +92,5 @@ function closeSettings(){ $('settings').style.display='none'; $('menu').style.di
 const settingsOpen=()=>$('settings').style.display==='flex';
 $('btnSettings').onclick=openSettings; $('btnSetBack').onclick=closeSettings;
 
-export { closeCtrl, ctrlOpen };
+export { closeCtrl, closeGuide, ctrlOpen, guideOpen };
 export { hudExp, menuOpen, renderKeys, showDiff, toggleMenu, xb, closeSettings, settingsOpen };

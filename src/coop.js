@@ -148,7 +148,7 @@ function pollCoop(dt,gps){
     for(let i=0;i<gp.buttons.length;i++) prev[i]=B(i);
   }
 }
-const topOverlayOpen=()=>['skills','menu','settings','regions','book'].some(id=>$(id)&&$(id).style.display==='flex');
+const topOverlayOpen=()=>['skills','menu','settings','regions','book','guide','ctrlView'].some(id=>$(id)&&$(id).style.display==='flex');
 /** Eigenes Entwicklungsfenster mit dem Controller bedienen: Steuerkreuz/Stick wählt, Ⓐ drückt, Ⓑ oder Back schließt */
 function panelNav(p,gp,hit,dt){
   const el=p.skPanel; if(!el) return;

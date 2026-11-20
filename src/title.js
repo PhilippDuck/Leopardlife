@@ -34,7 +34,7 @@ function updateTitle(dt){
   });
   // Kamera: vor dem Leoparden, im langsamen Bogen; der Leopard steht rechts der Bildmitte
   const n=players.length, sc=P.g.scale.x, r=1.6+3.4*sc+1.8*(n-1), ang=face+0.5+Math.sin(titleT*0.08)*0.4, y0=H(P.x,P.z);
-  const cx=P.x+Math.sin(ang)*r, cz=P.z+Math.cos(ang)*r, cy=y0+0.45+0.9*sc+0.25*(n-1)+Math.sin(titleT*0.11)*0.12;
+  const cx=P.x+Math.sin(ang)*r, cz=P.z+Math.cos(ang)*r, cy=y0+1.25+1.0*sc+0.35*(n-1)+Math.sin(titleT*0.11)*0.12;
   const off=document.body.clientWidth>700?0.3:0;   // breit: Leopard rechts der Bildmitte (links steht die Karte)
   const lx=P.x-Math.cos(ang)*r*off, lz=P.z+Math.sin(ang)*r*off;
   renderer.getSize(_tSz); const asp=_tSz.x/_tSz.y; if(Math.abs(P.camera.aspect-asp)>1e-3){ P.camera.aspect=asp; P.camera.updateProjectionMatrix(); }
@@ -51,11 +51,17 @@ function freeSpot(x,z){
   if(Math.hypot(CUB_HOME.x-x,CUB_HOME.z-z)<14) return false;
   const h=H(x,z); return Math.abs(H(x+3,z)-h)<0.6&&Math.abs(H(x,z+3)-h)<0.6&&Math.abs(H(x-3,z)-h)<0.6&&Math.abs(H(x,z-3)-h)<0.6;
 }
+/** Zwischen Leopard und Kamera (über den ganzen Kamerabogen) kein hohes Gras und kein Baum */
+function viewClear(x,z,rot){
+  for(const a of [-0.1,0.3,0.6,0.95]) for(const d of [1.5,3,4.5,6]){ const px=x+Math.sin(rot+a)*d, pz=z+Math.cos(rot+a)*d;
+    if(inGrass(px,pz)) return false; for(const t of trees) if(Math.abs(t.x-px)<4&&Math.abs(t.z-pz)<4) return false; }
+  return true;
+}
 function toStage(){
   if(!home) home={x:P.x,z:P.z,rot:P.rot};
   for(let r=0;r<160;r+=6){ for(let k=0;k<16;k++){ const a=k/16*6.283+r*0.13, x=home.x+Math.cos(a)*r, z=home.z+Math.sin(a)*r;
     // vor dem Leoparden (Richtung Kamera) muss auch frei sein
-    if(freeSpot(x,z)&&freeSpot(x+Math.sin(home.rot)*5,z+Math.cos(home.rot)*5)){ P.x=x; P.z=z; P.rot=home.rot; return; } } }
+    if(freeSpot(x,z)&&viewClear(x,z,home.rot)){ P.x=x; P.z=z; P.rot=home.rot; return; } } }
 }
 /** Liste der Spieler auf dem Startbildschirm */
 function renderPlayers(){
