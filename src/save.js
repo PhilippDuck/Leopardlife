@@ -7,7 +7,7 @@ import { $ } from './util.js';
 // wer zuletzt damit gespielt hat ('jaguar-mode' = 'coop'), spielt mit diesem Stand weiter.
 const MODE=(()=>{ try{ return localStorage.getItem('jaguar-mode')==='coop'?'coop':'solo'; }catch(e){ return 'solo'; } })();
 const SAVE_KEY=MODE==='coop'?'jaguar-coop-v1':'jaguar-save-v1', LINES_KEY=MODE==='coop'?'jaguar-coop-lines':'jaguar-lines';
-const fresh=()=>({region:'savanne',beat:{},day:0,goals:null,kills:0,anc:[],diff:'normal',tod:0.3,lvl:1,xp:0,pts:0,won:false,gen:1,fur:null,cub:null,food:0,preg:0,partner:false,p1:false,p2:false,hunger:100,age:0,traits:[],a:{str:0,spd:0,sta:0,vit:0,cam:0},b:{amb:0,jmp:0,roar:0,nose:0,climb:0,night:0},mates:{},tree:{},id:'',parents:[],litterParents:null,partnerPlayer:false,partnerId:''});
+const fresh=()=>({region:'savanne',beat:{},day:0,goals:null,kills:0,anc:[],diff:'normal',tod:0.3,lvl:1,xp:0,pts:0,won:false,gen:1,fur:null,cub:null,food:0,preg:0,partner:false,p1:false,p2:false,hunger:100,age:0,traits:[],a:{str:0,spd:0,sta:0,vit:0,cam:0},b:{amb:0,jmp:0,roar:0,nose:0,climb:0,night:0},mates:{},tree:{},goalStreak:0,id:'',parents:[],litterParents:null,partnerPlayer:false,partnerId:''});
 // mates: im gemeinsamen Spiel die Werte der Mitspieler nach Platz (2, 3, 4), siehe coop.js
 // id/parents: Verwandtschaft (kinship.js) · litterParents: Eltern des kommenden Wurfs · partnerPlayer: Partner ist ein Mitspieler
 // Schwierigkeit: Schaden, Hunger, Wachsamkeit der Tiere, Erfahrungsverlust beim Tod, Abstand der Überfälle, endgültiger Tod ohne Nachwuchs

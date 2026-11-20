@@ -37,6 +37,8 @@ const STEPS=[
     auto:10}
 ];
 let st=null;
+/** Läuft die Einführung gerade? (dann sind die Tagesziele ausgeblendet) */
+const tutActive=()=>!!st;
 function tutDone(){ try{ return localStorage.getItem(KEY)==='done'; }catch(e){ return true; } }
 function setDone(){ try{ localStorage.setItem(KEY,'done'); }catch(e){} }
 /** Beim Spielstart: Einführung beginnen, wenn sie noch nicht gemacht ist und das Leben noch jung ist */
@@ -80,4 +82,4 @@ $('btnTutEnd').onclick=()=>{ stopTutorial(); $('btnTutEnd').blur(); };
 function tutJump(i){ if(st){ st.i=i; enter(); } }
 $('btnTutAgain').onclick=()=>{ try{ localStorage.removeItem(KEY); }catch(e){} startTutorial(true); };
 
-export { startTutorial, stopTutorial, tutEvent, tutJump, updateTutorial };
+export { startTutorial, tutActive, stopTutorial, tutEvent, tutJump, updateTutorial };

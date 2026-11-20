@@ -51,6 +51,7 @@ function stepPlayer(p,dt){
     p.x+=Math.sin(p.rot)*ps*dt; p.z+=Math.cos(p.rot)*ps*dt;
   } else if(moving){
     p.x+=mx*spd*dt; p.z+=mz*spd*dt;
+    if(p.sneak){ p.stalk=(p.stalk||0)+spd*dt; if(p.stalk>=1){ p.stalk-=1; goalEvent('stalk',1); } }   // Tagesziel: schleichend pirschen
     let tr=Math.atan2(mx,mz), df=tr-p.rot; while(df>Math.PI) df-=6.283; while(df<-Math.PI) df+=6.283; p.rot+=df*Math.min(1,dt*12);
   }
   const pr=Math.hypot(p.x,p.z); if(pr>WORLD){ p.x*=WORLD/pr; p.z*=WORLD/pr; }

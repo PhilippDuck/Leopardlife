@@ -111,6 +111,9 @@
   @media (max-height:520px){ #tut{top:calc(var(--rad) + 40px);font-size:11.5px;padding:7px 9px} }
   #goalBox{display:none;margin-top:6px;border-top:1px solid var(--line);padding-top:5px;font-size:11px}
   #goalBox .gh{color:#9be07f;font-weight:bold;margin-bottom:2px} #goalBox .gl{display:flex;gap:5px;color:var(--txt);line-height:1.3} #goalBox .gl.done{color:#7fae6f}
+  #goalBox .gx{font-style:normal;color:#9be07f;opacity:.75;font-size:10px;white-space:nowrap} #goalBox .gl.done .gx{display:none}
+  #goalBox .gs{color:#f2b84b;font-weight:bold} #goalBox .gb{margin-top:3px;color:var(--gold);font-size:10.5px} #goalBox .gb.ok{color:#9be07f}
+  #goalBox .gl.bump{animation:gbump 1.2s ease-out} @keyframes gbump{0%{background:rgba(242,184,75,.45)}100%{background:transparent}}
   #cubMsg{font-size:11px;color:#ff8a70;font-weight:bold}
   #warnRing{position:fixed;left:50%;top:50%;width:0;height:0;pointer-events:none}
   .wa{position:absolute;left:-15px;top:-13px;width:0;height:0;border-left:15px solid transparent;border-right:15px solid transparent;border-bottom:26px solid #f2d04b;filter:drop-shadow(0 0 5px rgba(0,0,0,.9));display:none}

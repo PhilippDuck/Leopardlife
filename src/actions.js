@@ -77,7 +77,7 @@ function doRoar(p=P){
   const sc=p.g?p.g.scale.x:1; roarFx(p.x,p.camY||p.y,p.z,p.rot,sc,R); p.cam.shake=Math.max(p.cam.shake,0.35); buzz(p,0.6,0.9,600); p.roarT=0.9;
   toast('ROAAAR!','#f2b84b'); snd.roar();
   animals.forEach(a=>{ if(a.dead) return; const d=Math.hypot(a.x-p.x,a.z-p.z); if(d>R) return;
-    if(a.sp.pred){ if(!a.sp.hunt||p.L.lvl+2*p.L.b.roar>=a.sp.hunt-3){ a.state='flee'; a.fleeT=0; a.aggro=0; a.scared=5; } }
+    if(a.sp.pred){ if(!a.sp.hunt||p.L.lvl+2*p.L.b.roar>=a.sp.hunt-3){ a.state='flee'; a.fleeT=0; a.aggro=0; a.scared=5; goalEvent('roar',1); } }
     else if(!a.sp.boss&&!a.sp.friend){ a.stun=1.2+0.5*p.L.b.roar; } });
 }
 /**
