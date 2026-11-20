@@ -30,7 +30,8 @@ const STEPS=[
     done:st=>st.kills>=2||S.pts>0},
   {t:'Stärker werden',x:K('Du hast Punkte! <kbd>Tab</kbd> öffnet <b>Eigenschaften &amp; Fähigkeiten</b> – verteile sie mit <b>+</b>.',
     'Du hast Punkte! <b>☰ Menü → Eigenschaften &amp; Fähigkeiten</b> – verteile sie mit <b>+</b>.','Du hast Punkte! Die <b>Ansicht-Taste ⧉</b> öffnet die Entwicklung – Steuerkreuz wählt, Ⓐ verteilt.'),
-    done:st=>spent()>st.sp0, wait:()=>S.pts>0, waitText:()=>'Jage weiter, bis du aufsteigst – dann gibt es Punkte zu verteilen.'},
+    // zählt jeden Punkt, der seit Beginn der Einführung verteilt wurde – auch wenn das schon vor dieser Aufgabe geschah
+    done:st=>spent()>st.spStart, wait:()=>S.pts>0||spent()>(st?st.spStart:0), waitText:()=>'Jage weiter, bis du aufsteigst – dann gibt es Punkte zu verteilen.'},
   {t:'Gefahr erkennen',x:()=>'Pfeile am Bildrand zeigen Raubtiere: <b style="color:#f2d04b">gelb</b> ahnungslos, <b style="color:#ff9a3c">orange</b> misstrauisch, <b style="color:#ff4a30">rot</b> jagt dich. Dann schnell ins hohe Gras schleichen – oder später auf einen Baum.',
     auto:12},
   {t:'Satt bleiben',x:()=>'Oben links sinkt die <b>Sättigung</b> – jage regelmäßig. Darunter stehen die <b>Tagesziele</b> mit Bonus-Erfahrung. Viel Glück, kleiner Leopard!',
@@ -44,9 +45,9 @@ function setDone(){ try{ localStorage.setItem(KEY,'done'); }catch(e){} }
 /** Beim Spielstart: Einführung beginnen, wenn sie noch nicht gemacht ist und das Leben noch jung ist */
 function startTutorial(force){
   if(!force&&(tutDone()||S.lvl>3||(S.gen||1)>1)){ if(!tutDone()&&(S.lvl>3||(S.gen||1)>1)) setDone(); return; }
-  st={i:0}; enter(); $('tut').style.display='block';
+  st={i:0,spStart:spent()}; enter(); $('tut').style.display='block';
 }
-function enter(){ const s=STEPS[st.i]; Object.assign(st,{t:0,dist:0,hid:0,kills:0,sp0:spent(),lx:P.x,lz:P.z}); render(); }
+function enter(){ const s=STEPS[st.i]; Object.assign(st,{t:0,dist:0,hid:0,kills:0,lx:P.x,lz:P.z}); render(); }
 function render(){
   const s=STEPS[st.i], waiting=s.wait&&!s.wait();
   $('tutHead').textContent='Erste Schritte · '+(st.i+1)+'/'+STEPS.length+' · '+s.t;
@@ -72,7 +73,7 @@ function updateTutorial(dt){
   st.t+=dt; st.dist+=Math.hypot(P.x-st.lx,P.z-st.lz); st.lx=P.x; st.lz=P.z;
   if(P.sneak&&P.hideLv===2) st.hid+=dt; else st.hid=0;   // bewusst schleichen (als Jungtier wäre er im Gras auch so versteckt)
   const mode=padUI()?'p':touchUI()?'t':'k', waiting=!!(s.wait&&!s.wait());
-  if(mode!==st.mode||waiting!==st.waiting){ if(st.waiting&&!waiting) st.sp0=spent(); render(); }
+  if(mode!==st.mode||waiting!==st.waiting) render();
   if(waiting) return;
   if(s.auto?st.t>=s.auto:s.done(st)) next();
 }
