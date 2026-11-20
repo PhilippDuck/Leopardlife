@@ -8,7 +8,7 @@ import { FOOD_MAX, cub, feedCub, heirLevel } from './family.js';
 import { fam, famPlace } from './kin.js';
 import { makeFur } from './models.js';
 import { P, players, rebuildPlayer } from './player.js';
-import { S, fresh, maxHp, maxSt, save } from './save.js';
+import { S, fresh, inheritTrait, maxHp, maxSt, save } from './save.js';
 import { G } from './state.js';
 import { toast } from './ui.js';
 import { rnd } from './util.js';
@@ -40,6 +40,9 @@ function parentsOf(id){
   for(const k in (S.mates||{})) if(S.mates[k].id===id) return S.mates[k].parents||[];
   const e=(S.anc||[]).find(x=>x.i===id); return e&&e.p?e.p:[];
 }
+/** Erbe aus einer Paarung zweier Spieler: am liebsten eine Anlage, die beide haben (wird verstärkt), sonst eine des anderen */
+function playerOffer(p,q){ const a=p.L.traits||[], b=q.L.traits||[], both=a.filter(t=>b.indexOf(t)>=0), pool=both.length?both:b.length?b:a;
+  if(pool.length) return pool[Math.floor(Math.random()*pool.length)]; const ks=Object.keys(TRAITS); return ks[Math.floor(Math.random()*ks.length)]; }
 /** Können sich die Spieler p und q paaren? Beide ausgewachsen, nicht verwandt, kein Junges und keine Trächtigkeit in der Familie. */
 function canPair(p,q){
   return p!==q&&!p.dead&&!q.dead&&p.L.lvl>=8&&q.L.lvl>=8&&!S.cub&&!(S.preg>0)&&!related(p.L,q.L);
@@ -53,7 +56,7 @@ function pairCandidate(p){
 /** Spieler p und q paaren sich: Der Wurf gehört der ganzen Familie und kommt im Bau zur Welt. */
 function pairPlayers(p,q){
   if(!canPair(p,q)){ if(related(p.L,q.L)) tell(p,'Ihr seid verwandt – Verwandte paaren sich nicht. Sucht euch Partner außerhalb der Familie.','#ff9ad0'); return; }
-  S.preg=25; S.litterParents=[ensureKin(p.L).id,ensureKin(q.L).id]; S.partnerPlayer=true; save(); snd.purr();
+  S.preg=25; S.litterParents=[ensureKin(p.L).id,ensureKin(q.L).id]; S.partnerPlayer=true; S.litterTrait=playerOffer(p,q); save(); snd.purr();
   for(const o of [p,q]) puff(o.x,o.y+1.2,o.z,0xff7ab8,8,0.45);
   toast(nameOf(p)+' und '+nameOf(q)+' haben sich gepaart. Im Bau kommt bald euer Wurf zur Welt – ein Junges für jeden, der will.','#ff9ad0');
 }
@@ -67,9 +70,10 @@ const litterSize=()=>Math.min(4,Math.max(1,players.length));
 function mateBecomeCub(p){
   const c=S.cub; if(!c||!(c.n>0)||p===P) return false;
   const L=p.L, old=ensureKin(L);
-  const sum=o=>Object.keys(o).reduce((x,k)=>x+o[k],0), total=sum(L.a)+2*sum(L.b)+L.pts;
-  const traits=(S.traits||[]).slice(); if(c.trait&&TRAITS[c.trait]&&traits.indexOf(c.trait)<0) traits.push(c.trait);
-  const nl={id:newId(),parents:(c.parents||[]).slice(),lvl:heirLevel(),xp:0,pts:Math.round(total*0.1),a:fresh().a,b:fresh().b,traits:traits.slice(-3),fur:makeFur(),hunger:80,age:0,kills:0,gen:c.gen||((S.gen||1)+1)};
+  // Erbanlagen vom Elternteil, der dieser Spieler war (sonst von Spieler 1), plus die des Wurfs – doppelte werden verstärkt.
+  // Eigenschafts- und Fähigkeitspunkte werden nicht vererbt (dafür gibt es Erbe und Ahnenkraft).
+  const par=(c.parents||[]).indexOf(L.id)>=0?L:S, kid={traits:(par.traits||[]).slice(),tlv:Object.assign({},par.tlv||{})}; inheritTrait(kid,c.trait);
+  const nl={id:newId(),parents:(c.parents||[]).slice(),lvl:heirLevel(),xp:0,pts:0,a:fresh().a,b:fresh().b,traits:kid.traits,tlv:kid.tlv,fur:makeFur(),hunger:80,age:0,kills:0,gen:c.gen||((S.gen||1)+1)};
   recordAncestor('zog sein Junges groß und lebt als Elterntier weiter',L,nameOf(p));
   S.mates[p.num]=nl; p.L=nl; p.fur=nl.fur; rebuildPlayer(p);
   // Der alte Leopard bleibt als Elterntier am Bau (Platz 2), falls frei
@@ -91,7 +95,7 @@ function mateContextInfo(p){
   if(p.dead||G.paused) return null;
   { const cx=carcassContext(p); if(cx) return {label:cx.label}; }
   if(p.tree!=null) return (p.safe&&p.climbT>=1&&canSleepNow())?{label:p.wantSleep?'Wartet auf die anderen …':'Schlafen'}:null;
-  const q=pairCandidate(p); if(q&&canPair(p,q)) return {label:'Paaren mit '+nameOf(q)};
+  const q=pairCandidate(p); if(q&&canPair(p,q)) return {label:'Paaren mit '+nameOf(q)};   // Erbe zeigt das Geburtsfenster
   if(S.cub&&S.cub.grow<1&&S.food>0&&S.cub.full<97&&Math.hypot(cub.x-p.x,cub.z-p.z)<4.5) return {label:'Füttern'};
   return null;
 }

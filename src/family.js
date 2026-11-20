@@ -8,7 +8,7 @@ import { keys } from './input.js';
 import { animLegs, buildQuad, furName, makeFur } from './models.js';
 import { P, dropModel, players } from './player.js';
 import { quality } from './quality.js';
-import { D, S, has, save } from './save.js';
+import { D, S, has, save, tlvOf } from './save.js';
 import { G } from './state.js';
 import { H } from './terrain.js';
 import { floatText, toast } from './ui.js';
@@ -41,8 +41,20 @@ function context(){
   if(S.cub&&!cubGrown()&&S.food>0&&S.cub.full<97&&Math.hypot(cub.x-P.x,cub.z-P.z)<4.5) return {label:'Füttern',fn:feedCub};
   if(S.food>0&&S.hunger<50) return {label:'Fressen',fn:eatFood};
   { const q=pairCandidate(P); if(q){ if(canPair(P,q)) return {label:'Paaren mit '+nameOf(q),fn:()=>pairPlayers(P,q)}; if(related(P.L,q.L)&&canMate()) return {label:'Verwandt – keine Paarung',fn:()=>pairPlayers(P,q)}; } }
-  if(canMate()){ const m=nearestMate(); if(m&&m.d<4.5) return {label:'Paaren',fn:()=>mateWith(m.a)}; }
+  if(canMate()){ const m=nearestMate(); if(m){ mateNotice(m);
+    if(m.d<4.5){ const t=offerOf(m.a); return {label:'Paaren · Erbe: '+offerText(t),fn:()=>mateWith(m.a)}; } } }
   return null;
+}
+/** Erbanlage, die ein Leopard dem Jungen mitgeben würde: der eigene Partner seine gemerkte, ein wilder seine eigene */
+function offerOf(a){ return a===fam[0]&&S.partner&&S.partnerTrait?S.partnerTrait:a.trait; }
+/** „Flinke Läufe (+10 % Tempo)“ bzw. „… – hast du auch: verstärkt zu II“ */
+function offerText(t,L=S){ if(!t||!TRAITS[t]) return 'unbekannt'; const lv=tlvOf(t,L);
+  return TRAITS[t][0]+(lv>=3?' (hast du schon ganz stark)':lv>0?' – hast du auch: Junges erbt sie verstärkt ('+['','','II','III'][lv+1]+')':' ('+TRAITS[t][1]+')'); }
+/** Wilder Leopard in der Nähe: einmal sagen, welches Erbe er mitbringt – so kann man sich den Partner aussuchen */
+const seenMate=new Map();
+function mateNotice(m){
+  if(m.d>22||!m.a.trait) return; const now=performance.now(), last=seenMate.get(m.a)||0; if(now-last<90000) return; seenMate.set(m.a,now);
+  toast('Leopard in der Nähe · Erbe: '+offerText(offerOf(m.a)),'#ff9ad0');
 }
 function doContext(){ const c=context(); if(c) c.fn(); }
 /** Fell eines Jungen: Mischung aus den Fellen der Eltern mit etwas Zufall; Albino und Schwarz bleiben selten, schwarze Eltern vererben öfter */
@@ -56,7 +68,8 @@ function cubFur(ids){
   return f;
 }
 function mateWith(a){
-  if(!S.partner){ S.partner=true; S.partnerId=newId(); famPlace(fam[0],a.x,a.z,a.fur); recordPartner(S.partnerId,a.fur,S.gen||1); if(a!==fam[0]) placeAnimal(a); }   // der gewählte Leopard (mit seinem Fell) bleibt als Partner   // der gewählte Leopard bleibt als Partner (fremd, eigene Kennung)
+  S.litterTrait=offerOf(a)||'';
+  if(!S.partner){ S.partner=true; S.partnerId=newId(); S.partnerTrait=a.trait||''; famPlace(fam[0],a.x,a.z,a.fur); recordPartner(S.partnerId,a.fur,S.gen||1); if(a!==fam[0]) placeAnimal(a); }   // der gewählte Leopard (mit seinem Fell) bleibt als Partner   // der gewählte Leopard bleibt als Partner (fremd, eigene Kennung)
   S.preg=25; save(); snd.purr();
   puff(P.x,P.y+1.2,P.z,0xff7ab8,8,0.45); puff(a.x,H(a.x,a.z)+1.2,a.z,0xff7ab8,8,0.45);
   toast('Ihr habt euch gepaart. Dein Partner bleibt bei dir; im Bau kommt bald euer Junges zur Welt.','#ff9ad0');
@@ -111,8 +124,8 @@ function raidStep(a,dt){
 }
 function updateCub(dt){
   if(G.raider&&(G.raider.dead||G.raider.state!=='raid')) G.raider=null;
-  if(S.preg>0){ S.preg-=dt; if(S.preg<=0){ S.preg=0; { const ks=Object.keys(TRAITS).filter(t=>!has(t)); S.cub={full:70,grow:0,hp:1,trait:ks[Math.floor(Math.random()*ks.length)],n:litterSize(),gen:(S.gen||1)+1,parents:(S.litterParents||[ensureKin(S).id,S.partnerId||'wild']).slice()}; S.cub.fur=cubFur(S.cub.parents); S.litterParents=null; if(S.cub.trait==='dunkel'&&!S.cub.fur.albino) S.cub.fur.l=Math.min(S.cub.fur.l,0.66); rebuildCub();
-      $('birthTrait').innerHTML=ico(S.cub.trait,ICOL.t,16)+' Erbanlage: '+TRAITS[S.cub.trait][0]+' ('+TRAITS[S.cub.trait][1]+') · Fell: '+furName(S.cub.fur); } cub.x=CUB_HOME.x; cub.z=CUB_HOME.z; cub.t=0; G.raidT=rnd(90,130)*D().raid; save(); snd.mew();
+  if(S.preg>0){ S.preg-=dt; if(S.preg<=0){ S.preg=0; { const ks=Object.keys(TRAITS).filter(t=>!has(t)), tr=S.litterTrait&&TRAITS[S.litterTrait]?S.litterTrait:ks[Math.floor(Math.random()*ks.length)]; S.litterTrait=''; S.cub={full:70,grow:0,hp:1,trait:tr,n:litterSize(),gen:(S.gen||1)+1,parents:(S.litterParents||[ensureKin(S).id,S.partnerId||'wild']).slice()}; S.cub.fur=cubFur(S.cub.parents); S.litterParents=null; if(S.cub.trait==='dunkel'&&!S.cub.fur.albino) S.cub.fur.l=Math.min(S.cub.fur.l,0.66); rebuildCub();
+      $('birthTrait').innerHTML=ico(S.cub.trait,ICOL.t,16)+' Erbanlage: '+offerText(S.cub.trait)+' · Fell: '+furName(S.cub.fur); } cub.x=CUB_HOME.x; cub.z=CUB_HOME.z; cub.t=0; G.raidT=rnd(90,130)*D().raid; save(); snd.mew();
     $('birthTitle').textContent=S.cub.n>1?'Euer Wurf ist geboren: '+S.cub.n+' Junge':'Dein Junges ist geboren';
     $('birthCoop').style.display=S.cub.n>1?'block':'none';
     { const b=$('btnBeCub'); b.disabled=false; b.textContent='Als Junges spielen'; } renderBirthChoices();
@@ -145,5 +158,6 @@ function updateFamArrow(dt){
   el.style.display='block'; el.style.transform='rotate('+ang+'rad) translateY('+(-R)+'px) scale(0.8)';
 }
 
+export { offerText };
 export { CUB_HOME, FOOD_MAX, context, cub, doContext, endRaid, heirLevel, raidStep, seekT, seeking, updateCub, updateFamArrow };
 export { rebuildCub, feedCub };
