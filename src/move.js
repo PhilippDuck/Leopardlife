@@ -1,7 +1,7 @@
 // LeopardLife – Bewegung eines Leoparden pro Bild: Laufen, Sprinten, Sprung, Klettern, Kollision, Tarnung.
 // Arbeitet auf dem übergebenen Spieler p (Position, Kamera, Steuerwunsch p.ctl), nicht fest auf dem einen Spieler.
 import { animals } from './animals.js';
-import { snd } from './audio.js';
+import { climbStop, snd } from './audio.js';
 import { dayF } from './daynight.js';
 import { goalEvent } from './goals.js';
 import { setHide } from './hide.js';
@@ -27,14 +27,24 @@ function stepPlayer(p,dt){
   let sprint=wantSprint&&p.st>1;
   const sneak=p.sneak&&!sprint;   // beim Sprinten ruht das Schleichen
   let spd=baseSpeed(p.L)*(sprint?1.6:sneak?0.45:1); if(p.wet) spd*=0.65;
+  if(p.drag){ sprint=false; spd*=0.45; }   // Beute ziehen: langsam, kein Sprint
   if(sprint) p.st-=20*dt; else p.st=Math.min(maxSt(p.L),p.st+(12+2*at('sta',p.L))*(p.L.hunger<25?0.5:1)*(moving?0.7:1.3)*dt);
   if(p===P&&p.st<=1&&G.tSprint){ G.tSprint=false; $('tbS').classList.remove('on'); }
   const sc=pScale(p.L);
   if(p.tree!=null){
     const t=trees[p.tree]; p.climbT=Math.min(1,p.climbT+dt/(1.3-0.3*p.L.b.climb));
     const e=p.climbT*p.climbT*(3-2*p.climbT);
-    const tx=t.x+t.perch[0], tz=t.z+t.perch[2]; p.x=p.fromX+(tx-p.fromX)*e; p.z=p.fromZ+(tz-p.fromZ)*e;
-    if(p.climbT<1){ p.rot=Math.atan2(tx-p.fromX,tz-p.fromZ); p.walkT+=dt*14; }
+    const tx=t.x+t.perch[0], tz=t.z+t.perch[2];
+    if(p.climbT<1){ p.x=p.fromX+(tx-p.fromX)*e; p.z=p.fromZ+(tz-p.fromZ)*e; p.rot=Math.atan2(tx-p.fromX,tz-p.fromZ); p.walkT+=dt*14; p.tOff=null; }
+    else {
+      if(!p.tOff){ p.tOff={x:0,z:0}; climbStop(); }
+      // oben: ein Stück auf dem Ast bzw. in der Krone herumgehen (langsam, nur in einem kleinen Umkreis)
+      if(il>0.1){ const R=Math.min(1.6,Math.max(0.6,t.rx*0.35)), v=1.3*dt; p.tOff.x+=mx*v; p.tOff.z+=mz*v;
+        const r=Math.hypot(p.tOff.x,p.tOff.z); if(r>R){ p.tOff.x*=R/r; p.tOff.z*=R/r; }
+        let tr=Math.atan2(mx,mz), df=tr-p.rot; while(df>Math.PI) df-=6.283; while(df<-Math.PI) df+=6.283; p.rot+=df*Math.min(1,dt*8); p.treeWalk=true; }
+      else p.treeWalk=false;
+      p.x=tx+p.tOff.x; p.z=tz+p.tOff.z;
+    }
     p.safe=p.climbT>0.5;
   } else if(p.pounce>0){
     p.pounce-=dt; if(p.pounce<=0) p.leap=false; const ps=19+3*p.L.b.jmp+baseSpeed(p.L)*0.5;
@@ -59,7 +69,7 @@ function stepPlayer(p,dt){
   if(p.roarT>0){ p.roarT=Math.max(0,p.roarT-dt); g.rotation.x=-0.22*Math.sin(Math.PI*(1-p.roarT/0.9)); } else if(g.rotation.x) g.rotation.x=0;
   g.userData.inner.position.y+=(((sneak&&p.pounce<=0)?-0.16:0)-g.userData.inner.position.y)*Math.min(1,dt*10);
   g.userData.inner.rotation.x=climbing?-1.1:p.pounce>0?(p.leap?0.35:-0.3):0;
-  if(climbing) animLegs(g,p.walkT,0.7); else if(moving||p.pounce>0){ p.walkT+=dt*(5+spd*1.4); animLegs(g,p.walkT,p.pounce>0?1.1:sprint?0.85:sneak?0.3:0.55); } else animLegs(g,p.walkT,0.02);
+  if(climbing) animLegs(g,p.walkT,0.7); else if(p.tree!=null&&p.treeWalk){ p.walkT+=dt*6; animLegs(g,p.walkT,0.3); } else if(moving||p.pounce>0){ p.walkT+=dt*(5+spd*1.4); animLegs(g,p.walkT,p.pounce>0?1.1:sprint?0.85:sneak?0.3:0.55); } else animLegs(g,p.walkT,0.02);
   if(moving&&p.pounce<=0){ p.stepT=(p.stepT||0)-dt*(sprint?1.7:sneak?0.55:1); if(p.stepT<=0){ p.stepT=0.3; if(p.wet) snd.splash(); else snd.step(sneak?0.04:sprint?0.2:0.12); } }
   // Tarnung
   const grass=inGrass(p.x,p.z); p.wet=p.tree==null&&inWater(p.x,p.z);

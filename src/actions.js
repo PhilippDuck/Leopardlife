@@ -1,6 +1,6 @@
 // LeopardLife – Aktionen des Leoparden: Sprung, Klettern, Brüllen, Treffer austeilen und einstecken, Tod und Neubeginn.
 import { animals, placeAnimal } from './animals.js';
-import { initAudio, snd, tone } from './audio.js';
+import { climbStop, initAudio, snd, tone } from './audio.js';
 import { DAT, FOOD } from './data.js';
 import { puff, roarFx } from './effects.js';
 import { canvas } from './engine.js';
@@ -16,7 +16,7 @@ import { trees } from './vegetation.js';
 import { FOOD_MAX, cub, heirLevel, rebuildCub } from './family.js';
 import { becomeCub } from './kin.js';
 import { dayF } from './daynight.js';
-import { archiveLine, makeCarcass, recordAncestor, startFlee, takeMeat } from './carcass.js';
+import { archiveLine, carcassToTree, makeCarcass, recordAncestor, startFlee, takeMeat } from './carcass.js';
 import { goalEvent } from './goals.js';
 import { padUI, rumble } from './gamepad.js';
 import { updateUI, updateWarn } from './hud.js';
@@ -30,7 +30,7 @@ function nearestTree(p=P){
   let bi=-1, bd=1e9; for(let i=0;i<trees.length;i++){ const t=trees[i], d=Math.hypot(t.x-p.x,t.z-p.z); if(d<bd){ bd=d; bi=i; } }
   return bd<3.4+pScale(p.L)*0.8?bi:-1;
 }
-function leaveTree(p,rate){ p.dropY=p.upNow; p.dropRate=rate; p.tree=null; p.safe=false; p.upNow=0; }
+function leaveTree(p,rate){ p.tOff=null; climbStop(); p.dropY=p.upNow; p.dropRate=rate; p.tree=null; p.safe=false; p.upNow=0; }
 /** Klettern bzw. vom Baum herunter für Spieler p. Fähigkeiten und Ausdauer-Anzeige gelten noch gemeinsam. */
 function doClimb(p=P){
   if(p.dead) return;
@@ -38,7 +38,8 @@ function doClimb(p=P){
   if(p.tree!=null){ leaveTree(p,24); p.x+=Math.sin(p.rot)*1.6; p.z+=Math.cos(p.rot)*1.6; snd.step(0.25); return; }
   if(p.L.b.climb<1){ tell(p,'Klettern ist noch nicht gelernt (Tab)','#b9b7a6'); return; }
   const i=nearestTree(p); if(i<0){ toast('Kein Baum in Reichweite','#b9b7a6'); return; }
-  const cost=45-5*(p.L.b.climb-1); if(p.st<cost){ noStamina(p); return; } p.st-=cost;
+  const cost=45-5*(p.L.b.climb-1)+(p.drag?20:0); if(p.st<cost){ noStamina(p); return; } p.st-=cost;
+  if(p.drag) carcassToTree(p,i);   // die Beute kommt mit hinauf
   goalEvent('climb',1); p.tree=i; p.climbT=0; p.fromX=p.x; p.fromZ=p.z; p.sneak=false; p.dropY=0; snd.climb();
 }
 G.noStT=0;
@@ -50,7 +51,7 @@ function noStamina(p=P){
 /** Sprungangriff von Spieler p in Blickrichtung seiner Kamera (vom Baum: Sprung nach unten). */
 function doPounce(p=P){
   if(p.dead) return;
-  if(G.paused||p.pounce>0||p.pcd>0) return;
+  if(G.paused||p.pounce>0||p.pcd>0||p.drag) return;
   if(p.tree!=null&&p.climbT<1) return;
   if(p.st<15){ noStamina(p); return; }
   p.leap=false;

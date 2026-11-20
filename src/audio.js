@@ -53,11 +53,11 @@ function loadSamples(){
   for(const k in SAMPLES) fetch(SAMPLES[k]).then(r=>r.ok?r.arrayBuffer():Promise.reject(r.status))
     .then(b=>new Promise((res,rej)=>AC.decodeAudioData(b,res,rej))).then(d=>{ bufs[k]=/** @type {AudioBuffer} */(d); findLoop(k,bufs[k]); }).catch(()=>{});
 }
-/** Spielt ein geladenes Geräusch mit leicht zufälliger Tonhöhe; false, wenn es (noch) nicht da ist. */
+/** Spielt ein geladenes Geräusch mit leicht zufälliger Tonhöhe; gibt {s,g} zurück (zum Abbrechen), false, wenn es (noch) nicht da ist. */
 function sample(k,vol,rate){
   const b=bufs[k]; if(!AC||!b) return false;
   const s=AC.createBufferSource(); s.buffer=b; s.playbackRate.value=rate||1;
-  const g=AC.createGain(); g.gain.value=vol; s.connect(g); g.connect(master); s.start(); return true;
+  const g=AC.createGain(); g.gain.value=vol; s.connect(g); g.connect(master); s.start(); return {s,g};
 }
 /* Räumlicher Ton: Tiere klingen aus ihrer Richtung (links/rechts) und werden mit der Entfernung leiser und dumpfer.
    Gehört wird vom nächsten Spieler aus; main.js meldet jedes Bild die Position und Blickrichtung der Spieler. */
@@ -140,6 +140,9 @@ function ambTick(day,rain,storm,hour,tense){
   const rg=ambLoop('rain'); if(rg) rg.gain.setTargetAtTime(0.7*rain,t,0.8);
   if(windG&&(bufs.dayA||bufs.windA||bufs.night)) windG.gain.value=0.02;   // Synth-Wind nur noch leise darunter
 }
+let climbSnd=null;   // Krallen an der Rinde: verstummt, sobald der Leopard oben ist
+/** Klettergeräusch weich beenden */
+function climbStop(){ if(!climbSnd||!AC) return; const t=AC.currentTime; try{ climbSnd.g.gain.setTargetAtTime(0,t,0.08); climbSnd.s.stop(t+0.4); }catch(e){} climbSnd=null; }
 let eatUntil=0;   // Fressen: die Aufnahme ausklingen lassen, statt sie bei jedem Bissen neu zu starten
 const snd={
   pounce(){ if(sample('paws',0.22,rnd(0.92,1.08))) return; noise(0.3,0.35,500,2600); tone(180,0.25,'sawtooth',0.06,90); },
@@ -152,7 +155,7 @@ const snd={
   alert(){ tone(880,0.09,'square',0.1); tone(880,0.09,'square',0.1,0,0.14); },
   notice(){ tone(300,0.12,'sine',0.13,240); },
   beat(v){ tone(62,0.12,'sine',0.25+0.25*v,45); tone(58,0.1,'sine',0.18+0.2*v,42,0.14); },
-  climb(){ if(sample('claws',1.6,rnd(0.95,1.1))) return; for(let i=0;i<4;i++) noise(0.07,0.22,1400,700,'bandpass',i*0.12); },
+  climb(){ const c=sample('claws',1.6,rnd(0.95,1.1)); if(c){ climbSnd=c; return; } for(let i=0;i<4;i++) noise(0.07,0.22,1400,700,'bandpass',i*0.12); },
   purr(){ for(let i=0;i<7;i++) tone(58,0.11,'sawtooth',0.13,50,i*0.13); },
   mew(){ if(sample('mew',1.0,rnd(0.92,1.15))) return; tone(950,0.22,'sine',0.11,620); tone(1200,0.1,'sine',0.05,900); },
   eat(){ if(bufs.eat){ if(AC.currentTime>eatUntil){ eatUntil=AC.currentTime+bufs.eat.duration*0.85; sample('eat',1.4,rnd(0.92,1.08)); } return; } for(let i=0;i<3;i++) noise(0.08,0.25,1600,800,'bandpass',i*0.13); },
@@ -236,4 +239,4 @@ function musicTick(){
   while(mNext<now+0.3){ mSchedule(mStep,mNext); mNext+=M_STEP; mStep++; }
 }
 
-export { AC, ambTick, setListeners, snd3d, hasSample, master, nbuf, initAudio, tone, snd, musicTick };
+export { AC, ambTick, climbStop, setListeners, snd3d, hasSample, master, nbuf, initAudio, tone, snd, musicTick };

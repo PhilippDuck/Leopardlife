@@ -97,7 +97,7 @@ function updateAnimal(a,dt){
   else if(a.state==='raid'){ raidStep(a,dt); }
   else if(a.state==='scav'){
     const c=a.carc;
-    if(!c||!c.carc){ a.state='wander'; a.timer=0; a.carc=null; }
+    if(!c||!c.carc||c.carc.tree!=null){ a.state='wander'; a.timer=0; a.carc=null; }   // im Baum kommen sie nicht heran
     else { const cx=c.x-a.x, cz=c.z-a.z, cd=Math.hypot(cx,cz), pd=Math.hypot(T.x-c.x,T.z-c.z);
       if(hostile&&!T.safe&&cd<25&&(pd<10||d<detect)){ a.state='chase'; a.lost=0; a.aggro=4; a.carc=null; snd.alert(); growlAt(a); floatText('!',a.x,H(a.x,a.z)+sp.size*2.2,a.z,'#ff5a3c'); }
       else if(!hostile&&d<9){ a.carc=null; startFlee(a); }          // vor einem starken Jäger weichen Aasfresser zurück
