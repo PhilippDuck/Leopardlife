@@ -6,7 +6,7 @@ import { esc } from './carcass.js';
 import { SPECIES } from './data.js';
 import { clockStr, dayF } from './daynight.js';
 import { camera, windMulDir, windU } from './engine.js';
-import { FOOD_MAX, context, cub, seekT } from './family.js';
+import { CUB_HOME, FOOD_MAX, context, cub, seekT } from './family.js';
 import { padUI } from './gamepad.js';
 import { renderGoals } from './goals.js';
 import { tapLearned, touchUI } from './input.js';
@@ -197,7 +197,12 @@ function drawRadar(p=P,cv=/** @type {HTMLCanvasElement} */(hEl(p,'rc')),ctx=p===
   rc.setTransform(1,0,0,1,0,0); rc.clearRect(0,0,W,W); rc.fillStyle='rgba(30,50,25,.55)'; rc.fillRect(0,0,W,W);
   rc.save(); rc.translate(W/2,W/2); rc.rotate(p.cam.yaw);
   rc.save(); rc.scale(k/RB,k/RB); rc.drawImage(radarBg,-(p.x+RW)*RB,-(p.z+RW)*RB); rc.restore();
-  if(S.cub){ const dx=cub.x-p.x, dz=cub.z-p.z; if(dx*dx+dz*dz<R*R){ rc.fillStyle='#ff7ab8'; rc.fillRect(dx*k-6*sc,dz*k-6*sc,12*sc,12*sc); } }
+  // Zuhause: Haus-Zeichen am Bau, außerhalb der Reichweite am Rand der Spürkarte
+  { let dx=CUB_HOME.x-p.x, dz=CUB_HOME.z-p.z; const d=Math.hypot(dx,dz), rim=R*0.8; if(d>rim){ dx*=rim/d; dz*=rim/d; }
+    rc.save(); rc.translate(dx*k,dz*k); rc.rotate(-p.cam.yaw); const u=11*sc;
+    rc.fillStyle='rgba(20,16,10,.75)'; rc.beginPath(); rc.arc(0,0,u*1.55,0,6.283); rc.fill();
+    rc.fillStyle='#f2b84b'; rc.beginPath(); rc.moveTo(-u,-0.1*u); rc.lineTo(0,-u); rc.lineTo(u,-0.1*u); rc.closePath(); rc.fill();
+    rc.fillRect(-0.7*u,-0.1*u,1.4*u,0.95*u); rc.fillStyle='rgba(20,16,10,.9)'; rc.fillRect(-0.2*u,0.3*u,0.4*u,0.55*u); rc.restore(); }
   for(const f of followers){ const dx=f.x-p.x, dz=f.z-p.z; if(dx*dx+dz*dz<R*R){ rc.fillStyle='#ff7ab8'; rc.beginPath(); rc.arc(dx*k,dz*k,4.5*sc,0,6.283); rc.fill(); } }
   for(let g=0;g<4;g++){
     rc.fillStyle=RADAR_COL[g]; rc.beginPath(); let any=false;

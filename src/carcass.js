@@ -3,11 +3,11 @@ import { animals } from './animals.js';
 import { snd } from './audio.js';
 import { DIFF, FOOD, ICOL, TRAITS, ico } from './data.js';
 import { dropOrbs, meatOrbs, puff } from './effects.js';
-import { FOOD_MAX } from './family.js';
+import { CUB_HOME, FOOD_MAX } from './family.js';
 
 import { animLegs, furColor, furName } from './models.js';
 import { P, players } from './player.js';
-import { LINES_KEY, S, maxHp } from './save.js';
+import { LINES_KEY, S, maxHp, save } from './save.js';
 import { G } from './state.js';
 import { H } from './terrain.js';
 import { floatText, toast } from './ui.js';
@@ -45,7 +45,7 @@ function nearCarcass(p=P){ for(const a of animals){ if(!a.carc||a.carc.meat<=0) 
    Im Baum kommen Hyänen, Schakale und Löwen nicht heran, und das Fleisch hält länger. */
 const DRAG_MAX=10;                     // Bissen: bis Antilope; Riesenantilope und großes Krokodil sind zu schwer
 const canDrag=c=>c&&c.carc&&c.carc.tree==null&&(FOOD[c.sp.id]||0)<=DRAG_MAX&&!players.some(o=>o.drag===c);
-function grabCarcass(p,c){ if(!canDrag(c)) return; p.eatC=null; p.drag=c; p.sneak=false; snd.step(0.4); tell(p,'Beute gepackt – zu einem Baum ziehen und klettern (E/Ⓨ) · nochmal: loslassen','#e0a060'); }
+function grabCarcass(p,c){ if(!canDrag(c)) return; p.eatC=null; p.drag=c; p.sneak=false; snd.step(0.4); tell(p,S.cub&&S.cub.grow<1?'Beute gepackt – zum Bau ziehen (Haus auf der Spürkarte) fürs Junge oder auf einen Baum (E/Ⓨ)':'Beute gepackt – zu einem Baum ziehen und klettern (E/Ⓨ) · nochmal: loslassen','#e0a060'); }
 function dropCarcass(p){ if(!p.drag) return; const c=p.drag; p.drag=null; if(c.carc) c.carc.orbs.userData.y0=H(c.x,c.z)+c.sp.size*1.4+0.6; }
 /** Gezogene Beute folgt hinter dem Leoparden; kostet Ausdauer; bei Erschöpfung, Treffer oder Tod lässt er los */
 function updateDrag(p,dt){
@@ -56,6 +56,16 @@ function updateDrag(p,dt){
   c.x+=(bx-c.x)*Math.min(1,dt*8); c.z+=(bz-c.z)*Math.min(1,dt*8);
   const gy=H(c.x,c.z); c.g.position.set(c.x,gy+c.sp.size*0.22,c.z); c.g.rotation.y=p.rot+Math.PI/2;
   const o=c.carc.orbs; o.userData.y0=gy+c.sp.size*1.4+0.6; o.position.x=c.x; o.position.z=c.z;
+  if(S.cub&&S.cub.grow<1&&Math.hypot(c.x-CUB_HOME.x,c.z-CUB_HOME.z)<6) storeAtDen(p,c);
+}
+/** Beute am Bau angekommen: wird zum Futtervorrat fürs Junge; was nicht mehr hineinpasst, bleibt als Kadaver am Bau liegen */
+function storeAtDen(p,c){
+  const n=Math.min(c.carc.meat,FOOD_MAX-S.food); dropCarcass(p);
+  if(n<=0){ tell(p,'Der Vorrat ist voll – füttere erst dein Junges.','#b9b7a6'); return; }
+  S.food+=n; c.carc.meat-=n; snd.eat(); goalEvent('denMeat',1); puff(c.x,H(c.x,c.z)+0.6,c.z,0xc0392b,6,0.4);
+  floatText('+'+n+' Futter im Vorrat',c.x,H(c.x,c.z)+1.4,c.z,'#ff9ad0'); tell(p,'Beute am Bau abgelegt: +'+n+' Futter für dein Junges'+(c.carc.meat>0?' – der Rest bleibt hier liegen.':'.'),'#ff9ad0');
+  if(c.carc.meat<=0){ endCarcass(c); c.g.visible=false; c.g.rotation.z=0; }
+  save();
 }
 /** Die gezogene Beute wird beim Klettern auf Baum i mitgenommen */
 function carcassToTree(p,i){
@@ -72,11 +82,8 @@ function carcassToTree(p,i){
 function carcassContext(p){
   if(p.drag) return {label:'Beute loslassen',fn:()=>dropCarcass(p)};
   const cc=nearCarcass(p); if(!cc) return null;
-  // Wahl: hungrig → erst selbst fressen; während des Fressens (oder satt) den Rest fürs Junge mitnehmen
-  const store=cc.carc.tree==null&&S.cub&&S.cub.grow<1&&S.food<FOOD_MAX;
   if(p.L.hunger<90&&p.eatC!==cc) return {label:'Fressen ('+cc.carc.meat+' Bissen übrig)',fn:()=>takeMeat(cc,false,p)};
-  if(store) return {label:p.eatC===cc?'Rest fürs Junge mitnehmen':'Fleisch fürs Junge mitnehmen',fn:()=>{ if(p.eatC===cc) p.eatC=null; takeMeat(cc,true,p); }};
-  if(canDrag(cc)) return {label:'Beute packen und ziehen',fn:()=>grabCarcass(p,cc)};
+  if(canDrag(cc)) return {label:S.cub&&S.cub.grow<1?'Beute packen (zum Bau oder auf einen Baum)':'Beute packen und ziehen',fn:()=>grabCarcass(p,cc)};
   return null;
 }
 /** Spieler p: Fleisch für das Junge in den Vorrat mitnehmen (store) oder anfangen zu fressen (Bissen für Bissen, bis satt) */

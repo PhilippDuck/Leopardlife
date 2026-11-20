@@ -137,7 +137,7 @@ function die(p,a){
       $('deadTip').textContent='Je größer es ist und je mehr es bei dir gelernt hat, desto stärker startet es.';
       $('btnRespawn').textContent='Als Junges weiterleben';
     } else $('btnRespawn').textContent='Im Bau neu erwachen';
-    if(a.sp.id==='hunger'&&!G.heirPending) $('deadTip').textContent='Tipp: Erlegte Beute macht satt. Hast du ein Junges, wandert sie in den Vorrat – friss mit F daraus, wenn du hungrig bist.';
+    if(a.sp.id==='hunger'&&!G.heirPending) $('deadTip').textContent='Tipp: Erlegte Beute macht satt. Hast du ein Junges, zieh Beute zum Bau (Haus auf der Spürkarte) – das wird zum Vorrat – friss mit F daraus, wenn du hungrig bist.';
     if(G.lineageEnd){
       $('deadTxt').textContent=(a.sp.id==='age'?'Du bist an Altersschwäche gestorben und hast keinen Nachwuchs.':cause+' Auf „Schwer" gibt es ohne Nachwuchs kein Zurück.')+' Deine Blutlinie endet in Generation '+(S.gen||1)+'.';
       $('deadTip').textContent='Beim nächsten Mal: Ab Stufe 8 einen Partner suchen und rechtzeitig ein Junges großziehen.';
@@ -190,11 +190,9 @@ function killAnimal(a,p=P,fromWounds){
   a.wound=null; a.held=null;
   {
     a.dead=true; a.respawn=rnd(18,30); p.L.kills=(p.L.kills||0)+1; goalEvent('kill',1,{sp:a.sp.id,night:dayF<0.5,herd:!!a.herd});
-    // Kleine Beute (Maus, Hase) ist sofort verschlungen; größere bleibt als Kadaver mit einer Kugel je Bissen liegen,
-    // die Jägerin fängt gleich an zu fressen. Ein Junges zuhause bekommt bis zur Hälfte davon in den Vorrat.
+    // Jede Beute bleibt als Kadaver mit einer Kugel je Bissen liegen. Futter fürs Junge: Kadaver zum Bau ziehen.
     { const n=FOOD[a.sp.id]||1;
       { let m=n;   // jede Beute bleibt als Kadaver liegen: Fressen ist eine bewusste Entscheidung (Aktionstaste)
-        if(S.cub&&S.cub.grow<1){ const k=Math.min(FOOD_MAX-S.food,Math.ceil(n/2)); if(k>0){ S.food+=k; m-=k; floatText('+'+k+' Futter im Vorrat',a.x,H(a.x,a.z)+a.sp.size*1.2,a.z,'#ff9ad0'); } }
         makeCarcass(a,m); } }
     if(fromWounds) toast(a.sp.n+': an den Wunden verendet – folge der Blutspur zum Kadaver!','#f2b84b');
     puff(a.x,H(a.x,a.z)+a.sp.size*0.7,a.z,a.sp.m.col,10,0.5+a.sp.size*0.5);
