@@ -139,7 +139,7 @@ function updateUI(p=P){
   if(cu||S.preg>0||(canMate()&&seekT<15)||kid){
     cb.style.display='block'; h('cubBars').style.display=cu&&cu.grow<1?'block':'none'; let msg='';
     if(cu&&cu.grow<1){
-      h('cubT').textContent='Junges · satt '+Math.round(cu.full)+' % · groß '+Math.round(cu.grow*100)+' %'+(cu.grow<LEARN_AT?' · Lehrzeit ab 25 %':cu.grow<SWITCH_AT?' · Wechsel ab 50 %':' · halbstark'); h('foodT').textContent='Futter '+S.food+'/'+FOOD_MAX;
+      h('cubT').textContent=((cu.n||1)>1?cu.n+' Junge':'Junges')+' · satt '+Math.round(cu.full)+' % · groß '+Math.round(cu.grow*100)+' %'+(cu.grow<LEARN_AT?' · Lehrzeit ab 25 %':cu.grow<SWITCH_AT?' · Wechsel ab 50 %':' · halbstark'); h('foodT').textContent=S.food>0?'Vorrat '+S.food:'';
       h('bCf').style.width=cu.full+'%'; h('bCg').style.width=(cu.grow*100)+'%';
       msg=G.raider?(G.raider.found?'⚠ Dein Junges wird angegriffen!':'⚠ Räuber sucht dein Junges!'):cu.hp<1?'Leben des Jungen: '+Math.max(0,Math.round(cu.hp*100))+' %':cu.full<25?'Dein Junges hat Hunger':cu.grow>=LEARN_AT?(followerOf(p)?(followerOf(p).wait?'Wartet auf dich · ':'Kommt mit · ')+learnText(p):'Am Bau abholen und mit auf die Jagd nehmen'):'';
     } else if(cu){ h('cubT').textContent='Nachwuchs ausgewachsen'; h('foodT').textContent='dein Erbe'; }

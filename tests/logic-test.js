@@ -370,8 +370,9 @@ console.log('audio nodes created',ACs&&ACs.count());
 { const S=T.S(), P=T.P, keep=[S.cub,S.food]; const a=T.animals.find(o=>o.sp.id==='deer'&&!o.dead), k2=[a.x,a.z];
   S.cub={full:50,grow:0.2,hp:1,trait:'flink',n:1,gen:2,parents:[S.id,'wild']}; S.food=0;
   P.dead=false; P.tree=null; P.st=100; P.hurtT=0; P.x=8; P.z=7; a.dead=true; a.x=8; a.z=8; T.makeCarcass(a,8); P.drag=a; P.ctl.fw=0; P.ctl.rt=0;
-  T.updateDrag(P,0.1); const food=S.food, freed=!P.drag, gone=!a.carc;
+  T.updateDrag(P,0.1); const freed=!P.drag, stays=!!a.carc&&a.carc.meat===8, f0=S.cub.full;
+  P.x=60; P.z=60; for(let i=0;i<120;i++) T.updateCub(0.1); const ate=a.carc?8-a.carc.meat:8, f1=S.cub.full;
   S.cub=keep[0]; S.food=keep[1]; if(a.carc) T.endCarcass(a); a.dead=false; a.x=k2[0]; a.z=k2[1]; a.g.visible=true; P.drag=null;
-  if(food!==8||!freed||!gone){ console.log('FEHLER: Beute zum Bau',food,freed,gone); process.exit(1); }
-  console.log('Beute zum Bau gezogen: +'+food+' Futter im Vorrat'); }
+  if(!freed||!stays||!(ate>=2)||!(f1>f0-5)){ console.log('FEHLER: Beute zum Bau',freed,stays,ate,f0,f1); process.exit(1); }
+  console.log('Beute zum Bau gezogen: bleibt liegen, die Jungen fressen selbst ('+ate+' Bissen in 12 s)'); }
 console.log('ALL OK');

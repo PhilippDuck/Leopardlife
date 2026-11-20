@@ -237,6 +237,7 @@ function cloneWithClasses(src,prefix){
 function makeHud(p){
   const el=cloneWithClasses($('ph0'),'h-'); el.classList.remove('h-ph0');
   el.querySelectorAll('.skp,.mk,.float').forEach(e=>e.remove());   // nur die Anzeige selbst, nicht Fenster und Markierungen von Spieler 1
+  el.querySelectorAll('.h-warnRing .wa:not(.h-famArrow)').forEach(e=>e.remove());   // Warnpfeile von Spieler 1 nicht mitkopieren – sie würden nie aktualisiert und blinkten ewig
   q(el,'.h-menuBtn').style.display='none'; q(el,'.h-famArrow').style.display='none';   // Mitspieler: Start öffnet die Pause
   q(el,'.h-cds').style.display=''; el.querySelectorAll('.h-cds .kh').forEach((k,i)=>{ k.textContent=['RT','LB','Ⓨ'][i]; });
   q(el,'.h-toast').style.opacity='0'; q(el,'.h-hurt').style.opacity='0'; q(el,'.h-crossMsg').style.opacity='0';

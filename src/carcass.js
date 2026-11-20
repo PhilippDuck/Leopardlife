@@ -58,14 +58,11 @@ function updateDrag(p,dt){
   const o=c.carc.orbs; o.userData.y0=gy+c.sp.size*1.4+0.6; o.position.x=c.x; o.position.z=c.z;
   if(S.cub&&S.cub.grow<1&&Math.hypot(c.x-CUB_HOME.x,c.z-CUB_HOME.z)<6) storeAtDen(p,c);
 }
-/** Beute am Bau angekommen: wird zum Futtervorrat fürs Junge; was nicht mehr hineinpasst, bleibt als Kadaver am Bau liegen */
+/** Beute am Bau angekommen: Spieler lässt los, der Kadaver bleibt liegen – die Jungen gehen selbst hin und fressen */
 function storeAtDen(p,c){
-  const n=Math.min(c.carc.meat,FOOD_MAX-S.food); dropCarcass(p);
-  if(n<=0){ tell(p,'Der Vorrat ist voll – füttere erst dein Junges.','#b9b7a6'); return; }
-  S.food+=n; c.carc.meat-=n; snd.eat(); goalEvent('denMeat',1); puff(c.x,H(c.x,c.z)+0.6,c.z,0xc0392b,6,0.4);
-  floatText('+'+n+' Futter im Vorrat',c.x,H(c.x,c.z)+1.4,c.z,'#ff9ad0'); tell(p,'Beute am Bau abgelegt: +'+n+' Futter für dein Junges'+(c.carc.meat>0?' – der Rest bleibt hier liegen.':'.'),'#ff9ad0');
-  if(c.carc.meat<=0){ endCarcass(c); c.g.visible=false; c.g.rotation.z=0; }
-  save();
+  if(c.carc.den) return; dropCarcass(p); c.carc.den=true; c.carc.t+=120;   // am Bau hält das Fleisch länger
+  goalEvent('denMeat',1); snd.mew(); floatText('Beute am Bau',c.x,H(c.x,c.z)+1.6,c.z,'#ff9ad0');
+  tell(p,'Beute am Bau abgelegt – deine Jungen fressen selbst davon, wenn sie hungrig sind.','#ff9ad0');
 }
 /** Die gezogene Beute wird beim Klettern auf Baum i mitgenommen */
 function carcassToTree(p,i){
