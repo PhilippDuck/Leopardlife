@@ -21,6 +21,7 @@ import { patches } from './vegetation.js';
 import { W } from './weather.js';
 import { hEl, nameOf, reviveHint, viewMin } from './coop.js';
 import { mateContextInfo } from './kinship.js';
+import { tutActive } from './tutorial.js';
 
 const rc=$('rc').getContext('2d');   // Spürkarte
 const waPool=[]; let beatT=0;
@@ -112,7 +113,7 @@ function updateCross(p=P){
 function updateUI(p=P){
   const h=id=>hEl(p,id), me=p===P;
   h('lvl').textContent=(me?'':nameOf(p)+' · ')+'Stufe '+p.L.lvl+(S.gen>1?' · Gen. '+S.gen:'');
-  if(me) renderGoals(); else h('goalBox').innerHTML=$('goalBox').innerHTML;
+  if(me) renderGoals(); else { h('goalBox').innerHTML=$('goalBox').innerHTML; h('goalBox').style.display=tutActive(p)?'none':'block'; }
   h('size').textContent=(W.rain>0.3?(W.storm?'⛈ ':'☔ '):dayF>0.5?'☀ ':'☾ ')+clockStr()+' · '+(p.L.lvl<4?'Jungtier':p.L.lvl<8?'Halbstark':oldF(p.L)>0?'Alt':p.L.lvl<12?'Ausgewachsen':'Alpha')+(p.L.lvl>=8?' · noch '+Math.max(1,Math.ceil((DIE_AT(p.L)-p.L.age)/60))+' min':'');
   h('bHu').style.width=p.L.hunger+'%'; h('bHu').classList.toggle('low',p.L.hunger<25); h('tHu').textContent=p.L.hunger<=0?'verhungert!':p.L.hunger<25?'hungrig':Math.round(p.L.hunger)+' %';
   const mh=maxHp(p.L), ms=maxSt(p.L), xn=xpNeed(p.L.lvl);

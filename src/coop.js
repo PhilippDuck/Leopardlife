@@ -21,6 +21,7 @@ import { ensureKin, mateContext, newId } from './kinship.js';
 import { PCOL, drawRadar, updateCross, updateUI, updateWarn, warnArrows } from './hud.js';
 import { esc } from './carcass.js';
 import { sleepVotes } from './daynight.js';
+import { startTutorial } from './tutorial.js';
 
 /** Höchstens so viele Spieler teilen sich den Bildschirm */
 const MAX_PLAYERS=4;
@@ -48,7 +49,7 @@ function joinPlayer(i,gp){
   if(!L.id||L.id===S.id){ L.id=newId(); L.parents=[]; } ensureKin(L); save();
   const p=makePlayer({source:'pad'+i,camera:cam,x:P.x+Math.sin(ang)*r,z:P.z+Math.cos(ang)*r,fur:L.fur||FURS[num-1],L});
   p.pad=i; p.num=num; p.padPrev=gp?gp.buttons.map(b=>!!b.pressed):[];   // der Start-Druck zum Einsteigen zählt nicht als Pause p.rot=P.rot; p.cam.yaw=P.cam.yaw; p.cam.pitch=P.cam.pitch;
-  p.hud=makeHud(p);
+  p.hud=makeHud(p); hEl(p,'tut').style.display='none'; startTutorial(p);   // eigene Einführung beim ersten Einstieg (oder weiter, wo er war)
   players.push(p); layoutChanged();
   toast(NAMES[num-1]+' ist dabei (Stufe '+L.lvl+')! '+(L.pts>0?L.pts+' Punkte verteilen mit Back · ':'Back: Entwicklung · ')+'Back halten: aussteigen','#9be07f'); snd.click();
   return p;
