@@ -35,6 +35,7 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 | `src/animals.js` | Alle Tiere der Welt: Anlegen pro Gebiet, Platzieren und Herden bilden |
 | `src/audio.js` | Ton: Geräusche, Umgebung (Wind, Vögel) und laufend erzeugte Musik, synthetisch über WebAudio, dazu aufgenommene Geräusche aus `audio/` (Brüllen, mit ElevenLabs erzeugt; Synth-Ersatz, solange sie fehlen) |
 | `src/carcass.js` | Kadaver, Aasfresser, Herden und Ahnenbuch |
+| `src/tutorial.js` | Erste Schritte: geführtes erstes Leben für neue Spieler (je Steuerung eigene Texte) |
 | `src/calls.js` | Tierrufe aus der Umgebung (Hyäne, Löwe, Schakal), Knurren und Alarmschnauben mit Richtung |
 | `src/controls.js` | Steuerquellen: übersetzen Tastatur, Maus, Touch oder Controller in den Steuerwunsch eines Spielers |
 | `src/coop.js` | Mitspieler am selben Gerät: Beitreten per Controller, geteiltes Bild, eigene Anzeige, am Boden und Wiederbeleben |

@@ -6,6 +6,7 @@ import { ART, SPECIES } from './data.js';
 import { S, save, xpNeed } from './save.js';
 import { toast } from './ui.js';
 import { $ } from './util.js';
+import { tutEvent } from './tutorial.js';
 
 /* ---------- Tagesziele ---------- */
 // Zu jedem Sonnenaufgang drei neue Aufgaben; jede bringt einen Teil der nächsten Stufe als Bonus-Erfahrung.
@@ -28,6 +29,7 @@ function newGoals(){
   goalHtml=''; save();
 }
 function goalEvent(type,n,extra){
+  tutEvent(type);
   if(!S.goals) return;
   for(const g of S.goals.list){
     if(g.done) continue;

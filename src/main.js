@@ -37,6 +37,7 @@ import { readControls } from './controls.js';
 import { stepPlayer } from './move.js';
 import { renderAll, updateCoop, updateCoopHud } from './coop.js';
 import { updateCalls } from './calls.js';
+import { updateTutorial } from './tutorial.js';
 if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }); }
 if(typeof THREE==='undefined'){ $('err').textContent='Three.js konnte nicht geladen werden. Bitte Seite neu laden.'; $('btnPlay').disabled=true; throw new Error('three.js fehlt'); }
 
@@ -74,6 +75,7 @@ function step(dt){
   for(const p of players) readControls(p,dt);
   for(const p of players) if(!p.dead) stepPlayer(p,dt);
   for(const p of players){ updateEating(p,dt); updateDrag(p,dt); }
+  updateTutorial(dt);
   updateCoop(dt);
   G.birdT-=dt; if(G.birdT<=0){ G.birdT=rnd(4,11); if(dayF>0.45&&W.rain<0.5&&!hasSample('birdA')) snd.bird(); }   // Synth-Vögel nur, solange die Vogel-Aufnahmen fehlen
   updateWeather(dt);
