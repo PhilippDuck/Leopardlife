@@ -142,7 +142,7 @@ function ambTick(day,rain,storm,hour,tense){
 }
 let eatUntil=0;   // Fressen: die Aufnahme ausklingen lassen, statt sie bei jedem Bissen neu zu starten
 const snd={
-  pounce(){ if(sample('paws',0.6,rnd(0.92,1.08))) return; noise(0.3,0.35,500,2600); tone(180,0.25,'sawtooth',0.06,90); },
+  pounce(){ if(sample('paws',0.22,rnd(0.92,1.08))) return; noise(0.3,0.35,500,2600); tone(180,0.25,'sawtooth',0.06,90); },
   hit(){ tone(130,0.16,'square',0.22,45); noise(0.12,0.3,900,300,'lowpass'); },
   ambush(){ tone(660,0.18,'triangle',0.18,990); },
   kill(){ noise(0.09,0.3,1800,900,'bandpass',0.12); noise(0.09,0.3,1500,700,'bandpass',0.26); tone(392,0.14,'triangle',0.16,0,0.4); tone(523,0.2,'triangle',0.16,0,0.5); },
