@@ -23,7 +23,7 @@ import { updateUI, updateWarn } from './hud.js';
 import { downPlayer, hEl, othersAlive, tell } from './coop.js';
 import { emit } from './events.js';
 import { toggleSkills } from './skills.js';
-import { bitable, biteHit, startBite } from './bite.js';
+import { bitable, biteHit, forgetWounds, startBite } from './bite.js';
 
 /* ---------- Aktionen ---------- */
 /** Index des nächsten erreichbaren Baums für Spieler p, sonst -1. */
@@ -153,7 +153,7 @@ function respawn(p=P){
   }
   else if(G.lineageEnd){ recordAncestor(G.lastCause); archiveLine(); const df=S.diff; resetState(); S.diff=df; save(); if(REG_ID!=='savanne'){ reloadWorld(false); return; } rebuildPlayer(); rebuildCub(); animals.forEach(placeAnimal); G.raider=null; toast('Eine neue Blutlinie beginnt.','#f2b84b'); }
   else S.hunger=Math.max(S.hunger,70);
-  G.heirPending=false; G.lineageEnd=false;
+  G.heirPending=false; G.lineageEnd=false; forgetWounds(p);
   p.tree=null; p.safe=false; p.dropY=0; p.upNow=0; p.x=sx; p.z=sz; p.rot=START_ROT; p.cam.yaw=START_YAW; p.hp=maxHp(); p.st=maxSt(); p.pounce=0; p.pcd=0; p.sneak=false; p.combatT=0; p.g.rotation.z=0;
   animals.forEach(o=>{ o.aggro=0; o.sus=0; o.near=false; if(o.state==='chase'){ o.state='wander'; o.timer=0; } });
   updateWarn(0); $('hurt').style.opacity=0; $('crossMsg').style.opacity='0'; p.downT=null; $('dead').style.display='none'; p.dead=false; G.paused=false; initAudio(); snd.click();
@@ -188,10 +188,9 @@ function killAnimal(a,p=P,fromWounds){
     // Kleine Beute (Maus, Hase) ist sofort verschlungen; größere bleibt als Kadaver mit einer Kugel je Bissen liegen,
     // die Jägerin fängt gleich an zu fressen. Ein Junges zuhause bekommt bis zur Hälfte davon in den Vorrat.
     { const n=FOOD[a.sp.id]||1;
-      if(n<3){ p.L.hunger=Math.min(100,p.L.hunger+n*10); a.g.visible=false; }
-      else { let m=n;
+      { let m=n;   // jede Beute bleibt als Kadaver liegen: Fressen ist eine bewusste Entscheidung (Aktionstaste)
         if(S.cub&&S.cub.grow<1){ const k=Math.min(FOOD_MAX-S.food,Math.ceil(n/2)); if(k>0){ S.food+=k; m-=k; floatText('+'+k+' Futter im Vorrat',a.x,H(a.x,a.z)+a.sp.size*1.2,a.z,'#ff9ad0'); } }
-        makeCarcass(a,m); if(m>0&&p.L.hunger<100&&!fromWounds) takeMeat(a,false,p); } }
+        makeCarcass(a,m); } }
     if(fromWounds) toast(a.sp.n+': an den Wunden verendet – folge der Blutspur zum Kadaver!','#f2b84b');
     puff(a.x,H(a.x,a.z)+a.sp.size*0.7,a.z,a.sp.m.col,10,0.5+a.sp.size*0.5);
     p.hp=Math.min(maxHp(p.L),p.hp+maxHp(p.L)*0.25+a.sp.xp*0.1);

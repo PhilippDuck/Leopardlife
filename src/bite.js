@@ -3,12 +3,13 @@
 // desto besser der Biss. Nach 3–5 Bissen entscheidet der Durchschnitt: erlegt – oder das Tier reißt sich los, blutet,
 // wird langsamer und erliegt je nach Schwere der Wunden später (Blutspur!). Ganz leichte Wunden heilen wieder.
 import { snd } from './audio.js';
-import { hEl } from './coop.js';
+import { hEl, tell } from './coop.js';
 import { bloodDrop, puff } from './effects.js';
 import { players, P } from './player.js';
 import { has } from './save.js';
 import { H } from './terrain.js';
 import { floatText, toast } from './ui.js';
+import { animals } from './animals.js';
 import { rnd } from './util.js';
 import { hurtPlayer, killAnimal } from './actions.js';
 import { padUI } from './gamepad.js';
@@ -98,12 +99,19 @@ function woundSlow(a){ const w=a.wound; if(!w) return 1; if(!w.die) return 0.85;
 function woundTick(a,dt){
   const w=a.wound; if(!w) return; w.t+=dt;
   if(!w.die){ if(w.t>w.heal) a.wound=null; return; }
-  if(w.t>=w.die){ const by=w.by&&players.indexOf(w.by)>=0?w.by:P; a.wound=null; killAnimal(a,by,true); }
+  // Wunde ausgeblutet: das Tier bricht erschöpft zusammen – den letzten Biss musst du selbst setzen (Blutspur folgen)
+  if(w.t>=w.die){ a.wound=null; a.hp=1; a.stun=45; a.weak=true; a.state='wander'; a.held=null; a.g.rotation.z=0.5;
+    const by=w.by&&players.indexOf(w.by)>=0?w.by:P;
+    if(!by.dead) tell(by,a.sp.n+' ist erschöpft zusammengebrochen – folge der Blutspur und gib ihm den Rest!','#f2b84b'); }
 }
+/** Ein zusammengebrochenes Tier, zu dem keiner kam, rappelt sich wieder auf (mit wenig Leben) */
+function weakRecover(a){ if(!a.weak) return; a.weak=false; a.g.rotation.z=0; a.hp=Math.max(a.hp,Math.round(a.sp.hp*0.4)); a.state='flee'; a.fleeT=0; }
+/** Spieler p ist gestorben: seine Wunden zählen nicht mehr – verletzte Tiere erholen sich, statt ihm später zuzufallen */
+function forgetWounds(p){ for(const a of animals){ if(a.wound&&a.wound.by===p){ a.wound.die=0; a.wound.t=0; } if(a.weak){ a.stun=0; weakRecover(a); } } }
 /** Beim Laufen eines verwundeten Tieres: Blutstropfen auf den Boden */
 function woundTrail(a,dist){
   const w=a.wound; if(!w) return; w.acc+=dist;
   if(w.acc>(w.die?1.1:2.2)){ w.acc=0; bloodDrop(a.x+rnd(-0.3,0.3),a.z+rnd(-0.3,0.3),w.die?1:0.6); }
 }
 
-export { biteHit, bitable, endBite, startBite, updateBite, woundSlow, woundTick, woundTrail };
+export { biteHit, bitable, endBite, forgetWounds, startBite, updateBite, weakRecover, woundSlow, woundTick, woundTrail };

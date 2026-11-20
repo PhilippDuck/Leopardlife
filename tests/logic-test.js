@@ -31,7 +31,7 @@ const doc={ querySelectorAll:()=>[], getElementById:el, addEventListener(){}, cr
 let raf=null;
 const g={ window:win, document:doc, navigator:{maxTouchPoints:0}, localStorage:{getItem:k=>(k in ls?ls[k]:null),setItem:(k,v)=>{ls[k]=String(v);}}, THREE:win.THREE,
   requestAnimationFrame:fn=>{ if(fn.name==='frame') raf=fn; else fn(); }, setTimeout:fn=>{ fn(); } };
-const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,woundTick,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping};';
+const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,woundTick,forgetWounds,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping};';
 new Function(...Object.keys(g), body)(...Object.values(g));
 const T=globalThis.__T; const rnd2=()=>Math.random()*8-4; const localStorageDump=()=>ls['jaguar-lines'];
 els.btnPlay.onclick();
@@ -337,10 +337,10 @@ console.log('audio nodes created',ACs&&ACs.count());
   T.startBite(P,a,20); const held=a.held===P&&!!P.bite, n=P.bite.n;
   for(let i=0;i<n;i++){ P.bite.pos=0.27; T.biteHit(P); }   // mittelmäßig: kein sicherer Treffer
   const r1=a.dead?'tot':a.wound?'verwundet':'?';
-  let died=false; if(a.wound&&a.wound.die){ T.woundTick(a,a.wound.die+1); died=a.dead&&!!a.carc; }
+  let died=false; if(a.wound&&a.wound.die){ T.woundTick(a,a.wound.die+1); const weak=a.weak&&a.hp===1&&a.stun>0&&!a.dead; a.state='wander'; T.hitAnimal(a,P); died=weak&&a.dead&&!!a.carc; a.weak=false; a.stun=0; a.g.rotation.z=0; }
   if(a.carc) T.endCarcass(a); a.dead=false; a.x=keep[0]; a.z=keep[1]; a.hp=keep[2]; a.state=keep[3]; a.wound=null;
   if(!held||n<3||!(r1==='tot'||(r1==='verwundet'&&died))){ console.log('FEHLER: Festbeißen',held,n,r1,died); process.exit(1); }
-  console.log('Festbeißen: '+n+' Bisse, Ergebnis '+r1+(died?', später an den Wunden verendet (Kadaver)':'')); }
+  console.log('Festbeißen: '+n+' Bisse, Ergebnis '+r1+(died?', ausgeblutet zusammengebrochen, mit letztem Biss erlegt':'')); }
 { const P=T.P, a=T.animals.find(o=>(o.sp.id==='hyena'||o.sp.id==='boar')&&!o.dead), keep=[a.x,a.z,a.hp,a.state,a.aggro];
   let hurt=false, chase=false; const hp0=P.hp;
   for(let k=0;k<6&&!hurt;k++){ P.dead=false; P.hp=hp0; P.bite=null; P.safe=false; a.held=null; a.wound=null; a.hp=keep[2];
@@ -348,4 +348,8 @@ console.log('audio nodes created',ACs&&ACs.count());
   P.hp=hp0; P.bite=null; a.held=null; a.wound=null; a.x=keep[0]; a.z=keep[1]; a.hp=keep[2]; a.state=keep[3]; a.aggro=keep[4];
   if(!hurt||!chase){ console.log('FEHLER: Gegenbiss',hurt,chase); process.exit(1); }
   console.log('Festbeißen bei '+a.sp.n+': Fehlbiss → Gegenbiss und Angriff'); }
+{ const P=T.P, a=T.animals.find(o=>o.sp.id==='deer'&&!o.dead);
+  a.wound={sev:0.5,t:0,die:20,heal:30,by:P,acc:0}; T.forgetWounds(P); const healed=a.wound&&a.wound.die===0; a.wound=null;
+  if(!healed){ console.log('FEHLER: Wunden nach Tod'); process.exit(1); }
+  console.log('Tod des Jägers: seine Wunden heilen, kein geschenkter Kill'); }
 console.log('ALL OK');

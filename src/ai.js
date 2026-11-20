@@ -19,7 +19,7 @@ import { rnd } from './util.js';
 import { crocStep } from './crocodile.js';
 import { syncOrbs } from './effects.js';
 import { growlAt } from './calls.js';
-import { woundSlow, woundTick, woundTrail } from './bite.js';
+import { weakRecover, woundSlow, woundTick, woundTrail } from './bite.js';
 
 /* Rudel: Hyänen und Schakale rufen ihre Artgenossen zur Jagd (je nach Schwierigkeit) */
 const PACK={hyena:1,jack:1};
@@ -76,7 +76,7 @@ function updateAnimal(a,dt){
   if(sp.croc){ if(a.stun>0) a.stun-=dt; else crocStep(a,dt,d,dx,dz,stealth*D().sense,hostile,T);
     pounceHits(a);
     return; }
-  if(a.stun>0){ a.stun-=dt; animLegs(a.g,a.ph,0.05); }
+  if(a.stun>0){ a.stun-=dt; animLegs(a.g,a.ph,0.05); if(a.stun<=0) weakRecover(a); }
   else if(a.state==='wander'){
     a.timer-=dt;
     if(a.timer<=0||Math.hypot(a.tx-a.x,a.tz-a.z)<1){ const an=Math.random()*6.283, r=rnd(4,16); a.tx=a.x+Math.cos(an)*r; a.tz=a.z+Math.sin(an)*r;
