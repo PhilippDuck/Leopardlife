@@ -9,7 +9,7 @@ import { CUB_HOME, cub, endRaid, heirLevel } from './family.js';
 import { touchUI } from './input.js';
 import { animLegs, buildQuad } from './models.js';
 import { P, dropModel, players, rebuildPlayer } from './player.js';
-import { S, fresh, has, maxHp, maxSt, save, xpNeed } from './save.js';
+import { S, fresh, has, inheritTrait, maxHp, maxSt, save, xpNeed } from './save.js';
 import { G } from './state.js';
 import { H } from './terrain.js';
 import { toast } from './ui.js';
@@ -115,9 +115,8 @@ function becomeCub(vol){
   if(hadPartner) famPlace(fam[2],fam[0].x,fam[0].z,fam[0].fur); else if(!mateParent) fam[2].famOn=false;
   if(S.p1) famPlace(fam[1],ox,oz,myFur); else fam[1].famOn=false;
   fam[0].famOn=false;
-  if(S.cub.trait&&TRAITS[S.cub.trait]&&!has(S.cub.trait)) S.traits=S.traits.concat(S.cub.trait).slice(-3);
-  { const sum=o=>Object.keys(o).reduce((x,k)=>x+o[k],0), total=sum(S.a)+2*sum(S.b)+S.pts;   // Eigenschaften und Fähigkeiten werden nicht vererbt, nur 10 % der Punkte
-    S.a=fresh().a; S.b=fresh().b; S.pts=Math.round(total*0.1); }
+  inheritTrait(S,S.cub.trait);   // neu dazu oder, wenn schon vorhanden, verstärkt
+  S.a=fresh().a; S.b=fresh().b; S.pts=0;   // Eigenschaften, Fähigkeiten und Punkte werden nicht vererbt – dafür Erbe und Ahnenkraft
   S.fur=S.cub.fur||null;
   { const ng=(S.gen||1)+1, nr=Object.values(REGIONS).find(r=>r.gen===ng&&!r.soon); if(nr) setTimeout(()=>toast('Deine Linie ist stark genug: '+nr.n+' ist jetzt erreichbar (Menü → Gebiete).','#9be07f'),2600); }
   const cg=S.cub.gen||((S.gen||1)+1);

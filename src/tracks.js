@@ -1,6 +1,6 @@
 // LeopardLife – Spuren und Fährten der Tiere.
 import { scene } from './engine.js';
-import { S, has } from './save.js';
+import { S, has, tf } from './save.js';
 import { H } from './terrain.js';
 import { _tm, _tv } from './vegetation.js';
 
@@ -11,7 +11,7 @@ const trackMesh=(()=>{ const g=new THREE.CircleGeometry(1,7); g.rotateX(-Math.PI
   for(let i=0;i<TRACK_N;i++){ m.setMatrixAt(i,_tz); m.setColorAt(i,_c3.setHex(0x3a2a18)); }
   m.frustumCulled=false; m.renderOrder=1; scene.add(m); return m; })();
 const tracks=new Array(TRACK_N).fill(null); let trackI=0, trackUpd=0;
-const trackLife=()=>25+20*S.b.nose+(has('nase')?15:0);
+const trackLife=()=>25+20*S.b.nose+15*tf('nase');
 function addTrack(a,side){
   const ang=a.g.rotation.y, s=a.sp.size, off=0.2*s*side, x=a.x+Math.cos(ang)*off, z=a.z-Math.sin(ang)*off;
   const pred=!!(a.sp.hunt&&S.lvl<a.sp.hunt);

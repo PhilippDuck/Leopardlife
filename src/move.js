@@ -6,7 +6,7 @@ import { dayF } from './daynight.js';
 import { goalEvent } from './goals.js';
 import { setHide } from './hide.js';
 import { animLegs } from './models.js';
-import { S, at, baseSpeed, has, maxHp, maxSt, pScale } from './save.js';
+import { S, at, baseSpeed, has, maxHp, maxSt, pScale, tf } from './save.js';
 import { G } from './state.js';
 import { H, WORLD, collide, inWater } from './terrain.js';
 import { inGrass, trees } from './vegetation.js';
@@ -51,6 +51,7 @@ function stepPlayer(p,dt){
     p.x+=Math.sin(p.rot)*ps*dt; p.z+=Math.cos(p.rot)*ps*dt;
   } else if(moving){
     p.x+=mx*spd*dt; p.z+=mz*spd*dt;
+    if(p.sneak){ p.stalk=(p.stalk||0)+spd*dt; if(p.stalk>=1){ p.stalk-=1; goalEvent('stalk',1); } }   // Tagesziel: schleichend pirschen
     let tr=Math.atan2(mx,mz), df=tr-p.rot; while(df>Math.PI) df-=6.283; while(df<-Math.PI) df+=6.283; p.rot+=df*Math.min(1,dt*12);
   }
   const pr=Math.hypot(p.x,p.z); if(pr>WORLD){ p.x*=WORLD/pr; p.z*=WORLD/pr; }
@@ -73,7 +74,7 @@ function stepPlayer(p,dt){
   if(moving&&p.pounce<=0){ p.stepT=(p.stepT||0)-dt*(sprint?1.7:sneak?0.55:1); if(p.stepT<=0){ p.stepT=0.3; if(p.wet) snd.splash(); else snd.step(sneak?0.04:sprint?0.2:0.12); } }
   // Tarnung
   const grass=inGrass(p.x,p.z); p.wet=p.tree==null&&inWater(p.x,p.z);
-  let st=1; if(sneak) st*=0.5; if(sprint) st*=1.3; if(grass) st*=sneak?0.3:(0.32+0.38*Math.min(1,(p.L.lvl-1)/7)); st*=(1-0.05*at('cam',p.L))*(has('dunkel',p.L)?0.8:1)*(p.L.fur&&p.L.fur.albino?1.15:p.L.fur&&p.L.fur.melan?0.9:1); st*=0.8+0.025*p.L.lvl; st*=0.7+0.3*dayF; st*=1-0.25*W.rain; if(p.safe) st=0;
+  let st=1; if(sneak) st*=0.5; if(sprint) st*=1.3; if(grass) st*=sneak?0.3:(0.32+0.38*Math.min(1,(p.L.lvl-1)/7)); st*=(1-0.05*at('cam',p.L))*(1-0.2*tf('dunkel',p.L))*(p.L.fur&&p.L.fur.albino?1.15:p.L.fur&&p.L.fur.melan?0.9:1); st*=0.8+0.025*p.L.lvl; st*=0.7+0.3*dayF; st*=1-0.25*W.rain; if(p.safe) st=0;
   p.hidden=st; p.grass=grass;
   { const lv=(p.safe||(grass&&(sneak||p.L.lvl<4)))?2:(grass||sneak)?1:0; if(lv!==p.hideLv) setHide(lv,p);
     if(lv===2&&S.goals&&S.goals.list.some(g=>g.id==='hide'&&!g.done)&&animals.some(a=>!a.dead&&a.sp.hunt&&p.L.lvl<a.sp.hunt&&Math.hypot(a.x-p.x,a.z-p.z)<25)) goalEvent('hide',dt); }

@@ -111,6 +111,9 @@
   @media (max-height:520px){ #tut{top:calc(var(--rad) + 40px);font-size:11.5px;padding:7px 9px} }
   #goalBox{display:none;margin-top:6px;border-top:1px solid var(--line);padding-top:5px;font-size:11px}
   #goalBox .gh{color:#9be07f;font-weight:bold;margin-bottom:2px} #goalBox .gl{display:flex;gap:5px;color:var(--txt);line-height:1.3} #goalBox .gl.done{color:#7fae6f}
+  #goalBox .gx{font-style:normal;color:#9be07f;opacity:.75;font-size:10px;white-space:nowrap} #goalBox .gl.done .gx{display:none}
+  #goalBox .gs{color:#f2b84b;font-weight:bold} #goalBox .gb{margin-top:3px;color:var(--gold);font-size:10.5px} #goalBox .gb.ok{color:#9be07f}
+  #goalBox .gl.bump{animation:gbump 1.2s ease-out} @keyframes gbump{0%{background:rgba(242,184,75,.45)}100%{background:transparent}}
   #cubMsg{font-size:11px;color:#ff8a70;font-weight:bold}
   #warnRing{position:fixed;left:50%;top:50%;width:0;height:0;pointer-events:none}
   .wa{position:absolute;left:-15px;top:-13px;width:0;height:0;border-left:15px solid transparent;border-right:15px solid transparent;border-bottom:26px solid #f2d04b;filter:drop-shadow(0 0 5px rgba(0,0,0,.9));display:none}
@@ -275,7 +278,7 @@ body.quad .ph{--rad:92px}
       <span><kbd>Esc</kbd></span><span>Menü: Ton, Musik, Grafik, Steuerung, Neustart</span>
     </div>
     <p style="font-size:13px;color:var(--mut)">Pfeile am Bildrand zeigen, aus welcher Richtung Gefahr droht: <b style="color:#f2d04b">gelb</b> = Raubtier in der Nähe, noch ahnungslos · <b style="color:#ff9a3c">orange</b> = wird misstrauisch (Balken füllt sich) · <b style="color:#ff4a30">rot</b> = jagt dich.</p>
-    <p style="font-size:13px;color:var(--mut)"><b style="color:#ff9ad0">Familie:</b> Ab Stufe 8 findest du andere Leoparden (rosa Punkte auf der Spürkarte). Dein Partner bleibt nach der Paarung am Bau und hilft, das Junge zu verteidigen. Erlegte Beute wird zu Futter, das du dem Jungen bringst. Bei der Geburt entscheidest du, ob du als Erwachsener oder als Junges weiterspielst; als Junges versorgen und beschützen dich deine Eltern. Stirbst du, lebst du im Jungen weiter.</p>
+    <p style="font-size:13px;color:var(--mut)"><b style="color:#ff9ad0">Familie:</b> Ab Stufe 8 findest du andere Leoparden (rosa Punkte auf der Spürkarte). Dein Partner bleibt nach der Paarung am Bau und hilft, das Junge zu verteidigen. Erlegte Beute wird zu Futter, das du dem Jungen bringst. Jeder wilde Leopard bringt eine <b>Erbanlage</b> mit – sie steht da, sobald du ihm nahe kommst. Euer Junges erbt sie; hast du sie schon, wird sie <b>verstärkt</b> (II, III). So suchst du dir deinen Partner aus. Eigenschafts- und Fähigkeitspunkte werden nicht vererbt, dafür Erbanlagen und Ahnenkraft. Bei der Geburt entscheidest du, ob du als Erwachsener oder als Junges weiterspielst; als Junges versorgen und beschützen dich deine Eltern. Stirbst du, lebst du im Jungen weiter.</p>
     <p style="font-size:13px;color:var(--mut)"><b style="color:#e0a060">Hunger und Alter:</b> Du musst regelmäßig Beute machen, sonst verhungerst du. Ab Stufe 8 läuft deine Lebenszeit; im Alter lassen Tempo und Kraft nach. Ohne Nachwuchs endet deine Blutlinie.</p>
     <p style="font-size:13px;color:var(--mut)"><b style="color:#9fb4ff">Tag und Nacht:</b> Nachts bist du schwerer zu sehen, Raubtiere sind aber wachsamer. Die Fähigkeit Nachtsicht hellt die Nacht auf. Auf einem Baum kannst du abends und nachts schlafen (F bzw. rosa Knopf) – du wachst morgens ausgeruht, aber hungrig auf.</p>
     <p style="font-size:13px;color:var(--mut)">Tipp: Ein Treffer auf ahnungslose Beute zählt als Hinterhalt und richtet mehrfachen Schaden an. Fliehende Tiere werden nach einer Weile müde.</p>

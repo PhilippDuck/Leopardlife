@@ -3,7 +3,7 @@ import { snd } from './audio.js';
 import { ABIL, ATTR, ICOL, TRAITS, ico } from './data.js';
 import { keys, touchUI } from './input.js';
 import { P, players } from './player.js';
-import { S, ancF, attrCap, save } from './save.js';
+import { S, ancF, attrCap, save, tlvOf, traitName } from './save.js';
 import { G } from './state.js';
 import { $ } from './util.js';
 import { menuOpen } from './menu.js';
@@ -32,7 +32,7 @@ function renderSkills(p=skP,root=null){
   const cap=Math.min(10,attrCap(L));
   g('skA').innerHTML=ATTR.map(a=>row(a,L.a[a.k],10,1,'a',cap)).join('')+'<div style="font-size:11.5px;color:var(--mut);padding-top:6px">Wirksam sind höchstens '+cap+' Ränge je Eigenschaft (Stufe + 2).</div>';
   g('skB').innerHTML=ABIL.map(a=>row(a,L.b[a.k],3,2,'b',3)).join('');
-  g('skT').innerHTML=L.traits.length?L.traits.map(t=>'<div class="skill wt">'+ico(t,ICOL.t)+'<div><b>'+TRAITS[t][0]+'</b><small>'+TRAITS[t][1]+'</small></div></div>').join(''):'<div style="font-size:12px;color:var(--mut);padding:6px 0">Noch keine. Jedes Junge bekommt bei der Geburt eine Erbanlage und gibt sie an die nächste Generation weiter.</div>';
+  g('skT').innerHTML=L.traits.length?L.traits.map(t=>'<div class="skill wt">'+ico(t,ICOL.t)+'<div><b>'+traitName(t,L)+'</b><small>'+TRAITS[t][1]+(tlvOf(t,L)>1?' · verstärkt ×'+[0,1,1.6,2][tlvOf(t,L)]:'')+'</small></div></div>').join(''):'<div style="font-size:12px;color:var(--mut);padding:6px 0">Noch keine. Jedes Junge erbt bei der Geburt die Anlage seines anderen Elternteils – hast du sie schon, wird sie verstärkt. Such dir deinen Partner danach aus.</div>';
   if((S.gen||1)>1) g('skT').insertAdjacentHTML('afterbegin','<div class="skill wt">'+ico('anc',ICOL.anc)+'<div><b>Ahnenkraft · Generation '+S.gen+'</b><small>+'+Math.round((ancF()-1)*100)+' % Leben, Ausdauer und Schaden, +'+Math.round((ancF()-1)*50)+' % Tempo</small></div></div>');
 }
 /** Stand beim Öffnen merken, damit die Auswahl dieser Sitzung zurückgesetzt werden kann */

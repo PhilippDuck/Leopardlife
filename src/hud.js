@@ -13,7 +13,7 @@ import { tapLearned, touchUI } from './input.js';
 import { canMate, fam, kidMode } from './kin.js';
 import { hudExp, xb } from './menu.js';
 import { P, players } from './player.js';
-import { D, DIE_AT, S, baseSpeed, has, maxHp, maxSt, oldF, pScale, xpNeed } from './save.js';
+import { D, DIE_AT, S, baseSpeed, has, maxHp, maxSt, oldF, pScale, tf, xpNeed } from './save.js';
 import { G } from './state.js';
 import { H, PONDS } from './terrain.js';
 import { $ } from './util.js';
@@ -191,7 +191,7 @@ radarBg.width=radarBg.height=RW*2*RB;
 function drawRadar(p=P,cv=/** @type {HTMLCanvasElement} */(hEl(p,'rc')),ctx=p===P?rc:cv.getContext('2d')){
   const rc=ctx, css=cv.clientWidth||140, want=Math.round(css*Math.min(window.devicePixelRatio||1,2));
   const cvA=/** @type {any} */(cv); if(want>0&&want!==cvA._px){ cvA._px=want; cv.width=cv.height=want; }
-  const W=cv.width||280, R=45+22*p.L.b.nose+(has('nase',p.L)?25:0), k=W/2/R, sc=W/280;
+  const W=cv.width||280, R=45+22*p.L.b.nose+25*tf('nase',p.L), k=W/2/R, sc=W/280;
   rc.setTransform(1,0,0,1,0,0); rc.clearRect(0,0,W,W); rc.fillStyle='rgba(30,50,25,.55)'; rc.fillRect(0,0,W,W);
   rc.save(); rc.translate(W/2,W/2); rc.rotate(p.cam.yaw);
   rc.save(); rc.scale(k/RB,k/RB); rc.drawImage(radarBg,-(p.x+RW)*RB,-(p.z+RW)*RB); rc.restore();

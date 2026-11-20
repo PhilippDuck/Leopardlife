@@ -1,5 +1,5 @@
 // LeopardLife – Alle Tiere der Welt: Anlegen pro Gebiet, Platzieren und Herden bilden.
-import { SPECIES } from './data.js';
+import { SPECIES, TRAITS } from './data.js';
 import { scene } from './engine.js';
 import { buildQuad, makeFur } from './models.js';
 import { P } from './player.js';
@@ -19,6 +19,7 @@ function placeAnimal(a){
   if(sp.croc&&PONDS.length){ a.pond=sp.boss?PONDS.reduce((m,q)=>q.r>m.r?q:m):PONDS[Math.floor(Math.random()*PONDS.length)]; const an=Math.random()*6.283, rr=Math.random()*a.pond.r*0.5; x=a.pond.x+Math.cos(an)*rr; z=a.pond.z+Math.sin(an)*rr; }
   if(a.carc&&a.carc.orbs) dropOrbs(a.carc.orbs); a.carc=null; a.g.rotation.z=0;
   a.x=x; a.z=z; a.hp=sp.hp; a.state='wander'; a.tx=x; a.tz=z; a.timer=0; a.aggro=0; a.lost=0; a.fleeT=0; a.cd=0; a.stun=0; a.sus=0; a.near=false; a.dead=false; a.ph=Math.random()*6; if(sp.croc) a.state='lurk';
+  if(sp.friend){ const ks=Object.keys(TRAITS); a.trait=ks[Math.floor(Math.random()*ks.length)]; }   // Erbanlage, die dieser Leopard weitergeben würde
   a.g.visible=true;
 }
 SPECIES.forEach(sp=>{ const cnt=(REG.counts&&REG.counts[sp.id]!==undefined)?REG.counts[sp.id]:sp.count; for(let i=0;i<cnt;i++){ const fur=makeFur(), g=buildQuad(sp.m,fur); g.scale.setScalar(sp.size); scene.add(g); const a={sp,g,fur,rad:sp.size*0.8+0.25,uid:animals.length}; placeAnimal(a); animals.push(a); } });
