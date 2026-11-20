@@ -9,6 +9,7 @@ import { G } from './state.js';
 import { toast } from './ui.js';
 import { $ } from './util.js';
 import { MAX_PLAYERS, joinPlayer, leavePlayer, padTaken, panelNav, pingMates, pollCoop } from './coop.js';
+import { titleOn } from './title.js';
 
 /* ---------- Controller-Steuerung (Gamepad, Standardbelegung wie Xbox/PlayStation) ----------
    Linker Stick laufen · rechter Stick Kamera · RT (oder A) Sprung · B Schleichen · X Aktion · Y Klettern · LB Brüllen · LT/L3 Sprinten
@@ -33,7 +34,7 @@ function pollPads(dt){
   for(const g of gps){
     if(!g||!g.connected||g.index===padIdx||padTaken(g.index)) continue;
     const startDown=!!(g.buttons[9]&&g.buttons[9].pressed), was=joinPrev[g.index]; joinPrev[g.index]=startDown;
-    if(startDown&&!was&&G.started&&!topOverlay()&&(cur||inputMode!=='pad')){
+    if(startDown&&!was&&((G.started&&!topOverlay())||titleOn())&&(cur||inputMode!=='pad')){   // auch schon auf dem Startbildschirm
       if(players.length<MAX_PLAYERS){ joinPlayer(g.index,g); continue; } }
     const active=g.buttons.some((b,i)=>b.pressed&&i!==9)||g.axes.some(a=>Math.abs(a)>0.35);
     // Spieler 1 an Tastatur/Maus/Touch: ein freier Controller gehört nicht automatisch ihm.

@@ -20,6 +20,7 @@ import { newGoals } from './goals.js';
 import { ensureKin } from './kinship.js';
 import { startTutorial } from './tutorial.js';
 import { ctrlArt } from './ctrlart.js';
+import { leaveTitle } from './title.js';
 
 /* Pausenmenü (Esc oder Menü-Knopf) */
 G.menuT=0; let hadLock=false, restartArm=false;
@@ -73,7 +74,7 @@ document.addEventListener('pointerlockchange',()=>{
   if(hadLock&&G.started&&!G.paused&&!menuOpen()&&!P.skOpen){ hadLock=false; toggleMenu(); }   // eigene Entwicklung offen: Maus gewollt frei, kein Pausemenü
   hadLock=false;
 }); $('pts').onclick=()=>toggleSkills();
-$('btnPlay').onclick=()=>{ initAudio(); $('start').style.display='none'; $('diffRow').style.display='none'; save(); G.paused=false; G.started=true; startTutorial(); if(!touchUI()){ try{ const r=canvas.requestPointerLock(); if(r&&r.catch) r.catch(()=>{}); }catch(e){} } };
+$('btnPlay').onclick=()=>{ initAudio(); leaveTitle(); $('start').style.display='none'; $('diffRow').style.display='none'; save(); G.paused=false; G.started=true; startTutorial(); if(!touchUI()){ try{ const r=canvas.requestPointerLock(); if(r&&r.catch) r.catch(()=>{}); }catch(e){} } };
 let resetArm=false;
 function showDiff(){ $('diffRow').style.display='block'; document.querySelectorAll('.diffb').forEach((/** @type {HTMLElement} */ b)=>b.classList.toggle('on',b.dataset.d===S.diff)); $('diffTxt').textContent=D().d; }
 document.querySelectorAll('.diffb').forEach((/** @type {HTMLElement} */ b)=>b.addEventListener('click',()=>{ S.diff=b.dataset.d; showDiff(); }));

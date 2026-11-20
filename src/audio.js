@@ -215,6 +215,8 @@ function mSchedule(i,t){
 const MUSIC=['music1','music2','music3','music4'], MUSIC_VOL=0.11;
 let mFileNext=8, mFileGain=null, mLast='', mRun=0, mRain=false;
 const musicFilesReady=()=>MUSIC.some(k=>bufs[k]);
+/** Musik bald starten (Startbildschirm, sobald Ton erlaubt ist) */
+function musicSoon(){ if(AC){ mFileNext=Math.min(mFileNext,AC.currentTime+0.3); mRun=0; } }
 function musicFiles(t,duck,rain){
   if(!musicFilesReady()) return;
   // Regen: Musik schweigt; hört er auf, bleibt es noch eine Weile still
@@ -239,4 +241,4 @@ function musicTick(){
   while(mNext<now+0.3){ mSchedule(mStep,mNext); mNext+=M_STEP; mStep++; }
 }
 
-export { AC, ambTick, climbStop, setListeners, snd3d, hasSample, master, nbuf, initAudio, tone, snd, musicTick };
+export { AC, ambTick, climbStop, musicSoon, setListeners, snd3d, hasSample, master, nbuf, initAudio, tone, snd, musicTick };
