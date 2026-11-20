@@ -19,12 +19,13 @@ import { updateUI } from './hud.js';
 import { newGoals } from './goals.js';
 import { ensureKin } from './kinship.js';
 import { startTutorial } from './tutorial.js';
+import { ctrlArt } from './ctrlart.js';
 
 /* Pausenmenü (Esc oder Menü-Knopf) */
 G.menuT=0; let hadLock=false, restartArm=false;
 function menuOpen(){ return $('menu').style.display==='flex'; }
 function toggleMenu(){
-  if(bookOpen()||settingsOpen()||regionsOpen()||sleeping||!G.started||P.dead||$('win').style.display==='flex'||$('birth').style.display==='flex'||$('skills').style.display!=='none') return;
+  if(ctrlOpen()||bookOpen()||settingsOpen()||regionsOpen()||sleeping||!G.started||P.dead||$('win').style.display==='flex'||$('birth').style.display==='flex'||$('skills').style.display!=='none') return;
   const el=$('menu');
   if(!menuOpen()){
     $('menuInfo').textContent='Gebiet: '+REG.n+' · Schwierigkeit: '+D().n+' · Uhrzeit '+clockStr()+(D().perma?' · ohne Nachwuchs endgültig':'');
@@ -40,26 +41,20 @@ let hudExp=false;
 $('hud').addEventListener('click',e=>{ if(e.target.closest('#pts')) return; hudExp=!hudExp; $('hud').classList.toggle('exp',hudExp); $('hudTog').textContent=hudExp?'▴':'▾'; updateUI(); });
 const XB={'Ⓐ':'#5fbf4a','Ⓑ':'#e0533d','Ⓧ':'#3f8fe0','Ⓨ':'#f2c230'};
 const xb=t=>t.replace(/[ⒶⒷⓍⓎ]/g,c=>'<b style="color:'+XB[c]+';font-size:1.15em">'+c+'</b>');
-function renderKeys(){ $('keysMode').textContent=padUI()?'Xbox-Controller':touchUI()?'Touch':'Tastatur und Maus';
-  $('keysBox').innerHTML=(padUI()?[
-  ['Linker Stick','Laufen'],['Rechter Stick','Kamera und Fadenkreuz drehen'],['LT oder linken Stick drücken','Sprinten (kostet Ausdauer)'],
-  ['RT oder Ⓐ','Sprungangriff in Richtung Fadenkreuz'],['Ⓑ','Schleichen an/aus'],['Ⓧ','Aktion: paaren, füttern, fressen, schlafen'],['Ⓨ','Auf einen Baum klettern / herunter'],
-  ['LB','Brüllen'],['Rechten Stick drücken','Kamera hinter den Leoparden'],['Steuerkreuz ↑ ↓','Zoomen'],['Steuerkreuz ←','Mitspieler kurz markieren'],['Ⓧ halten','Mitspieler am Boden wiederbeleben'],['Menü-Taste ☰','Pause-Menü'],['Ansicht-Taste ⧉','Eigenschaften & Fähigkeiten'],
-  ['In Menüs','Steuerkreuz wählt, Ⓐ bestätigt, Ⓑ zurück']
-]:touchUI()?[
-  ['Linke Bildschirmhälfte','Laufen – der Joystick entsteht, wo der Daumen aufsetzt'],
-  ['Rechte Hälfte ziehen','Kamera und Fadenkreuz drehen'],
-  ['Rechts doppeltippen','Sprungangriff in Richtung Fadenkreuz'],
-  ['Sprint','Sprinten an/aus (kostet Ausdauer)'],['Schleichen','Schleichen an/aus'],
-  ['Brüllen','Raubtiere verjagen (Fähigkeit)'],['Klettern','Auf einen Baum / herunter (Fähigkeit)'],
-  ['Rosa Knopf','Paaren, füttern, fressen oder schlafen – erscheint nur, wenn es gerade möglich ist'],
-  ['Goldene Punkte-Anzeige','Eigenschaften & Fähigkeiten'],['☰ Menü','Pause-Menü']
-]:[
-  ['<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>','Laufen'],['<kbd>Maus</kbd> / <kbd>←</kbd><kbd>→</kbd>','Kamera und Fadenkreuz drehen'],['<kbd>Mausrad</kbd>','Zoomen'],
-  ['<kbd>Shift</kbd>','Sprinten (kostet Ausdauer)'],['<kbd>C</kbd>','Schleichen an/aus'],['<kbd>Leertaste</kbd> / <kbd>Klick</kbd>','Sprungangriff in Richtung Fadenkreuz'],
-  ['<kbd>R</kbd>','Brüllen (Fähigkeit)'],['<kbd>E</kbd>','Auf einen Baum klettern / herunter (Fähigkeit)'],['<kbd>F</kbd>','Paaren / Junges füttern / fressen / Fleisch mitnehmen / schlafen'],['<kbd>Q</kbd>','Mitspieler kurz markieren (gemeinsames Spiel)'],
-  ['<kbd>Tab</kbd> / <kbd>K</kbd>','Eigenschaften & Fähigkeiten'],['<kbd>Esc</kbd>','Pause-Menü']
-]).map(r=>'<span>'+xb(r[0])+'</span><span>'+r[1]+'</span>').join(''); }
+/** Steuerung als Bild (ctrlart.js) mit Reitern Tastatur / Controller / Touch; zeigt zuerst, was zuletzt benutzt wurde */
+let keysTab=null;
+/** großes Fenster mit dem Steuerungsbild (vom Startbildschirm und aus den Einstellungen) */
+function openCtrl(){ keysTab=null; renderKeys(); $('ctrlView').style.display='flex'; }
+function closeCtrl(){ $('ctrlView').style.display='none'; }
+const ctrlOpen=()=>$('ctrlView').style.display==='flex';
+$('btnCtrlStart').onclick=e=>{ e.preventDefault(); openCtrl(); }; $('btnCtrlSet').onclick=openCtrl; $('btnCtrlBack').onclick=closeCtrl;
+function renderKeys(){
+  const cur=padUI()?'p':touchUI()?'t':'k', m=keysTab||cur;
+  $('keysMode').textContent=padUI()?'Xbox-Controller':touchUI()?'Touch':'Tastatur und Maus';
+  { const el=$('keysBox');
+    el.innerHTML='<div class="ktabs">'+[['k','Tastatur & Maus'],['p','Controller'],['t','Touch']].map(([k,l])=>'<button class="sec'+(k===m?' on':'')+'" data-m="'+k+'">'+l+'</button>').join('')+'</div>'+ctrlArt(m);
+    el.querySelectorAll('.ktabs button').forEach(b=>b.onclick=e=>{ e.stopPropagation(); keysTab=/** @type {HTMLElement} */(b).dataset.m; renderKeys(); }); }
+}
 // (Die Liste wird beim Start über setInputMode() gefüllt, sobald die Eingabeart feststeht.)
 $('keysMode').textContent='';
 $('menuBtn').onclick=toggleMenu; $('btnResume').onclick=toggleMenu;
@@ -91,4 +86,5 @@ function closeSettings(){ $('settings').style.display='none'; $('menu').style.di
 const settingsOpen=()=>$('settings').style.display==='flex';
 $('btnSettings').onclick=openSettings; $('btnSetBack').onclick=closeSettings;
 
+export { closeCtrl, ctrlOpen };
 export { hudExp, menuOpen, renderKeys, showDiff, toggleMenu, xb, closeSettings, settingsOpen };

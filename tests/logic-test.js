@@ -310,7 +310,7 @@ console.log('audio nodes created',ACs&&ACs.count());
   console.log('Sprungrichtung: jeder Spieler stellt sie für sich ein'); }
 { const P=T.P, a=T.animals.find(o=>o.sp.id==='deer'&&!o.dead)||T.animals.find(o=>o.sp.id==='anti'&&!o.dead);
   const keep=[a.x,a.z,a.dead,a.carc,a.state]; a.dead=true; a.x=P.x+1.2; a.z=P.z; T.makeCarcass(a,5);
-  P.L.hunger=95; P.dead=false; P.tree=null; P.ctl.fw=P.ctl.rt=0; P.st=100; P.hurtT=0;
+  P.L.hunger=95; P.dead=false; P.tree=null; P.drag=null; P.eatC=null; P.ctl.fw=P.ctl.rt=0; P.st=100; P.hurtT=0;
   const c1=T.carcassContext(P); c1&&c1.fn(); const grabbed=P.drag===a;
   P.ctl.fw=1; T.updateDrag(P,0.5); P.ctl.fw=0; const drained=P.st<100;
   T.carcassToTree(P,0); P.tree=0; P.climbT=1;

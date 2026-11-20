@@ -42,6 +42,8 @@
   .card{width:min(560px,92vw);max-height:92vh;overflow:auto;padding:22px 24px;touch-action:pan-y}
   h1{margin:0 0 4px;font-size:30px;color:var(--gold);letter-spacing:.5px} h2{margin:0 0 10px;font-size:20px;color:var(--gold)}
   p{line-height:1.45;color:var(--txt);margin:8px 0}
+  .ctrlCard{max-width:min(900px,96vw)!important;width:min(900px,96vw);max-height:96vh;overflow:auto} .ctrlCard svg{max-width:100%!important;max-height:calc(94vh - 120px)}
+  .ktabs{display:flex;gap:6px;margin:6px 0 8px;flex-wrap:wrap} .ktabs button{padding:4px 10px;font-size:12px;width:auto;margin:0} .ktabs button.on{border-color:var(--gold);color:var(--gold)}
   .keys{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:13px;margin:12px 0;color:var(--mut)}
   kbd{background:#33402c;border:1px solid var(--line);border-radius:4px;padding:1px 6px;color:var(--txt);font-family:inherit;font-size:12px}
   button{font-family:inherit;font-size:15px;border:0;border-radius:8px;padding:10px 18px;background:var(--gold);color:#2a1d00;font-weight:bold;cursor:pointer}
@@ -100,7 +102,7 @@
   .tb.tcd::before{content:'';position:absolute;inset:0;border-radius:50%;pointer-events:none;background:conic-gradient(var(--gold) calc(var(--cd,1)*360deg),rgba(255,255,255,.2) 0);-webkit-mask:radial-gradient(circle closest-side,transparent calc(100% - 4px),#000 calc(100% - 3.5px));mask:radial-gradient(circle closest-side,transparent calc(100% - 4px),#000 calc(100% - 3.5px))}
   .tb.tcd.ready::before{background:var(--gold)}
   #tbE{right:calc(16px + 76px*var(--ts));bottom:calc(28px + 76px*var(--ts))}
-  #tbF{display:none;right:calc(16px + 76px*var(--ts));bottom:calc(28px + 152px*var(--ts));background:#d86fa8;color:#2a0a1c;font-weight:bold}
+  #tbF{display:none;right:calc(16px + 76px*var(--ts));bottom:calc(28px + 152px*var(--ts));background:#f4f1e8;color:#111;font-weight:bold}
   #cubBox{display:none;margin-top:6px;border-top:1px solid var(--line);padding-top:5px}
   #cubBox .cl{display:flex;flex-wrap:wrap;justify-content:space-between;gap:0 8px;font-size:11px;color:#ffb8dc}
   #cubBox .bar{height:7px;margin:3px 0} #bCf{background:linear-gradient(#f0a850,#d07a22)} #bCg{background:linear-gradient(#ee8cc0,#c2528f)}
@@ -256,6 +258,7 @@ body.quad .ph{--rad:92px}
   <p>Wachse vom kleinen Jungtier zum König der Wildnis – und sorge dafür, dass deine Blutlinie weiterlebt.</p>
   <details id="howto">
     <summary>Spielanleitung &amp; Steuerung</summary>
+    <button id="btnCtrlStart" class="sec" style="margin:8px 0 10px">🎮 Steuerung ansehen</button>
     <p>Du beginnst als kleines Jungtier. Jage Mäuse und Hasen, werde größer und stärker – und halte dich von Schakalen, Hyänen und Löwen fern, solange du selbst noch Beute bist. Im <b style="color:var(--green)">hohen Gras</b> bist du beim Schleichen fast unsichtbar.</p>
     <p>Ziel: Erlege die <b style="color:var(--gold)">Riesenantilope</b> draußen in der Savanne.</p>
     <p style="font-size:13px;color:var(--mut)"><b style="color:#96cdff">Wind:</b> Der blaue Pfeil an der Spürkarte zeigt, wohin der Wind weht. Tiere, zu denen er deinen Geruch trägt, bemerken dich früher – pirsche dich gegen den Wind an. Der gestrichelte Wahrnehmungsring zeigt das an. Ab „Normal" jagen Hyänen und Schakale im Rudel und Beute schlägt Haken, auf „Schwer" noch geschickter.</p>
@@ -332,9 +335,15 @@ body.quad .ph{--rad:92px}
   <div class="sect">Steuerung · <span id="keysMode"></span></div>
   <button id="btnTutAgain" class="sec">Einführung wiederholen</button>
   <button id="btnPounceDir" class="sec">Sprungangriff: zum Fadenkreuz</button>
-  <div id="keysBox" class="keys" style="margin:6px 0 0"></div>
+  <button id="btnCtrlSet" class="sec">🎮 Steuerung ansehen</button>
   <p style="font-size:12px;color:var(--mut)">Die Anzeige wechselt automatisch zu dem, was du zuletzt benutzt hast: Tastatur und Maus, Touch oder Xbox-Controller.</p>
   <button id="btnSetBack">Zurück</button>
+</div></div>
+
+<div id="ctrlView" class="overlay" style="display:none"><div class="card panel ctrlCard">
+  <h2 style="margin:0 0 4px">Steuerung</h2>
+  <div id="keysBox"></div>
+  <button id="btnCtrlBack">Zurück</button>
 </div></div>
 
 <div id="birth" class="overlay" style="display:none"><div class="card panel" style="text-align:center">
