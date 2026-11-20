@@ -45,7 +45,7 @@ function biteHit(p){
   if(fights(a)&&acc<0.65) counter(p,a,acc);   // Raubtiere und Kämpfer beißen bei schwachen Bissen zurück
   if(p.dead||!p.bite) return;
   if(acc<(fights(a)?0.3:0.15)&&b.round<b.n){ endBite(p,true); return; }   // ganz daneben: das Tier reißt sich los (Wehrhafte schon eher)   // ganz daneben: das Tier reißt sich sofort los
-  b.speed*=1.18; b.dir=Math.random()<0.5?1:-1;
+  b.speed*=1.18;   // Punkt läuft in seiner Richtung weiter, nur schneller
   if(b.round>=b.n) endBite(p,false); else biteUi(p);
 }
 /** Gegenbiss eines wehrhaften Tieres: je schlechter dein Biss, desto eher und härter */
