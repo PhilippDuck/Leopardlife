@@ -334,11 +334,18 @@ console.log('audio nodes created',ACs&&ACs.count());
   console.log('Erbanlagen: doppelte werden verstärkt (mehr Leben), höchstens drei'); }
 { const P=T.P, a=T.animals.find(o=>o.sp.id==='anti'&&!o.dead)||T.animals.find(o=>o.sp.id==='deer'&&!o.dead), keep=[a.x,a.z,a.hp,a.state];
   P.dead=false; P.bite=null; a.held=null; a.wound=null;
-  T.startBite(P,a); const held=a.held===P&&!!P.bite, n=P.bite.n;
+  T.startBite(P,a,20); const held=a.held===P&&!!P.bite, n=P.bite.n;
   for(let i=0;i<n;i++){ P.bite.pos=0.27; T.biteHit(P); }   // mittelmäßig: kein sicherer Treffer
   const r1=a.dead?'tot':a.wound?'verwundet':'?';
   let died=false; if(a.wound&&a.wound.die){ T.woundTick(a,a.wound.die+1); died=a.dead&&!!a.carc; }
   if(a.carc) T.endCarcass(a); a.dead=false; a.x=keep[0]; a.z=keep[1]; a.hp=keep[2]; a.state=keep[3]; a.wound=null;
-  if(!held||n<4||!(r1==='tot'||(r1==='verwundet'&&died))){ console.log('FEHLER: Festbeißen',held,n,r1,died); process.exit(1); }
+  if(!held||n<3||!(r1==='tot'||(r1==='verwundet'&&died))){ console.log('FEHLER: Festbeißen',held,n,r1,died); process.exit(1); }
   console.log('Festbeißen: '+n+' Bisse, Ergebnis '+r1+(died?', später an den Wunden verendet (Kadaver)':'')); }
+{ const P=T.P, a=T.animals.find(o=>(o.sp.id==='hyena'||o.sp.id==='boar')&&!o.dead), keep=[a.x,a.z,a.hp,a.state,a.aggro];
+  let hurt=false, chase=false; const hp0=P.hp;
+  for(let k=0;k<6&&!hurt;k++){ P.dead=false; P.hp=hp0; P.bite=null; P.safe=false; a.held=null; a.wound=null; a.hp=keep[2];
+    T.startBite(P,a,5); P.bite.pos=0; T.biteHit(P); hurt=P.hp<hp0; chase=a.state==='chase'; }
+  P.hp=hp0; P.bite=null; a.held=null; a.wound=null; a.x=keep[0]; a.z=keep[1]; a.hp=keep[2]; a.state=keep[3]; a.aggro=keep[4];
+  if(!hurt||!chase){ console.log('FEHLER: Gegenbiss',hurt,chase); process.exit(1); }
+  console.log('Festbeißen bei '+a.sp.n+': Fehlbiss → Gegenbiss und Angriff'); }
 console.log('ALL OK');

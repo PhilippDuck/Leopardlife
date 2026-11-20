@@ -4,24 +4,25 @@
 // wird langsamer und erliegt je nach Schwere der Wunden später (Blutspur!). Ganz leichte Wunden heilen wieder.
 import { snd } from './audio.js';
 import { hEl } from './coop.js';
-import { FOOD } from './data.js';
 import { bloodDrop, puff } from './effects.js';
 import { players, P } from './player.js';
 import { has } from './save.js';
 import { H } from './terrain.js';
 import { floatText, toast } from './ui.js';
 import { rnd } from './util.js';
-import { killAnimal } from './actions.js';
+import { hurtPlayer, killAnimal } from './actions.js';
 import { padUI } from './gamepad.js';
 import { touchUI } from './input.js';
 
-/** Große Beute, bei der man sich festbeißt: ab Hirschgröße, keine Raubtiere und keine Kämpfer */
-const bitable=a=>!a.sp.pred&&!a.sp.fight&&!a.sp.friend&&(FOOD[a.sp.id]||0)>=6;
+/** Festbeißen bei jedem Tier, das ein Biss nicht sofort erledigt (d = Schaden dieses Bisses) – außer Leoparden und Krokodilen im Wasser */
+const fights=a=>!!(a.sp.pred||a.sp.fight);
+const bitable=(a,d)=>!a.sp.friend&&!a.sp.croc&&a.hp>d;
 /** Festbeißen beginnen (statt eines normalen Treffers) */
-function startBite(p,a){
-  const big=FOOD[a.sp.id]||6, n=3+(big>=10?1:0)+(big>=20?1:0);
-  p.bite={a,n,round:0,pos:Math.random(),dir:1,speed:0.9+big*0.02,scores:[],idle:0};
-  a.held=p; a.state='flee'; p.pounce=0; p.combatT=5;
+function startBite(p,a,d){
+  // je zäher das Tier im Verhältnis zu deinem Biss, desto mehr Bisse (3–5) und desto schneller der Punkt
+  const tough=a.hp/Math.max(1,d), n=3+(tough>2.5?1:0)+(tough>5?1:0);
+  p.bite={a,n,round:0,pos:Math.random(),dir:1,speed:0.85+Math.min(0.6,tough*0.06),scores:[],idle:0};
+  a.held=p; p.pounce=0; p.combatT=5;
   p.x=a.x-Math.sin(a.g.rotation.y)*(a.rad*0.6); p.z=a.z-Math.cos(a.g.rotation.y)*(a.rad*0.6); p.rot=a.g.rotation.y;
   snd.hit(); puff(a.x,H(a.x,a.z)+a.sp.size,a.z,0xc0392b,6,0.5);
   biteUi(p); hEl(p,'bite').style.display='block';
@@ -36,9 +37,18 @@ function biteHit(p){
   floatText(word,a.x,y,a.z,acc>0.9?'#f2b84b':acc>0.65?'#9be07f':acc>0.3?'#e0c060':'#ff7a5a');
   snd.hit(); puff(a.x,y-0.6,a.z,0xc0392b,3+Math.round(acc*4),0.4);
   p.cam.shake=Math.max(p.cam.shake,0.12+acc*0.25); if(p.pad!=null||padUI()) buzzP(p,acc);
-  if(acc<0.15&&b.round<b.n){ endBite(p,true); return; }   // ganz daneben: das Tier reißt sich sofort los
+  if(fights(a)&&acc<0.65) counter(p,a,acc);   // Raubtiere und Kämpfer beißen bei schwachen Bissen zurück
+  if(p.dead||!p.bite) return;
+  if(acc<(fights(a)?0.3:0.15)&&b.round<b.n){ endBite(p,true); return; }   // ganz daneben: das Tier reißt sich los (Wehrhafte schon eher)   // ganz daneben: das Tier reißt sich sofort los
   b.speed*=1.18; b.dir=Math.random()<0.5?1:-1;
   if(b.round>=b.n) endBite(p,false); else biteUi(p);
+}
+/** Gegenbiss eines wehrhaften Tieres: je schlechter dein Biss, desto eher und härter */
+function counter(p,a,acc){
+  if(Math.random()>0.45+(0.65-acc)*0.8) return;
+  const y=H(a.x,a.z)+a.sp.size*1.9;
+  floatText('Gegenbiss!',a.x,y,a.z,'#ff5a3a'); puff(p.x,y-0.8,p.z,0xc0392b,5,0.5);
+  hurtPlayer((a.sp.dmg||10)*(0.35+(0.65-acc)*0.6),a,false,p);
 }
 function buzzP(p,acc){ try{ const g=navigator.getGamepads&&navigator.getGamepads()[p.pad!=null?p.pad:0]; const h=g&&g.vibrationActuator; if(h) h.playEffect('dual-rumble',{duration:90+acc*120,strongMagnitude:0.3+acc*0.6,weakMagnitude:0.4}); }catch(e){} }
 /** Ende: erlegt oder verwundet entkommen */
@@ -46,12 +56,12 @@ function endBite(p,broke){
   const b=p.bite; p.bite=null; hEl(p,'bite').style.display='none';
   const a=b.a; a.held=null; if(a.dead) return;
   const avg=b.scores.reduce((x,y)=>x+y,0)/b.n;   // nicht mehr geschaffte Bisse zählen als 0
-  const chance=Math.max(0.03,Math.min(0.97,avg*1.15+(has('kiefer',p.L)?0.08:0)+Math.min(0.1,(p.L.lvl-(a.sp.hunt||a.sp.lvl||1))*0.02)-(FOOD[a.sp.id]>=20?0.12:0)));
+  const chance=Math.max(0.03,Math.min(0.97,avg*1.15+(has('kiefer',p.L)?0.08:0)+Math.min(0.1,(p.L.lvl-(a.sp.hunt||a.sp.lvl||1))*0.02)-(a.sp.boss?0.12:0)-(fights(a)?0.1:0)));
   if(!broke&&Math.random()<chance){ killAnimal(a,p); return; }
   // losgerissen: blutet je nach Schwere; leicht verletzt heilt es wieder
   a.wound={sev:avg,t:0,die:avg<0.28?0:14+(1-avg)*70,heal:30,by:p,acc:0};
   a.hp=Math.max(1,Math.round(a.hp*(1-avg*0.6)));
-  a.state='flee'; a.fleeT=0;
+  if(a.sp.fight||a.sp.pred){ a.state='chase'; a.aggro=10; a.scared=0; a.lost=0; } else { a.state='flee'; a.fleeT=0; }   // Raubtiere und Kämpfer wehren sich
   toast(a.wound.die?(a.sp.n+' hat sich losgerissen und blutet stark – folge der Blutspur!'):(a.sp.n+' hat sich losgerissen – nur eine leichte Wunde.'),a.wound.die?'#ff7a5a':'#b9b7a6');
 }
 /** Balken zeichnen: Punkt, Zielzone, Runden */
@@ -60,14 +70,14 @@ function biteUi(p){
   hEl(p,'biteDot').style.left=(b.pos*100)+'%';
   hEl(p,'biteRounds').textContent=Array.from({length:b.n},(_,i)=>i<b.scores.length?(b.scores[i]>0.65?'●':'◐'):'○').join(' ');
   const k=p!==P||padUI()?'RT / Ⓐ':touchUI()?'tippen':'Leertaste / Klick';
-  hEl(p,'biteHint').textContent='Festgebissen! In der Mitte drücken ('+k+')';
+  hEl(p,'biteHint').textContent=(fights(b.a)?'Es wehrt sich! ':'Festgebissen! ')+'In der Mitte drücken ('+k+')';
 }
 /** Jedes Bild: Punkt pendeln lassen, Leopard am Tier halten; Wunden bluten und schwächen */
 function updateBite(dt){
   for(const p of players){ const b=p.bite; if(!b) continue;
     const a=b.a; if(p.dead||a.dead){ p.bite=null; a.held=null; hEl(p,'bite').style.display='none'; continue; }
     b.pos+=b.dir*b.speed*dt; if(b.pos>1){ b.pos=2-b.pos; b.dir=-1; } if(b.pos<0){ b.pos=-b.pos; b.dir=1; }
-    b.idle+=dt; if(b.idle>3.5){ b.scores.push(0); b.round++; b.idle=0; if(b.round>=b.n){ endBite(p,false); continue; } }   // zu lange gewartet: Biss verpasst
+    b.idle+=dt; if(b.idle>3.5){ b.scores.push(0); b.round++; b.idle=0; if(fights(a)) counter(p,a,0); if(p.dead||!p.bite) continue; if(b.round>=b.n){ endBite(p,false); continue; } }   // zu lange gewartet: Biss verpasst
     // das Tier zappelt, der Leopard hängt dran
     a.g.rotation.y+=Math.sin(performance.now()/90)*0.02; a.g.position.y=H(a.x,a.z)+Math.abs(Math.sin(performance.now()/120))*0.08;
     p.x=a.x-Math.sin(a.g.rotation.y)*(a.rad*0.6); p.z=a.z-Math.cos(a.g.rotation.y)*(a.rad*0.6); p.rot=a.g.rotation.y;

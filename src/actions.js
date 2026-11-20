@@ -171,8 +171,8 @@ function hitAnimal(a,p=P){
   floatText((amb?'Hinterhalt! ':'')+'-'+d,a.x,H(a.x,a.z)+a.sp.size*1.8,a.z,amb?'#f2b84b':'#fff');
   puff(a.x,H(a.x,a.z)+a.sp.size,a.z,0xc0392b,4,0.5);
   G.lastHit=a; G.lastHitT=6; snd.hit(); if(amb){ snd.ambush(); goalEvent('amb',1); buzz(p,0.25,0.6,120); G.slowT=Math.max(G.slowT,0.16); p.cam.shake=Math.max(p.cam.shake,0.3*pScale(p.L)); }
-  // aus der Deckung auf große Beute: festbeißen (Minispiel entscheidet), statt sofort Schaden zu entscheiden
-  if(amb&&bitable(a)&&a.hp>0&&!a.held&&!players.some(o=>o.bite)){ a.hp+=d; startBite(p,a); return; }
+  // aus dem Hinterhalt auf ein Tier, das dieser Biss nicht erledigt: festbeißen (das Minispiel entscheidet)
+  if(amb&&a.hp>0&&!a.held&&!players.some(o=>o.bite)&&bitable(a,0)){ a.hp+=d; startBite(p,a,d); return; }   // überlebt den Biss: festbeißen
   if(a.wound) a.hp-=Math.round(d*0.5);   // verwundete Beute ist leichter zu erlegen
   if(a.hp<=0){ killAnimal(a,p); return; }
   if(a.sp.fight){ a.state='chase'; a.aggro=10; a.scared=0; }
