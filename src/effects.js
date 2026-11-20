@@ -2,6 +2,7 @@
 import { scene } from './engine.js';
 import { rnd } from './util.js';
 import { G } from './state.js';
+import { H } from './terrain.js';
 
 /* Partikel */
 const puffs=[]; const puffGeo=new THREE.BoxGeometry(0.25,0.25,0.25);
@@ -24,6 +25,7 @@ function roarFx(x,y,z,rot,sc,R){
   waves.push({m:f,kind:'floor',t:0,life:0.9,R});
 }
 function updateFx(dt){
+  updateBlood(dt);
   for(let i=waves.length-1;i>=0;i--){ const w=waves[i]; w.t+=dt; const m=w.m;
     if(w.t<0) continue;
     const k=Math.min(1,w.t/w.life);
@@ -51,8 +53,22 @@ function syncOrbs(g,meat,left,now){
 }
 function dropOrbs(g){ if(g) scene.remove(g); }
 
+/* Blutspur: dunkelrote Flecken auf dem Boden, die nach gut zwei Minuten verblassen */
+const bloodGeo=new THREE.CircleGeometry(1,8), drops=[];
+/** Blutfleck bei x,z; s = Größe (0,6 leicht … 1 stark) */
+function bloodDrop(x,z,s){
+  const m=new THREE.Mesh(bloodGeo,new THREE.MeshBasicMaterial({color:0x7a0d0d,transparent:true,opacity:0.85,depthWrite:false}));
+  m.rotation.x=-Math.PI/2; m.rotation.z=Math.random()*6.28; const r=(0.12+Math.random()*0.1)*s; m.scale.set(r,r*(0.6+Math.random()*0.6),1);
+  m.position.set(x,H(x,z)+0.04,z); m.renderOrder=2; scene.add(m); drops.push({m,t:0});
+  if(drops.length>260){ const o=drops.shift(); scene.remove(o.m); o.m.material.dispose(); }
+}
+function updateBlood(dt){
+  for(let i=drops.length-1;i>=0;i--){ const d=drops[i]; d.t+=dt; if(d.t>110) d.m.material.opacity=0.85*Math.max(0,1-(d.t-110)/40);
+    if(d.t>150){ scene.remove(d.m); d.m.material.dispose(); drops.splice(i,1); } }
+}
+
 /* Trefferfeedback */
 // slowT: kurze Zeitlupe nach Hinterhalt und Beute
 G.slowT=0;
 
-export { dropOrbs, meatOrbs, puff, puffs, roarFx, syncOrbs, updateFx };
+export { bloodDrop, dropOrbs, meatOrbs, puff, puffs, roarFx, syncOrbs, updateFx };

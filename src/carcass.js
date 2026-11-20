@@ -27,7 +27,7 @@ function makeCarcass(a,meat){
   a.carc={t:life,meat,orbs:meatOrbs(meat,a.x,H(a.x,a.z)+a.sp.size*1.4+0.6,a.z)}; a.carc.orbs.userData.y0=a.carc.orbs.position.y;
   a.g.visible=true; a.g.rotation.z=Math.PI/2;
   a.g.position.set(a.x,H(a.x,a.z)+a.sp.size*0.22,a.z); animLegs(a.g,0,0);
-  const sc=animals.filter(o=>!o.dead&&(o.sp.id==='hyena'||o.sp.id==='jack')&&o.state==='wander'&&Math.hypot(o.x-a.x,o.z-a.z)<150)
+  const sc=meat<3?[]:animals.filter(o=>!o.dead&&(o.sp.id==='hyena'||o.sp.id==='jack')&&o.state==='wander'&&Math.hypot(o.x-a.x,o.z-a.z)<150)
     .sort((p,q)=>(p.sp.id==='hyena'?0:1)-(q.sp.id==='hyena'?0:1)||Math.hypot(p.x-a.x,p.z-a.z)-Math.hypot(q.x-a.x,q.z-a.z)).slice(0,2);
   sc.forEach(o=>{ o.state='scav'; o.carc=a; o.eatT=0; o.sus=0; if(o.sp.id==='hyena') callSoon(o); });
   if(sc.length&&Math.hypot(P.x-a.x,P.z-a.z)<80){ const hy=sc[0].sp.id==='hyena';
@@ -71,8 +71,10 @@ function carcassToTree(p,i){
 function carcassContext(p){
   if(p.drag) return {label:'Beute loslassen',fn:()=>dropCarcass(p)};
   const cc=nearCarcass(p); if(!cc) return null;
-  if(cc.carc.tree==null&&S.cub&&S.cub.grow<1&&S.food<FOOD_MAX&&p.eatC!==cc) return {label:'Fleisch mitnehmen',fn:()=>takeMeat(cc,true,p)};
+  // Wahl: hungrig → erst selbst fressen; während des Fressens (oder satt) den Rest fürs Junge mitnehmen
+  const store=cc.carc.tree==null&&S.cub&&S.cub.grow<1&&S.food<FOOD_MAX;
   if(p.L.hunger<90&&p.eatC!==cc) return {label:'Fressen ('+cc.carc.meat+' Bissen übrig)',fn:()=>takeMeat(cc,false,p)};
+  if(store) return {label:p.eatC===cc?'Rest fürs Junge mitnehmen':'Fleisch fürs Junge mitnehmen',fn:()=>{ if(p.eatC===cc) p.eatC=null; takeMeat(cc,true,p); }};
   if(canDrag(cc)) return {label:'Beute packen und ziehen',fn:()=>grabCarcass(p,cc)};
   return null;
 }
