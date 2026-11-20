@@ -24,7 +24,7 @@ import { downPlayer, hEl, othersAlive, resetMates, tell } from './coop.js';
 import { emit } from './events.js';
 import { toggleSkills } from './skills.js';
 import { bitable, biteHit, forgetWounds, startBite } from './bite.js';
-import { SWITCH_AT, cubLearn, cubSpot } from './cubfollow.js';
+import { SWITCH_AT, cubLearn, cubSpot, hasOwnCub } from './cubfollow.js';
 
 /* ---------- Aktionen ---------- */
 /** Index des nächsten erreichbaren Baums für Spieler p, sonst -1. */
@@ -119,7 +119,7 @@ function hurtPlayer(d,a,force,p=P){
 /** Endgültiger Tod (Einzelspiel bzw. alle Spieler am Boden): Todesfenster, Erbe, Ende der Blutlinie. */
 function die(p,a){
   {
-    p.hp=0; p.downT=null; G.heirPending=!!S.cub; G.lineageEnd=!S.cub&&(a.sp.id==='age'||D().perma); let lost=0; if(!G.heirPending&&!G.lineageEnd){ lost=Math.floor(S.xp*D().xpLoss); S.xp-=lost; } save();
+    p.hp=0; p.downT=null; G.heirPending=hasOwnCub(P); G.lineageEnd=!S.cub&&(a.sp.id==='age'||D().perma); let lost=0; if(!G.heirPending&&!G.lineageEnd){ lost=Math.floor(S.xp*D().xpLoss); S.xp-=lost; } save();
     p.dead=true; G.paused=true; p.pounce=0; for(const k in keys) keys[k]=false; G.drag=false;
     if(document.exitPointerLock) document.exitPointerLock();
     p.g.rotation.z=Math.PI/2; p.g.position.y=p.y+0.25*pScale();
@@ -137,7 +137,7 @@ function die(p,a){
       $('deadTip').textContent='Je größer es ist und je mehr es bei dir gelernt hat, desto stärker startet es.';
       $('btnRespawn').textContent='Als Junges weiterleben';
     } else $('btnRespawn').textContent='Im Bau neu erwachen';
-    if(a.sp.id==='hunger'&&!G.heirPending) $('deadTip').textContent='Tipp: Erlegte Beute macht satt. Hast du ein Junges, zieh Beute zum Bau (Haus auf der Spürkarte) – das wird zum Vorrat – friss mit F daraus, wenn du hungrig bist.';
+    if(a.sp.id==='hunger'&&!G.heirPending) $('deadTip').textContent='Tipp: Erlegte Beute bleibt liegen – friss mit der Aktionstaste davon, sobald du hungrig bist.';
     if(G.lineageEnd){
       $('deadTxt').textContent=(a.sp.id==='age'?'Du bist an Altersschwäche gestorben und hast keinen Nachwuchs.':cause+' Auf „Schwer" gibt es ohne Nachwuchs kein Zurück.')+' Deine Blutlinie endet in Generation '+(S.gen||1)+'.';
       $('deadTip').textContent='Beim nächsten Mal: Ab Stufe 8 einen Partner suchen und rechtzeitig ein Junges großziehen.';

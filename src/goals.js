@@ -30,7 +30,7 @@ function newGoals(){
   if(S.b.roar) pool.push({id:'roar',text:'Verjag ein Raubtier mit Brüllen',need:1});
   pool.push({id:'stalk',text:'Pirsch dich 40 m schleichend an',need:40});
   if(S.cub&&S.cub.grow<1) pool.push({id:'denMeat',text:'Zieh eine Beute zum Bau für dein Junges',need:1});
-  if(S.cub&&S.cub.grow<1) pool.push({id:'feed',text:'Bring deinem Jungen 6 Portionen Futter',need:6});
+  if(S.cub&&S.cub.grow<1) pool.push({id:'feed',text:'Deine Jungen fressen 6 Bissen am Bau',need:6});
   if(S.cub&&S.cub.grow>=0.25&&S.cub.grow<1) pool.push({id:'cubhunt',text:'Erlege 2 Beuten, während dein Junges zusieht',need:2});
   for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)), t=pool[i]; pool[i]=pool[j]; pool[j]=t; }
   // Serie: gestern nicht alle geschafft → von vorn

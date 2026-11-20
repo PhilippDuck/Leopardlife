@@ -29,6 +29,11 @@ const LESSONS=[
 const followers=[];
 const numOf=p=>p===P?1:(p.num||2);
 const canSwitch=()=>!!S.cub&&S.cub.grow>=SWITCH_AT;
+/** Hat Spieler p im aktuellen Wurf noch „sein“ Junges? Jeder Spieler übernimmt höchstens eins – das der anderen bleibt für sie. */
+const hasOwnCub=p=>!!S.cub&&(S.cub.n||0)>0&&!(S.cub.took&&S.cub.took[numOf(p)]);
+const canSwitchFor=p=>canSwitch()&&hasOwnCub(p);
+/** Spieler p hat sein Junges übernommen */
+function markTaken(p){ const c=S.cub; if(!c) return; c.took=c.took||{}; c.took[numOf(p)]=true; }
 const followerOf=p=>followers.find(f=>f.p===p)||null;
 /** Wie viele Junge des Wurfs noch im Bau sind */
 const denCount=()=>S.cub?Math.max(0,(S.cub.n||1)-followers.length):0;
@@ -53,7 +58,7 @@ function cubFollowContext(p){
   if(f){ if(Math.hypot(f.x-p.x,f.z-p.z)>4.5) return null;
     if(Math.hypot(p.x-CUB_HOME.x,p.z-CUB_HOME.z)<12) return {label:'Junges in den Bau bringen',fn:()=>{ dropFollower(f); tell(p,'Dein Junges bleibt im Bau.','#ff9ad0'); }};
     return f.wait?{label:'Junges: Komm mit',fn:()=>{ f.wait=false; snd.mew(); }}:{label:'Junges: Warte hier',fn:()=>{ f.wait=true; }}; }
-  if(c.grow<LEARN_AT||denCount()<=0||Math.hypot(cub.x-p.x,cub.z-p.z)>4.5) return null;
+  if(c.grow<LEARN_AT||denCount()<=0||!hasOwnCub(p)||Math.hypot(cub.x-p.x,cub.z-p.z)>4.5) return null;
   if(S.food>0&&c.full<60) return null;   // erst füttern
   return {label:'Junges mitnehmen',fn:()=>addFollower(p)};
 }
@@ -114,10 +119,10 @@ function updateFollowers(dt){
     if(!f.wait&&!p.dead){ const d=Math.hypot(tx-f.x,tz-f.z); sp=d>9?9.5:d>2.5?4.2:d>0.8?1.6:0; if(p.sneak) sp*=0.7;
       if(sp>0){ const v=Math.min(d,sp*dt)/d; f.x+=(tx-f.x)*v; f.z+=(tz-f.z)*v; f.rot=Math.atan2(tx-f.x,tz-f.z); } }
     f.ph+=dt*(sp>0?sp*2.2:0.5); animLegs(f.g,f.ph,sp>0?0.45:0.03);
-    const sc=0.26+0.74*Math.min(1,c.grow); f.g.scale.set(sc,sc*(crouch?0.75:1),sc);
+    const sc=0.34+0.66*Math.min(1,c.grow); f.g.scale.set(sc,sc*(crouch?0.75:1),sc);
     f.g.position.set(f.x,H(f.x,f.z),f.z); f.g.rotation.y=f.rot; f.g.visible=true;
     // ruft, wenn es den Anschluss verliert
-    f.mewT-=dt; if(f.mewT<=0){ f.mewT=rnd(4,7); if(dp>18||c.full<25) snd3d(['mew'],f.x,f.z,0.9,60,rnd(0.95,1.2)); }
+    f.mewT-=dt; if(f.mewT<=0){ const lost=dp>18||c.full<25; f.mewT=lost?rnd(4,7):rnd(14,28); snd3d(['mew'],f.x,f.z,lost?1.2:0.7,lost?70:35,rnd(1.05,1.3)); }   // ab und zu ein leises Miauen, laut wenn es den Anschluss verliert oder hungert
     // frisst an Beute in der Nähe mit
     f.eatT-=dt;
     if(f.eatT<=0&&c.full<97){ const a=animals.find(o=>o.dead&&o.carc&&o.carc.meat>0&&o.carc.tree==null&&Math.hypot(o.x-f.x,o.z-f.z)<3);
@@ -134,4 +139,4 @@ function updateFollowers(dt){
   }
 }
 
-export { cubSpot, DEN_CAP, LEARN_AT, SWITCH_AT, applyLearned, canSwitch, clearFollowers, cubFollowContext, cubLearn, denCount, dropFollower, followerOf, followers, learnOf, learnText, updateFollowers };
+export { canSwitchFor, hasOwnCub, markTaken, numOf, cubSpot, DEN_CAP, LEARN_AT, SWITCH_AT, applyLearned, canSwitch, clearFollowers, cubFollowContext, cubLearn, denCount, dropFollower, followerOf, followers, learnOf, learnText, updateFollowers };

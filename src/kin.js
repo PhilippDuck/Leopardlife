@@ -19,7 +19,7 @@ import { moveAnimal } from './ai.js';
 import { updateUI } from './hud.js';
 import { mateBecomeCub, newId, takeFromLitter } from './kinship.js';
 import { nameOf, tell } from './coop.js';
-import { SWITCH_AT, applyLearned, canSwitch, cubSpot, dropFollower, followerOf } from './cubfollow.js';
+import { SWITCH_AT, applyLearned, canSwitch, canSwitchFor, cubSpot, dropFollower, followerOf } from './cubfollow.js';
 
 /* Familienmitglieder: Partner (Platz 0) und Elterntiere (Plätze 1, 2) leben am Bau, verteidigen das Junge
    und versorgen und beschützen den Spieler, solange er selbst noch nicht ausgewachsen ist. Sie können endgültig sterben. */
@@ -125,7 +125,7 @@ function becomeCub(vol){
   { const ng=(S.gen||1)+1, nr=Object.values(REGIONS).find(r=>r.gen===ng&&!r.soon); if(nr) setTimeout(()=>toast('Deine Linie ist stark genug: '+nr.n+' ist jetzt erreichbar (Menü → Gebiete).','#9be07f'),2600); }
   const cg=S.cub.gen||((S.gen||1)+1);
   S.parents=(S.cub.parents||[S.id]).slice(); S.id=newId();   // neue Kennung: das Junge ist ein eigener Leopard, verwandt mit seinen Eltern und Geschwistern
-  S.lvl=hl; S.xp=0; S.gen=Math.max(S.gen||1,cg); takeFromLitter(); S.preg=0; S.partnerPlayer=false; S.hunger=80; S.age=0; S.kills=0; if(G.raider&&!S.cub) endRaid(G.raider);
+  S.lvl=hl; S.xp=0; S.gen=Math.max(S.gen||1,cg); takeFromLitter(P); S.preg=0; S.partnerPlayer=false; S.hunger=80; S.age=0; S.kills=0; if(G.raider&&!S.cub) endRaid(G.raider);
   feedT=rnd(30,50); save(); rebuildPlayer();
   return got;
 }
@@ -162,7 +162,7 @@ function renderBirthChoices(){
 G.cubArm=false;
 $('btnMenuCub').onclick=()=>{
   if(!S.cub) return;
-  if(!canSwitch()) return;
+  if(!canSwitchFor(P)) return;
   if(!G.cubArm){ G.cubArm=true; $('btnMenuCub').textContent='Wirklich? Du startest als Junges auf Stufe '+heirLevel(); return; }
   G.cubArm=false; $('menu').style.display='none'; playAsCub(); unpause();
 };

@@ -4,7 +4,7 @@ import { snd } from './audio.js';
 import { nameOf, tell } from './coop.js';
 import { TRAITS } from './data.js';
 import { puff } from './effects.js';
-import { FOOD_MAX, cub, feedCub, heirLevel, nearCub } from './family.js';
+import { FOOD_MAX, cub, feedCub, heirLevel, mateWild, nearCub, nearestWild, offerText, playerSeeks } from './family.js';
 import { fam, famPlace } from './kin.js';
 import { makeFur } from './models.js';
 import { P, players, rebuildPlayer } from './player.js';
@@ -14,7 +14,7 @@ import { toast } from './ui.js';
 import { rnd } from './util.js';
 import { carcassContext, nearCarcass, recordAncestor, takeMeat } from './carcass.js';
 import { canSleepNow, sleepOnTree } from './daynight.js';
-import { applyLearned, canSwitch, cubFollowContext, dropFollower, followerOf } from './cubfollow.js';
+import { applyLearned, canSwitch, canSwitchFor, cubFollowContext, dropFollower, followerOf, markTaken } from './cubfollow.js';
 
 /** Neue Kennung für einen Leoparden */
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -69,7 +69,7 @@ const litterSize=()=>Math.min(4,Math.max(1,players.length));
  * Sein bisheriger Leopard bleibt als Elterntier am Bau, wenn dort Platz ist.
  */
 function mateBecomeCub(p){
-  const c=S.cub; if(!c||!(c.n>0)||p===P||!canSwitch()) return false;
+  const c=S.cub; if(!c||!(c.n>0)||p===P||!canSwitchFor(p)) return false;
   const L=p.L, old=ensureKin(L);
   // Erbanlagen vom Elternteil, der dieser Spieler war (sonst von Spieler 1), plus die des Wurfs – doppelte werden verstärkt.
   // Eigenschafts- und Fähigkeitspunkte werden nicht vererbt (dafür gibt es Erbe und Ahnenkraft).
@@ -81,14 +81,14 @@ function mateBecomeCub(p){
   // Der alte Leopard bleibt als Elterntier am Bau (Platz 2), falls frei
   if(!S.p2){ S.p2=true; famPlace(fam[2],p.x,p.z,old.fur||{albino:false,melan:false,l:1,s:1,sn:1,ss:1}); }
   p.x=fx+rnd(-1,1); p.z=fz+rnd(-1,1); p.tree=null; p.safe=false; p.pounce=0; p.hp=maxHp(nl); p.st=maxSt(nl);
-  takeFromLitter();
+  takeFromLitter(p);
   if((nl.gen||1)>(S.gen||1)) S.gen=nl.gen;
   save(); snd.mew();
   toast(nameOf(p)+' spielt jetzt als Junges (Generation '+nl.gen+'). '+(got.length?'Gelernt: '+got.join(', ')+'. ':'')+(old.lvl>=8?'Sein alter Leopard bleibt als Elterntier am Bau.':''),'#ff9ad0');
   return true;
 }
 /** Ein Junges wurde von einem Spieler übernommen: Wurf verkleinern, ohne weitere Junge endet die Aufzucht. */
-function takeFromLitter(){ const c=S.cub; if(!c) return; c.n=(c.n||1)-1; c.taken=true; if(c.n<=0){ S.cub=null; S.food=0; } }
+function takeFromLitter(p){ const c=S.cub; if(!c) return; markTaken(p); c.n=(c.n||1)-1; c.taken=true; if(c.n<=0){ S.cub=null; S.food=0; } }
 /** Übrig gebliebene Junge eines Wurfs, aus dem schon ein Spieler stammt, wandern ab, wenn sie groß sind. */
 function litterLeaves(){ toast('Dein übriges Geschwister ist groß geworden und wandert ab, um ein eigenes Revier zu suchen.','#ff9ad0'); S.cub=null; S.food=0; save(); }
 
@@ -99,6 +99,7 @@ function mateContextInfo(p){
   if(p.tree!=null) return (p.safe&&p.climbT>=1&&canSleepNow())?{label:p.wantSleep?'Wartet auf die anderen …':'Schlafen'}:null;
   const q=pairCandidate(p); if(q&&canPair(p,q)) return {label:'Paaren mit '+nameOf(q)};   // Erbe zeigt das Geburtsfenster
   { const cf=cubFollowContext(p); if(cf) return {label:cf.label}; }
+  if(playerSeeks(p)){ const m=nearestWild(p); if(m&&m.d<4.5) return {label:'Paaren · Erbe: '+offerText(m.a.trait,p.L)}; }
   if(S.cub&&S.cub.grow<1&&S.food>0&&S.cub.full<97&&nearCub(p)) return {label:'Füttern'};
   return null;
 }
@@ -110,6 +111,7 @@ function mateContext(p){
   const q=pairCandidate(p); if(q&&canPair(p,q)){ pairPlayers(p,q); return; }
   if(q&&related(p.L,q.L)&&p.L.lvl>=8&&!S.cub&&!(S.preg>0)){ tell(p,'Ihr seid verwandt – Verwandte paaren sich nicht.','#ff9ad0'); return; }
   { const cf=cubFollowContext(p); if(cf){ cf.fn(); return; } }
+  if(playerSeeks(p)){ const m=nearestWild(p); if(m&&m.d<4.5){ mateWild(p,m.a); return; } }
   if(S.cub&&S.cub.grow<1&&S.food>0&&S.cub.full<97&&nearCub(p)){ feedCub(); return; }
 }
 

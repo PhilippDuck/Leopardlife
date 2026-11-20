@@ -237,6 +237,7 @@ function cloneWithClasses(src,prefix){
 function makeHud(p){
   const el=cloneWithClasses($('ph0'),'h-'); el.classList.remove('h-ph0');
   el.querySelectorAll('.skp,.mk,.float').forEach(e=>e.remove());   // nur die Anzeige selbst, nicht Fenster und Markierungen von Spieler 1
+  el.querySelectorAll('.h-warnRing .wa:not(.h-famArrow)').forEach(e=>e.remove());   // Warnpfeile von Spieler 1 nicht mitkopieren – sie würden nie aktualisiert und blinkten ewig
   q(el,'.h-menuBtn').style.display='none'; q(el,'.h-famArrow').style.display='none';   // Mitspieler: Start öffnet die Pause
   q(el,'.h-cds').style.display=''; el.querySelectorAll('.h-cds .kh').forEach((k,i)=>{ k.textContent=['RT','LB','Ⓨ'][i]; });
   q(el,'.h-toast').style.opacity='0'; q(el,'.h-hurt').style.opacity='0'; q(el,'.h-crossMsg').style.opacity='0';
@@ -303,4 +304,4 @@ function updateMarks(v,dt){
 }
 /** Hinweis zum Wiederbeleben für Spieler o (oder null): wen, wie weit, Fortschritt 0…1 */
 function reviveHint(o){ const p=o.reviveNear; if(!p) return null; const d=Math.hypot(o.x-p.x,o.z-p.z); return {name:nameOf(p),close:d<REVIVE_DIST,progress:p.revT/REVIVE_TIME,left:Math.max(0,REVIVE_TIME-p.revT)}; }
-export { resetMates, panelNav, cloneWithClasses, pingMates, updateMarks, reviveHint, hEl, mateToast, viewMin, tell, MAX_PLAYERS, joinPlayer, leavePlayer, renderAll, pollCoop, padTaken, downPlayer, updateCoop, updateCoopHud, othersAlive, nameOf };
+export { newMate, resetMates, panelNav, cloneWithClasses, pingMates, updateMarks, reviveHint, hEl, mateToast, viewMin, tell, MAX_PLAYERS, joinPlayer, leavePlayer, renderAll, pollCoop, padTaken, downPlayer, updateCoop, updateCoopHud, othersAlive, nameOf };

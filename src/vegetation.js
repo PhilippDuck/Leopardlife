@@ -208,6 +208,7 @@ const patches=[]; let tallGeo=null, tallMat=null, TALL_N=0;
   patches.forEach(p=>{ const n=Math.floor(p.r*p.r*4.2); for(let i=0;i<n;i++){
     const rr=Math.sqrt(Math.random())*p.r, a=Math.random()*6.283, x=p.x+Math.cos(a)*rr, z=p.z+Math.sin(a)*rr;
     if(pondAt(x,z,0.8)) continue;
+    if(Math.hypot(x-7,z-5)<2.8) continue;   // Nest am Bau frei lassen, damit man die Jungen sieht
     list.push([x,H(x,z),z,Math.random()*6.283,rnd(0.75,1.2),Math.random()]);
   }});
   for(let i=list.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)), t=list[i]; list[i]=list[j]; list[j]=t; }   // gemischt, damit "niedrig" gleichmäßig ausdünnt
