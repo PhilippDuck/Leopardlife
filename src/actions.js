@@ -20,7 +20,7 @@ import { archiveLine, carcassToTree, makeCarcass, recordAncestor, startFlee, tak
 import { goalEvent } from './goals.js';
 import { padUI, rumble } from './gamepad.js';
 import { updateUI, updateWarn } from './hud.js';
-import { downPlayer, hEl, othersAlive, tell } from './coop.js';
+import { downPlayer, hEl, othersAlive, resetMates, tell } from './coop.js';
 import { emit } from './events.js';
 import { toggleSkills } from './skills.js';
 import { bitable, biteHit, forgetWounds, startBite } from './bite.js';
@@ -146,17 +146,18 @@ function die(p,a){
 }
 /** Spieler p erwacht neu (im Bau, als Junges oder mit neuer Blutlinie). */
 function respawn(p=P){
-  let sx=2, sz=2;
+  let sx=2, sz=2, newLine=false;
   if(G.heirPending&&S.cub){
     sx=cub.x; sz=cub.z; becomeCub(false);
     toast('Generation '+S.gen+': Du bist jetzt dein Junges – mit den Erbanlagen deiner Linie und 10 % der Punkte.'+(S.p2?' Dein anderes Elterntier sorgt weiter für dich.':''),'#ff9ad0');
   }
-  else if(G.lineageEnd){ recordAncestor(G.lastCause); archiveLine(); const df=S.diff; resetState(); S.diff=df; save(); if(REG_ID!=='savanne'){ reloadWorld(false); return; } rebuildPlayer(); rebuildCub(); animals.forEach(placeAnimal); G.raider=null; toast('Eine neue Blutlinie beginnt.','#f2b84b'); }
+  else if(G.lineageEnd){ recordAncestor(G.lastCause); archiveLine(); const df=S.diff; resetState(); S.diff=df; save(); if(REG_ID!=='savanne'){ reloadWorld(false); return; } rebuildPlayer(); rebuildCub(); animals.forEach(placeAnimal); G.raider=null; newLine=true; toast('Eine neue Blutlinie beginnt.','#f2b84b'); }
   else S.hunger=Math.max(S.hunger,70);
   G.heirPending=false; G.lineageEnd=false; forgetWounds(p);
   p.tree=null; p.safe=false; p.dropY=0; p.upNow=0; p.x=sx; p.z=sz; p.rot=START_ROT; p.cam.yaw=START_YAW; p.hp=maxHp(); p.st=maxSt(); p.pounce=0; p.pcd=0; p.sneak=false; p.combatT=0; p.g.rotation.z=0;
   animals.forEach(o=>{ o.aggro=0; o.sus=0; o.near=false; if(o.state==='chase'){ o.state='wander'; o.timer=0; } });
   updateWarn(0); $('hurt').style.opacity=0; $('crossMsg').style.opacity='0'; p.downT=null; $('dead').style.display='none'; p.dead=false; G.paused=false; initAudio(); snd.click();
+  if(newLine) resetMates();   // neue Blutlinie: auch die Mitspieler fangen neu an
   emit('respawn');
   if(!touchUI()){ try{ const r=canvas.requestPointerLock(); if(r&&r.catch) r.catch(()=>{}); }catch(e){} }
 }

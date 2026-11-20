@@ -21,6 +21,7 @@ import { ensureKin } from './kinship.js';
 import { startTutorial } from './tutorial.js';
 import { ctrlArt } from './ctrlart.js';
 import { leaveTitle } from './title.js';
+import { resetMates } from './coop.js';
 
 /* Pausenmenü (Esc oder Menü-Knopf) */
 G.menuT=0; let hadLock=false, restartArm=false;
@@ -68,7 +69,7 @@ $('btnMenuSkills').onclick=()=>{ const p=players.find(o=>o!==P&&o.pad===G.ovPad)
 $('btnRestart').onclick=()=>{
   if(!restartArm){ restartArm=true; $('btnRestart').textContent='Wirklich? Stufe und Fähigkeiten gehen verloren'; return; }
   resetState(); save(); if(REG_ID!=='savanne'){ reloadWorld(true); return; }
-  rebuildPlayer(); rebuildCub(); $('menu').style.display='none'; respawn(); animals.forEach(placeAnimal); G.raider=null; G.lastHit=null; G.lastHitT=0; updateUI();
+  rebuildPlayer(); rebuildCub(); $('menu').style.display='none'; respawn(); resetMates(); animals.forEach(placeAnimal); G.raider=null; G.lastHit=null; G.lastHitT=0; updateUI();
   // zurück zum Startbildschirm, um die Schwierigkeit zu wählen
   G.started=false; G.paused=true; if(document.exitPointerLock) document.exitPointerLock();
   $('btnPlay').textContent='Spielen'; $('btnReset').style.display='none'; showDiff(); $('start').style.display='flex';
@@ -84,7 +85,7 @@ let resetArm=false;
 function showDiff(){ $('diffRow').style.display='block'; document.querySelectorAll('.diffb').forEach((/** @type {HTMLElement} */ b)=>b.classList.toggle('on',b.dataset.d===S.diff)); $('diffTxt').textContent=D().d; }
 document.querySelectorAll('.diffb').forEach((/** @type {HTMLElement} */ b)=>b.addEventListener('click',()=>{ S.diff=b.dataset.d; showDiff(); }));
 if($('btnReset').style.display==='none') showDiff();
-$('btnReset').onclick=()=>{ if(!resetArm){ resetArm=true; $('btnReset').textContent='Wirklich? Fortschritt löschen'; return; } resetState(); save(); if(REG_ID!=='savanne'){ reloadWorld(true); return; } rebuildPlayer(); rebuildCub(); P.hp=maxHp(); P.st=maxSt(); $('btnReset').style.display='none'; $('btnPlay').textContent='Spielen'; showDiff(); };
+$('btnReset').onclick=()=>{ if(!resetArm){ resetArm=true; $('btnReset').textContent='Wirklich? Fortschritt löschen'; return; } resetState(); save(); if(REG_ID!=='savanne'){ reloadWorld(true); return; } rebuildPlayer(); rebuildCub(); P.hp=maxHp(); P.st=maxSt(); resetMates(); $('btnReset').style.display='none'; $('btnPlay').textContent='Spielen'; showDiff(); };
 
 /* Einstellungsfenster */
 function openSettings(){ setPounceLabel(); renderKeys(); $('menu').style.display='none'; $('settings').style.display='flex'; }

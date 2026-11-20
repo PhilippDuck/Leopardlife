@@ -44,7 +44,7 @@ function joinPlayer(i,gp){
   // Neu: fremder Leopard auf der Stufe von Spieler 1, mit den Punkten, die er bis dahin bekommen hätte (2 je Stufe) – selbst verteilen.
   // Bekannt (gespeichert): hat Spieler 1 inzwischen allein weitergespielt, holt er die fehlenden Stufen samt Punkten auf.
   let L=S.mates[num];
-  if(!L){ L=copyLeopard(S); Object.assign(L,{a:fresh().a,b:fresh().b,traits:[],xp:0,pts:2*(S.lvl-1),fur:FURS[num-1],hunger:100,age:0,kills:0,gen:S.gen||1}); S.mates[num]=L; }
+  if(!L){ L=newMate(num); S.mates[num]=L; }
   else if(L.lvl<S.lvl){ L.pts+=2*(S.lvl-L.lvl); L.lvl=S.lvl; L.xp=0; }
   // Wer neu einsteigt, ist ein fremder Leopard (nicht verwandt) – erst eure Jungen sind miteinander verwandt
   if(!L.id||L.id===S.id){ L.id=newId(); L.parents=[]; } ensureKin(L); save();
@@ -54,6 +54,18 @@ function joinPlayer(i,gp){
   players.push(p); layoutChanged(); renderPlayers();
   toast(NAMES[num-1]+' ist dabei (Stufe '+L.lvl+')! '+(L.pts>0?L.pts+' Punkte verteilen mit Back · ':'Back: Entwicklung · ')+'Back halten: aussteigen','#9be07f'); snd.click();
   return p;
+}
+/** Werte eines neu einsteigenden Mitspielers: fremder Leopard auf der Stufe von Spieler 1 */
+function newMate(num){ const L=copyLeopard(S); Object.assign(L,{a:fresh().a,b:fresh().b,traits:[],xp:0,pts:2*(S.lvl-1),fur:FURS[num-1],hunger:100,age:0,kills:0,gen:S.gen||1}); return L; }
+/** Neustart / neue Blutlinie: alle Mitspieler fangen ebenfalls von vorn an (neue Werte im neuen Spielstand) und stehen bei Spieler 1 */
+function resetMates(){
+  S.mates={};
+  players.forEach(p=>{ if(p===P) return;
+    const L=newMate(p.num); L.id=newId(); L.parents=[]; ensureKin(L); S.mates[p.num]=L; p.L=L;
+    const ang=P.rot+Math.PI/2*(p.num%2?1:-1); p.x=P.x+Math.sin(ang)*2.5; p.z=P.z+Math.cos(ang)*2.5;
+    Object.assign(p,{dead:false,downT:null,tree:null,safe:false,drag:null,eatC:null,bite:null,pounce:0,combatT:0,sneak:false});
+    p.hp=maxHp(L); p.st=maxSt(L); p.g.rotation.z=0; hEl(p,'hurt').style.opacity='0'; if(p.skOpen) toggleSkills(p); });
+  save();
 }
 /** Spieler p steigt aus (Back zweimal oder Controller getrennt). */
 function leavePlayer(p){
@@ -291,4 +303,4 @@ function updateMarks(v,dt){
 }
 /** Hinweis zum Wiederbeleben für Spieler o (oder null): wen, wie weit, Fortschritt 0…1 */
 function reviveHint(o){ const p=o.reviveNear; if(!p) return null; const d=Math.hypot(o.x-p.x,o.z-p.z); return {name:nameOf(p),close:d<REVIVE_DIST,progress:p.revT/REVIVE_TIME,left:Math.max(0,REVIVE_TIME-p.revT)}; }
-export { panelNav, cloneWithClasses, pingMates, updateMarks, reviveHint, hEl, mateToast, viewMin, tell, MAX_PLAYERS, joinPlayer, leavePlayer, renderAll, pollCoop, padTaken, downPlayer, updateCoop, updateCoopHud, othersAlive, nameOf };
+export { resetMates, panelNav, cloneWithClasses, pingMates, updateMarks, reviveHint, hEl, mateToast, viewMin, tell, MAX_PLAYERS, joinPlayer, leavePlayer, renderAll, pollCoop, padTaken, downPlayer, updateCoop, updateCoopHud, othersAlive, nameOf };
