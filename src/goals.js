@@ -6,6 +6,7 @@ import { ART, SPECIES } from './data.js';
 import { S, save, xpNeed } from './save.js';
 import { toast } from './ui.js';
 import { $ } from './util.js';
+import { tutEvent } from './tutorial.js';
 
 /* ---------- Tagesziele ---------- */
 // Zu jedem Sonnenaufgang drei neue Aufgaben; jede bringt einen Teil der nächsten Stufe als Bonus-Erfahrung.
@@ -21,12 +22,14 @@ function newGoals(){
   pool.push({id:'meat',text:'Friss an einem Kadaver',need:1});
   if(S.lvl<12) pool.push({id:'hide',text:'Bleib 20 s versteckt, während ein Raubtier in der Nähe ist',need:20});
   if(S.b.climb) pool.push({id:'climb',text:'Klettere auf 3 Bäume',need:3});
+  if(S.b.climb) pool.push({id:'treeMeat',text:'Zieh eine Beute auf einen Baum',need:1});
   if(S.cub&&S.cub.grow<1) pool.push({id:'feed',text:'Bring deinem Jungen 6 Portionen Futter',need:6});
   for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)), t=pool[i]; pool[i]=pool[j]; pool[j]=t; }
   S.goals={day:S.day||0,list:pool.slice(0,3).map(g=>Object.assign(g,{have:0,done:false}))};
   goalHtml=''; save();
 }
 function goalEvent(type,n,extra){
+  tutEvent(type);
   if(!S.goals) return;
   for(const g of S.goals.list){
     if(g.done) continue;

@@ -31,7 +31,7 @@ const doc={ querySelectorAll:()=>[], getElementById:el, addEventListener(){}, cr
 let raf=null;
 const g={ window:win, document:doc, navigator:{maxTouchPoints:0}, localStorage:{getItem:k=>(k in ls?ls[k]:null),setItem:(k,v)=>{ls[k]=String(v);}}, THREE:win.THREE,
   requestAnimationFrame:fn=>{ if(fn.name==='frame') raf=fn; else fn(); }, setTimeout:fn=>{ fn(); } };
-const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping};';
+const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping};';
 new Function(...Object.keys(g), body)(...Object.values(g));
 const T=globalThis.__T; const rnd2=()=>Math.random()*8-4; const localStorageDump=()=>ls['jaguar-lines'];
 els.btnPlay.onclick();
@@ -308,4 +308,14 @@ console.log('audio nodes created',ACs&&ACs.count());
   T.togglePounce(Q);
   if(!ok){ console.log('FEHLER: Sprungrichtung je Spieler',T.pounceRun(P),T.pounceRun(Q),Q.rot); process.exit(1); }
   console.log('Sprungrichtung: jeder Spieler stellt sie für sich ein'); }
+{ const P=T.P, a=T.animals.find(o=>o.sp.id==='deer'&&!o.dead)||T.animals.find(o=>o.sp.id==='anti'&&!o.dead);
+  const keep=[a.x,a.z,a.dead,a.carc,a.state]; a.dead=true; a.x=P.x+1.2; a.z=P.z; T.makeCarcass(a,5);
+  P.L.hunger=95; P.dead=false; P.tree=null; P.ctl.fw=P.ctl.rt=0; P.st=100; P.hurtT=0;
+  const c1=T.carcassContext(P); c1&&c1.fn(); const grabbed=P.drag===a;
+  P.ctl.fw=1; T.updateDrag(P,0.5); P.ctl.fw=0; const drained=P.st<100;
+  T.carcassToTree(P,0); P.tree=0; P.climbT=1;
+  const inTree=a.carc.tree===0&&P.drag==null, reach=T.nearCarcass(P)===a; P.tree=null; const unreach=T.nearCarcass(P)!==a;
+  T.endCarcass(a); a.carc=keep[3]; a.dead=keep[2]; a.x=keep[0]; a.z=keep[1]; a.state=keep[4];
+  if(!c1||!/packen/.test(c1.label)||!grabbed||!drained||!inTree||!reach||!unreach){ console.log('FEHLER: Beute ziehen',c1&&c1.label,grabbed,drained,inTree,reach,unreach); process.exit(1); }
+  console.log('Beute ziehen: packen, Ausdauer sinkt, mit in den Baum, nur von oben erreichbar'); }
 console.log('ALL OK');

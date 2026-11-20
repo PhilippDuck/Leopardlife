@@ -1,7 +1,7 @@
 // LeopardLife – Kadaver, Aasfresser, Herden und Ahnenbuch.
 import { animals } from './animals.js';
 import { snd } from './audio.js';
-import { DIFF, ICOL, TRAITS, ico } from './data.js';
+import { DIFF, FOOD, ICOL, TRAITS, ico } from './data.js';
 import { dropOrbs, meatOrbs, puff } from './effects.js';
 import { FOOD_MAX } from './family.js';
 
@@ -14,6 +14,9 @@ import { floatText, toast } from './ui.js';
 import { $ } from './util.js';
 import { goalEvent } from './goals.js';
 import { related } from './kinship.js';
+import { alarmAt, callSoon } from './calls.js';
+import { tell } from './coop.js';
+import { trees } from './vegetation.js';
 
 /* ---------- Kadaver, Aasfresser, Herden, Ahnenbuch ---------- */
 // Kadaver: Beute ab der Größe eines Schakals bleibt liegen. Jeder Bissen ist eine Kugel über dem Kadaver – je größer das Tier,
@@ -26,14 +29,53 @@ function makeCarcass(a,meat){
   a.g.position.set(a.x,H(a.x,a.z)+a.sp.size*0.22,a.z); animLegs(a.g,0,0);
   const sc=animals.filter(o=>!o.dead&&(o.sp.id==='hyena'||o.sp.id==='jack')&&o.state==='wander'&&Math.hypot(o.x-a.x,o.z-a.z)<150)
     .sort((p,q)=>(p.sp.id==='hyena'?0:1)-(q.sp.id==='hyena'?0:1)||Math.hypot(p.x-a.x,p.z-a.z)-Math.hypot(q.x-a.x,q.z-a.z)).slice(0,2);
-  sc.forEach(o=>{ o.state='scav'; o.carc=a; o.eatT=0; o.sus=0; });
+  sc.forEach(o=>{ o.state='scav'; o.carc=a; o.eatT=0; o.sus=0; if(o.sp.id==='hyena') callSoon(o); });
   if(sc.length&&Math.hypot(P.x-a.x,P.z-a.z)<80){ const hy=sc[0].sp.id==='hyena';
     setTimeout(()=>toast((hy?'Hyänen':'Schakale')+' haben die Beute gewittert und kommen!'+(sc[0].sp.hunt&&S.lvl<sc[0].sp.hunt?' Nimm dir, was du brauchst, und verschwinde.':''),'#f2b84b'),1200); }
 }
 /** Kadaver a ist weg (leer, verdorben oder Tier neu gesetzt) */
 function endCarcass(a){ if(!a.carc) return; dropOrbs(a.carc.orbs); a.carc=null; }
-/** Kadaver mit Fleisch in Reichweite von Spieler p, sonst null */
-function nearCarcass(p=P){ for(const a of animals){ if(a.carc&&a.carc.meat>0&&Math.hypot(a.x-p.x,a.z-p.z)<a.rad+2.6) return a; } return null; }
+/** Kadaver mit Fleisch in Reichweite von Spieler p, sonst null. Ein Kadaver im Baum ist nur von diesem Baum aus erreichbar. */
+function nearCarcass(p=P){ for(const a of animals){ if(!a.carc||a.carc.meat<=0) continue; const tr=a.carc.tree;
+  if(tr!=null?(p.tree===tr&&p.climbT>=1):(p.tree==null&&Math.hypot(a.x-p.x,a.z-p.z)<a.rad+2.6)) return a; } return null; }
+
+/* ---------- Beute ziehen und in einen Baum bringen ----------
+   Wie echte Leoparden: Beute bis Antilopengröße packen, langsam (und angreifbar) zu einem Baum ziehen und mit hinaufnehmen.
+   Im Baum kommen Hyänen, Schakale und Löwen nicht heran, und das Fleisch hält länger. */
+const DRAG_MAX=10;                     // Bissen: bis Antilope; Riesenantilope und großes Krokodil sind zu schwer
+const canDrag=c=>c&&c.carc&&c.carc.tree==null&&(FOOD[c.sp.id]||0)<=DRAG_MAX&&!players.some(o=>o.drag===c);
+function grabCarcass(p,c){ if(!canDrag(c)) return; p.eatC=null; p.drag=c; p.sneak=false; snd.step(0.4); tell(p,'Beute gepackt – zu einem Baum ziehen und klettern (E/Ⓨ) · nochmal: loslassen','#e0a060'); }
+function dropCarcass(p){ if(!p.drag) return; const c=p.drag; p.drag=null; if(c.carc) c.carc.orbs.userData.y0=H(c.x,c.z)+c.sp.size*1.4+0.6; }
+/** Gezogene Beute folgt hinter dem Leoparden; kostet Ausdauer; bei Erschöpfung, Treffer oder Tod lässt er los */
+function updateDrag(p,dt){
+  const c=p.drag; if(!c) return;
+  if(p.dead||!c.carc||c.carc.meat<=0||p.st<=1||p.hurtT>0.3){ if(p.st<=1&&!p.dead) tell(p,'Zu erschöpft – Beute losgelassen','#b9b7a6'); dropCarcass(p); return; }
+  if(Math.hypot(p.ctl.fw,p.ctl.rt)>0.1) p.st-=6*dt;
+  const bx=p.x-Math.sin(p.rot)*(1.1+c.sp.size*0.6), bz=p.z-Math.cos(p.rot)*(1.1+c.sp.size*0.6);
+  c.x+=(bx-c.x)*Math.min(1,dt*8); c.z+=(bz-c.z)*Math.min(1,dt*8);
+  const gy=H(c.x,c.z); c.g.position.set(c.x,gy+c.sp.size*0.22,c.z); c.g.rotation.y=p.rot+Math.PI/2;
+  const o=c.carc.orbs; o.userData.y0=gy+c.sp.size*1.4+0.6; o.position.x=c.x; o.position.z=c.z;
+}
+/** Die gezogene Beute wird beim Klettern auf Baum i mitgenommen */
+function carcassToTree(p,i){
+  const c=p.drag; p.drag=null; if(!c||!c.carc) return;
+  const t=trees[i], px=t.x+t.perch[0], pz=t.z+t.perch[2], py=t.y+t.perch[1];
+  const ang=Math.atan2(px-t.x,pz-t.z)+1.2, off=0.5;
+  c.x=px+Math.sin(ang)*off; c.z=pz+Math.cos(ang)*off; c.carc.tree=i; c.carc.t+=90;
+  c.g.position.set(c.x,py-0.05,c.z); c.g.rotation.y=ang;
+  const o=c.carc.orbs; o.position.set(c.x,py+c.sp.size*0.9+0.9,c.z); o.userData.y0=o.position.y;
+  animals.forEach(a=>{ if(a.state==='scav'&&a.carc===c){ a.state='wander'; a.timer=0; a.carc=null; } });   // Aasfresser geben auf
+  goalEvent('treeMeat',1); floatText('Beute im Baum',p.x,py+1.6,p.z,'#e0a060');
+}
+/** Kontextaktion am Kadaver für Spieler p (gemeinsam für Tastatur, Touch und Controller), sonst null */
+function carcassContext(p){
+  if(p.drag) return {label:'Beute loslassen',fn:()=>dropCarcass(p)};
+  const cc=nearCarcass(p); if(!cc) return null;
+  if(cc.carc.tree==null&&S.cub&&S.cub.grow<1&&S.food<FOOD_MAX&&p.eatC!==cc) return {label:'Fleisch mitnehmen',fn:()=>takeMeat(cc,true,p)};
+  if(p.L.hunger<90&&p.eatC!==cc) return {label:'Fressen ('+cc.carc.meat+' Bissen übrig)',fn:()=>takeMeat(cc,false,p)};
+  if(canDrag(cc)) return {label:'Beute packen und ziehen',fn:()=>grabCarcass(p,cc)};
+  return null;
+}
 /** Spieler p: Fleisch für das Junge in den Vorrat mitnehmen (store) oder anfangen zu fressen (Bissen für Bissen, bis satt) */
 function takeMeat(c,store,p=P){
   if(store){ const n=Math.min(c.carc.meat,FOOD_MAX-S.food); if(n<=0) return; S.food+=n; c.carc.meat-=n; snd.eat();
@@ -45,7 +87,8 @@ function takeMeat(c,store,p=P){
 function updateEating(p,dt){
   const c=p.eatC; if(!c) return;
   const L=p.L, moving=Math.hypot(p.ctl.fw,p.ctl.rt)>0.1;
-  if(p.dead||moving||p.tree!=null||!c.carc||c.carc.meat<=0||L.hunger>=100||Math.hypot(c.x-p.x,c.z-p.z)>c.rad+3.2){ p.eatC=null; return; }
+  const inReach=c.carc&&(c.carc.tree!=null?p.tree===c.carc.tree:(p.tree==null&&Math.hypot(c.x-p.x,c.z-p.z)<=c.rad+3.2));
+  if(p.dead||moving||!inReach||c.carc.meat<=0||L.hunger>=100){ p.eatC=null; return; }
   p.eatT+=dt; if(p.eatT<BITE_T) return; p.eatT=0;
   c.carc.meat--; L.hunger=Math.min(100,L.hunger+10); p.hp=Math.min(maxHp(L),p.hp+maxHp(L)*0.05);
   snd.eat(); puff(c.x,H(c.x,c.z)+0.6,c.z,0xc0392b,3,0.35);
@@ -54,6 +97,7 @@ function updateEating(p,dt){
 // Herden: Wasserschweine, Hirsche und Antilopen ziehen in Gruppen. Flieht eines, fliehen die Nachbarn mit.
 const herdLead=a=>{ for(const m of a.herd) if(!m.dead) return m; return a; };
 function startFlee(a){
+  if(a.state!=='flee') alarmAt(a);
   a.state='flee'; a.fleeT=0;
   if(a.herd) for(const m of a.herd) if(m!==a&&!m.dead&&m.state==='wander'&&Math.hypot(m.x-a.x,m.z-a.z)<40){ m.state='flee'; m.fleeT=0; m.sus=0; }
 }
@@ -130,4 +174,5 @@ $('btnBookBack').onclick=closeBook;
 
 export { esc, herdLead, startFlee };
 export { recordPartner, renderTree, treeNodes };
+export { carcassContext, carcassToTree, dropCarcass, updateDrag };
 export { archiveLine, bookOpen, closeBook, endCarcass, makeCarcass, nearCarcass, recordAncestor, takeMeat, updateEating };
