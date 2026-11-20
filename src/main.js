@@ -40,6 +40,7 @@ import { updateCalls } from './calls.js';
 import { updateTutorial } from './tutorial.js';
 import { updateTitle } from './title.js';
 import { updateBite } from './bite.js';
+import { updateFollowers } from './cubfollow.js';
 if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }); }
 if(typeof THREE==='undefined'){ $('err').textContent='Three.js konnte nicht geladen werden. Bitte Seite neu laden.'; $('btnPlay').disabled=true; throw new Error('three.js fehlt'); }
 
@@ -88,7 +89,7 @@ function step(dt){
   updateFx(dt);
   if(G.toastT>0){ G.toastT-=dt; G.toastShown+=dt; if(G.toastT<=0){ if(toastQ.length){ const q=toastQ.shift(); showToast(q[0],q[1],q[2]); } else $('toast').style.opacity=0; } }
   if(G.lastHitT>0) G.lastHitT-=dt;
-  updateWarn(dt); updateCross(); updateTracks(dt); updateFamily(dt); updateCub(dt); updateFamArrow(dt); updateLife(dt); updateDayNight(dt);
+  updateWarn(dt); updateCross(); updateTracks(dt); updateFamily(dt); updateCub(dt); updateFollowers(dt); updateFamArrow(dt); updateLife(dt); updateDayNight(dt);
   if(G.noStT>0){ G.noStT-=dt; if(G.noStT<=0) $('crossMsg').style.opacity=0; }
   G.uiT-=dt; if(G.uiT<=0){ G.uiT=0.1; updateUI(); }
   drawRadar(); updateCoopHud(dt);

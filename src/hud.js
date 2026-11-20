@@ -22,6 +22,7 @@ import { W } from './weather.js';
 import { hEl, nameOf, reviveHint, viewMin } from './coop.js';
 import { mateContextInfo } from './kinship.js';
 import { tutActive } from './tutorial.js';
+import { LEARN_AT, SWITCH_AT, followerOf, followers, learnText } from './cubfollow.js';
 
 const rc=$('rc').getContext('2d');   // Spürkarte
 const waPool=[]; let beatT=0;
@@ -138,9 +139,9 @@ function updateUI(p=P){
   if(cu||S.preg>0||(canMate()&&seekT<15)||kid){
     cb.style.display='block'; h('cubBars').style.display=cu&&cu.grow<1?'block':'none'; let msg='';
     if(cu&&cu.grow<1){
-      h('cubT').textContent='Junges · satt '+Math.round(cu.full)+' % · groß '+Math.round(cu.grow*100)+' %'; h('foodT').textContent='Futter '+S.food+'/'+FOOD_MAX;
+      h('cubT').textContent='Junges · satt '+Math.round(cu.full)+' % · groß '+Math.round(cu.grow*100)+' %'+(cu.grow<LEARN_AT?' · Lehrzeit ab 25 %':cu.grow<SWITCH_AT?' · Wechsel ab 50 %':' · halbstark'); h('foodT').textContent='Futter '+S.food+'/'+FOOD_MAX;
       h('bCf').style.width=cu.full+'%'; h('bCg').style.width=(cu.grow*100)+'%';
-      msg=G.raider?(G.raider.found?'⚠ Dein Junges wird angegriffen!':'⚠ Räuber sucht dein Junges!'):cu.hp<1?'Leben des Jungen: '+Math.max(0,Math.round(cu.hp*100))+' %':cu.full<25?'Dein Junges hat Hunger':'';
+      msg=G.raider?(G.raider.found?'⚠ Dein Junges wird angegriffen!':'⚠ Räuber sucht dein Junges!'):cu.hp<1?'Leben des Jungen: '+Math.max(0,Math.round(cu.hp*100))+' %':cu.full<25?'Dein Junges hat Hunger':cu.grow>=LEARN_AT?(followerOf(p)?(followerOf(p).wait?'Wartet auf dich · ':'Kommt mit · ')+learnText(p):'Am Bau abholen und mit auf die Jagd nehmen'):'';
     } else if(cu){ h('cubT').textContent='Nachwuchs ausgewachsen'; h('foodT').textContent='dein Erbe'; }
     else if(S.preg>0){ h('cubT').textContent='Junges kommt bald im Bau zur Welt'; h('foodT').textContent=''; }
     else if(canMate()){ h('cubT').textContent=S.partner?'Dein Partner wartet':'Partner suchen'; h('foodT').textContent='rosa Punkt auf der Spürkarte'; }
@@ -197,6 +198,7 @@ function drawRadar(p=P,cv=/** @type {HTMLCanvasElement} */(hEl(p,'rc')),ctx=p===
   rc.save(); rc.translate(W/2,W/2); rc.rotate(p.cam.yaw);
   rc.save(); rc.scale(k/RB,k/RB); rc.drawImage(radarBg,-(p.x+RW)*RB,-(p.z+RW)*RB); rc.restore();
   if(S.cub){ const dx=cub.x-p.x, dz=cub.z-p.z; if(dx*dx+dz*dz<R*R){ rc.fillStyle='#ff7ab8'; rc.fillRect(dx*k-6*sc,dz*k-6*sc,12*sc,12*sc); } }
+  for(const f of followers){ const dx=f.x-p.x, dz=f.z-p.z; if(dx*dx+dz*dz<R*R){ rc.fillStyle='#ff7ab8'; rc.beginPath(); rc.arc(dx*k,dz*k,4.5*sc,0,6.283); rc.fill(); } }
   for(let g=0;g<4;g++){
     rc.fillStyle=RADAR_COL[g]; rc.beginPath(); let any=false;
     for(let i=0;i<animals.length;i++){ const a=animals[i]; if(a.dead||(a.sp.friend&&!a.g.visible)) continue; if(a.state==='lurk'&&Math.abs(a.x-p.x)+Math.abs(a.z-p.z)>18) continue;

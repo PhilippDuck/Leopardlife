@@ -16,6 +16,7 @@ import { canvas } from './engine.js';
 import { padUI, setPadFocus } from './gamepad.js';
 import { pounceLabel, togglePounce } from './actions.js';
 import { stopTutorial, tutActive } from './tutorial.js';
+import { canSwitch } from './cubfollow.js';
 
 /* Icons für Eigenschaften, Fähigkeiten und Erbanlagen: 24er-Raster, Strichzeichnung in der jeweiligen Farbe */
 /** Wessen Entwicklung gerade offen ist: Spieler 1 oder ein Mitspieler */
@@ -39,7 +40,8 @@ function renderSkills(p=skP,root=null){
 function skDraw(p,root){
   const L=p.L, g=id=>root?root.querySelector('.s-'+id):$(id);
   g('skWho').textContent=p===P?(players.length>1?' · Spieler 1':''):' · Spieler '+(p.num||2);
-  { const b=g('btnSkCub'), ok=p!==P&&!!S.cub&&S.cub.n>0; b.style.display=ok?'block':'none'; if(ok&&!p.cubArm) b.textContent='Als Junges weiterspielen (Stufe '+heirLevel()+', Generation '+(S.cub.gen||'?')+')'; }
+  { const b=/** @type {HTMLButtonElement} */(g('btnSkCub')), ok=p!==P&&!!S.cub&&S.cub.n>0, sw=canSwitch(); b.style.display=ok?'block':'none'; b.disabled=!sw;
+    if(ok&&!p.cubArm) b.textContent=sw?'Als Junges weiterspielen (Stufe '+heirLevel()+', Generation '+(S.cub.gen||'?')+')':'Als Junges weiterspielen: ab 50 % groß (jetzt '+Math.round(S.cub.grow*100)+' %)'; }
   g('skPts').textContent=L.pts+' Punkt'+(L.pts===1?'':'e');
   g('btnSkPounce').textContent=pounceLabel(p); g('btnSkTut').style.display=tutActive(p)?'':'none';
   { const n=spentSince(p), r=/** @type {HTMLButtonElement} */(g('btnSkReset')); r.disabled=!n; r.textContent=n?'↺ Zurücksetzen (+'+n+' Punkt'+(n===1?'':'e')+')':'↺ Auswahl zurücksetzen'; }

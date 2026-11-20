@@ -14,6 +14,7 @@ import { rnd } from './util.js';
 import { hurtPlayer, killAnimal } from './actions.js';
 import { padUI } from './gamepad.js';
 import { touchUI } from './input.js';
+import { cubLearn } from './cubfollow.js';
 
 /** Festbeißen bei jedem Tier, das ein Biss nicht sofort erledigt (d = Schaden dieses Bisses) – außer Leoparden und Krokodilen im Wasser */
 const fights=a=>!!(a.sp.pred||a.sp.fight);
@@ -65,7 +66,7 @@ function endBite(p,broke){
   const a=b.a; a.held=null; if(a.dead) return;
   const avg=b.scores.reduce((x,y)=>x+y,0)/b.n;   // nicht mehr geschaffte Bisse zählen als 0
   const chance=Math.max(0.03,Math.min(0.97,avg*1.15+(has('kiefer',p.L)?0.08:0)+Math.min(0.1,(p.L.lvl-(a.sp.hunt||a.sp.lvl||1))*0.02)-(a.sp.boss?0.12:0)-(fights(a)?0.1:0)));
-  if(!broke&&Math.random()<chance){ killAnimal(a,p); return; }
+  if(!broke&&Math.random()<chance){ cubLearn(p,'bite'); killAnimal(a,p); return; }
   // losgerissen: blutet je nach Schwere; leicht verletzt heilt es wieder
   a.wound={sev:avg,t:0,die:avg<0.28?0:14+(1-avg)*70,heal:30,by:p,acc:0};
   a.hp=Math.max(1,Math.round(a.hp*(1-avg*0.6)));

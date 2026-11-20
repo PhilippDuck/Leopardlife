@@ -24,6 +24,7 @@ import { downPlayer, hEl, othersAlive, resetMates, tell } from './coop.js';
 import { emit } from './events.js';
 import { toggleSkills } from './skills.js';
 import { bitable, biteHit, forgetWounds, startBite } from './bite.js';
+import { SWITCH_AT, cubLearn, cubSpot } from './cubfollow.js';
 
 /* ---------- Aktionen ---------- */
 /** Index des nächsten erreichbaren Baums für Spieler p, sonst -1. */
@@ -131,8 +132,9 @@ function die(p,a){
       ? 'Tipp: '+(a.sp.id==='jack'?'Schakale':a.sp.id==='hyena'?'Hyänen':'Löwen')+' jagen dich bis Stufe '+a.sp.hunt+'. Schleiche (C) ins hohe Gras, bis sie dich verlieren.'
       : 'Tipp: Dieses Tier wehrt sich. Greife aus dem Hinterhalt an und zieh dich zurück, wenn dein Leben knapp wird.';
     if(G.heirPending){
-      $('deadTxt').textContent=cause+' Aber dein Junges lebt: Du spielst als dein Junges weiter (Stufe '+heirLevel()+'). Es erbt die Erbanlagen deiner Linie und 10 % deiner Punkte.';
-      $('deadTip').textContent='Je mehr du es gefüttert hast, desto größer startet es.';
+      const early=S.cub.grow<SWITCH_AT, hl=early?1+Math.floor(SWITCH_AT*7):heirLevel();
+      $('deadTxt').textContent=cause+(early?' Dein Partner zieht dein Junges allein groß – du spielst als halbstarkes Junges weiter (Stufe '+hl+'), aber ohne das, was du ihm hättest beibringen können.':' Aber dein Junges lebt: Du spielst als dein Junges weiter (Stufe '+hl+') – mit allem, was es bei dir gelernt hat.');
+      $('deadTip').textContent='Je größer es ist und je mehr es bei dir gelernt hat, desto stärker startet es.';
       $('btnRespawn').textContent='Als Junges weiterleben';
     } else $('btnRespawn').textContent='Im Bau neu erwachen';
     if(a.sp.id==='hunger'&&!G.heirPending) $('deadTip').textContent='Tipp: Erlegte Beute macht satt. Hast du ein Junges, wandert sie in den Vorrat – friss mit F daraus, wenn du hungrig bist.';
@@ -148,7 +150,7 @@ function die(p,a){
 function respawn(p=P){
   let sx=2, sz=2, newLine=false;
   if(G.heirPending&&S.cub){
-    sx=cub.x; sz=cub.z; becomeCub(false);
+    { const sp=cubSpot(P); sx=sp.x; sz=sp.z; } becomeCub(false);
     toast('Generation '+S.gen+': Du bist jetzt dein Junges – mit den Erbanlagen deiner Linie und 10 % der Punkte.'+(S.p2?' Dein anderes Elterntier sorgt weiter für dich.':''),'#ff9ad0');
   }
   else if(G.lineageEnd){ recordAncestor(G.lastCause); archiveLine(); const df=S.diff; resetState(); S.diff=df; save(); if(REG_ID!=='savanne'){ reloadWorld(false); return; } rebuildPlayer(); rebuildCub(); animals.forEach(placeAnimal); G.raider=null; newLine=true; toast('Eine neue Blutlinie beginnt.','#f2b84b'); }
@@ -173,6 +175,7 @@ function hitAnimal(a,p=P){
   puff(a.x,H(a.x,a.z)+a.sp.size,a.z,0xc0392b,4,0.5);
   G.lastHit=a; G.lastHitT=6; snd.hit(); if(amb){ snd.ambush(); goalEvent('amb',1); buzz(p,0.25,0.6,120); G.slowT=Math.max(G.slowT,0.16); p.cam.shake=Math.max(p.cam.shake,0.3*pScale(p.L)); }
   // aus dem Hinterhalt auf ein Tier, das dieser Biss nicht erledigt: festbeißen (das Minispiel entscheidet)
+  if(amb) cubLearn(p,'amb');
   if(amb&&a.hp>0&&!a.held&&!players.some(o=>o.bite)&&bitable(a,0)){ a.hp+=d; startBite(p,a,d); return; }   // überlebt den Biss: festbeißen
   if(a.wound) a.hp-=Math.round(d*0.5);   // verwundete Beute ist leichter zu erlegen
   if(a.hp<=0){ killAnimal(a,p); return; }
@@ -181,6 +184,7 @@ function hitAnimal(a,p=P){
 }
 /** Tier a ist erlegt (von Spieler p); fromWounds: an seinen Wunden gestorben, während der Jäger anderswo ist */
 function killAnimal(a,p=P,fromWounds){
+  if(!fromWounds&&!p.dead) cubLearn(p,'kill');
   if(a.dead) return;
   if(!fromWounds){ snd.kill(); buzz(p,0.5,0.8,180); G.slowT=Math.max(G.slowT,0.22); p.cam.shake=Math.max(p.cam.shake,0.4*pScale(p.L)); }
   a.wound=null; a.held=null;

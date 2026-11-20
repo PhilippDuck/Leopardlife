@@ -4,7 +4,7 @@ import { snd } from './audio.js';
 import { nameOf, tell } from './coop.js';
 import { TRAITS } from './data.js';
 import { puff } from './effects.js';
-import { FOOD_MAX, cub, feedCub, heirLevel } from './family.js';
+import { FOOD_MAX, cub, feedCub, heirLevel, nearCub } from './family.js';
 import { fam, famPlace } from './kin.js';
 import { makeFur } from './models.js';
 import { P, players, rebuildPlayer } from './player.js';
@@ -14,6 +14,7 @@ import { toast } from './ui.js';
 import { rnd } from './util.js';
 import { carcassContext, nearCarcass, recordAncestor, takeMeat } from './carcass.js';
 import { canSleepNow, sleepOnTree } from './daynight.js';
+import { applyLearned, canSwitch, cubFollowContext, dropFollower, followerOf } from './cubfollow.js';
 
 /** Neue Kennung für einen Leoparden */
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -68,21 +69,22 @@ const litterSize=()=>Math.min(4,Math.max(1,players.length));
  * Sein bisheriger Leopard bleibt als Elterntier am Bau, wenn dort Platz ist.
  */
 function mateBecomeCub(p){
-  const c=S.cub; if(!c||!(c.n>0)||p===P) return false;
+  const c=S.cub; if(!c||!(c.n>0)||p===P||!canSwitch()) return false;
   const L=p.L, old=ensureKin(L);
   // Erbanlagen vom Elternteil, der dieser Spieler war (sonst von Spieler 1), plus die des Wurfs – doppelte werden verstärkt.
   // Eigenschafts- und Fähigkeitspunkte werden nicht vererbt (dafür gibt es Erbe und Ahnenkraft).
   const par=(c.parents||[]).indexOf(L.id)>=0?L:S, kid={traits:(par.traits||[]).slice(),tlv:Object.assign({},par.tlv||{})}; inheritTrait(kid,c.trait);
   const nl={id:newId(),parents:(c.parents||[]).slice(),lvl:heirLevel(),xp:0,pts:0,a:fresh().a,b:fresh().b,traits:kid.traits,tlv:kid.tlv,fur:makeFur(),hunger:80,age:0,kills:0,gen:c.gen||((S.gen||1)+1)};
+  const got=applyLearned(p,nl), fo=followerOf(p), fx=fo?fo.x:cub.x, fz=fo?fo.z:cub.z; if(fo) dropFollower(fo); if(c.learn) delete c.learn[p.num];
   recordAncestor('zog sein Junges groß und lebt als Elterntier weiter',L,nameOf(p));
   S.mates[p.num]=nl; p.L=nl; p.fur=nl.fur; rebuildPlayer(p);
   // Der alte Leopard bleibt als Elterntier am Bau (Platz 2), falls frei
   if(!S.p2){ S.p2=true; famPlace(fam[2],p.x,p.z,old.fur||{albino:false,melan:false,l:1,s:1,sn:1,ss:1}); }
-  p.x=cub.x+rnd(-1,1); p.z=cub.z+rnd(-1,1); p.tree=null; p.safe=false; p.pounce=0; p.hp=maxHp(nl); p.st=maxSt(nl);
+  p.x=fx+rnd(-1,1); p.z=fz+rnd(-1,1); p.tree=null; p.safe=false; p.pounce=0; p.hp=maxHp(nl); p.st=maxSt(nl);
   takeFromLitter();
   if((nl.gen||1)>(S.gen||1)) S.gen=nl.gen;
   save(); snd.mew();
-  toast(nameOf(p)+' spielt jetzt als Junges (Generation '+nl.gen+'). '+(old.lvl>=8?'Sein alter Leopard bleibt als Elterntier am Bau.':''),'#ff9ad0');
+  toast(nameOf(p)+' spielt jetzt als Junges (Generation '+nl.gen+'). '+(got.length?'Gelernt: '+got.join(', ')+'. ':'')+(old.lvl>=8?'Sein alter Leopard bleibt als Elterntier am Bau.':''),'#ff9ad0');
   return true;
 }
 /** Ein Junges wurde von einem Spieler übernommen: Wurf verkleinern, ohne weitere Junge endet die Aufzucht. */
@@ -96,7 +98,8 @@ function mateContextInfo(p){
   { const cx=carcassContext(p); if(cx) return {label:cx.label}; }
   if(p.tree!=null) return (p.safe&&p.climbT>=1&&canSleepNow())?{label:p.wantSleep?'Wartet auf die anderen …':'Schlafen'}:null;
   const q=pairCandidate(p); if(q&&canPair(p,q)) return {label:'Paaren mit '+nameOf(q)};   // Erbe zeigt das Geburtsfenster
-  if(S.cub&&S.cub.grow<1&&S.food>0&&S.cub.full<97&&Math.hypot(cub.x-p.x,cub.z-p.z)<4.5) return {label:'Füttern'};
+  { const cf=cubFollowContext(p); if(cf) return {label:cf.label}; }
+  if(S.cub&&S.cub.grow<1&&S.food>0&&S.cub.full<97&&nearCub(p)) return {label:'Füttern'};
   return null;
 }
 /** Aktionstaste eines Mitspielers (X antippen): paaren, Junges füttern. */
@@ -106,7 +109,8 @@ function mateContext(p){
   if(p.tree!=null){ if(p.safe&&p.climbT>=1&&canSleepNow()&&!p.wantSleep) sleepOnTree(p); return; }
   const q=pairCandidate(p); if(q&&canPair(p,q)){ pairPlayers(p,q); return; }
   if(q&&related(p.L,q.L)&&p.L.lvl>=8&&!S.cub&&!(S.preg>0)){ tell(p,'Ihr seid verwandt – Verwandte paaren sich nicht.','#ff9ad0'); return; }
-  if(S.cub&&S.cub.grow<1&&S.food>0&&S.cub.full<97&&Math.hypot(cub.x-p.x,cub.z-p.z)<4.5){ feedCub(); return; }
+  { const cf=cubFollowContext(p); if(cf){ cf.fn(); return; } }
+  if(S.cub&&S.cub.grow<1&&S.food>0&&S.cub.full<97&&nearCub(p)){ feedCub(); return; }
 }
 
 ensureKin(S);
