@@ -95,4 +95,4 @@ window.addEventListener('gamepaddisconnected',e=>{ const m=players.find(p=>p!==P
   if(e.gamepad.index===padIdx){ padIdx=-1; padX=padY=0; toast('Controller getrennt','#f2b84b'); } });
 
 export { claimOverlay, padAct, padSprint, padUI, padX, padY, pdz, pollPads };
-export { padSynth, rumble };
+export { padSynth, rumble, setPadFocus };

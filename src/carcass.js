@@ -71,8 +71,10 @@ function carcassToTree(p,i){
 function carcassContext(p){
   if(p.drag) return {label:'Beute loslassen',fn:()=>dropCarcass(p)};
   const cc=nearCarcass(p); if(!cc) return null;
-  if(cc.carc.tree==null&&S.cub&&S.cub.grow<1&&S.food<FOOD_MAX&&p.eatC!==cc) return {label:'Fleisch mitnehmen',fn:()=>takeMeat(cc,true,p)};
+  // Wahl: hungrig → erst selbst fressen; während des Fressens (oder satt) den Rest fürs Junge mitnehmen
+  const store=cc.carc.tree==null&&S.cub&&S.cub.grow<1&&S.food<FOOD_MAX;
   if(p.L.hunger<90&&p.eatC!==cc) return {label:'Fressen ('+cc.carc.meat+' Bissen übrig)',fn:()=>takeMeat(cc,false,p)};
+  if(store) return {label:p.eatC===cc?'Rest fürs Junge mitnehmen':'Fleisch fürs Junge mitnehmen',fn:()=>{ if(p.eatC===cc) p.eatC=null; takeMeat(cc,true,p); }};
   if(canDrag(cc)) return {label:'Beute packen und ziehen',fn:()=>grabCarcass(p,cc)};
   return null;
 }

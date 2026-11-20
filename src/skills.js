@@ -13,7 +13,7 @@ import { mateBecomeCub } from './kinship.js';
 import { animals } from './animals.js';
 import { cloneWithClasses, tell } from './coop.js';
 import { canvas } from './engine.js';
-import { padUI } from './gamepad.js';
+import { padUI, setPadFocus } from './gamepad.js';
 import { pounceLabel, togglePounce } from './actions.js';
 import { stopTutorial, tutActive } from './tutorial.js';
 
@@ -21,7 +21,22 @@ import { stopTutorial, tutActive } from './tutorial.js';
 /** Wessen Entwicklung gerade offen ist: Spieler 1 oder ein Mitspieler */
 let skP=P;
 /** Entwicklung von Spieler p in das Fenster root zeichnen (null: das große Fenster, sonst sein eigenes im gemeinsamen Spiel) */
+/** Neu zeichnen, ohne dass die Liste nach oben springt: Scrollstand und gewählter Knopf (Controller) bleiben erhalten */
 function renderSkills(p=skP,root=null){
+  const scope=root||$('skills'), box=root||scope.querySelector('.card'), st=box?box.scrollTop:0;
+  const foc=/** @type {HTMLElement} */(scope.querySelector('button.padf')), fk=foc&&foc.dataset.k?foc.dataset.g+':'+foc.dataset.k:null;
+  skDraw(p,root);
+  if(box) box.scrollTop=st;
+  if(!fk) return;
+  const all=Array.from(scope.querySelectorAll('button')), ok=b=>!b.disabled&&b.offsetParent!==null;
+  const i=all.findIndex(b=>b.dataset.g+':'+b.dataset.k===fk); if(i<0) return;
+  const pick=ok(all[i])?all[i]:all.slice(i+1).find(ok)||all.slice(0,i).reverse().find(ok);   // ausgereizt: der nächste noch wählbare Knopf
+  if(!pick) return;
+  if(root){ p.skF=all.filter(ok).indexOf(pick); all.forEach(b=>b.classList.toggle('padf',b===pick)); }
+  else setPadFocus(pick);
+  if(box) box.scrollTop=st;
+}
+function skDraw(p,root){
   const L=p.L, g=id=>root?root.querySelector('.s-'+id):$(id);
   g('skWho').textContent=p===P?(players.length>1?' · Spieler 1':''):' · Spieler '+(p.num||2);
   { const b=g('btnSkCub'), ok=p!==P&&!!S.cub&&S.cub.n>0; b.style.display=ok?'block':'none'; if(ok&&!p.cubArm) b.textContent='Als Junges weiterspielen (Stufe '+heirLevel()+', Generation '+(S.cub.gen||'?')+')'; }
