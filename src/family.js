@@ -25,7 +25,7 @@ import { DEN_CAP, SWITCH_AT, cubFollowContext, denCount, followerOf, hasOwnCub }
 
 /* ---------- Familie: Partner, Junges, Futter, Überfälle ---------- */
 const FOOD_MAX=20, CUB_HOME={x:7,z:5};
-const cub={x:7,z:5,tx:7,tz:5,t:0,ph:0,mewT:6,saveT:10};
+const cub={x:7,z:5,tx:7,tz:5,t:0,ph:0,mewT:6,saveT:10,away:false};
 let cubG=null;
 const CUBSPEC={col:0xe0a23c,col2:0xf0c98a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.5,ears:0.17,tail:1.0,tailTip:0x2a1c10,spots:1};
 const sibG=[];   // Geschwister im Bau: je Junges im Wurf ein eigenes Modell (das erste ist cubG)
@@ -176,7 +176,13 @@ function updateCub(dt){
     c.full=Math.max(0,c.full-dt*0.28*D().hunger);
     if(c.full<=0){ c.hp-=dt*0.012; if(c.hp<=0){ cubDies('ist verhungert'); return; } }
     else if(c.hp<1&&!G.raider) c.hp=Math.min(1,c.hp+dt*0.01);
-    if(c.full<25){ cub.mewT-=dt; if(cub.mewT<=0){ cub.mewT=rnd(6,11); if(Math.hypot(P.x-cub.x,P.z-cub.z)<60) snd.mew(); } }
+    // Miauen (aus Richtung Bau): hungrig oft und laut, sonst ab und zu leise, wenn jemand in der Nähe ist; begrüßt Heimkehrer
+    if(denCount()>0){ const nd=Math.min(...players.map(q=>Math.hypot(q.x-cub.x,q.z-cub.z)));
+      cub.mewT-=dt;
+      if(cub.mewT<=0){ const hungry=c.full<25; cub.mewT=hungry?rnd(5,9):rnd(12,25);
+        if(hungry||nd<30) snd3d(['mew'],cub.x,cub.z,hungry?1.3:0.75,hungry?90:40,rnd(1.05,1.35)); }
+      if(cub.away&&nd<10){ snd3d(['mew'],cub.x,cub.z,1.1,40,rnd(1.15,1.4)); setTimeout(()=>snd3d(['mew'],cub.x+0.8,cub.z,1,40,rnd(1.2,1.45)),380); }
+      cub.away=nd>40; }
     G.raidT-=dt; if(G.raidT<=0&&!G.raider) startRaid();
   }
   // Hungrig und Beute am Bau: zum Kadaver laufen und selbst fressen (Bissen für Bissen, die Kugeln verschwinden)

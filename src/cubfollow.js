@@ -122,7 +122,7 @@ function updateFollowers(dt){
     const sc=0.34+0.66*Math.min(1,c.grow); f.g.scale.set(sc,sc*(crouch?0.75:1),sc);
     f.g.position.set(f.x,H(f.x,f.z),f.z); f.g.rotation.y=f.rot; f.g.visible=true;
     // ruft, wenn es den Anschluss verliert
-    f.mewT-=dt; if(f.mewT<=0){ f.mewT=rnd(4,7); if(dp>18||c.full<25) snd3d(['mew'],f.x,f.z,0.9,60,rnd(0.95,1.2)); }
+    f.mewT-=dt; if(f.mewT<=0){ const lost=dp>18||c.full<25; f.mewT=lost?rnd(4,7):rnd(14,28); snd3d(['mew'],f.x,f.z,lost?1.2:0.7,lost?70:35,rnd(1.05,1.3)); }   // ab und zu ein leises Miauen, laut wenn es den Anschluss verliert oder hungert
     // frisst an Beute in der Nähe mit
     f.eatT-=dt;
     if(f.eatT<=0&&c.full<97){ const a=animals.find(o=>o.dead&&o.carc&&o.carc.meat>0&&o.carc.tree==null&&Math.hypot(o.x-f.x,o.z-f.z)<3);
