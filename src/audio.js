@@ -148,6 +148,13 @@ const snd={
   pounce(){ if(sample('paws',0.22,rnd(0.92,1.08))) return; noise(0.3,0.35,500,2600); tone(180,0.25,'sawtooth',0.06,90); },
   hit(){ tone(130,0.16,'square',0.22,45); noise(0.12,0.3,900,300,'lowpass'); },
   ambush(){ tone(660,0.18,'triangle',0.18,990); },
+  /** Festbeißen: guter Biss = Knacken + aufsteigender Klang (höher mit jeder Serie), Fehlbiss = dumpfer Ton */
+  bite(acc,combo){
+    noise(0.07,0.32,2200,900,'bandpass'); tone(110,0.1,'sine',0.2,70);
+    if(acc>0.65){ const f=[523,587,659,784,880,1047][Math.min(5,combo)]; tone(f,0.22,'triangle',0.16,0,0.03); if(acc>0.9){ tone(f*1.5,0.3,'sine',0.12,0,0.09); tone(f*2,0.25,'sine',0.06,0,0.15); } }
+    else if(acc>0.3) tone(330,0.15,'triangle',0.1,0,0.03);
+    else tone(160,0.22,'sine',0.14,110,0.02);
+  },
   kill(){ noise(0.09,0.3,1800,900,'bandpass',0.12); noise(0.09,0.3,1500,700,'bandpass',0.26); tone(392,0.14,'triangle',0.16,0,0.4); tone(523,0.2,'triangle',0.16,0,0.5); },
   hurt(){ if(sample(Math.random()<0.5?'hurtA':'hurtB',0.35,rnd(0.92,1.1))) return; tone(220,0.28,'sawtooth',0.22,70); noise(0.15,0.25,400,150,'lowpass'); },
   level(){ [523,659,784,1047].forEach((f,i)=>tone(f,0.3,'triangle',0.2,0,i*0.11)); },

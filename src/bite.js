@@ -21,7 +21,7 @@ const bitable=(a,d)=>!a.sp.friend&&!a.sp.croc&&a.hp>d;
 function startBite(p,a,d){
   // je zäher das Tier im Verhältnis zu deinem Biss, desto mehr Bisse (3–5) und desto schneller der Punkt
   const tough=a.hp/Math.max(1,d), n=3+(tough>2.5?1:0)+(tough>5?1:0);
-  p.bite={a,n,round:0,pos:Math.random(),dir:1,speed:0.85+Math.min(0.6,tough*0.06),scores:[],idle:0};
+  p.bite={a,n,combo:0,round:0,pos:Math.random(),dir:1,speed:0.85+Math.min(0.6,tough*0.06),scores:[],idle:0};
   a.held=p; p.pounce=0; p.combatT=5;
   p.x=a.x-Math.sin(a.g.rotation.y)*(a.rad*0.6); p.z=a.z-Math.cos(a.g.rotation.y)*(a.rad*0.6); p.rot=a.g.rotation.y;
   snd.hit(); puff(a.x,H(a.x,a.z)+a.sp.size,a.z,0xc0392b,6,0.5);
@@ -33,10 +33,15 @@ function biteHit(p){
   const acc=Math.max(0,1-Math.abs(b.pos-0.5)*2.2);   // 1 = genau Mitte
   b.scores.push(acc); b.round++; b.idle=0;
   const a=b.a, y=H(a.x,a.z)+a.sp.size*1.6;
-  const word=acc>0.9?'Perfekt!':acc>0.65?'Gut':acc>0.3?'Knapp':'Daneben';
+  b.combo=acc>0.65?(b.combo||0)+1:0;
+  const word=(acc>0.9?'Perfekt!':acc>0.65?'Gut!':acc>0.3?'Knapp':'Daneben')+(b.combo>1?' ×'+b.combo:'');
   floatText(word,a.x,y,a.z,acc>0.9?'#f2b84b':acc>0.65?'#9be07f':acc>0.3?'#e0c060':'#ff7a5a');
-  snd.hit(); puff(a.x,y-0.6,a.z,0xc0392b,3+Math.round(acc*4),0.4);
-  p.cam.shake=Math.max(p.cam.shake,0.12+acc*0.25); if(p.pad!=null||padUI()) buzzP(p,acc);
+  snd.bite(acc,b.combo);
+  // gute Bisse fühlen sich nach Erfolg an: goldene Funken, Balken leuchtet auf, kein Wackeln; nur Fehlbisse rütteln
+  if(acc>0.65){ puff(a.x,y-0.5,a.z,acc>0.9?0xf2b84b:0x9be07f,4+Math.round(acc*5),0.55); puff(a.x,y-0.8,a.z,0xc0392b,2,0.3); }
+  else { puff(a.x,y-0.7,a.z,0x8a7a60,3,0.35); if(acc<0.3) p.cam.shake=Math.max(p.cam.shake,0.15); }
+  flash(p,acc>0.9?'f1':acc>0.65?'f2':acc>0.3?'f3':'f4');
+  if(p.pad!=null||padUI()) buzzP(p,acc);
   if(fights(a)&&acc<0.65) counter(p,a,acc);   // Raubtiere und Kämpfer beißen bei schwachen Bissen zurück
   if(p.dead||!p.bite) return;
   if(acc<(fights(a)?0.3:0.15)&&b.round<b.n){ endBite(p,true); return; }   // ganz daneben: das Tier reißt sich los (Wehrhafte schon eher)   // ganz daneben: das Tier reißt sich sofort los
@@ -50,7 +55,9 @@ function counter(p,a,acc){
   floatText('Gegenbiss!',a.x,y,a.z,'#ff5a3a'); puff(p.x,y-0.8,p.z,0xc0392b,5,0.5);
   hurtPlayer((a.sp.dmg||10)*(0.35+(0.65-acc)*0.6),a,false,p);
 }
-function buzzP(p,acc){ try{ const g=navigator.getGamepads&&navigator.getGamepads()[p.pad!=null?p.pad:0]; const h=g&&g.vibrationActuator; if(h) h.playEffect('dual-rumble',{duration:90+acc*120,strongMagnitude:0.3+acc*0.6,weakMagnitude:0.4}); }catch(e){} }
+/** Balken kurz aufleuchten lassen (CSS-Klasse neu starten) */
+function flash(p,c){ const el=hEl(p,'bite'); el.classList.remove('f1','f2','f3','f4'); void el.offsetWidth; el.classList.add(c); }
+function buzzP(p,acc){ try{ const g=navigator.getGamepads&&navigator.getGamepads()[p.pad!=null?p.pad:0]; const h=g&&g.vibrationActuator; if(h) h.playEffect('dual-rumble',acc>0.65?{duration:70,strongMagnitude:0.15,weakMagnitude:0.5+acc*0.4}:{duration:160,strongMagnitude:0.5,weakMagnitude:0.2}); }catch(e){} }
 /** Ende: erlegt oder verwundet entkommen */
 function endBite(p,broke){
   const b=p.bite; p.bite=null; hEl(p,'bite').style.display='none';
@@ -68,6 +75,7 @@ function endBite(p,broke){
 function biteUi(p){
   const b=p.bite; if(!b) return;
   hEl(p,'biteDot').style.left=(b.pos*100)+'%';
+  const res=1-b.scores.reduce((x,y)=>x+y,0)/b.n; hEl(p,'biteRes').style.width=Math.max(0,res*100)+'%';
   hEl(p,'biteRounds').textContent=Array.from({length:b.n},(_,i)=>i<b.scores.length?(b.scores[i]>0.65?'●':'◐'):'○').join(' ');
   const k=p!==P||padUI()?'RT / Ⓐ':touchUI()?'tippen':'Leertaste / Klick';
   hEl(p,'biteHint').textContent=(fights(b.a)?'Es wehrt sich! ':'Festgebissen! ')+'In der Mitte drücken ('+k+')';
