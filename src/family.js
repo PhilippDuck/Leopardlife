@@ -21,6 +21,7 @@ import { goalEvent } from './goals.js';
 import { moveAnimal } from './ai.js';
 import { nameOf, viewMin } from './coop.js';
 import { canPair, ensureKin, litterLeaves, litterSize, newId, pairCandidate, pairPlayers, related } from './kinship.js';
+import { DEN_CAP, SWITCH_AT, cubFollowContext, denCount, followerOf } from './cubfollow.js';
 
 /* ---------- Familie: Partner, Junges, Futter, Überfälle ---------- */
 const FOOD_MAX=20, CUB_HOME={x:7,z:5};
@@ -32,13 +33,16 @@ rebuildCub();
 G.raider=null; G.raidT=rnd(90,130)*D().raid; G.heirPending=false;
 const cubGrown=()=>!!S.cub&&S.cub.grow>=1;
 const seeking=()=>canMate()&&!S.partner;
+/** Spieler p ist nah genug an einem Jungen zum Füttern: am Bau oder bei seinem mitlaufenden */
+const nearCub=p=>(denCount()>0&&Math.hypot(cub.x-p.x,cub.z-p.z)<4.5)||(()=>{ const f=followerOf(p); return !!f&&Math.hypot(f.x-p.x,f.z-p.z)<4.5; })();
 const heirLevel=()=>1+Math.floor(Math.min(1,S.cub.grow)*7);
 function nearestMate(){ let b=null, bd=1e9; for(const a of (S.partner?[fam[0]]:fam.slice(3))){ if(S.partner&&!a.famOn) continue; const d=Math.hypot(a.x-P.x,a.z-P.z); if(d<bd){ bd=d; b=a; } } return b?{a:b,d:bd}:null; }
 function context(){
   if(P.dead||G.paused) return null;
   { const cx=carcassContext(P); if(cx) return cx; }
   if(P.tree!=null) return (P.safe&&P.climbT>=1&&canSleepNow())?{label:P.wantSleep?'Wartet auf die anderen …':players.some(o=>o!==P&&o.wantSleep)?'Schlafen (die anderen warten)':'Schlafen',fn:()=>sleepOnTree(P)}:null;
-  if(S.cub&&!cubGrown()&&S.food>0&&S.cub.full<97&&Math.hypot(cub.x-P.x,cub.z-P.z)<4.5) return {label:'Füttern',fn:feedCub};
+  { const cf=cubFollowContext(P); if(cf) return cf; }
+  if(S.cub&&!cubGrown()&&S.food>0&&S.cub.full<97&&nearCub(P)) return {label:'Füttern',fn:feedCub};
   if(S.food>0&&S.hunger<50) return {label:'Fressen',fn:eatFood};
   { const q=pairCandidate(P); if(q){ if(canPair(P,q)) return {label:'Paaren mit '+nameOf(q),fn:()=>pairPlayers(P,q)}; if(related(P.L,q.L)&&canMate()) return {label:'Verwandt – keine Paarung',fn:()=>pairPlayers(P,q)}; } }
   if(canMate()){ const m=nearestMate(); if(m){ mateNotice(m);
@@ -77,7 +81,7 @@ function mateWith(a){
 function feedCub(){
   const c=S.cub, n=Math.min(S.food,Math.ceil((100-c.full)/12)); if(n<=0) return;
   const was=c.grow;
-  goalEvent('feed',n); S.food-=n; c.full=Math.min(100,c.full+n*12); c.hp=Math.min(1,c.hp+n*0.08); c.grow=Math.min(1,c.grow+n*0.025);
+  goalEvent('feed',n); S.food-=n; c.full=Math.min(100,c.full+n*12); c.hp=Math.min(1,c.hp+n*0.08); c.grow=Math.min(c.grow<SWITCH_AT?Math.max(c.grow,DEN_CAP):1,c.grow+n*0.025);   // im Bau nur bis 35 %, den Rest bis halbstark lernt es auf der Jagd
   puff(cub.x,H(cub.x,cub.z)+0.8,cub.z,0xff7ab8,8,0.4); snd.eat();
   floatText('+'+n+' Futter',cub.x,H(cub.x,cub.z)+1.2,cub.z,'#ff9ad0');
   if(was<1&&c.grow>=1){ toast('Dein Junges ist ausgewachsen! Es braucht kein Futter mehr und ist dein Erbe.','#ff9ad0'); snd.level(); if(G.raider) endRaid(G.raider); }
@@ -90,6 +94,7 @@ function cubDies(how){
 function endRaid(a){ a.state='wander'; a.timer=0; a.sus=0; a.scared=8; if(G.raider===a) G.raider=null; }
 function startRaid(){
   G.raidT=rnd(120,200)*D().raid;
+  if(denCount()<=0){ G.raidT=30; return; }   // alle Jungen sind unterwegs
   const cand=animals.filter(a=>!a.dead&&(a.sp.id==='jack'||a.sp.id==='hyena')&&a.state==='wander'&&Math.hypot(a.x-P.x,a.z-P.z)>80);
   if(!cand.length){ G.raidT=20; return; }
   const a=cand[Math.floor(Math.random()*cand.length)];
@@ -104,7 +109,7 @@ function startRaid(){
 }
 function raidStep(a,dt){
   const sp=a.sp, c=S.cub;
-  if(!c||c.grow>=1){ endRaid(a); return; }
+  if(!c||c.grow>=1||denCount()<=0){ endRaid(a); return; }
   const cx=cub.x-a.x, cz=cub.z-a.z, cd=Math.hypot(cx,cz);
   if(!a.found){
     if(cd>10) moveAnimal(a,cx,cz,sp.spd*0.65,dt);
@@ -131,7 +136,7 @@ function updateCub(dt){
     { const b=$('btnBeCub'); b.disabled=false; b.textContent='Als Junges spielen'; } renderBirthChoices();
     $('birth').style.display='flex'; G.paused=true; for(const k in keys) keys[k]=false; G.joyX=G.joyY=0; if(document.exitPointerLock) document.exitPointerLock(); } }
   const c=S.cub; if(!c){ cubG.visible=false; return; }
-  cubG.visible=true;
+  cubG.visible=c.grow>=1||denCount()>0;
   if(c.grow>=1&&c.taken){ litterLeaves(); cubG.visible=false; return; }   // übrige Geschwister eines Spieler-Jungen ziehen weiter
   if(c.grow<1){
     c.full=Math.max(0,c.full-dt*0.28*D().hunger);
@@ -159,5 +164,5 @@ function updateFamArrow(dt){
 }
 
 export { offerText };
-export { CUB_HOME, FOOD_MAX, context, cub, doContext, endRaid, heirLevel, raidStep, seekT, seeking, updateCub, updateFamArrow };
+export { cubDies, nearCub, CUB_HOME, FOOD_MAX, context, cub, doContext, endRaid, heirLevel, raidStep, seekT, seeking, updateCub, updateFamArrow };
 export { rebuildCub, feedCub };

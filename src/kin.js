@@ -19,6 +19,7 @@ import { moveAnimal } from './ai.js';
 import { updateUI } from './hud.js';
 import { mateBecomeCub, newId, takeFromLitter } from './kinship.js';
 import { nameOf, tell } from './coop.js';
+import { SWITCH_AT, applyLearned, canSwitch, cubSpot, dropFollower, followerOf } from './cubfollow.js';
 
 /* Familienmitglieder: Partner (Platz 0) und Elterntiere (Plätze 1, 2) leben am Bau, verteidigen das Junge
    und versorgen und beschützen den Spieler, solange er selbst noch nicht ausgewachsen ist. Sie können endgültig sterben. */
@@ -110,6 +111,8 @@ function updateFamily(dt){
 // Wechsel ins Junge: freiwillig (das alte Ich bleibt als Elterntier) oder nach dem Tod
 function becomeCub(vol){
   recordAncestor(vol?'zog sein Junges groß und lebt als Elterntier weiter':G.lastCause);
+  // Tod vor „halbstark“: der Partner zieht das Junge allein groß – Zeitsprung auf 50 %, aber ohne das, was du ihm beigebracht hättest
+  if(!vol&&S.cub.grow<SWITCH_AT){ S.cub.grow=SWITCH_AT; if(S.cub.learn) delete S.cub.learn[1]; }
   const hl=heirLevel(), ox=P.x, oz=P.z, hadPartner=S.partner&&fam[0].famOn, mateParent=S.p2&&fam[2].famOn, myFur=S.fur?Object.assign({},S.fur):{albino:false,melan:false,l:1,s:1,sn:1,ss:1};
   S.p1=!!vol; S.p2=!!hadPartner||!!mateParent; S.partner=false;
   if(hadPartner) famPlace(fam[2],fam[0].x,fam[0].z,fam[0].fur); else if(!mateParent) fam[2].famOn=false;
@@ -117,17 +120,19 @@ function becomeCub(vol){
   fam[0].famOn=false;
   inheritTrait(S,S.cub.trait);   // neu dazu oder, wenn schon vorhanden, verstärkt
   S.a=fresh().a; S.b=fresh().b; S.pts=0;   // Eigenschaften, Fähigkeiten und Punkte werden nicht vererbt – dafür Erbe und Ahnenkraft
+  const got=applyLearned(P,S); if(S.cub.learn) delete S.cub.learn[1]; { const fo=followerOf(P); if(fo) dropFollower(fo); }   // dafür, was es bei dir gelernt hat
   S.fur=S.cub.fur||null;
   { const ng=(S.gen||1)+1, nr=Object.values(REGIONS).find(r=>r.gen===ng&&!r.soon); if(nr) setTimeout(()=>toast('Deine Linie ist stark genug: '+nr.n+' ist jetzt erreichbar (Menü → Gebiete).','#9be07f'),2600); }
   const cg=S.cub.gen||((S.gen||1)+1);
   S.parents=(S.cub.parents||[S.id]).slice(); S.id=newId();   // neue Kennung: das Junge ist ein eigener Leopard, verwandt mit seinen Eltern und Geschwistern
   S.lvl=hl; S.xp=0; S.gen=Math.max(S.gen||1,cg); takeFromLitter(); S.preg=0; S.partnerPlayer=false; S.hunger=80; S.age=0; S.kills=0; if(G.raider&&!S.cub) endRaid(G.raider);
   feedT=rnd(30,50); save(); rebuildPlayer();
+  return got;
 }
 function playAsCub(){
-  const cx=cub.x, cz=cub.z; becomeCub(true);
+  const sp=cubSpot(P), cx=sp.x, cz=sp.z, got=becomeCub(true);
   P.tree=null; P.safe=false; P.dropY=0; P.upNow=0; P.pounce=0; P.x=cx; P.z=cz; P.hp=maxHp(); P.st=maxSt(); P.sneak=false;
-  toast('Generation '+S.gen+': Du spielst jetzt als dein Junges. Deine Eltern bringen dir Futter und beschützen dich bei großer Gefahr.','#ff9ad0');
+  toast('Generation '+S.gen+': Du spielst jetzt als dein Junges.'+(got.length?' Gelernt: '+got.join(', ')+'.':'')+' Deine Eltern bringen dir Futter und beschützen dich bei großer Gefahr.','#ff9ad0');
   updateUI();
 }
 function unpause(){ G.paused=false; if(!touchUI()){ try{ const r=canvas.requestPointerLock(); if(r&&r.catch) r.catch(()=>{}); }catch(e){} } }
@@ -139,6 +144,8 @@ $('btnBeCub').onclick=()=>{
 };
 /** Geburtsfenster im gemeinsamen Spiel: für jeden Mitspieler ein Knopf „als Junges spielen“, solange noch Junge im Wurf sind */
 function renderBirthChoices(){
+  // Wechseln geht erst, wenn das Junge halbstark ist (Lehrzeit) – das Geburtsfenster erklärt nur noch den Weg dahin
+  $('birthMates').style.display='none'; $('btnBeCub').style.display='none'; $('btnStayAdult').textContent='Weiter'; if(!canSwitch()) return;
   const box=$('birthMates'), coop=players.length>1; box.style.display=coop?'flex':'none';
   $('btnStayAdult').textContent=coop?'Fertig – weiterspielen':'Als Erwachsener weiter';
   if(!coop) return;
@@ -155,6 +162,7 @@ function renderBirthChoices(){
 G.cubArm=false;
 $('btnMenuCub').onclick=()=>{
   if(!S.cub) return;
+  if(!canSwitch()) return;
   if(!G.cubArm){ G.cubArm=true; $('btnMenuCub').textContent='Wirklich? Du startest als Junges auf Stufe '+heirLevel(); return; }
   G.cubArm=false; $('menu').style.display='none'; playAsCub(); unpause();
 };

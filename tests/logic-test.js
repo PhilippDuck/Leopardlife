@@ -31,7 +31,7 @@ const doc={ querySelectorAll:()=>[], getElementById:el, addEventListener(){}, cr
 let raf=null;
 const g={ window:win, document:doc, navigator:{maxTouchPoints:0}, localStorage:{getItem:k=>(k in ls?ls[k]:null),setItem:(k,v)=>{ls[k]=String(v);}}, THREE:win.THREE,
   requestAnimationFrame:fn=>{ if(fn.name==='frame') raf=fn; else fn(); }, setTimeout:fn=>{ fn(); } };
-const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,woundTick,forgetWounds,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping};';
+const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,cubFollowContext,cubLearn,updateFollowers,followers,learnOf,canSwitch,woundTick,forgetWounds,resetMates,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping};';
 new Function(...Object.keys(g), body)(...Object.values(g));
 const T=globalThis.__T; const rnd2=()=>Math.random()*8-4; const localStorageDump=()=>ls['jaguar-lines'];
 els.btnPlay.onclick();
@@ -217,6 +217,8 @@ console.log('audio nodes created',ACs&&ACs.count());
   for(let i=0;i<40&&!S.cub;i++) T.updateCub(1); T.unpause(); el('birth').style.display='none';
   if(!S.cub||S.cub.n!==2||S.cub.parents.join()!==[pId,qId].join()) { console.log('FEHLER: Wurf',JSON.stringify(S.cub)); process.exit(1); }
   const gen0=S.gen||1;
+  if(T.mateBecomeCub(Q)){ console.log('FEHLER: Wechsel ins Junge vor halbstark'); process.exit(1); }
+  S.cub.grow=0.5;
   if(!T.mateBecomeCub(Q)||S.cub.n!==1||Q.L.gen!==gen0+1||Q.L.parents.join()!==[pId,qId].join()) { console.log('FEHLER: Mitspieler als Junges',JSON.stringify(Q.L)); process.exit(1); }
   T.becomeCub(true);
   if(S.cub||S.gen!==gen0+1||!T.related(S,Q.L)||S.id===pId) { console.log('FEHLER: Spieler 1 als Junges / Geschwister'); process.exit(1); }
@@ -352,4 +354,17 @@ console.log('audio nodes created',ACs&&ACs.count());
   a.wound={sev:0.5,t:0,die:20,heal:30,by:P,acc:0}; T.forgetWounds(P); const healed=a.wound&&a.wound.die===0; a.wound=null;
   if(!healed){ console.log('FEHLER: Wunden nach Tod'); process.exit(1); }
   console.log('Tod des Jägers: seine Wunden heilen, kein geschenkter Kill'); }
+{ const S=T.S(); const p2=T.players.find(o=>o!==T.P);
+  if(p2){ p2.L.lvl=3; T.resetMates(); const ok=p2.L.lvl===S.lvl&&S.mates[p2.num]===p2.L;
+    if(!ok){ console.log('FEHLER: Neustart Mitspieler',p2.L.lvl,S.lvl); process.exit(1); }
+    console.log('Neustart: Mitspieler fängt ebenfalls neu an (Stufe '+p2.L.lvl+')'); } else console.log('Neustart Mitspieler: kein Mitspieler im Test (übersprungen)'); }
+{ const S=T.S(), P=T.P, keep=S.cub; const fam=T.cub;
+  S.cub={full:90,grow:0.3,hp:1,trait:'flink',n:1,gen:(S.gen||1)+1,parents:[S.id,'wild'],stage:1}; S.food=0;
+  P.dead=false; P.tree=null; P.x=fam.x+1; P.z=fam.z; const ctx=T.cubFollowContext(P); const lab=ctx&&ctx.label; if(ctx) ctx.fn();
+  const fo=T.followers.length===1;
+  P.x+=20; for(let i=0;i<60;i++) T.updateFollowers(0.1); const f=T.followers[0]; const near=f&&Math.hypot(f.x-P.x,f.z-P.z)<6;
+  for(let i=0;i<3;i++) T.cubLearn(P,'amb'); T.cubLearn(P,'kill'); const l=T.learnOf(P), g=S.cub.grow;
+  S.cub=null; T.updateFollowers(0.1); const gone=T.followers.length===0; S.cub=keep;
+  if(lab!=='Junges mitnehmen'||!fo||!near||l.amb!==3||!(g>0.3)||!gone){ console.log('FEHLER: Lehrzeit',lab,fo,near,JSON.stringify(l),g,gone); process.exit(1); }
+  console.log('Lehrzeit: Junges mitnehmen, folgt ('+Math.hypot(f.x-P.x,f.z-P.z).toFixed(1)+' m), lernt Hinterhalt 3/3, wächst auf '+Math.round(g*100)+' %'); }
 console.log('ALL OK');
