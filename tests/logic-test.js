@@ -367,4 +367,11 @@ console.log('audio nodes created',ACs&&ACs.count());
   S.cub=null; T.updateFollowers(0.1); const gone=T.followers.length===0; S.cub=keep;
   if(lab!=='Junges mitnehmen'||!fo||!near||l.amb!==3||!(g>0.3)||!gone){ console.log('FEHLER: Lehrzeit',lab,fo,near,JSON.stringify(l),g,gone); process.exit(1); }
   console.log('Lehrzeit: Junges mitnehmen, folgt ('+Math.hypot(f.x-P.x,f.z-P.z).toFixed(1)+' m), lernt Hinterhalt 3/3, wächst auf '+Math.round(g*100)+' %'); }
+{ const S=T.S(), P=T.P, keep=[S.cub,S.food]; const a=T.animals.find(o=>o.sp.id==='deer'&&!o.dead), k2=[a.x,a.z];
+  S.cub={full:50,grow:0.2,hp:1,trait:'flink',n:1,gen:2,parents:[S.id,'wild']}; S.food=0;
+  P.dead=false; P.tree=null; P.st=100; P.hurtT=0; P.x=8; P.z=7; a.dead=true; a.x=8; a.z=8; T.makeCarcass(a,8); P.drag=a; P.ctl.fw=0; P.ctl.rt=0;
+  T.updateDrag(P,0.1); const food=S.food, freed=!P.drag, gone=!a.carc;
+  S.cub=keep[0]; S.food=keep[1]; if(a.carc) T.endCarcass(a); a.dead=false; a.x=k2[0]; a.z=k2[1]; a.g.visible=true; P.drag=null;
+  if(food!==8||!freed||!gone){ console.log('FEHLER: Beute zum Bau',food,freed,gone); process.exit(1); }
+  console.log('Beute zum Bau gezogen: +'+food+' Futter im Vorrat'); }
 console.log('ALL OK');
