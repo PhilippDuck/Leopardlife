@@ -21,7 +21,7 @@ import { goalEvent } from './goals.js';
 import { moveAnimal } from './ai.js';
 import { nameOf, viewMin } from './coop.js';
 import { canPair, ensureKin, litterLeaves, litterSize, newId, pairCandidate, pairPlayers, related } from './kinship.js';
-import { DEN_CAP, SWITCH_AT, cubFollowContext, denCount, followerOf } from './cubfollow.js';
+import { DEN_CAP, SWITCH_AT, cubFollowContext, denCount, followerOf, hasOwnCub } from './cubfollow.js';
 
 /* ---------- Familie: Partner, Junges, Futter, Überfälle ---------- */
 const FOOD_MAX=20, CUB_HOME={x:7,z:5};
@@ -36,7 +36,7 @@ function rebuildCub(){ dropModel(cubG); cubG=buildQuad(CUBSPEC,(S.cub&&S.cub.fur
 function updateSibs(c,dt){
   const n=c&&c.grow<1?denCount():c&&c.grow>=1&&!c.taken?(c.n||1):0;
   sibG.forEach((g,i)=>{ const on=i+1<n; g.visible=on; if(!on) return;
-    const an=i*2.1+0.6+Math.sin(performance.now()/4000+i)*0.3, x=cub.x+Math.sin(an)*1.3, z=cub.z+Math.cos(an)*1.3;
+    const an=i*2.1+0.6+Math.sin(performance.now()/4000+i)*0.3, x=cub.x+Math.sin(an)*1.1, z=cub.z+Math.cos(an)*1.1;
     g.scale.setScalar(cubG.scale.x); g.position.set(x,H(x,z),z); g.rotation.y=an+Math.PI+Math.sin(performance.now()/1500+i)*0.4;
     animLegs(g,performance.now()/700+i,0.04); });
 }
@@ -158,7 +158,7 @@ function updateCub(dt){
     $('birth').style.display='flex'; G.paused=true; for(const k in keys) keys[k]=false; G.joyX=G.joyY=0; if(document.exitPointerLock) document.exitPointerLock(); } }
   const c=S.cub; if(!c){ cubG.visible=false; updateSibs(null,dt); return; }
   cubG.visible=c.grow>=1||denCount()>0;
-  if(c.grow>=1&&c.taken){ litterLeaves(); cubG.visible=false; updateSibs(null,dt); return; }   // übrige Geschwister eines Spieler-Jungen ziehen weiter
+  if(c.grow>=1&&c.taken&&!players.some(q=>hasOwnCub(q))){ litterLeaves(); cubG.visible=false; updateSibs(null,dt); return; }   // übrige Geschwister eines Spieler-Jungen ziehen weiter
   if(c.grow<1){
     c.full=Math.max(0,c.full-dt*0.28*D().hunger);
     if(c.full<=0){ c.hp-=dt*0.012; if(c.hp<=0){ cubDies('ist verhungert'); return; } }
@@ -170,10 +170,10 @@ function updateCub(dt){
   const food=c.grow<1&&c.full<92?denCarcass():null;
   if(food){ cub.tx=food.x+Math.sin(cub.t*3)*0.4; cub.tz=food.z+Math.cos(cub.t*3)*0.4; cub.eatT=(cub.eatT||0)-dt;
     if(Math.hypot(food.x-cub.x,food.z-cub.z)<food.rad+1.2&&cub.eatT<=0){ cub.eatT=2.4/Math.max(1,denCount()); cubEats(c,food); } }
-  else { cub.t-=dt; if(cub.t<=0){ const an=Math.random()*6.283, r=rnd(0,4); cub.tx=CUB_HOME.x+Math.cos(an)*r; cub.tz=CUB_HOME.z+Math.sin(an)*r; cub.t=rnd(3,9); } }
+  else { cub.t-=dt; if(cub.t<=0){ const an=Math.random()*6.283, r=rnd(0,1.8); cub.tx=CUB_HOME.x+Math.cos(an)*r; cub.tz=CUB_HOME.z+Math.sin(an)*r; cub.t=rnd(3,9); } }
   const dx=cub.tx-cub.x, dz=cub.tz-cub.z, d=Math.hypot(dx,dz);
   if(d>0.3){ const v=1.3*dt/d; cub.x+=dx*v; cub.z+=dz*v; cubG.rotation.y=Math.atan2(dx,dz); cub.ph+=dt*9; animLegs(cubG,cub.ph,0.45); } else animLegs(cubG,cub.ph,0.03);
-  cubG.scale.setScalar(0.26+0.74*Math.min(1,c.grow)); cubG.position.set(cub.x,H(cub.x,cub.z),cub.z); updateSibs(c,dt);
+  cubG.scale.setScalar(0.34+0.66*Math.min(1,c.grow)); cubG.position.set(cub.x,H(cub.x,cub.z),cub.z); updateSibs(c,dt);
   cub.saveT-=dt; if(cub.saveT<=0){ cub.saveT=10; save(); }
 }
 // Partnersuche: Pfeil und Hinweis nur in den ersten 15 s, danach nur noch der rosa Punkt auf der Spürkarte

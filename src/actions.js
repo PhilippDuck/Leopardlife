@@ -24,7 +24,7 @@ import { downPlayer, hEl, othersAlive, resetMates, tell } from './coop.js';
 import { emit } from './events.js';
 import { toggleSkills } from './skills.js';
 import { bitable, biteHit, forgetWounds, startBite } from './bite.js';
-import { SWITCH_AT, cubLearn, cubSpot } from './cubfollow.js';
+import { SWITCH_AT, cubLearn, cubSpot, hasOwnCub } from './cubfollow.js';
 
 /* ---------- Aktionen ---------- */
 /** Index des nächsten erreichbaren Baums für Spieler p, sonst -1. */
@@ -119,7 +119,7 @@ function hurtPlayer(d,a,force,p=P){
 /** Endgültiger Tod (Einzelspiel bzw. alle Spieler am Boden): Todesfenster, Erbe, Ende der Blutlinie. */
 function die(p,a){
   {
-    p.hp=0; p.downT=null; G.heirPending=!!S.cub; G.lineageEnd=!S.cub&&(a.sp.id==='age'||D().perma); let lost=0; if(!G.heirPending&&!G.lineageEnd){ lost=Math.floor(S.xp*D().xpLoss); S.xp-=lost; } save();
+    p.hp=0; p.downT=null; G.heirPending=hasOwnCub(P); G.lineageEnd=!S.cub&&(a.sp.id==='age'||D().perma); let lost=0; if(!G.heirPending&&!G.lineageEnd){ lost=Math.floor(S.xp*D().xpLoss); S.xp-=lost; } save();
     p.dead=true; G.paused=true; p.pounce=0; for(const k in keys) keys[k]=false; G.drag=false;
     if(document.exitPointerLock) document.exitPointerLock();
     p.g.rotation.z=Math.PI/2; p.g.position.y=p.y+0.25*pScale();

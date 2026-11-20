@@ -22,7 +22,7 @@ import { startTutorial } from './tutorial.js';
 import { ctrlArt } from './ctrlart.js';
 import { leaveTitle } from './title.js';
 import { resetMates } from './coop.js';
-import { canSwitch } from './cubfollow.js';
+import { canSwitch, canSwitchFor, hasOwnCub } from './cubfollow.js';
 
 /* Pausenmenü (Esc oder Menü-Knopf) */
 G.menuT=0; let hadLock=false, restartArm=false;
@@ -32,7 +32,7 @@ function toggleMenu(){
   const el=$('menu');
   if(!menuOpen()){
     $('menuInfo').textContent='Gebiet: '+REG.n+' · Schwierigkeit: '+D().n+' · Uhrzeit '+clockStr()+(D().perma?' · ohne Nachwuchs endgültig':'');
-    G.cubArm=false; { const b=/** @type {HTMLButtonElement} */($('btnMenuCub')), ok=canSwitch(); b.style.display=S.cub&&S.cub.n>0?'block':'none'; b.disabled=!ok; b.textContent=ok?'Als Junges weiterspielen':'Als Junges weiterspielen (ab 50 % groß – jetzt '+Math.round(((S.cub&&S.cub.grow)||0)*100)+' %)'; }
+    G.cubArm=false; { const b=/** @type {HTMLButtonElement} */($('btnMenuCub')), ok=canSwitchFor(P); b.style.display=hasOwnCub(P)?'block':'none'; b.disabled=!ok; b.textContent=ok?'Als Junges weiterspielen':'Als Junges weiterspielen (ab 50 % groß – jetzt '+Math.round(((S.cub&&S.cub.grow)||0)*100)+' %)'; }
     el.style.display='flex'; G.paused=true; G.menuT=performance.now(); restartArm=false; $('btnRestart').textContent='Neustart (Fortschritt löschen)';
     for(const k in keys) keys[k]=false; G.drag=false; G.joyX=G.joyY=0; if(document.exitPointerLock) document.exitPointerLock();
   } else {

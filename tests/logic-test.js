@@ -31,7 +31,7 @@ const doc={ querySelectorAll:()=>[], getElementById:el, addEventListener(){}, cr
 let raf=null;
 const g={ window:win, document:doc, navigator:{maxTouchPoints:0}, localStorage:{getItem:k=>(k in ls?ls[k]:null),setItem:(k,v)=>{ls[k]=String(v);}}, THREE:win.THREE,
   requestAnimationFrame:fn=>{ if(fn.name==='frame') raf=fn; else fn(); }, setTimeout:fn=>{ fn(); } };
-const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,cubFollowContext,cubLearn,updateFollowers,followers,learnOf,canSwitch,woundTick,forgetWounds,resetMates,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping};';
+const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,canSwitchFor,markTaken,cubFollowContext,cubLearn,updateFollowers,followers,learnOf,canSwitch,woundTick,forgetWounds,resetMates,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping};';
 new Function(...Object.keys(g), body)(...Object.values(g));
 const T=globalThis.__T; const rnd2=()=>Math.random()*8-4; const localStorageDump=()=>ls['jaguar-lines'];
 els.btnPlay.onclick();
@@ -375,4 +375,10 @@ console.log('audio nodes created',ACs&&ACs.count());
   S.cub=keep[0]; S.food=keep[1]; if(a.carc) T.endCarcass(a); a.dead=false; a.x=k2[0]; a.z=k2[1]; a.g.visible=true; P.drag=null;
   if(!freed||!stays||!(ate>=2)||!(f1>f0-5)){ console.log('FEHLER: Beute zum Bau',freed,stays,ate,f0,f1); process.exit(1); }
   console.log('Beute zum Bau gezogen: bleibt liegen, die Jungen fressen selbst ('+ate+' Bissen in 12 s)'); }
+{ const S=T.S(), P=T.P, keep=S.cub; const Q={num:2};
+  S.cub={full:90,grow:0.6,hp:1,trait:'flink',n:2,gen:2,parents:[S.id,'wild']};
+  const a1=T.canSwitchFor(P)&&T.canSwitchFor(Q); T.markTaken(P); S.cub.n=1; const a2=!T.canSwitchFor(P)&&T.canSwitchFor(Q);
+  S.cub=keep;
+  if(!a1||!a2){ console.log('FEHLER: eigenes Junges je Spieler',a1,a2); process.exit(1); }
+  console.log('Wurf zu zweit: jeder übernimmt nur sein eigenes Junges'); }
 console.log('ALL OK');
