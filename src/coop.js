@@ -21,6 +21,8 @@ import { ensureKin, mateContext, newId } from './kinship.js';
 import { PCOL, drawRadar, updateCross, updateUI, updateWarn, warnArrows } from './hud.js';
 import { esc } from './carcass.js';
 import { sleepVotes } from './daynight.js';
+import { startTutorial } from './tutorial.js';
+import { renderPlayers, titleOn } from './title.js';
 
 /** Höchstens so viele Spieler teilen sich den Bildschirm */
 const MAX_PLAYERS=4;
@@ -48,8 +50,8 @@ function joinPlayer(i,gp){
   if(!L.id||L.id===S.id){ L.id=newId(); L.parents=[]; } ensureKin(L); save();
   const p=makePlayer({source:'pad'+i,camera:cam,x:P.x+Math.sin(ang)*r,z:P.z+Math.cos(ang)*r,fur:L.fur||FURS[num-1],L});
   p.pad=i; p.num=num; p.padPrev=gp?gp.buttons.map(b=>!!b.pressed):[];   // der Start-Druck zum Einsteigen zählt nicht als Pause p.rot=P.rot; p.cam.yaw=P.cam.yaw; p.cam.pitch=P.cam.pitch;
-  p.hud=makeHud(p);
-  players.push(p); layoutChanged();
+  p.hud=makeHud(p); hEl(p,'tut').style.display='none'; startTutorial(p);   // eigene Einführung beim ersten Einstieg (oder weiter, wo er war)
+  players.push(p); layoutChanged(); renderPlayers();
   toast(NAMES[num-1]+' ist dabei (Stufe '+L.lvl+')! '+(L.pts>0?L.pts+' Punkte verteilen mit Back · ':'Back: Entwicklung · ')+'Back halten: aussteigen','#9be07f'); snd.click();
   return p;
 }
@@ -57,7 +59,7 @@ function joinPlayer(i,gp){
 function leavePlayer(p){
   if(p===P) return;
   const i=players.indexOf(p); if(i<0) return;
-  players.splice(i,1); dropModel(p.g); if(p.hud) p.hud.remove();
+  players.splice(i,1); dropModel(p.g); if(p.hud) p.hud.remove(); renderPlayers();
   for(const a of animals) if(a.tgt===p) a.tgt=null;
   layoutChanged(); toast(NAMES[p.num-1]+' ist ausgestiegen.','#f2b84b');
 }
@@ -84,7 +86,7 @@ function layoutChanged(){
 const _sz=new THREE.Vector2();
 /** Zeichnet das Bild: bei einem Spieler wie gewohnt, sonst ein Ausschnitt je Spieler mit eigener Kamera. */
 function renderAll(){
-  if(players.length===1){ applyTreeView(0); cullTiles(P.camera); renderer.render(scene,P.camera); return; }
+  if(players.length===1||titleOn()){ applyTreeView(0); cullTiles(P.camera); renderer.render(scene,P.camera); return; }   // Startbildschirm: ein Bild für alle
   renderer.getSize(_sz); const W=_sz.x, Hh=_sz.y, R=rectsFor(players.length);
   // Schatten: liegen alle nah beieinander, reicht ein Schattenbild um die Mitte; sonst eins je Ausschnitt
   let mx=0,mz=0; for(const p of players){ mx+=p.x; mz+=p.z; } mx/=players.length; mz/=players.length;
@@ -146,7 +148,7 @@ function pollCoop(dt,gps){
     for(let i=0;i<gp.buttons.length;i++) prev[i]=B(i);
   }
 }
-const topOverlayOpen=()=>['skills','menu','settings','regions','book'].some(id=>$(id)&&$(id).style.display==='flex');
+const topOverlayOpen=()=>['skills','menu','settings','regions','book','guide','ctrlView'].some(id=>$(id)&&$(id).style.display==='flex');
 /** Eigenes Entwicklungsfenster mit dem Controller bedienen: Steuerkreuz/Stick wählt, Ⓐ drückt, Ⓑ oder Back schließt */
 function panelNav(p,gp,hit,dt){
   const el=p.skPanel; if(!el) return;

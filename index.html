@@ -42,6 +42,18 @@
   .card{width:min(560px,92vw);max-height:92vh;overflow:auto;padding:22px 24px;touch-action:pan-y}
   h1{margin:0 0 4px;font-size:30px;color:var(--gold);letter-spacing:.5px} h2{margin:0 0 10px;font-size:20px;color:var(--gold)}
   p{line-height:1.45;color:var(--txt);margin:8px 0}
+  .ctrlCard{max-width:min(900px,96vw)!important;width:min(900px,96vw);max-height:96vh;overflow:auto} .ctrlCard svg{max-width:100%!important;max-height:calc(94vh - 120px)}
+  /* Startbildschirm (title.js): 3D-Szene im Hintergrund, Karte links, Leopard rechts im Bild */
+  body.title #start{background:linear-gradient(90deg,rgba(6,9,5,.82) 0%,rgba(6,9,5,.55) 38%,rgba(6,9,5,0) 62%);justify-content:flex-start;padding-left:max(16px,4vw)}
+  body.title #start>.card{background:transparent;border:none;box-shadow:none;max-width:440px;backdrop-filter:none}
+  body.title .ph, body.title #touch, body.title .tb, body.title #tapHelp, body.title #fps, body.title #tut{display:none!important}
+  #start .ttl{font-size:clamp(34px,5.4vw,58px);margin:0;letter-spacing:.5px;text-shadow:0 2px 18px rgba(242,184,75,.35),0 2px 3px rgba(0,0,0,.6)}
+  #start .sub{color:var(--txt);opacity:.8;margin:-2px 0 12px;font-size:15px;letter-spacing:2px;text-transform:uppercase}
+  #startPlayers{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px} #startPlayers .sp{font-size:12px;padding:4px 9px;border-radius:12px;background:rgba(20,26,18,.8);border:1px solid var(--gold)}
+  #startPlayers .sp.add{border-style:dashed;border-color:var(--line);color:var(--mut)}
+  #soundHint{font-size:12px;color:var(--mut);margin:0 0 8px}
+  @media (max-width:700px){ body.title #start{background:linear-gradient(0deg,rgba(6,9,5,.85) 0%,rgba(6,9,5,.6) 55%,rgba(6,9,5,.1) 100%);align-items:flex-end;padding-left:0} }
+  .ktabs{display:flex;gap:6px;margin:6px 0 8px;flex-wrap:wrap} .ktabs button{padding:4px 10px;font-size:12px;width:auto;margin:0} .ktabs button.on{border-color:var(--gold);color:var(--gold)}
   .keys{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:13px;margin:12px 0;color:var(--mut)}
   kbd{background:#33402c;border:1px solid var(--line);border-radius:4px;padding:1px 6px;color:var(--txt);font-family:inherit;font-size:12px}
   button{font-family:inherit;font-size:15px;border:0;border-radius:8px;padding:10px 18px;background:var(--gold);color:#2a1d00;font-weight:bold;cursor:pointer}
@@ -100,7 +112,7 @@
   .tb.tcd::before{content:'';position:absolute;inset:0;border-radius:50%;pointer-events:none;background:conic-gradient(var(--gold) calc(var(--cd,1)*360deg),rgba(255,255,255,.2) 0);-webkit-mask:radial-gradient(circle closest-side,transparent calc(100% - 4px),#000 calc(100% - 3.5px));mask:radial-gradient(circle closest-side,transparent calc(100% - 4px),#000 calc(100% - 3.5px))}
   .tb.tcd.ready::before{background:var(--gold)}
   #tbE{right:calc(16px + 76px*var(--ts));bottom:calc(28px + 76px*var(--ts))}
-  #tbF{display:none;right:calc(16px + 76px*var(--ts));bottom:calc(28px + 152px*var(--ts));background:#d86fa8;color:#2a0a1c;font-weight:bold}
+  #tbF{display:none;right:calc(16px + 76px*var(--ts));bottom:calc(28px + 152px*var(--ts));background:#f4f1e8;color:#111;font-weight:bold}
   #cubBox{display:none;margin-top:6px;border-top:1px solid var(--line);padding-top:5px}
   #cubBox .cl{display:flex;flex-wrap:wrap;justify-content:space-between;gap:0 8px;font-size:11px;color:#ffb8dc}
   #cubBox .bar{height:7px;margin:3px 0} #bCf{background:linear-gradient(#f0a850,#d07a22)} #bCg{background:linear-gradient(#ee8cc0,#c2528f)}
@@ -250,12 +262,70 @@ body.quad .ph{--rad:92px}
 </div>
 
 <div id="start" class="overlay"><div class="card panel">
-  <h1>LeopardLife</h1>
-  <div style="color:var(--mut);margin-bottom:8px">Jäger der Wildnis</div>
-  <div style="color:#7fc8f2;font-size:13px;margin:-4px 0 8px">👥 Zu zweit bis viert: Im Spiel einfach auf einem weiteren Controller Start drücken.</div>
+  <h1 class="ttl">LeopardLife</h1>
+  <div class="sub">Jäger der Wildnis</div>
+  <div id="startPlayers"></div>
+  <div id="soundHint">🔊 Tippen oder eine Taste drücken für Ton und Musik</div>
   <p>Wachse vom kleinen Jungtier zum König der Wildnis – und sorge dafür, dass deine Blutlinie weiterlebt.</p>
-  <details id="howto">
-    <summary>Spielanleitung &amp; Steuerung</summary>
+  <div id="diffRow" style="display:none;margin-top:12px">
+    <div class="sect" style="margin-top:0">Schwierigkeit</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+      <button class="sec diffb" data-d="easy">Leicht</button><button class="sec diffb" data-d="normal">Normal</button><button class="sec diffb" data-d="hard">Schwer</button>
+    </div>
+    <p id="diffTxt" style="font-size:12.5px;color:var(--mut);margin-top:6px"></p>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center;margin-top:14px">
+    <button id="btnPlay">Spielen</button>
+    <button id="btnReset" class="sec" style="display:none">Neu anfangen</button>
+  </div>
+  <div id="err" style="color:var(--red);margin-top:10px;font-size:13px"></div>
+</div></div>
+
+<div id="skills" class="overlay" style="display:none"><div class="card panel">
+  <div style="display:flex;justify-content:space-between;align-items:center"><h2>Entwicklung<span id="skWho" style="color:var(--mut);font-size:.7em"></span></h2><span id="skPts" style="color:var(--gold);font-weight:bold"></span></div>
+  <button id="btnSkCub" style="display:none;width:100%;margin:6px 0;background:#d86fa8;color:#2a0a1c">Als Junges weiterspielen</button>
+  <div class="sect">Eigenschaften · 1 Punkt</div><div id="skA"></div>
+  <div class="sect">Fähigkeiten · 2 Punkte</div><div id="skB"></div>
+  <div class="sect">Erbanlagen</div><div id="skT"></div>
+  <button id="btnSkTut" class="ghost2" style="width:100%;margin-top:6px;display:none">Einführung beenden</button>
+  <div class="sect">Steuerung</div><button id="btnSkPounce" class="ghost2" style="width:100%;margin-top:4px">Sprungangriff: zum Fadenkreuz</button>
+  <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap"><button id="btnClose">Weiter jagen</button><button id="btnSkReset" class="ghost2" disabled>↺ Auswahl zurücksetzen</button></div>
+</div></div>
+
+<div id="menu" class="overlay" style="display:none"><div class="card panel">
+  <h2>Pause</h2>
+  <p id="menuInfo" style="font-size:12.5px;color:var(--mut);margin:0 0 4px"></p>
+  <button id="btnResume">Weiter jagen</button>
+  <button id="btnMenuSkills" class="sec">Eigenschaften &amp; Fähigkeiten</button>
+  <button id="btnRegions" class="sec">Gebiete</button>
+  <button id="btnBook" class="sec">Ahnenbuch</button>
+  <button id="btnMenuCub" class="sec" style="display:none">Als Junges weiterspielen</button>
+  <button id="btnGuide" class="sec">Spielanleitung</button>
+  <button id="btnCtrlMenu" class="sec">🎮 Steuerung</button>
+  <button id="btnSettings" class="sec">Einstellungen</button>
+  <button id="btnTutEnd" class="sec" style="display:none">Einführung beenden</button>
+  <button id="btnRestart" class="sec" style="margin-top:20px">Neustart (Fortschritt löschen)</button>
+</div></div>
+
+<div id="settings" class="overlay" style="display:none"><div class="card panel">
+  <h2>Einstellungen</h2>
+  <div class="sect">Ton</div>
+  <div class="setrow"><button id="mute" class="sec">Ton: an</button><button id="btnMusic" class="sec">Musik: an</button></div>
+  <div class="sect">Grafik</div>
+  <button id="gfx" class="sec">Grafik: hoch</button>
+  <div class="setrow"><button id="btnAutoRes" class="sec">Auflösung automatisch: an</button><button id="btnFps" class="sec">Bildrate anzeigen: aus</button></div>
+  <p style="font-size:12px;color:var(--mut);margin-top:8px">Grafik: „niedrig" ohne Schatten für schwächere Geräte, „hoch" als Standard, „ultra" mit weiter Sicht, weiteren und schärferen Schatten und mehr Gras.</p>
+  <div class="sect">Steuerung · <span id="keysMode"></span></div>
+  <button id="btnTutAgain" class="sec">Einführung wiederholen</button>
+  <button id="btnPounceDir" class="sec">Sprungangriff: zum Fadenkreuz</button>
+  <button id="btnCtrlSet" class="sec">🎮 Steuerung ansehen</button>
+  <p style="font-size:12px;color:var(--mut)">Die Anzeige wechselt automatisch zu dem, was du zuletzt benutzt hast: Tastatur und Maus, Touch oder Xbox-Controller.</p>
+  <button id="btnSetBack">Zurück</button>
+</div></div>
+
+<div id="guide" class="overlay" style="display:none"><div class="card panel" style="max-height:92vh;overflow:auto">
+  <h2 style="margin:0 0 6px">Spielanleitung</h2>
+
     <p>Du beginnst als kleines Jungtier. Jage Mäuse und Hasen, werde größer und stärker – und halte dich von Schakalen, Hyänen und Löwen fern, solange du selbst noch Beute bist. Im <b style="color:var(--green)">hohen Gras</b> bist du beim Schleichen fast unsichtbar.</p>
     <p>Ziel: Erlege die <b style="color:var(--gold)">Riesenantilope</b> draußen in der Savanne.</p>
     <p style="font-size:13px;color:var(--mut)"><b style="color:#96cdff">Wind:</b> Der blaue Pfeil an der Spürkarte zeigt, wohin der Wind weht. Tiere, zu denen er deinen Geruch trägt, bemerken dich früher – pirsche dich gegen den Wind an. Der gestrichelte Wahrnehmungsring zeigt das an. Ab „Normal" jagen Hyänen und Schakale im Rudel und Beute schlägt Haken, auf „Schwer" noch geschickter.</p>
@@ -282,58 +352,13 @@ body.quad .ph{--rad:92px}
     <p style="font-size:13px;color:var(--mut)"><b style="color:#e0a060">Hunger und Alter:</b> Du musst regelmäßig Beute machen, sonst verhungerst du. Ab Stufe 8 läuft deine Lebenszeit; im Alter lassen Tempo und Kraft nach. Ohne Nachwuchs endet deine Blutlinie.</p>
     <p style="font-size:13px;color:var(--mut)"><b style="color:#9fb4ff">Tag und Nacht:</b> Nachts bist du schwerer zu sehen, Raubtiere sind aber wachsamer. Die Fähigkeit Nachtsicht hellt die Nacht auf. Auf einem Baum kannst du abends und nachts schlafen (F bzw. rosa Knopf) – du wachst morgens ausgeruht, aber hungrig auf.</p>
     <p style="font-size:13px;color:var(--mut)">Tipp: Ein Treffer auf ahnungslose Beute zählt als Hinterhalt und richtet mehrfachen Schaden an. Fliehende Tiere werden nach einer Weile müde.</p>
-  </details>
-  <div id="diffRow" style="display:none;margin-top:12px">
-    <div class="sect" style="margin-top:0">Schwierigkeit</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
-      <button class="sec diffb" data-d="easy">Leicht</button><button class="sec diffb" data-d="normal">Normal</button><button class="sec diffb" data-d="hard">Schwer</button>
-    </div>
-    <p id="diffTxt" style="font-size:12.5px;color:var(--mut);margin-top:6px"></p>
-  </div>
-  <div style="display:flex;gap:10px;align-items:center;margin-top:14px">
-    <button id="btnPlay">Spielen</button>
-    <button id="btnReset" class="sec" style="display:none">Neu anfangen</button>
-  </div>
-  <div id="err" style="color:var(--red);margin-top:10px;font-size:13px"></div>
+    <button id="btnGuideBack">Zurück</button>
 </div></div>
 
-<div id="skills" class="overlay" style="display:none"><div class="card panel">
-  <div style="display:flex;justify-content:space-between;align-items:center"><h2>Entwicklung<span id="skWho" style="color:var(--mut);font-size:.7em"></span></h2><span id="skPts" style="color:var(--gold);font-weight:bold"></span></div>
-  <button id="btnSkCub" style="display:none;width:100%;margin:6px 0;background:#d86fa8;color:#2a0a1c">Als Junges weiterspielen</button>
-  <div class="sect">Eigenschaften · 1 Punkt</div><div id="skA"></div>
-  <div class="sect">Fähigkeiten · 2 Punkte</div><div id="skB"></div>
-  <div class="sect">Erbanlagen</div><div id="skT"></div>
-  <div class="sect">Steuerung</div><button id="btnSkPounce" class="ghost2" style="width:100%;margin-top:4px">Sprungangriff: zum Fadenkreuz</button>
-  <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap"><button id="btnClose">Weiter jagen</button><button id="btnSkReset" class="ghost2" disabled>↺ Auswahl zurücksetzen</button></div>
-</div></div>
-
-<div id="menu" class="overlay" style="display:none"><div class="card panel">
-  <h2>Pause</h2>
-  <p id="menuInfo" style="font-size:12.5px;color:var(--mut);margin:0 0 4px"></p>
-  <button id="btnResume">Weiter jagen</button>
-  <button id="btnMenuSkills" class="sec">Eigenschaften &amp; Fähigkeiten</button>
-  <button id="btnRegions" class="sec">Gebiete</button>
-  <button id="btnBook" class="sec">Ahnenbuch</button>
-  <button id="btnMenuCub" class="sec" style="display:none">Als Junges weiterspielen</button>
-  <button id="btnSettings" class="sec">Einstellungen</button>
-  <button id="btnTutEnd" class="sec" style="display:none">Einführung beenden</button>
-  <button id="btnRestart" class="sec" style="margin-top:20px">Neustart (Fortschritt löschen)</button>
-</div></div>
-
-<div id="settings" class="overlay" style="display:none"><div class="card panel">
-  <h2>Einstellungen</h2>
-  <div class="sect">Ton</div>
-  <div class="setrow"><button id="mute" class="sec">Ton: an</button><button id="btnMusic" class="sec">Musik: an</button></div>
-  <div class="sect">Grafik</div>
-  <button id="gfx" class="sec">Grafik: hoch</button>
-  <div class="setrow"><button id="btnAutoRes" class="sec">Auflösung automatisch: an</button><button id="btnFps" class="sec">Bildrate anzeigen: aus</button></div>
-  <p style="font-size:12px;color:var(--mut);margin-top:8px">Grafik: „niedrig" ohne Schatten für schwächere Geräte, „hoch" als Standard, „ultra" mit weiter Sicht, weiteren und schärferen Schatten und mehr Gras.</p>
-  <div class="sect">Steuerung · <span id="keysMode"></span></div>
-  <button id="btnTutAgain" class="sec">Einführung wiederholen</button>
-  <button id="btnPounceDir" class="sec">Sprungangriff: zum Fadenkreuz</button>
-  <div id="keysBox" class="keys" style="margin:6px 0 0"></div>
-  <p style="font-size:12px;color:var(--mut)">Die Anzeige wechselt automatisch zu dem, was du zuletzt benutzt hast: Tastatur und Maus, Touch oder Xbox-Controller.</p>
-  <button id="btnSetBack">Zurück</button>
+<div id="ctrlView" class="overlay" style="display:none"><div class="card panel ctrlCard">
+  <h2 style="margin:0 0 4px">Steuerung</h2>
+  <div id="keysBox"></div>
+  <button id="btnCtrlBack">Zurück</button>
 </div></div>
 
 <div id="birth" class="overlay" style="display:none"><div class="card panel" style="text-align:center">

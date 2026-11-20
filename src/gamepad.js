@@ -9,6 +9,7 @@ import { G } from './state.js';
 import { toast } from './ui.js';
 import { $ } from './util.js';
 import { MAX_PLAYERS, joinPlayer, leavePlayer, padTaken, panelNav, pingMates, pollCoop } from './coop.js';
+import { titleOn } from './title.js';
 
 /* ---------- Controller-Steuerung (Gamepad, Standardbelegung wie Xbox/PlayStation) ----------
    Linker Stick laufen · rechter Stick Kamera · RT (oder A) Sprung · B Schleichen · X Aktion · Y Klettern · LB Brüllen · LT/L3 Sprinten
@@ -23,7 +24,7 @@ const PADDZ=0.2, pdz=v=>Math.abs(v)<PADDZ?0:(v-Math.sign(v)*PADDZ)/(1-PADDZ);
 /** Vibration am Controller idx (Standard: der von Spieler 1) */
 function rumble(strong,weak,ms,idx=padIdx){ try{ const gp=idx>=0&&navigator.getGamepads()[idx]; if(gp&&gp.vibrationActuator){ const r=gp.vibrationActuator.playEffect('dual-rumble',{duration:ms,strongMagnitude:strong,weakMagnitude:weak}); if(r&&r.catch) r.catch(()=>{}); } }catch(e){} }
 function pressKey(code){ padSynth=true; try{ window.dispatchEvent(new KeyboardEvent('keydown',{code,key:code})); }catch(e){} padSynth=false; }
-function topOverlay(){ for(const id of ['birth','dead','win','settings','regions','book','skills','menu','start']){ const el=$(id); if(el&&getComputedStyle(el).display!=='none') return el; } return null; }
+function topOverlay(){ for(const id of ['ctrlView','guide','birth','dead','win','settings','regions','book','skills','menu','start']){ const el=$(id); if(el&&getComputedStyle(el).display!=='none') return el; } return null; }
 function padButtons(ov){ return Array.from(ov.querySelectorAll('button,summary')).filter(b=>!b.disabled&&b.offsetParent!==null); }
 function setPadFocus(el){ if(padFocusEl) padFocusEl.classList.remove('padf'); padFocusEl=el; if(el){ el.classList.add('padf'); try{ el.scrollIntoView({block:'nearest'}); }catch(e){} } }
 function pollPads(dt){
@@ -33,7 +34,7 @@ function pollPads(dt){
   for(const g of gps){
     if(!g||!g.connected||g.index===padIdx||padTaken(g.index)) continue;
     const startDown=!!(g.buttons[9]&&g.buttons[9].pressed), was=joinPrev[g.index]; joinPrev[g.index]=startDown;
-    if(startDown&&!was&&G.started&&!topOverlay()&&(cur||inputMode!=='pad')){
+    if(startDown&&!was&&((G.started&&!topOverlay())||titleOn())&&(cur||inputMode!=='pad')){   // auch schon auf dem Startbildschirm
       if(players.length<MAX_PLAYERS){ joinPlayer(g.index,g); continue; } }
     const active=g.buttons.some((b,i)=>b.pressed&&i!==9)||g.axes.some(a=>Math.abs(a)>0.35);
     // Spieler 1 an Tastatur/Maus/Touch: ein freier Controller gehört nicht automatisch ihm.

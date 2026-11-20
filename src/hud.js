@@ -21,6 +21,7 @@ import { patches } from './vegetation.js';
 import { W } from './weather.js';
 import { hEl, nameOf, reviveHint, viewMin } from './coop.js';
 import { mateContextInfo } from './kinship.js';
+import { tutActive } from './tutorial.js';
 
 const rc=$('rc').getContext('2d');   // Spürkarte
 const waPool=[]; let beatT=0;
@@ -112,7 +113,7 @@ function updateCross(p=P){
 function updateUI(p=P){
   const h=id=>hEl(p,id), me=p===P;
   h('lvl').textContent=(me?'':nameOf(p)+' · ')+'Stufe '+p.L.lvl+(S.gen>1?' · Gen. '+S.gen:'');
-  if(me) renderGoals(); else h('goalBox').innerHTML=$('goalBox').innerHTML;
+  if(me) renderGoals(); else { h('goalBox').innerHTML=$('goalBox').innerHTML; h('goalBox').style.display=tutActive(p)?'none':'block'; }
   h('size').textContent=(W.rain>0.3?(W.storm?'⛈ ':'☔ '):dayF>0.5?'☀ ':'☾ ')+clockStr()+' · '+(p.L.lvl<4?'Jungtier':p.L.lvl<8?'Halbstark':oldF(p.L)>0?'Alt':p.L.lvl<12?'Ausgewachsen':'Alpha')+(p.L.lvl>=8?' · noch '+Math.max(1,Math.ceil((DIE_AT(p.L)-p.L.age)/60))+' min':'');
   h('bHu').style.width=p.L.hunger+'%'; h('bHu').classList.toggle('low',p.L.hunger<25); h('tHu').textContent=p.L.hunger<=0?'verhungert!':p.L.hunger<25?'hungrig':Math.round(p.L.hunger)+' %';
   const mh=maxHp(p.L), ms=maxSt(p.L), xn=xpNeed(p.L.lvl);
@@ -152,7 +153,7 @@ function updateUI(p=P){
     ch.style.display='block';
     ch.innerHTML=rv.close?key+' halten: '+esc(rv.name)+' wiederbeleben'+(rv.progress>0?' · noch '+rv.left.toFixed(1)+' s':'')+'<div class="bar" style="margin-top:4px;height:6px"><i style="width:'+Math.round(rv.progress*100)+'%;background:#8fe07a"></i></div>'
       :esc(rv.name)+' liegt am Boden – geh hin und halte '+key;
-  } else { ch.style.display=ctx?'block':'none'; if(ctx) ch.innerHTML=(!me||padUI())?xb('Ⓧ')+' – '+esc(ctx.label):touchUI()?'Rosa Knopf: '+esc(ctx.label):'F – '+esc(ctx.label); }
+  } else { ch.style.display=ctx?'block':'none'; if(ctx) ch.innerHTML=(!me||padUI())?xb('Ⓧ')+' – '+esc(ctx.label):touchUI()?'Aktionsknopf: '+esc(ctx.label):'F – '+esc(ctx.label); }
   if(me) $('tapHelp').style.display=(touchUI()&&G.started&&!G.paused&&tapLearned<2)?'block':'none';
   const pe=h('pts'); if(p.L.pts>0){ pe.style.display='block'; pe.textContent=p.L.pts+' Punkt'+(p.L.pts===1?'':'e')+(sm?' ▸':me?' zu vergeben – Tab':' zu vergeben – Back'); } else pe.style.display='none';
   h('cdP').style.width=(1-p.pcd/1.3)*100+'%';
