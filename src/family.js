@@ -19,7 +19,7 @@ import { canSleepNow, sleepOnTree } from './daynight.js';
 import { carcassContext, endCarcass, nearCarcass, recordPartner, takeMeat } from './carcass.js';
 import { goalEvent } from './goals.js';
 import { moveAnimal } from './ai.js';
-import { nameOf, viewMin } from './coop.js';
+import { nameOf, tell, viewMin } from './coop.js';
 import { canPair, ensureKin, litterLeaves, litterSize, newId, pairCandidate, pairPlayers, related } from './kinship.js';
 import { DEN_CAP, SWITCH_AT, cubFollowContext, denCount, followerOf, hasOwnCub } from './cubfollow.js';
 
@@ -122,8 +122,9 @@ function feedCub(){
   save();
 }
 function cubDies(how){
-  S.cub=null; S.food=0; if(G.raider) endRaid(G.raider); save(); snd.death();
-  toast('Dein Junges '+how+'. Du kannst dir wieder einen Partner suchen.','#ff8a70');
+  const n=(S.cub&&S.cub.n)||1; S.cub=null; S.food=0; if(G.raider) endRaid(G.raider); save(); snd.death();
+  const plural=n>1?how.replace(/^ist /,'sind ').replace(/^wurde /,'wurden '):'', msg=(n>1?'Eure Jungen '+plural:'Dein Junges '+how)+'. Ihr könnt euch wieder einen Partner suchen.';
+  toast(msg,'#ff8a70'); players.forEach(q=>tell(q,msg,'#ff8a70'));
 }
 function endRaid(a){ a.state='wander'; a.timer=0; a.sus=0; a.scared=8; if(G.raider===a) G.raider=null; }
 function startRaid(){
@@ -173,8 +174,12 @@ function updateCub(dt){
   cubG.visible=c.grow>=1||denCount()>0;
   if(c.grow>=1&&c.taken&&!players.some(q=>hasOwnCub(q))){ litterLeaves(); cubG.visible=false; updateSibs(null,dt); return; }   // übrige Geschwister eines Spieler-Jungen ziehen weiter
   if(c.grow<1){
-    c.full=Math.max(0,c.full-dt*0.28*D().hunger);
-    if(c.full<=0){ c.hp-=dt*0.012; if(c.hp<=0){ cubDies('ist verhungert'); return; } }
+    // Hunger: von satt bis leer etwa 14 Minuten, danach noch gut 3 Minuten bis zum Verhungern – mit deutlichen Warnungen
+    const f0=c.full; c.full=Math.max(0,c.full-dt*0.12*D().hunger);
+    if(f0>=30&&c.full<30) players.forEach(q=>tell(q,'Dein Junges hat Hunger – lass es an Beute fressen (Beute zum Bau oder mitnehmen und gemeinsam fressen).','#ffb070'));
+    if(c.full<=0){ c.hp-=dt*0.005; cub.starveT=(cub.starveT||0)-dt;
+      if(cub.starveT<=0){ cub.starveT=20; players.forEach(q=>tell(q,'⚠ Dein Junges verhungert! Bring ihm schnell Beute ('+Math.max(1,Math.round(c.hp/0.005/60))+' min)','#ff5a3a')); }
+      if(c.hp<=0){ cubDies('ist verhungert'); return; } }
     else if(c.hp<1&&!G.raider) c.hp=Math.min(1,c.hp+dt*0.01);
     // Miauen (aus Richtung Bau): hungrig oft und laut, sonst ab und zu leise, wenn jemand in der Nähe ist; begrüßt Heimkehrer
     if(denCount()>0){ const nd=Math.min(...players.map(q=>Math.hypot(q.x-cub.x,q.z-cub.z)));
