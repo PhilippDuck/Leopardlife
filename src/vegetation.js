@@ -177,7 +177,7 @@ const GRASS_N=30000;
     side:THREE.DoubleSide, fog:true,
     uniforms:THREE.UniformsUtils.merge([THREE.UniformsLib.fog,{uP:{value:new THREE.Vector2()},uTime:{value:0},uS:{value:S}}]),
     vertexShader:'uniform vec2 uWind; attribute vec3 offset; attribute float aScale; uniform vec2 uP; uniform float uTime; uniform float uS; varying float vH; varying vec3 vCol;\n#include <fog_pars_vertex>\n'+GLSL_H+
-      'void main(){\n  vec2 o=offset.xz*uS; vec2 w=o+uS*floor((uP-o)/uS+0.5);\n  float fade=1.0-smoothstep(uS*0.34,uS*0.47,distance(w,uP));\n  fade*=1.0-smoothstep(236.0,243.0,length(w));\n'+GLSL_PONDMASK+
+      'void main(){\n  vec2 o=offset.xz*uS; vec2 w=o+uS*floor((uP-o)/uS+0.5);\n  float fade=1.0-smoothstep(uS*0.34,uS*0.47,distance(w,uP));\n'+GLSL_PONDMASK+
       '  float a=offset.y*6.2832; float c=cos(a); float s=sin(a);\n  vec3 p=position; p.xz=vec2(c*p.x-s*p.z,s*p.x+c*p.z); p*=aScale*fade;\n'+
       '  float sway=sin(uTime*1.7+w.x*0.35+w.y*0.27)*0.14+sin(uTime*3.1+w.x*0.9-w.y*0.6)*0.05;\n  p.xz+=uWind*(sway+0.08)*p.y*1.3;\n'+
       '  float zone=clamp((length(w)-60.0)/130.0,0.0,1.0);\n  vCol=mix(vec3(0.31,0.56,0.23),vec3(0.80,0.71,0.40),zone)*(0.82+0.36*offset.y);\n  vH=position.y/0.7;\n'+
