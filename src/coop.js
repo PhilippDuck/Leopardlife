@@ -201,7 +201,7 @@ function updateCoop(dt){
 }
 function wakeUp(p,x,z,hpF){
   p.dead=false; p.downT=null; p.revT=0; p.x=x; p.z=z; p.tree=null; p.safe=false; p.upNow=0; p.dropY=0;
-  p.hp=maxHp(p.L)*hpF; p.st=maxSt(p.L)*0.5; p.combatT=3; p.g.rotation.z=0; hEl(p,'hurt').style.opacity='0'; if(p===P){ $('crossMsg').style.opacity='0'; P.lastS=null; }
+  p.hp=maxHp(p.L)*hpF; p.st=maxSt(p.L)*0.5; p.L.hunger=Math.max(p.L.hunger,40);   // nicht gleich wieder verhungern p.combatT=3; p.g.rotation.z=0; hEl(p,'hurt').style.opacity='0'; if(p===P){ $('crossMsg').style.opacity='0'; P.lastS=null; }
   snd.click();
 }
 // Wenn Spieler 1 nach dem Ende aller Spieler neu erwacht, wachen die Mitspieler neben ihm auf

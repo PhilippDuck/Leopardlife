@@ -2,12 +2,14 @@
 import { hurtPlayer } from './actions.js';
 import { snd } from './audio.js';
 import { P, players, rebuildPlayer } from './player.js';
-import { D, DIE_AT, OLD_AT, S, has, maxHp, pScale, save, tf } from './save.js';
+import { D, DIE_AT, OLD_AT, S, fresh, has, maxHp, maxSt, pScale, save, tf } from './save.js';
 import { G } from './state.js';
 import { floatText, toast } from './ui.js';
 import { newMate, tell } from './coop.js';
-import { SWITCH_AT, hasOwnCub } from './cubfollow.js';
+import { SWITCH_AT, cubSpot, hasOwnCub } from './cubfollow.js';
 import { ensureKin, mateBecomeCub, newId } from './kinship.js';
+import { recordAncestor } from './carcass.js';
+import { becomeCub } from './kin.js';
 
 /* ---------- Lebenslauf: eigener Hunger, Altern, Fressen aus dem Vorrat ---------- */
 G.lineageEnd=false; G.lastCause='';
@@ -17,7 +19,22 @@ function mateDiesOfAge(p){
   if(hasOwnCub(p)){ const c=S.cub; if(c.grow<SWITCH_AT){ c.grow=SWITCH_AT; if(c.learn) delete c.learn[p.num]; }
     if(mateBecomeCub(p)){ tell(p,'Dein Leopard ist an Altersschwäche gestorben – du lebst in deinem Jungen weiter.','#ff9ad0'); return; } }
   const L=newMate(p.num); L.id=newId(); L.parents=[]; ensureKin(L); S.mates[p.num]=L; p.L=L; p.fur=L.fur; rebuildPlayer(p); p.hp=maxHp(L); save();
-  tell(p,'Dein Leopard ist an Altersschwäche gestorben, ohne Nachwuchs. Du beginnst als neuer Leopard.','#ff8a70');
+  tell(p,'Dein Leopard ist an Altersschwäche gestorben, ohne Nachwuchs. Du beginnst als neuer Leopard (Stufe '+L.lvl+', '+L.pts+' Punkte zum Verteilen).','#ff8a70');
+}
+/**
+ * Splitscreen: Spieler 1 stirbt an Altersschwäche. Nicht zu Boden gehen (Wiederbeleben würde ihn sofort wieder sterben lassen),
+ * sondern gleich weiterleben: im eigenen Jungen (vor „halbstark“ als Zeitsprung ohne Gelerntes) oder als neuer Leopard.
+ */
+function p1DiesOfAge(){
+  G.lastCause='an Altersschwäche gestorben';
+  if(hasOwnCub(P)){ const sp=cubSpot(P); becomeCub(false);
+    Object.assign(P,{x:sp.x,z:sp.z,dead:false,downT:null,tree:null,drag:null,eatC:null,bite:null}); P.hp=maxHp(); P.st=maxSt(); P.g.rotation.z=0;
+    tell(P,'Dein Leopard ist an Altersschwäche gestorben – du lebst in deinem Jungen weiter (Generation '+S.gen+').','#ff9ad0'); return; }
+  recordAncestor(G.lastCause);
+  const lvl=Math.max(1,...players.filter(q=>q!==P).map(q=>q.L.lvl)), f=fresh();
+  Object.assign(S,{lvl,xp:0,pts:2*(lvl-1),a:f.a,b:f.b,traits:[],age:0,hunger:100,kills:0,partner:false,p1:false,p2:false});
+  S.id=newId(); S.parents=[]; ensureKin(S); rebuildPlayer(); P.hp=maxHp(); P.st=maxSt(); save();
+  tell(P,'Dein Leopard ist an Altersschwäche gestorben, ohne Nachwuchs. Du beginnst als neuer Leopard (Stufe '+lvl+', '+S.pts+' Punkte zum Verteilen).','#ff8a70');
 }
 function updateLife(dt){
   // Mitspieler: eigener Hunger (satt werden sie durch eigene Beute); Altern und Erbe betreffen nur die Linie von Spieler 1
@@ -37,7 +54,7 @@ function updateLife(dt){
     const a0=S.age, D=DIE_AT(); S.age+=dt;
     if(a0<OLD_AT&&S.age>=OLD_AT) toast('Du wirst alt: Tempo und Kraft lassen nach. Sorge für Nachwuchs, damit deine Linie weiterlebt.','#f2b84b');
     if(a0<D-90&&S.age>=D-90) toast('Deine Kräfte schwinden. Dir bleibt nicht mehr viel Zeit.','#ff8a70');
-    if(S.age>=D) hurtPlayer(1e9,{sp:{id:'age',n:'Alter'}},true);
+    if(S.age>=D){ if(players.length>1) p1DiesOfAge(); else hurtPlayer(1e9,{sp:{id:'age',n:'Alter'}},true); }   // im Splitscreen kein „Am Boden“: Alter lässt sich nicht wiederbeleben
   }
 }
 

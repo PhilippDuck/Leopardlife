@@ -21,7 +21,7 @@ import { goalEvent } from './goals.js';
 import { moveAnimal } from './ai.js';
 import { nameOf, tell, viewMin } from './coop.js';
 import { canPair, ensureKin, litterLeaves, litterSize, newId, pairCandidate, pairPlayers, related } from './kinship.js';
-import { DEN_CAP, SWITCH_AT, cubFollowContext, denCount, followerOf, hasOwnCub } from './cubfollow.js';
+import { DEN_CAP, SWITCH_AT, cubFollowContext, denCount, denFull, denKids, followerOf, hasOwnCub, kidDies, tickKids } from './cubfollow.js';
 
 /* ---------- Familie: Partner, Junges, Futter, Überfälle ---------- */
 const FOOD_MAX=20, CUB_HOME={x:7,z:5};
@@ -66,7 +66,7 @@ function context(){
   { const cx=carcassContext(P); if(cx) return cx; }
   if(P.tree!=null) return (P.safe&&P.climbT>=1&&canSleepNow())?{label:P.wantSleep?'Wartet auf die anderen …':players.some(o=>o!==P&&o.wantSleep)?'Schlafen (die anderen warten)':'Schlafen',fn:()=>sleepOnTree(P)}:null;
   { const cf=cubFollowContext(P); if(cf) return cf; }
-  if(S.cub&&!cubGrown()&&S.food>0&&S.cub.full<97&&nearCub(P)) return {label:'Füttern (Rest im Vorrat)',fn:feedCub};   // alte Spielstände: übrig gebliebener Vorrat
+  if(S.cub&&!cubGrown()&&S.food>0&&denFull()<97&&nearCub(P)) return {label:'Füttern (Rest im Vorrat)',fn:feedCub};   // alte Spielstände: übrig gebliebener Vorrat
   if(S.food>0&&S.hunger<50) return {label:'Fressen',fn:eatFood};
   { const q=pairCandidate(P); if(q){ if(canPair(P,q)) return {label:'Paaren mit '+nameOf(q),fn:()=>pairPlayers(P,q)}; if(related(P.L,q.L)&&canMate()) return {label:'Verwandt – keine Paarung',fn:()=>pairPlayers(P,q)}; } }
   if(canMate()){ const m=nearestMate(); if(m){ mateNotice(m);
@@ -107,15 +107,16 @@ function denCarcass(){ let b=null, bd=14; for(const a of animals){ if(!a.dead||!
 /** Ein Junges im Bau nimmt einen Bissen vom Kadaver a: satt, wächst (im Bau bis 35 %, danach weiter ab halbstark) */
 function cubEats(c,a){
   a.carc.meat--; const was=c.grow; goalEvent('feed',1);
-  c.full=Math.min(100,c.full+12); c.hp=Math.min(1,c.hp+0.08); c.grow=Math.min(c.grow<SWITCH_AT?Math.max(c.grow,DEN_CAP):1,c.grow+0.025);
+  const kid=denKids().map(([,k])=>k).sort((x,y)=>x.full-y.full)[0]; if(kid){ kid.full=Math.min(100,kid.full+12); kid.hp=Math.min(1,kid.hp+0.08); }   // das hungrigste frisst
+  c.grow=Math.min(c.grow<SWITCH_AT?Math.max(c.grow,DEN_CAP):1,c.grow+0.025);
   puff(a.x,H(a.x,a.z)+0.5,a.z,0xc0392b,3,0.3); snd3d(['eat'],cub.x,cub.z,0.6,40,1.35);
   if(was<1&&c.grow>=1){ toast('Dein Junges ist ausgewachsen! Es braucht kein Futter mehr und ist dein Erbe.','#ff9ad0'); snd.level(); if(G.raider) endRaid(G.raider); }
   if(a.carc.meat<=0){ endCarcass(a); a.g.visible=false; a.g.rotation.z=0; }
 }
 function feedCub(){
-  const c=S.cub, n=Math.min(S.food,Math.ceil((100-c.full)/12)); if(n<=0) return;
+  const c=S.cub, n=Math.min(S.food,Math.ceil((100-denFull())/12)); if(n<=0) return;
   const was=c.grow;
-  goalEvent('feed',n); S.food-=n; c.full=Math.min(100,c.full+n*12); c.hp=Math.min(1,c.hp+n*0.08); c.grow=Math.min(c.grow<SWITCH_AT?Math.max(c.grow,DEN_CAP):1,c.grow+n*0.025);   // im Bau nur bis 35 %, den Rest bis halbstark lernt es auf der Jagd
+  goalEvent('feed',n); S.food-=n; denKids().forEach(([,k])=>{ k.full=Math.min(100,k.full+n*12); k.hp=Math.min(1,k.hp+n*0.08); }); c.grow=Math.min(c.grow<SWITCH_AT?Math.max(c.grow,DEN_CAP):1,c.grow+n*0.025);   // im Bau nur bis 35 %, den Rest bis halbstark lernt es auf der Jagd
   puff(cub.x,H(cub.x,cub.z)+0.8,cub.z,0xff7ab8,8,0.4); snd.eat();
   floatText('+'+n+' Futter',cub.x,H(cub.x,cub.z)+1.2,cub.z,'#ff9ad0');
   if(was<1&&c.grow>=1){ toast('Dein Junges ist ausgewachsen! Es braucht kein Futter mehr und ist dein Erbe.','#ff9ad0'); snd.level(); if(G.raider) endRaid(G.raider); }
@@ -153,13 +154,14 @@ function raidStep(a,dt){
       if(a.timer<=0){ const an=Math.random()*6.283, r=rnd(3,9); a.tx=CUB_HOME.x+Math.cos(an)*r; a.tz=CUB_HOME.z+Math.sin(an)*r; a.timer=rnd(1.5,3); }
       moveAnimal(a,a.tx-a.x,a.tz-a.z,sp.spd*0.3,dt);
       // Ein sattes Junges bleibt still und wird selten gefunden, ein hungriges ruft und verrät sich
-      a.roll+=dt; if(a.roll>=1){ a.roll=0; if(Math.random()<0.02+0.12*(1-c.full/100)){ a.found=true; snd.alert(); toast('Dein Junges wurde entdeckt – vertreib den Räuber!','#ff8a70'); } }
+      a.roll+=dt; if(a.roll>=1){ a.roll=0; if(Math.random()<0.02+0.12*(1-denFull()/100)){ a.found=true; snd.alert(); toast('Dein Junges wurde entdeckt – vertreib den Räuber!','#ff8a70'); } }
       if(!a.found&&a.raidS>22){ endRaid(a); toast('Der Räuber hat dein Junges nicht gefunden und zieht ab.','#9be07f'); }
     }
   } else if(cd>a.rad+0.7) moveAnimal(a,cx,cz,sp.spd*0.85,dt);
   else {
     animLegs(a.g,a.ph,0.05);
-    if(a.cd<=0){ a.cd=1.2; c.hp-=0.07; puff(cub.x,H(cub.x,cub.z)+0.5,cub.z,0xc0392b,4,0.4); if(Math.hypot(P.x-cub.x,P.z-cub.z)<70) snd.mew(); if(c.hp<=0) cubDies('wurde getötet'); }
+    if(a.cd<=0){ a.cd=1.2; puff(cub.x,H(cub.x,cub.z)+0.5,cub.z,0xc0392b,4,0.4); snd3d(['mew'],cub.x,cub.z,1.3,90,1.3);
+      for(const [k,kid] of denKids()){ kid.hp-=0.07; if(kid.hp<=0) kidDies(k,'wurde im Bau von einem Räuber getötet'); } }
   }
 }
 function updateCub(dt){
@@ -174,24 +176,18 @@ function updateCub(dt){
   cubG.visible=c.grow>=1||denCount()>0;
   if(c.grow>=1&&c.taken&&!players.some(q=>hasOwnCub(q))){ litterLeaves(); cubG.visible=false; updateSibs(null,dt); return; }   // übrige Geschwister eines Spieler-Jungen ziehen weiter
   if(c.grow<1){
-    // Hunger: von satt bis leer etwa 14 Minuten, danach noch gut 3 Minuten bis zum Verhungern – mit deutlichen Warnungen
-    const f0=c.full; c.full=Math.max(0,c.full-dt*0.12*D().hunger);
-    if(f0>=30&&c.full<30) players.forEach(q=>tell(q,'Dein Junges hat Hunger – lass es an Beute fressen (Beute zum Bau oder mitnehmen und gemeinsam fressen).','#ffb070'));
-    if(c.full<=0){ c.hp-=dt*0.005; cub.starveT=(cub.starveT||0)-dt;
-      if(cub.starveT<=0){ cub.starveT=20; players.forEach(q=>tell(q,'⚠ Dein Junges verhungert! Bring ihm schnell Beute ('+Math.max(1,Math.round(c.hp/0.005/60))+' min)','#ff5a3a')); }
-      if(c.hp<=0){ cubDies('ist verhungert'); return; } }
-    else if(c.hp<1&&!G.raider) c.hp=Math.min(1,c.hp+dt*0.01);
+    tickKids(dt); if(!S.cub) return;   // jedes Junge hat eigenen Hunger (warnt seinen Spieler, verhungert einzeln)
     // Miauen (aus Richtung Bau): hungrig oft und laut, sonst ab und zu leise, wenn jemand in der Nähe ist; begrüßt Heimkehrer
     if(denCount()>0){ const nd=Math.min(...players.map(q=>Math.hypot(q.x-cub.x,q.z-cub.z)));
       cub.mewT-=dt;
-      if(cub.mewT<=0){ const hungry=c.full<25; cub.mewT=hungry?rnd(5,9):rnd(12,25);
+      if(cub.mewT<=0){ const hungry=denFull()<25; cub.mewT=hungry?rnd(5,9):rnd(12,25);
         if(hungry||nd<30) snd3d(['mew'],cub.x,cub.z,hungry?1.3:0.75,hungry?90:40,rnd(1.05,1.35)); }
       if(cub.away&&nd<10){ snd3d(['mew'],cub.x,cub.z,1.1,40,rnd(1.15,1.4)); setTimeout(()=>snd3d(['mew'],cub.x+0.8,cub.z,1,40,rnd(1.2,1.45)),380); }
       cub.away=nd>40; }
     G.raidT-=dt; if(G.raidT<=0&&!G.raider) startRaid();
   }
   // Hungrig und Beute am Bau: zum Kadaver laufen und selbst fressen (Bissen für Bissen, die Kugeln verschwinden)
-  const food=c.grow<1&&c.full<92?denCarcass():null;
+  const food=c.grow<1&&denFull()<92?denCarcass():null;
   if(food){ cub.tx=food.x+Math.sin(cub.t*3)*0.4; cub.tz=food.z+Math.cos(cub.t*3)*0.4; cub.eatT=(cub.eatT||0)-dt;
     if(Math.hypot(food.x-cub.x,food.z-cub.z)<food.rad+1.2&&cub.eatT<=0){ cub.eatT=2.4/Math.max(1,denCount()); cubEats(c,food); } }
   else { cub.t-=dt; if(cub.t<=0){ const an=Math.random()*6.283, r=rnd(0,1.8); cub.tx=CUB_HOME.x+Math.cos(an)*r; cub.tz=CUB_HOME.z+Math.sin(an)*r; cub.t=rnd(3,9); } }
@@ -205,7 +201,7 @@ let seekT=0;
 function updateFamArrow(dt){
   if(canMate()) seekT+=dt||0; else seekT=0;
   const el=$('famArrow'); let tx=null, tz=null;
-  if(S.cub&&!cubGrown()&&(G.raider||S.cub.full<20)){ tx=cub.x; tz=cub.z; }
+  if(S.cub&&!cubGrown()&&(G.raider||denFull()<20)){ tx=cub.x; tz=cub.z; }
   else if(canMate()&&seekT<15){ const m=nearestMate(); if(m){ tx=m.a.x; tz=m.a.z; } }
   if(tx===null||Math.hypot(tx-P.x,tz-P.z)<9){ el.style.display='none'; return; }
   const dx=tx-P.x, dz=tz-P.z, s=Math.sin(P.cam.yaw), c=Math.cos(P.cam.yaw), ang=Math.atan2(dx*c-dz*s,-(dx*s+dz*c)), R=viewMin(P)*0.27;

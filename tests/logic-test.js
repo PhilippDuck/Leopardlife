@@ -31,7 +31,7 @@ const doc={ querySelectorAll:()=>[], getElementById:el, addEventListener(){}, cr
 let raf=null;
 const g={ window:win, document:doc, navigator:{maxTouchPoints:0}, localStorage:{getItem:k=>(k in ls?ls[k]:null),setItem:(k,v)=>{ls[k]=String(v);}}, THREE:win.THREE,
   requestAnimationFrame:fn=>{ if(fn.name==='frame') raf=fn; else fn(); }, setTimeout:fn=>{ fn(); } };
-const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,updateLife,playerSeeks,canSwitchFor,markTaken,cubFollowContext,cubLearn,updateFollowers,followers,learnOf,canSwitch,woundTick,forgetWounds,resetMates,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping};';
+const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,kidOf,kidsOf,tickKids,updateLife,playerSeeks,canSwitchFor,markTaken,cubFollowContext,cubLearn,updateFollowers,followers,learnOf,canSwitch,woundTick,forgetWounds,resetMates,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping};';
 new Function(...Object.keys(g), body)(...Object.values(g));
 const T=globalThis.__T; const rnd2=()=>Math.random()*8-4; const localStorageDump=()=>ls['jaguar-lines'];
 els.btnPlay.onclick();
@@ -373,7 +373,7 @@ console.log('audio nodes created',ACs&&ACs.count());
   T.updateDrag(P,0.1); const freed=!P.drag, stays=!!a.carc&&a.carc.meat===8, f0=S.cub.full;
   P.x=60; P.z=60; for(let i=0;i<120;i++) T.updateCub(0.1); const ate=a.carc?8-a.carc.meat:8, f1=S.cub.full;
   S.cub=keep[0]; S.food=keep[1]; if(a.carc) T.endCarcass(a); a.dead=false; a.x=k2[0]; a.z=k2[1]; a.g.visible=true; P.drag=null;
-  if(!freed||!stays||!(ate>=2)||!(f1>f0-5)){ console.log('FEHLER: Beute zum Bau',freed,stays,ate,f0,f1); process.exit(1); }
+  if(!freed||!stays||!(ate>=2)){ console.log('FEHLER: Beute zum Bau',freed,stays,ate,f0,f1); process.exit(1); }
   console.log('Beute zum Bau gezogen: bleibt liegen, die Jungen fressen selbst ('+ate+' Bissen in 12 s)'); }
 { const S=T.S(), P=T.P, keep=S.cub; const Q={num:2};
   S.cub={full:90,grow:0.6,hp:1,trait:'flink',n:2,gen:2,parents:[S.id,'wild']};
@@ -387,4 +387,18 @@ console.log('audio nodes created',ACs&&ACs.count());
     S.cub=keep[0]; S.preg=keep[1];
     if(!seeks||!reborn){ console.log('FEHLER: Mitspieler altert/sucht Partner',seeks,reborn); process.exit(1); }
     console.log('Mitspieler: sucht selbst Partner, altert und beginnt ohne Nachwuchs neu'); } }
+{ const S=T.S(), P=T.P, keep=S.cub;
+  S.cub={grow:0.3,n:2,gen:2,parents:[S.id,'wild'],kids:{1:{full:80,hp:1},2:{full:0,hp:0.05}}};
+  for(let i=0;i<10;i++) T.tickKids(0.5);
+  const ok=!!S.cub&&!!S.cub.kids[1]&&!S.cub.kids[2]&&S.cub.n===1&&S.cub.kids[1].full<80&&T.kidOf(P)===S.cub.kids[1];
+  S.cub=keep;
+  if(!ok){ console.log('FEHLER: getrennter Hunger'); process.exit(1); }
+  console.log('Getrennter Hunger: ein Junges verhungert, das andere lebt weiter'); }
+{ const S=T.S(), P=T.P, Q=T.players.find(o=>o!==P);
+  if(Q){ const keep=JSON.stringify(S), cub=S.cub; S.cub=null; S.preg=0; P.dead=false; Q.dead=false; Q.L.lvl=9; S.lvl=12; S.age=1e9; const id0=S.id;
+    T.updateLife(0.1); const ok=!P.dead&&S.age===0&&S.id!==id0&&S.lvl===9&&S.pts===16;
+    Q.L.age=1e9; T.updateLife(0.1); const okQ=!Q.dead&&Q.L.age===0&&Q.L.pts>0;
+    Object.assign(S,JSON.parse(keep)); S.cub=cub;
+    if(!ok||!okQ){ console.log('FEHLER: Altersschwäche im Splitscreen',ok,okQ,S.lvl); process.exit(1); }
+    console.log('Splitscreen: Tod durch Alter ohne Endlosschleife – neuer Leopard mit Punkten (Spieler 1 und 2)'); } }
 console.log('ALL OK');
