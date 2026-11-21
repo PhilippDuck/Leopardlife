@@ -1,4 +1,4 @@
-// LeopardLife – Zufällige Ereignisse, damit die Savanne jedes Mal anders verläuft:
+// LeopardLife – Zufällige Ereignisse (ohne Ansage – man bekommt sie im Spiel mit; nur direkte Gefahr wird gemeldet), damit die Savanne jedes Mal anders verläuft:
 //   Gnu-Wanderung  – eine große Herde zieht quer durchs Gebiet, Löwen folgen ihr, in Panik trampeln die Gnus alles nieder.
 //   Steppenbrand   – eine Feuerfront wandert mit dem Wind über die Karte; Tiere fliehen kopflos (leichte Beute),
 //                    danach ist das hohe Gras abgebrannt (kaum Deckung), bis es nachwächst. Sicher: Bäume, Wasser, der Bau.
@@ -86,21 +86,18 @@ function startEvent(id){
   if(id==='migr'){
     const sp=spOf('gnu'), n=14+Math.floor(Math.random()*6), side=rnd(-70,70); EV.herd=[]; EV.panic=0; EV.lionT=0;
     for(let i=0;i<n;i++){ const q=frontPt(-(WORLD-12)-rnd(0,26),side+rnd(-14,14)); const a=spawnTemp(sp,q.x,q.z); a.ev='migr'; a.gx=rnd(-6,6); EV.herd.push(a); }
-    toast('Eine Gnu-Wanderung zieht durch die Savanne! Beute im Überfluss – aber Löwen folgen der Herde, und in Panik trampeln die Gnus alles nieder.','#f2b84b');
   }
   if(id==='fire'){
     // die Front kommt mit dem Wind
     { const wx=windU.value.x||0, wz=windU.value.y||0, l=Math.hypot(wx,wz); if(l>0.1) EV.dir={x:wx/l,z:wz/l}; } EV.s=-(WORLD+5); EV.burnT=0; fireFx(true);
-    toast('Steppenbrand! Eine Feuerfront zieht mit dem Wind heran. Flieh vor ihr her oder renn hindurch – sicher sind Bäume, Wasser und der Bau. Fliehende Tiere sind leichte Beute.','#ff8a3a');
   }
   if(id==='rival'){
     const sp=spOf('rival'), q=frontPt(-(WORLD-25),rnd(-60,60)), a=spawnTemp(sp,q.x,q.z); a.ev='rival'; a.hp=Math.round(170+22*maxLvl()); a.maxHp=a.hp; EV.rival=a; EV.kidT=0;
-    toast('Ein fremder Leopard ist in euer Revier eingedrungen! Er klaut Beute und bedroht die Jungen im Bau. Vertreibt ihn!','#ff8a70');
     growlAt(a);
   }
 }
 function endEvent(msg,col){
-  const id=EV.on; EV.on=null; EV.next=rnd(300,480); if(msg) toast(msg,col||'#9be07f');
+  const id=EV.on; EV.on=null; EV.next=rnd(300,480);   // keine Ansage: Ereignisse bekommt man im Spiel selbst mit
   if(id==='fire'){ burnGrass(false); fireFx(false); EV.regrow=240; for(const a of animals) if(a.ev==='fire') a.ev=null; }
   if(id==='migr') for(const a of EV.herd) if(!a.dead) a.ev='leave';
   if(id==='rival'&&EV.rival&&!EV.rival.dead) EV.rival.ev='leave';
@@ -137,7 +134,7 @@ function eventStep(a,dt,move){
 /* ---------- Pro Bild ---------- */
 function updateEvents(dt){
   sweepTemp();
-  if(EV.regrow>0){ EV.regrow-=dt; if(EV.regrow<=0){ burnGrass(true); toast('Das hohe Gras ist nachgewachsen – wieder überall Verstecke.','#9be07f'); } }
+  if(EV.regrow>0){ EV.regrow-=dt; if(EV.regrow<=0){ burnGrass(true); } }
   if(!EV.on){
     if(players.some(p=>tutActive(p))) return;
     EV.next-=dt; if(EV.next>0||players.every(p=>p.dead)) return;
