@@ -21,7 +21,7 @@ import { goalEvent } from './goals.js';
 import { moveAnimal } from './ai.js';
 import { nameOf, tell, viewMin } from './coop.js';
 import { canPair, ensureKin, litterLeaves, litterSize, newId, pairCandidate, pairPlayers, related } from './kinship.js';
-import { DEN_CAP, SWITCH_AT, cubFollowContext, denCount, denFull, denKids, followerOf, hasOwnCub, kidDies, tickKids } from './cubfollow.js';
+import { DEN_CAP, SWITCH_AT, cubFollowContext, denCount, denFull, denKids, followerOf, hasOwnCub, kidDies, kidOf, kidsOf, numOf, syncLitter, tickKids } from './cubfollow.js';
 
 /* ---------- Familie: Partner, Junges, Futter, Überfälle ---------- */
 const FOOD_MAX=20, CUB_HOME={x:7,z:5};
@@ -34,17 +34,17 @@ function rebuildCub(){ dropModel(cubG); cubG=buildQuad(CUBSPEC,(S.cub&&S.cub.fur
   for(let i=1;i<4;i++){ const g=buildQuad(CUBSPEC,(S.cub&&S.cub.fur)?Object.assign({},S.cub.fur,{l:S.cub.fur.l*(0.94+i*0.04)}):null); g.userData.blob.visible=!QUAL[quality].sh; g.visible=false; scene.add(g); sibG.push(g); } }
 /** Geschwister neben dem ersten Jungen im Bau zeigen: so viele, wie noch im Bau sind */
 function updateSibs(c,dt){
-  const n=c&&c.grow<1?denCount():c&&c.grow>=1&&!c.taken?(c.n||1):0;
+  const dk=c?denKids():[], n=dk.length;
   sibG.forEach((g,i)=>{ const on=i+1<n; g.visible=on; if(!on) return;
     const an=i*2.1+0.6+Math.sin(performance.now()/4000+i)*0.3, x=cub.x+Math.sin(an)*1.1, z=cub.z+Math.cos(an)*1.1;
-    g.scale.setScalar(cubG.scale.x); g.position.set(x,H(x,z),z); g.rotation.y=an+Math.PI+Math.sin(performance.now()/1500+i)*0.4;
+    g.scale.setScalar(0.34+0.66*Math.min(1,dk[i+1][1].grow)); g.position.set(x,H(x,z),z); g.rotation.y=an+Math.PI+Math.sin(performance.now()/1500+i)*0.4;
     animLegs(g,performance.now()/700+i,0.04); });
 }
 rebuildCub();
 G.raider=null; G.raidT=rnd(90,130)*D().raid; G.heirPending=false;
-const cubGrown=()=>!!S.cub&&S.cub.grow>=1;
+const cubGrown=()=>!!S.cub&&Object.values(kidsOf()).every(k=>k.grow>=1);
 /** Sucht Spieler p gerade einen Partner? (ab Stufe 8, kein Wurf unterwegs; Spieler 1 nicht, wenn sein Partner schon am Bau ist) */
-const playerSeeks=p=>!!p&&!p.dead&&p.L.lvl>=8&&!S.cub&&!(S.preg>0)&&(p!==P||!S.partner);
+const playerSeeks=p=>!!p&&!p.dead&&p.L.lvl>=8&&!kidOf(p)&&!(S.preg>0)&&(p!==P||!S.partner);
 /** Wilde Leoparden zeigen sich, solange irgendein Spieler einen Partner sucht */
 const seeking=()=>players.some(playerSeeks);
 /** Nächster wilder Leopard bei Spieler p */
@@ -59,7 +59,6 @@ function mateWild(p,a){
 }
 /** Spieler p ist nah genug an einem Jungen zum Füttern: am Bau oder bei seinem mitlaufenden */
 const nearCub=p=>(denCount()>0&&Math.hypot(cub.x-p.x,cub.z-p.z)<4.5)||(()=>{ const f=followerOf(p); return !!f&&Math.hypot(f.x-p.x,f.z-p.z)<4.5; })();
-const heirLevel=()=>1+Math.floor(Math.min(1,S.cub.grow)*7);
 function nearestMate(){ let b=null, bd=1e9; for(const a of (S.partner?[fam[0]]:fam.slice(3))){ if(S.partner&&!a.famOn) continue; const d=Math.hypot(a.x-P.x,a.z-P.z); if(d<bd){ bd=d; b=a; } } return b?{a:b,d:bd}:null; }
 function context(){
   if(P.dead||G.paused) return null;
@@ -106,20 +105,17 @@ function mateWith(a){
 function denCarcass(){ let b=null, bd=14; for(const a of animals){ if(!a.dead||!a.carc||a.carc.meat<=0||a.carc.tree!=null) continue; const d=Math.hypot(a.x-CUB_HOME.x,a.z-CUB_HOME.z); if(d<bd){ bd=d; b=a; } } return b; }
 /** Ein Junges im Bau nimmt einen Bissen vom Kadaver a: satt, wächst (im Bau bis 35 %, danach weiter ab halbstark) */
 function cubEats(c,a){
-  a.carc.meat--; const was=c.grow; goalEvent('feed',1);
-  const kid=denKids().map(([,k])=>k).sort((x,y)=>x.full-y.full)[0]; if(kid){ kid.full=Math.min(100,kid.full+12); kid.hp=Math.min(1,kid.hp+0.08); }   // das hungrigste frisst
-  c.grow=Math.min(c.grow<SWITCH_AT?Math.max(c.grow,DEN_CAP):1,c.grow+0.025);
+  a.carc.meat--; goalEvent('feed',1);
+  const kid=denKids().map(([,k])=>k).filter(k=>k.grow<1).sort((x,y)=>x.full-y.full)[0];   // das hungrigste frisst
+  if(kid){ kid.full=Math.min(100,kid.full+12); kid.hp=Math.min(1,kid.hp+0.08); kid.grow=Math.min(kid.grow<SWITCH_AT?Math.max(kid.grow,DEN_CAP):1,kid.grow+0.025); }
   puff(a.x,H(a.x,a.z)+0.5,a.z,0xc0392b,3,0.3); snd3d(['eat'],cub.x,cub.z,0.6,40,1.35);
-  if(was<1&&c.grow>=1){ toast('Dein Junges ist ausgewachsen! Es braucht kein Futter mehr und ist dein Erbe.','#ff9ad0'); snd.level(); if(G.raider) endRaid(G.raider); }
   if(a.carc.meat<=0){ endCarcass(a); a.g.visible=false; a.g.rotation.z=0; }
 }
 function feedCub(){
   const c=S.cub, n=Math.min(S.food,Math.ceil((100-denFull())/12)); if(n<=0) return;
-  const was=c.grow;
-  goalEvent('feed',n); S.food-=n; denKids().forEach(([,k])=>{ k.full=Math.min(100,k.full+n*12); k.hp=Math.min(1,k.hp+n*0.08); }); c.grow=Math.min(c.grow<SWITCH_AT?Math.max(c.grow,DEN_CAP):1,c.grow+n*0.025);   // im Bau nur bis 35 %, den Rest bis halbstark lernt es auf der Jagd
+  goalEvent('feed',n); S.food-=n; denKids().forEach(([,k])=>{ k.full=Math.min(100,k.full+n*12); k.hp=Math.min(1,k.hp+n*0.08); k.grow=Math.min(k.grow<SWITCH_AT?Math.max(k.grow,DEN_CAP):1,k.grow+n*0.025); });   // im Bau nur bis 35 %, den Rest bis halbstark lernt es auf der Jagd
   puff(cub.x,H(cub.x,cub.z)+0.8,cub.z,0xff7ab8,8,0.4); snd.eat();
   floatText('+'+n+' Futter',cub.x,H(cub.x,cub.z)+1.2,cub.z,'#ff9ad0');
-  if(was<1&&c.grow>=1){ toast('Dein Junges ist ausgewachsen! Es braucht kein Futter mehr und ist dein Erbe.','#ff9ad0'); snd.level(); if(G.raider) endRaid(G.raider); }
   save();
 }
 function cubDies(how){
@@ -164,16 +160,32 @@ function raidStep(a,dt){
       for(const [k,kid] of denKids()){ kid.hp-=0.07; if(kid.hp<=0) kidDies(k,'wurde im Bau von einem Räuber getötet'); } }
   }
 }
+/**
+ * Geburt: Jeder Spieler, der gerade kein eigenes Junges hat, bekommt eins. Gibt es schon Junge (z. B. das der Mitspielerin),
+ * kommen die neuen dazu – mit eigener Größe, Erbanlage und Herkunft.
+ */
+function birth(){
+  const ks=Object.keys(TRAITS).filter(t=>!has(t)), tr=S.litterTrait&&TRAITS[S.litterTrait]?S.litterTrait:ks[Math.floor(Math.random()*ks.length)]; S.litterTrait='';
+  const parents=(S.litterParents||[ensureKin(S).id,S.partnerId||'wild']).slice(); S.litterParents=null;
+  const pg=players.filter(q=>parents.indexOf(q.L.id)>=0).map(q=>q.L.gen||1), gen=1+(pg.length?Math.max(...pg):(S.gen||1));
+  const fur=cubFur(parents); if(tr==='dunkel'&&!fur.albino) fur.l=Math.min(fur.l,0.66);
+  let who=players.filter(q=>!kidOf(q)); if(!who.length) who=[P];
+  if(!S.cub){ S.cub={full:70,grow:0,hp:1,trait:tr,n:0,gen,parents,fur,kids:{}}; cub.x=CUB_HOME.x; cub.z=CUB_HOME.z; cub.t=0; G.raidT=rnd(90,130)*D().raid; }
+  const c=S.cub; kidsOf(c);
+  for(const q of who){ const k=numOf(q); c.kids[k]={full:70,hp:1,grow:0,stage:0,trait:tr,gen,parents:parents.slice(),fur:Object.assign({},fur)}; if(c.took) delete c.took[k]; }
+  syncLitter(); rebuildCub(); save(); snd.mew();
+  const n=who.length;
+  $('birthTrait').innerHTML=ico(tr,ICOL.t,16)+' Erbanlage: '+offerText(tr)+' · Fell: '+furName(fur);
+  $('birthTitle').textContent=n>1?'Euer Wurf ist geboren: '+n+' Junge':(players.length>1?'Neues Junges für '+nameOf(who[0])+' ist geboren':'Dein Junges ist geboren');
+  $('birthCoop').style.display=n>1?'block':'none';
+  { const b=$('btnBeCub'); b.disabled=false; b.textContent='Als Junges spielen'; } renderBirthChoices();
+  $('birth').style.display='flex'; G.paused=true; for(const k in keys) keys[k]=false; G.joyX=G.joyY=0; if(document.exitPointerLock) document.exitPointerLock();
+}
 function updateCub(dt){
   if(G.raider&&(G.raider.dead||G.raider.state!=='raid')) G.raider=null;
-  if(S.preg>0){ S.preg-=dt; if(S.preg<=0){ S.preg=0; { const ks=Object.keys(TRAITS).filter(t=>!has(t)), tr=S.litterTrait&&TRAITS[S.litterTrait]?S.litterTrait:ks[Math.floor(Math.random()*ks.length)]; S.litterTrait=''; S.cub={full:70,grow:0,hp:1,trait:tr,n:litterSize(),gen:(S.gen||1)+1,parents:(S.litterParents||[ensureKin(S).id,S.partnerId||'wild']).slice()}; S.cub.fur=cubFur(S.cub.parents); S.litterParents=null; if(S.cub.trait==='dunkel'&&!S.cub.fur.albino) S.cub.fur.l=Math.min(S.cub.fur.l,0.66); rebuildCub();
-      $('birthTrait').innerHTML=ico(S.cub.trait,ICOL.t,16)+' Erbanlage: '+offerText(S.cub.trait)+' · Fell: '+furName(S.cub.fur); } cub.x=CUB_HOME.x; cub.z=CUB_HOME.z; cub.t=0; G.raidT=rnd(90,130)*D().raid; save(); snd.mew();
-    $('birthTitle').textContent=S.cub.n>1?'Euer Wurf ist geboren: '+S.cub.n+' Junge':'Dein Junges ist geboren';
-    $('birthCoop').style.display=S.cub.n>1?'block':'none';
-    { const b=$('btnBeCub'); b.disabled=false; b.textContent='Als Junges spielen'; } renderBirthChoices();
-    $('birth').style.display='flex'; G.paused=true; for(const k in keys) keys[k]=false; G.joyX=G.joyY=0; if(document.exitPointerLock) document.exitPointerLock(); } }
+  if(S.preg>0){ S.preg-=dt; if(S.preg<=0){ S.preg=0; birth(); } }
   const c=S.cub; if(!c){ cubG.visible=false; updateSibs(null,dt); return; }
-  cubG.visible=c.grow>=1||denCount()>0;
+  syncLitter(); cubG.visible=denCount()>0;
   if(c.grow>=1&&c.taken&&!players.some(q=>hasOwnCub(q))){ litterLeaves(); cubG.visible=false; updateSibs(null,dt); return; }   // übrige Geschwister eines Spieler-Jungen ziehen weiter
   if(c.grow<1){
     tickKids(dt); if(!S.cub) return;   // jedes Junge hat eigenen Hunger (warnt seinen Spieler, verhungert einzeln)
@@ -193,7 +205,7 @@ function updateCub(dt){
   else { cub.t-=dt; if(cub.t<=0){ const an=Math.random()*6.283, r=rnd(0,1.8); cub.tx=CUB_HOME.x+Math.cos(an)*r; cub.tz=CUB_HOME.z+Math.sin(an)*r; cub.t=rnd(3,9); } }
   const dx=cub.tx-cub.x, dz=cub.tz-cub.z, d=Math.hypot(dx,dz);
   if(d>0.3){ const v=1.3*dt/d; cub.x+=dx*v; cub.z+=dz*v; cubG.rotation.y=Math.atan2(dx,dz); cub.ph+=dt*9; animLegs(cubG,cub.ph,0.45); } else animLegs(cubG,cub.ph,0.03);
-  cubG.scale.setScalar(0.34+0.66*Math.min(1,c.grow)); cubG.position.set(cub.x,H(cub.x,cub.z),cub.z); updateSibs(c,dt);
+  { const d0=denKids()[0]; cubG.scale.setScalar(0.34+0.66*Math.min(1,d0?d0[1].grow:c.grow)); } cubG.position.set(cub.x,H(cub.x,cub.z),cub.z); updateSibs(c,dt);
   cub.saveT-=dt; if(cub.saveT<=0){ cub.saveT=10; save(); }
 }
 // Partnersuche: Pfeil und Hinweis nur in den ersten 15 s, danach nur noch der rosa Punkt auf der Spürkarte
@@ -209,5 +221,5 @@ function updateFamArrow(dt){
 }
 
 export { offerText };
-export { mateWild, nearestWild, playerSeeks, cubDies, nearCub, CUB_HOME, FOOD_MAX, context, cub, doContext, endRaid, heirLevel, raidStep, seekT, seeking, updateCub, updateFamArrow };
+export { mateWild, nearestWild, playerSeeks, cubDies, nearCub, CUB_HOME, FOOD_MAX, context, cub, doContext, endRaid, raidStep, seekT, seeking, updateCub, updateFamArrow };
 export { rebuildCub, feedCub };

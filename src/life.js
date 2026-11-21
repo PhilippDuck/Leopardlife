@@ -6,7 +6,7 @@ import { D, DIE_AT, OLD_AT, S, fresh, has, maxHp, maxSt, pScale, save, tf } from
 import { G } from './state.js';
 import { floatText, toast } from './ui.js';
 import { newMate, tell } from './coop.js';
-import { SWITCH_AT, cubSpot, hasOwnCub } from './cubfollow.js';
+import { SWITCH_AT, cubSpot, hasOwnCub, kidOf } from './cubfollow.js';
 import { ensureKin, mateBecomeCub, newId } from './kinship.js';
 import { recordAncestor } from './carcass.js';
 import { becomeCub } from './kin.js';
@@ -16,7 +16,7 @@ G.lineageEnd=false; G.lastCause='';
 function eatFood(){ if(S.food<=0) return; S.food--; S.hunger=Math.min(100,S.hunger+12); P.hp=Math.min(maxHp(),P.hp+maxHp()*0.05); snd.eat(); floatText('gefressen',P.x,P.camY+1.6*pScale(),P.z,'#e0a060'); }
 /** Mitspieler stirbt an Altersschwäche: mit eigenem Jungen lebt er darin weiter (vor „halbstark“: Zeitsprung ohne Gelerntes), sonst neuer Leopard */
 function mateDiesOfAge(p){
-  if(hasOwnCub(p)){ const c=S.cub; if(c.grow<SWITCH_AT){ c.grow=SWITCH_AT; if(c.learn) delete c.learn[p.num]; }
+  if(hasOwnCub(p)){ const c=S.cub, k=kidOf(p); if(k.grow<SWITCH_AT){ k.grow=SWITCH_AT; if(c.learn) delete c.learn[p.num]; }
     if(mateBecomeCub(p)){ tell(p,'Dein Leopard ist an Altersschwäche gestorben – du lebst in deinem Jungen weiter.','#ff9ad0'); return; } }
   const L=newMate(p.num); L.id=newId(); L.parents=[]; ensureKin(L); S.mates[p.num]=L; p.L=L; p.fur=L.fur; rebuildPlayer(p); p.hp=maxHp(L); save();
   tell(p,'Dein Leopard ist an Altersschwäche gestorben, ohne Nachwuchs. Du beginnst als neuer Leopard (Stufe '+L.lvl+', '+L.pts+' Punkte zum Verteilen).','#ff8a70');

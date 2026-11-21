@@ -13,7 +13,7 @@ import { H } from './terrain.js';
 import { floatText, toast } from './ui.js';
 import { $, rnd } from './util.js';
 import { trees } from './vegetation.js';
-import { FOOD_MAX, cub, heirLevel, rebuildCub } from './family.js';
+import { FOOD_MAX, cub, rebuildCub } from './family.js';
 import { becomeCub } from './kin.js';
 import { dayF } from './daynight.js';
 import { archiveLine, carcassToTree, makeCarcass, recordAncestor, startFlee, takeMeat } from './carcass.js';
@@ -24,7 +24,7 @@ import { downPlayer, hEl, othersAlive, resetMates, tell } from './coop.js';
 import { emit } from './events.js';
 import { toggleSkills } from './skills.js';
 import { bitable, biteHit, forgetWounds, startBite } from './bite.js';
-import { SWITCH_AT, cubLearn, cubSpot, hasOwnCub } from './cubfollow.js';
+import { SWITCH_AT, cubLearn, cubSpot, growOf, hasOwnCub, heirLevel } from './cubfollow.js';
 
 /* ---------- Aktionen ---------- */
 /** Index des nächsten erreichbaren Baums für Spieler p, sonst -1. */
@@ -132,7 +132,7 @@ function die(p,a){
       ? 'Tipp: '+(a.sp.id==='jack'?'Schakale':a.sp.id==='hyena'?'Hyänen':'Löwen')+' jagen dich bis Stufe '+a.sp.hunt+'. Schleiche (C) ins hohe Gras, bis sie dich verlieren.'
       : 'Tipp: Dieses Tier wehrt sich. Greife aus dem Hinterhalt an und zieh dich zurück, wenn dein Leben knapp wird.';
     if(G.heirPending){
-      const early=S.cub.grow<SWITCH_AT, hl=early?1+Math.floor(SWITCH_AT*7):heirLevel();
+      const early=growOf(P)<SWITCH_AT, hl=early?1+Math.floor(SWITCH_AT*7):heirLevel(P);
       $('deadTxt').textContent=cause+(early?' Dein Partner zieht dein Junges allein groß – du spielst als halbstarkes Junges weiter (Stufe '+hl+'), aber ohne das, was du ihm hättest beibringen können.':' Aber dein Junges lebt: Du spielst als dein Junges weiter (Stufe '+hl+') – mit allem, was es bei dir gelernt hat.');
       $('deadTip').textContent='Je größer es ist und je mehr es bei dir gelernt hat, desto stärker startet es.';
       $('btnRespawn').textContent='Als Junges weiterleben';

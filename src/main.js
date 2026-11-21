@@ -20,7 +20,7 @@ import { toggleSkills } from './skills.js';
 import { hudExp, menuOpen, renderKeys, showDiff, toggleMenu, xb } from './menu.js';
 import { reloadWorld } from './regions.js';
 import { doClimb, doPounce, doRoar, gainXp, hitAnimal, hurtPlayer, nearestTree } from './actions.js';
-import { CUB_HOME, FOOD_MAX, context, cub, doContext, endRaid, heirLevel, raidStep, seekT, seeking, updateCub, updateFamArrow } from './family.js';
+import { CUB_HOME, FOOD_MAX, context, cub, doContext, endRaid, raidStep, seekT, seeking, updateCub, updateFamArrow } from './family.js';
 import { canMate, fam, famHurt, famRole, famStep, kidMode, updateFamily } from './kin.js';
 import { updateLife } from './life.js';
 import { clockStr, dayF, updateDayNight } from './daynight.js';

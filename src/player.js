@@ -51,6 +51,7 @@ const JAG={col:0xe0a23c,col2:0xf0c98a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.44
  * @property {any} [eatC] Kadaver, von dem gerade gefressen wird
  * @property {any} [bite] Festbeißen läuft (bite.js)
  * @property {any} [tut] Einführung dieses Spielers (tutorial.js), null wenn keine läuft
+ * @property {number} [swArm] Bestätigung „als Junges weiterspielen“ läuft noch so lange (cubfollow.js)
  * @property {number} [fireT] Abklingzeit für Feuerschaden (worldevents.js)
  * @property {boolean} [fireWarn] Feuerwarnung schon gezeigt
  * @property {number} [stalk] geschlichene Strecke seit dem letzten vollen Meter (Tagesziel)

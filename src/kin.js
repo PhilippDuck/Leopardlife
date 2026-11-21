@@ -5,7 +5,7 @@ import { snd } from './audio.js';
 import { REGIONS, TRAITS } from './data.js';
 import { puff } from './effects.js';
 import { canvas, scene } from './engine.js';
-import { CUB_HOME, cub, endRaid, heirLevel } from './family.js';
+import { CUB_HOME, cub, endRaid } from './family.js';
 import { touchUI } from './input.js';
 import { animLegs, buildQuad } from './models.js';
 import { P, dropModel, players, rebuildPlayer } from './player.js';
@@ -19,14 +19,14 @@ import { moveAnimal } from './ai.js';
 import { updateUI } from './hud.js';
 import { mateBecomeCub, newId, takeFromLitter } from './kinship.js';
 import { nameOf, tell } from './coop.js';
-import { SWITCH_AT, applyLearned, canSwitch, canSwitchFor, cubSpot, dropFollower, followerOf } from './cubfollow.js';
+import { SWITCH_AT, applyLearned, canSwitch, canSwitchFor, cubSpot, dropFollower, followerOf, heirLevel, kidInfo, kidOf } from './cubfollow.js';
 
 /* Familienmitglieder: Partner (Platz 0) und Elterntiere (Plätze 1, 2) leben am Bau, verteidigen das Junge
    und versorgen und beschützen den Spieler, solange er selbst noch nicht ausgewachsen ist. Sie können endgültig sterben. */
 const fam=animals.filter(a=>a.sp.friend), FAM_HP=220;
 let feedT=rnd(40,70);
 const famRole=i=>i===0?(S.partner?'partner':null):i===1?(S.p1?'p1':null):i===2?(S.p2?'p2':null):null;
-const canMate=()=>S.lvl>=8&&!S.cub&&!(S.preg>0);
+const canMate=()=>S.lvl>=8&&!kidOf(P)&&!(S.preg>0);   // wer schon ein eigenes Junges hat, sucht keinen Partner
 const kidMode=()=>S.lvl<8&&(S.p1||S.p2);
 function famHome(a){ const an=Math.random()*6.283, r=rnd(5,20); a.tx=CUB_HOME.x+Math.cos(an)*r; a.tz=CUB_HOME.z+Math.sin(an)*r; a.timer=rnd(4,10); }
 /** Fell von Familienmitglied i (0 Partner, 1/2 Elterntiere) setzen und merken, damit es wie der Leopard aussieht, der es war */
@@ -112,19 +112,19 @@ function updateFamily(dt){
 function becomeCub(vol){
   recordAncestor(vol?'zog sein Junges groß und lebt als Elterntier weiter':G.lastCause);
   // Tod vor „halbstark“: der Partner zieht das Junge allein groß – Zeitsprung auf 50 %, aber ohne das, was du ihm beigebracht hättest
-  if(!vol&&S.cub.grow<SWITCH_AT){ S.cub.grow=SWITCH_AT; if(S.cub.learn) delete S.cub.learn[1]; }
-  const hl=heirLevel(), ox=P.x, oz=P.z, hadPartner=S.partner&&fam[0].famOn, mateParent=S.p2&&fam[2].famOn, myFur=S.fur?Object.assign({},S.fur):{albino:false,melan:false,l:1,s:1,sn:1,ss:1};
+  { const k=kidOf(P); if(!vol&&k&&k.grow<SWITCH_AT){ k.grow=SWITCH_AT; if(S.cub.learn) delete S.cub.learn[1]; } }
+  const ki=kidInfo(P), hl=heirLevel(), ox=P.x, oz=P.z, hadPartner=S.partner&&fam[0].famOn, mateParent=S.p2&&fam[2].famOn, myFur=S.fur?Object.assign({},S.fur):{albino:false,melan:false,l:1,s:1,sn:1,ss:1};
   S.p1=!!vol; S.p2=!!hadPartner||!!mateParent; S.partner=false;
   if(hadPartner) famPlace(fam[2],fam[0].x,fam[0].z,fam[0].fur); else if(!mateParent) fam[2].famOn=false;
   if(S.p1) famPlace(fam[1],ox,oz,myFur); else fam[1].famOn=false;
   fam[0].famOn=false;
-  inheritTrait(S,S.cub.trait);   // neu dazu oder, wenn schon vorhanden, verstärkt
+  inheritTrait(S,ki.trait);   // neu dazu oder, wenn schon vorhanden, verstärkt
   S.a=fresh().a; S.b=fresh().b; S.pts=0;   // Eigenschaften, Fähigkeiten und Punkte werden nicht vererbt – dafür Erbe und Ahnenkraft
   const got=applyLearned(P,S); if(S.cub.learn) delete S.cub.learn[1]; { const fo=followerOf(P); if(fo) dropFollower(fo); }   // dafür, was es bei dir gelernt hat
-  S.fur=S.cub.fur||null;
+  S.fur=ki.fur||null;
   { const ng=(S.gen||1)+1, nr=Object.values(REGIONS).find(r=>r.gen===ng&&!r.soon); if(nr) setTimeout(()=>toast('Deine Linie ist stark genug: '+nr.n+' ist jetzt erreichbar (Menü → Gebiete).','#9be07f'),2600); }
-  const cg=S.cub.gen||((S.gen||1)+1);
-  S.parents=(S.cub.parents||[S.id]).slice(); S.id=newId();   // neue Kennung: das Junge ist ein eigener Leopard, verwandt mit seinen Eltern und Geschwistern
+  const cg=ki.gen||((S.gen||1)+1);
+  S.parents=(ki.parents||[S.id]).slice(); S.id=newId();   // neue Kennung: das Junge ist ein eigener Leopard, verwandt mit seinen Eltern und Geschwistern
   S.lvl=hl; S.xp=0; S.gen=Math.max(S.gen||1,cg); takeFromLitter(P); S.preg=0; S.partnerPlayer=false; S.hunger=80; S.age=0; S.kills=0; if(G.raider&&!S.cub) endRaid(G.raider);
   feedT=rnd(30,50); save(); rebuildPlayer();
   return got;
@@ -163,9 +163,9 @@ G.cubArm=false;
 $('btnMenuCub').onclick=()=>{
   if(!S.cub) return;
   if(!canSwitchFor(P)) return;
-  if(!G.cubArm){ G.cubArm=true; $('btnMenuCub').textContent='Wirklich? Du startest als Junges auf Stufe '+heirLevel(); return; }
+  if(!G.cubArm){ G.cubArm=true; $('btnMenuCub').textContent='Wirklich? Du startest als Junges auf Stufe '+heirLevel(P); return; }
   G.cubArm=false; $('menu').style.display='none'; playAsCub(); unpause();
 };
 
 export { canMate, fam, famHurt, famRole, famStep, kidMode, updateFamily };
-export { becomeCub, famFur, famPlace, renderBirthChoices };
+export { playAsCub, becomeCub, famFur, famPlace, renderBirthChoices };

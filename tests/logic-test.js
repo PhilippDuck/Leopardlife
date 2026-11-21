@@ -218,7 +218,7 @@ console.log('audio nodes created',ACs&&ACs.count());
   if(!S.cub||S.cub.n!==2||S.cub.parents.join()!==[pId,qId].join()) { console.log('FEHLER: Wurf',JSON.stringify(S.cub)); process.exit(1); }
   const gen0=S.gen||1;
   if(T.mateBecomeCub(Q)){ console.log('FEHLER: Wechsel ins Junge vor halbstark'); process.exit(1); }
-  S.cub.grow=0.5;
+  Object.values(T.kidsOf()).forEach(k=>{ k.grow=0.5; });
   if(!T.mateBecomeCub(Q)||S.cub.n!==1||Q.L.gen!==gen0+1||Q.L.parents.join()!==[pId,qId].join()) { console.log('FEHLER: Mitspieler als Junges',JSON.stringify(Q.L)); process.exit(1); }
   T.becomeCub(true);
   if(S.cub||S.gen!==gen0+1||!T.related(S,Q.L)||S.id===pId) { console.log('FEHLER: Spieler 1 als Junges / Geschwister'); process.exit(1); }
@@ -363,7 +363,7 @@ console.log('audio nodes created',ACs&&ACs.count());
   P.dead=false; P.tree=null; P.x=fam.x+1; P.z=fam.z; const ctx=T.cubFollowContext(P); const lab=ctx&&ctx.label; if(ctx) ctx.fn();
   const fo=T.followers.length===1;
   P.x+=20; for(let i=0;i<60;i++) T.updateFollowers(0.1); const f=T.followers[0]; const near=f&&Math.hypot(f.x-P.x,f.z-P.z)<6;
-  for(let i=0;i<3;i++) T.cubLearn(P,'amb'); T.cubLearn(P,'kill'); const l=T.learnOf(P), g=S.cub.grow;
+  for(let i=0;i<3;i++) T.cubLearn(P,'amb'); T.cubLearn(P,'kill'); const l=T.learnOf(P), g=T.kidOf(P).grow;
   S.cub=null; T.updateFollowers(0.1); const gone=T.followers.length===0; S.cub=keep;
   if(lab!=='Junges mitnehmen'||!fo||!near||l.amb!==3||!(g>0.3)||!gone){ console.log('FEHLER: Lehrzeit',lab,fo,near,JSON.stringify(l),g,gone); process.exit(1); }
   console.log('Lehrzeit: Junges mitnehmen, folgt ('+Math.hypot(f.x-P.x,f.z-P.z).toFixed(1)+' m), lernt Hinterhalt 3/3, wächst auf '+Math.round(g*100)+' %'); }
@@ -425,4 +425,17 @@ console.log('audio nodes created',ACs&&ACs.count());
   if(!(hpR>170)||!won||T.animals.includes(r)){ console.log('FEHLER: Rivale',hpR,won); process.exit(1); }
   console.log('Rivale: Leben '+hpR+', besiegt → Ereignis vorbei, Kadaver verschwindet später');
   P.x=keepP[0]; P.z=keepP[1]; P.hp=keepP[2]; P.dead=keepP[3]; P.tree=keepP[4]; T.EV.on=null; }
+{ const S=T.S(), P=T.P, Q=T.players.find(o=>o!==P);
+  if(Q){ const snap=JSON.stringify(S), qL=Q.L;
+    // Spielerin 2 hat ihr Junges verloren, Spieler 1 hat noch seins: sie kann neuen Nachwuchs bekommen
+    Q.dead=false; P.dead=false; Q.L.lvl=10; S.lvl=10; S.preg=0; S.cub={grow:0.6,n:1,gen:2,parents:[S.id,'wild'],trait:'flink',kids:{1:{full:80,hp:1,grow:0.6}}};
+    const qs=T.playerSeeks(Q), ps=T.playerSeeks(P);
+    S.litterParents=[Q.L.id,'wild']; S.preg=0.5; T.updateCub(1); T.unpause(); el('birth').style.display='none';
+    const k=S.cub.kids, ok1=qs&&!ps&&k[1]&&k[1].grow===0.6&&k[2]&&k[2].grow===0&&S.cub.n===2;
+    // ausgewachsenes eigenes Junges: am Bau zweimal drücken = übernehmen
+    k[1].grow=1; P.tree=null; P.x=T.cub.x+1; P.z=T.cub.z; const gen0=S.gen||1; const c1=T.cubFollowContext(P); const lab=c1&&c1.label; c1&&c1.fn(); const c2=T.cubFollowContext(P); c2&&c2.fn();
+    const ok2=/weiterspielen/.test(lab||'')&&S.lvl===8&&!T.kidOf(P)&&!!S.cub&&!!S.cub.kids[2];
+    Object.keys(S).forEach(x=>delete S[x]); Object.assign(S,JSON.parse(snap)); Q.L=qL; P.swArm=0; T.rebuildPlayer&&0;
+    if(!ok1||!ok2){ console.log('FEHLER: eigener Nachwuchs / Übernehmen',ok1,ok2,lab); process.exit(1); }
+    console.log('Eigener Nachwuchs neben vorhandenem Jungen; ausgewachsenes Junges am Bau übernehmen ('+lab+')'); } }
 console.log('ALL OK');

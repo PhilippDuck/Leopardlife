@@ -49,7 +49,7 @@ function joinPlayer(i,gp){
   // Wer neu einsteigt, ist ein fremder Leopard (nicht verwandt) – erst eure Jungen sind miteinander verwandt
   if(!L.id||L.id===S.id){ L.id=newId(); L.parents=[]; } ensureKin(L); save();
   const p=makePlayer({source:'pad'+i,camera:cam,x:P.x+Math.sin(ang)*r,z:P.z+Math.cos(ang)*r,fur:L.fur||FURS[num-1],L});
-  p.pad=i; p.num=num; p.padPrev=gp?gp.buttons.map(b=>!!b.pressed):[];   // der Start-Druck zum Einsteigen zählt nicht als Pause p.rot=P.rot; p.cam.yaw=P.cam.yaw; p.cam.pitch=P.cam.pitch;
+  p.pad=i; p.num=num; p.padPrev=gp?gp.buttons.map(b=>!!b.pressed):[]; /* der Start-Druck zum Einsteigen zählt nicht als Pause */ p.rot=P.rot; p.cam.yaw=P.cam.yaw; p.cam.pitch=P.cam.pitch;
   p.hud=makeHud(p); hEl(p,'tut').style.display='none'; startTutorial(p);   // eigene Einführung beim ersten Einstieg (oder weiter, wo er war)
   players.push(p); layoutChanged(); renderPlayers();
   toast(NAMES[num-1]+' ist dabei (Stufe '+L.lvl+')! '+(L.pts>0?L.pts+' Punkte verteilen mit Back · ':'Back: Entwicklung · ')+'Back halten: aussteigen','#9be07f'); snd.click();
@@ -201,7 +201,7 @@ function updateCoop(dt){
 }
 function wakeUp(p,x,z,hpF){
   p.dead=false; p.downT=null; p.revT=0; p.x=x; p.z=z; p.tree=null; p.safe=false; p.upNow=0; p.dropY=0;
-  p.hp=maxHp(p.L)*hpF; p.st=maxSt(p.L)*0.5; p.L.hunger=Math.max(p.L.hunger,40);   // nicht gleich wieder verhungern p.combatT=3; p.g.rotation.z=0; hEl(p,'hurt').style.opacity='0'; if(p===P){ $('crossMsg').style.opacity='0'; P.lastS=null; }
+  p.hp=maxHp(p.L)*hpF; p.st=maxSt(p.L)*0.5; p.L.hunger=Math.max(p.L.hunger,40); /* nicht gleich wieder verhungern */ p.combatT=3; p.g.rotation.z=0; hEl(p,'hurt').style.opacity='0'; if(p===P){ $('crossMsg').style.opacity='0'; P.lastS=null; }
   snd.click();
 }
 // Wenn Spieler 1 nach dem Ende aller Spieler neu erwacht, wachen die Mitspieler neben ihm auf
