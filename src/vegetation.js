@@ -236,7 +236,7 @@ const patches=[]; let tallGeo=null, tallMat=null, TALL_N=0;
   tallMat.uniforms.uLight=grassLight; tallMat.uniforms.uWind=windU;
   tallGeo.forEach(t=>{ const mesh=new THREE.Mesh(t.g,tallMat); scene.add(mesh); registerTile(mesh,t.k,76); });
 })();
-function inGrass(x,z){ for(let i=0;i<patches.length;i++){ const p=patches[i], dx=x-p.x, dz=z-p.z; if(dx*dx+dz*dz<p.r*p.r) return true; } return false; }
+function inGrass(x,z){ for(let i=0;i<patches.length;i++){ const p=patches[i]; if(p.burnt) continue; const dx=x-p.x, dz=z-p.z; if(dx*dx+dz*dz<p.r*p.r) return true; } return false; }
 
 /* Bau (Startpunkt) */
 (function(){

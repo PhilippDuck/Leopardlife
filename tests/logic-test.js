@@ -31,7 +31,7 @@ const doc={ querySelectorAll:()=>[], getElementById:el, addEventListener(){}, cr
 let raf=null;
 const g={ window:win, document:doc, navigator:{maxTouchPoints:0}, localStorage:{getItem:k=>(k in ls?ls[k]:null),setItem:(k,v)=>{ls[k]=String(v);}}, THREE:win.THREE,
   requestAnimationFrame:fn=>{ if(fn.name==='frame') raf=fn; else fn(); }, setTimeout:fn=>{ fn(); } };
-const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,kidOf,kidsOf,tickKids,updateLife,playerSeeks,canSwitchFor,markTaken,cubFollowContext,cubLearn,updateFollowers,followers,learnOf,canSwitch,woundTick,forgetWounds,resetMates,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping};';
+const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,startEvent,endEvent,EV,updateEvents,eventOn,inGrass,patches,updateAnimal,WORLD,kidOf,kidsOf,tickKids,updateLife,playerSeeks,canSwitchFor,markTaken,cubFollowContext,cubLearn,updateFollowers,followers,learnOf,canSwitch,woundTick,forgetWounds,resetMates,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping};';
 new Function(...Object.keys(g), body)(...Object.values(g));
 const T=globalThis.__T; const rnd2=()=>Math.random()*8-4; const localStorageDump=()=>ls['jaguar-lines'];
 els.btnPlay.onclick();
@@ -401,4 +401,28 @@ console.log('audio nodes created',ACs&&ACs.count());
     Object.assign(S,JSON.parse(keep)); S.cub=cub;
     if(!ok||!okQ){ console.log('FEHLER: Altersschwäche im Splitscreen',ok,okQ,S.lvl); process.exit(1); }
     console.log('Splitscreen: Tod durch Alter ohne Endlosschleife – neuer Leopard mit Punkten (Spieler 1 und 2)'); } }
+{ const P=T.P, n0=T.animals.length, keepP=[P.x,P.z,P.hp,P.dead,P.tree];
+  // Gnu-Wanderung: Herde zieht los, Panik bei Nähe, verlässt am Ende die Welt
+  T.startEvent('migr'); const herd=T.animals.filter(a=>a.ev==='migr'), h0=herd.length, a0=herd[0], f0=a0.x*T.EV.dir.x+a0.z*T.EV.dir.z;
+  P.x=500; P.z=500; for(let i=0;i<50;i++){ for(const a of herd) T.updateAnimal(a,0.1); T.updateEvents(0.1); }
+  const moved=(a0.x*T.EV.dir.x+a0.z*T.EV.dir.z)-f0;
+  T.endEvent(); for(let i=0;i<400;i++){ for(const a of T.animals.slice()) if(a.temp) T.updateAnimal(a,0.1); T.updateEvents(0.1); }
+  const left=T.animals.filter(a=>a.sp.id==='gnu').length;
+  if(!(h0>=14)||!(moved>15)||left!==0||T.animals.length!==n0){ console.log('FEHLER: Gnu-Wanderung',h0,moved,left,T.animals.length,n0); process.exit(1); }
+  console.log('Gnu-Wanderung: '+h0+' Gnus ziehen ('+moved.toFixed(0)+' m in 5 s) und verlassen danach die Welt');
+  // Steppenbrand: Tiere vor der Front fliehen, Feuer verletzt, Gras brennt ab und wächst nach
+  T.startEvent('fire'); const d=T.EV.dir; T.EV.s=0; P.dead=false; P.tree=null; P.hp=200; P.x=d.x*-1+(-d.z)*40; P.z=d.z*-1+d.x*40;
+  const prey=T.animals.find(a=>!a.dead&&!a.sp.croc&&!a.sp.friend&&!a.ev); prey.x=d.x*30+(-d.z)*20; prey.z=d.z*30+d.x*20; prey.dead=false;
+  T.updateEvents(0.1); const flees=prey.ev==='fire'; const hp0=P.hp; for(let i=0;i<10;i++) T.updateEvents(0.1); const burnt=P.hp<hp0;
+  T.EV.s=T.WORLD+20; T.updateEvents(0.1); const anyBurnt=T.patches.some(p=>p.burnt), off=!T.eventOn();
+  T.EV.regrow=0.05; T.updateEvents(0.1); const regrown=!T.patches.some(p=>p.burnt);
+  if(!flees||!burnt||!anyBurnt||!off||!regrown){ console.log('FEHLER: Steppenbrand',flees,burnt,anyBurnt,off,regrown); process.exit(1); }
+  console.log('Steppenbrand: Tiere fliehen, Flammen verletzen, Gras brennt ab und wächst nach');
+  // Rivale: kommt, wird besiegt, Ereignis endet
+  T.EV.next=0; T.EV.last='fire'; T.startEvent('rival'); const r=T.EV.rival, hpR=r.hp;
+  r.hp=1; T.hitAnimal(r,P); T.updateEvents(0.1); const won=!T.eventOn();
+  for(let i=0;i<3000&&T.animals.includes(r);i++){ T.updateAnimal(r,0.1); T.updateEvents(0.1); }
+  if(!(hpR>170)||!won||T.animals.includes(r)){ console.log('FEHLER: Rivale',hpR,won); process.exit(1); }
+  console.log('Rivale: Leben '+hpR+', besiegt → Ereignis vorbei, Kadaver verschwindet später');
+  P.x=keepP[0]; P.z=keepP[1]; P.hp=keepP[2]; P.dead=keepP[3]; P.tree=keepP[4]; T.EV.on=null; }
 console.log('ALL OK');
