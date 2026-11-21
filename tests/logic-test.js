@@ -31,7 +31,7 @@ const doc={ querySelectorAll:()=>[], getElementById:el, addEventListener(){}, cr
 let raf=null;
 const g={ window:win, document:doc, navigator:{maxTouchPoints:0}, localStorage:{getItem:k=>(k in ls?ls[k]:null),setItem:(k,v)=>{ls[k]=String(v);}}, THREE:win.THREE,
   requestAnimationFrame:fn=>{ if(fn.name==='frame') raf=fn; else fn(); }, setTimeout:fn=>{ fn(); } };
-const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,visibility,lineOfSight,addSight,hearR,startEvent,endEvent,EV,updateEvents,eventOn,inGrass,patches,updateAnimal,WORLD,kidOf,kidsOf,tickKids,updateLife,playerSeeks,canSwitchFor,markTaken,cubFollowContext,cubLearn,updateFollowers,followers,learnOf,canSwitch,woundTick,forgetWounds,resetMates,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping};';
+const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,H,visibility,lineOfSight,addSight,hearR,startEvent,endEvent,EV,updateEvents,eventOn,inGrass,patches,updateAnimal,WORLD,kidOf,kidsOf,tickKids,updateLife,playerSeeks,canSwitchFor,markTaken,cubFollowContext,cubLearn,updateFollowers,followers,learnOf,canSwitch,woundTick,forgetWounds,resetMates,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping};';
 new Function(...Object.keys(g), body)(...Object.values(g));
 const T=globalThis.__T; const rnd2=()=>Math.random()*8-4; const localStorageDump=()=>ls['jaguar-lines'];
 els.btnPlay.onclick();
@@ -406,7 +406,7 @@ console.log('audio nodes created',ACs&&ACs.count());
   T.startEvent('migr'); const herd=T.animals.filter(a=>a.ev==='migr'), h0=herd.length, a0=herd[0], f0=a0.x*T.EV.dir.x+a0.z*T.EV.dir.z;
   P.x=500; P.z=500; for(let i=0;i<50;i++){ for(const a of herd) T.updateAnimal(a,0.1); T.updateEvents(0.1); }
   const moved=(a0.x*T.EV.dir.x+a0.z*T.EV.dir.z)-f0;
-  T.endEvent(); for(let i=0;i<400;i++){ for(const a of T.animals.slice()) if(a.temp) T.updateAnimal(a,0.1); T.updateEvents(0.1); }
+  T.endEvent(); T.players.forEach(q=>{ q.x=500; q.z=500; }); for(let i=0;i<400;i++){ for(const a of T.animals.slice()) if(a.temp) T.updateAnimal(a,0.1); T.updateEvents(0.1); }
   const left=T.animals.filter(a=>a.sp.id==='gnu').length;
   if(!(h0>=14)||!(moved>15)||left!==0||T.animals.length!==n0){ console.log('FEHLER: Gnu-Wanderung',h0,moved,left,T.animals.length,n0); process.exit(1); }
   console.log('Gnu-Wanderung: '+h0+' Gnus ziehen ('+moved.toFixed(0)+' m in 5 s) und verlassen danach die Welt');
@@ -453,12 +453,12 @@ console.log('audio nodes created',ACs&&ACs.count());
   for(let i=0;i<120;i++){ for(const o of ws) T.updateAnimal(o,0.1); T.updateEvents(0.1); if(w.aimT<0.4&&w.shotT>2) shots++; }
   const hurtOrShot=P.hp<hp0||shots>0;
   w.hp=w.sp.hp; for(let i=0;i<20&&w.ev==='poach';i++) T.hitAnimal(w,P); const gone=w.ev==='leave'&&!w.dead;
-  T.endEvent(); P.x=5000; for(let i=0;i<300;i++){ for(const o of T.animals.slice()) if(o.temp) T.updateAnimal(o,0.1); T.updateEvents(0.1); }
-  const cleaned=!T.animals.some(a=>a.sp.id==='poacher'); P.x=0; P.hp=200;
+  T.endEvent(); T.players.forEach(q=>{ q.x=5000; q.z=0; }); for(let i=0;i<300;i++){ for(const o of T.animals.slice()) if(o.temp) T.updateAnimal(o,0.1); T.updateEvents(0.1); }
+  const cleaned=!T.animals.some(a=>a.sp.id==='poacher'); if(!cleaned) console.log(T.animals.filter(a=>a.sp.id==='poacher').map(a=>[a.ev,a.dead,a.stun,a.gone,a.held,Math.round(Math.hypot(a.x-P.x,a.z-P.z))].join('/'))); P.x=0; P.hp=200;
   if(ws.length<2||!hurtOrShot||!gone||!cleaned){ console.log('FEHLER: Wilderer',ws.length,hurtOrShot,gone,cleaned); process.exit(1); }
   console.log('Wilderer: '+ws.length+' streifen umher, schießen auf den Leoparden, lassen sich vertreiben, verschwinden danach'); }
 { const P=T.P, a=T.animals.find(o=>o.sp.id==='anti'&&!o.dead), k=[a.x,a.z,a.g.rotation.y,a.idle,a.state,P.x,P.z,P.sneak,P.tree];
-  a.x=4000; a.z=4000; a.g.rotation.y=0; a.idle=0; a.state='wander'; a.watch=false; P.tree=null; P.sneak=false;
+  { let bx=4000; for(let i=0;i<200;i++){ const x=4000+i*37; if(T.lineOfSight(x,T.H(x,4000)+1.3,4000,x,T.H(x,4015)+0.5,4015)===1&&T.lineOfSight(x,T.H(x,4000)+1.3,4000,x,T.H(x,3985)+0.5,3985)===1){ bx=x; break; } } a.x=bx; a.z=4000; } a.g.rotation.y=0; a.idle=0; a.state='wander'; a.watch=false; P.tree=null; P.sneak=false;
   const at=(x,z)=>{ P.x=a.x+x; P.z=a.z+z; a.visT=0; return T.visibility(a,P,0.3); };
   const front=at(0,15), behind=at(0,-15);
   a.idle=2; const grazing=at(0,15); a.idle=0;
