@@ -85,6 +85,15 @@ function removeCol(c){
   const m=c.r+2.5, x0=Math.floor((c.x-m)/CG), x1=Math.floor((c.x+m)/CG), z0=Math.floor((c.z-m)/CG), z1=Math.floor((c.z+m)/CG);
   for(let i=x0;i<=x1;i++) for(let j=z0;j<=z1;j++){ const k=cKey(i,j), L=colGrid.get(k); if(!L) continue; const n=L.indexOf(c); if(n>=0) L.splice(n,1); if(!L.length) colGrid.delete(k); }
 }
+/* Sichthindernisse (Felsen, Büsche, Baumstämme): Kreis mit Höhe und Deckkraft 0…1, im selben Rasterprinzip */
+const sightGrid=new Map();
+function addSight(x,z,r,h,op){
+  const o={x,z,r,top:H(x,z)+h,op}, x0=Math.floor((x-r)/CG), x1=Math.floor((x+r)/CG), z0=Math.floor((z-r)/CG), z1=Math.floor((z+r)/CG);
+  for(let i=x0;i<=x1;i++) for(let j=z0;j<=z1;j++){ const k=cKey(i,j); let L=sightGrid.get(k); if(!L) sightGrid.set(k,L=[]); L.push(o); }
+  return o;
+}
+/** Hindernisse in der Rasterzelle von (x,z) */
+const sightAt=(x,z)=>sightGrid.get(cKey(Math.floor(x/CG),Math.floor(z/CG)));
 const _col={x:0,z:0};
 function collide(x,z,rad,skipLow){
   const L=colGrid.get(cKey(Math.floor(x/CG),Math.floor(z/CG)));
@@ -98,4 +107,4 @@ function collide(x,z,rad,skipLow){
   _col.x=x; _col.z=z; return _col;
 }
 
-export { GLSL_H, GLSL_PONDMASK, H, H0, PONDS, WATER_D, WORLD, addCol, collide, cullTiles, hash2, inWater, onView, pondAt, registerCull, registerTile, removeCol, tileOf, unregisterCull, vnoise, waters };
+export { addSight, sightAt, GLSL_H, GLSL_PONDMASK, H, H0, PONDS, WATER_D, WORLD, addCol, collide, cullTiles, hash2, inWater, onView, pondAt, registerCull, registerTile, removeCol, tileOf, unregisterCull, vnoise, waters };

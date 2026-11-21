@@ -23,6 +23,7 @@ import { makeCarcass } from './carcass.js';
 import { puff } from './effects.js';
 import { goalEvent } from './goals.js';
 import { dmg } from './save.js';
+import { hearR, visibility } from './vision.js';
 
 /** @type {{on:string|null,t:number,next:number,last:string,dir:{x:number,z:number},s:number,herd:any[],rival:any,panic:number,burnT:number,regrow:number,lionT:number,kidT:number,home:{x:number,z:number}|null}} */
 const EV={on:null,t:0,next:rnd(150,240),last:'',dir:{x:1,z:0},s:0,herd:[],rival:null,panic:0,burnT:0,regrow:0,lionT:0,kidT:0,home:null};
@@ -99,7 +100,7 @@ function buildHuman(){
   g.userData={inner,legs:[legL,armR,armL,legR],gun}; return g;
 }
 /** Sieht der Wilderer w Spieler p? (Tarnung, Gras, Schleichen und Baum verstecken) */
-function seesPlayer(w,p){ const d=Math.hypot(p.x-w.x,p.z-w.z); return !p.dead&&d<55*Math.max(0.25,p.stealth==null?1:p.stealth); }
+function seesPlayer(w,p,dt=0.1){ if(p.dead) return false; const d=Math.hypot(p.x-w.x,p.z-w.z); if(d>60) return false; return d<55*Math.max(0.25,p.stealth==null?1:p.stealth)*visibility(w,p,dt)||d<hearR(p); }
 function fire(w,tx,tz){
   gunshot(w.x,w.z); const gy=H(w.x,w.z)+1.4, a=Math.atan2(tx-w.x,tz-w.z);
   puff(w.x+Math.sin(a)*0.9,gy,w.z+Math.cos(a)*0.9,0xffd27a,5,0.25); puff(w.x+Math.sin(a)*1.1,gy+0.1,w.z+Math.cos(a)*1.1,0x9a958a,4,0.45);
@@ -109,8 +110,8 @@ function fire(w,tx,tz){
 function poachStep(a,dt,move){
   a.shotT-=dt;
   // ein Leopard in Sicht? zielen und schießen
-  let tgt=a.aimAt&&!a.aimAt.dead&&a.aimAt.L&&seesPlayer(a,a.aimAt)?a.aimAt:null;
-  if(!tgt) for(const p of players) if(seesPlayer(a,p)){ tgt=p; break; }
+  let tgt=a.aimAt&&!a.aimAt.dead&&a.aimAt.L&&seesPlayer(a,a.aimAt,dt)?a.aimAt:null;
+  if(!tgt) for(const p of players) if(seesPlayer(a,p,dt)){ tgt=p; break; }
   if(tgt){ if(a.aimAt!==tgt){ a.aimAt=tgt; a.aimT=0; }
     a.g.rotation.y=Math.atan2(tgt.x-a.x,tgt.z-a.z); a.aimT+=dt; a.g.userData.gun.rotation.x=-0.05;
     if(a.aimT>1.5&&a.shotT<=0){ a.shotT=rnd(3,4.5); a.aimT=0.3; fire(a,tgt.x,tgt.z);
