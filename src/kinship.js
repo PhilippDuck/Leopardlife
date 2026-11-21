@@ -4,7 +4,7 @@ import { snd } from './audio.js';
 import { nameOf, tell } from './coop.js';
 import { TRAITS } from './data.js';
 import { puff } from './effects.js';
-import { FOOD_MAX, cub, feedCub, heirLevel, mateWild, nearCub, nearestWild, offerText, playerSeeks } from './family.js';
+import { FOOD_MAX, cub, feedCub, mateWild, nearCub, nearestWild, offerText, playerSeeks } from './family.js';
 import { fam, famPlace } from './kin.js';
 import { makeFur } from './models.js';
 import { P, players, rebuildPlayer } from './player.js';
@@ -14,7 +14,7 @@ import { toast } from './ui.js';
 import { rnd } from './util.js';
 import { carcassContext, nearCarcass, recordAncestor, takeMeat } from './carcass.js';
 import { canSleepNow, sleepOnTree } from './daynight.js';
-import { applyLearned, canSwitch, canSwitchFor, cubFollowContext, denFull, dropFollower, followerOf, kidsOf, markTaken, numOf } from './cubfollow.js';
+import { applyLearned, canSwitch, canSwitchFor, cubFollowContext, denFull, dropFollower, followerOf, heirLevel, kidInfo, kidOf, kidsOf, markTaken, numOf } from './cubfollow.js';
 
 /** Neue Kennung für einen Leoparden */
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -46,7 +46,7 @@ function playerOffer(p,q){ const a=p.L.traits||[], b=q.L.traits||[], both=a.filt
   if(pool.length) return pool[Math.floor(Math.random()*pool.length)]; const ks=Object.keys(TRAITS); return ks[Math.floor(Math.random()*ks.length)]; }
 /** Können sich die Spieler p und q paaren? Beide ausgewachsen, nicht verwandt, kein Junges und keine Trächtigkeit in der Familie. */
 function canPair(p,q){
-  return p!==q&&!p.dead&&!q.dead&&p.L.lvl>=8&&q.L.lvl>=8&&!S.cub&&!(S.preg>0)&&!related(p.L,q.L);
+  return p!==q&&!p.dead&&!q.dead&&p.L.lvl>=8&&q.L.lvl>=8&&!kidOf(p)&&!kidOf(q)&&!(S.preg>0)&&!related(p.L,q.L);
 }
 /** Nächster Mitspieler, mit dem sich p paaren könnte (höchstens 4,5 m entfernt). Meldet Verwandte einmal, statt still nichts zu tun. */
 function pairCandidate(p){
@@ -73,8 +73,8 @@ function mateBecomeCub(p){
   const L=p.L, old=ensureKin(L);
   // Erbanlagen vom Elternteil, der dieser Spieler war (sonst von Spieler 1), plus die des Wurfs – doppelte werden verstärkt.
   // Eigenschafts- und Fähigkeitspunkte werden nicht vererbt (dafür gibt es Erbe und Ahnenkraft).
-  const par=(c.parents||[]).indexOf(L.id)>=0?L:S, kid={traits:(par.traits||[]).slice(),tlv:Object.assign({},par.tlv||{})}; inheritTrait(kid,c.trait);
-  const nl={id:newId(),parents:(c.parents||[]).slice(),lvl:heirLevel(),xp:0,pts:0,a:fresh().a,b:fresh().b,traits:kid.traits,tlv:kid.tlv,fur:makeFur(),hunger:80,age:0,kills:0,gen:c.gen||((S.gen||1)+1)};
+  const ki=kidInfo(p), par=(ki.parents||[]).indexOf(L.id)>=0?L:S, kid={traits:(par.traits||[]).slice(),tlv:Object.assign({},par.tlv||{})}; inheritTrait(kid,ki.trait);
+  const nl={id:newId(),parents:(ki.parents||[]).slice(),lvl:heirLevel(p),xp:0,pts:0,a:fresh().a,b:fresh().b,traits:kid.traits,tlv:kid.tlv,fur:ki.fur?Object.assign({},ki.fur):makeFur(),hunger:80,age:0,kills:0,gen:ki.gen||((S.gen||1)+1)};
   const got=applyLearned(p,nl), fo=followerOf(p), fx=fo?fo.x:cub.x, fz=fo?fo.z:cub.z; if(fo) dropFollower(fo); if(c.learn) delete c.learn[p.num];
   recordAncestor('zog sein Junges groß und lebt als Elterntier weiter',L,nameOf(p));
   S.mates[p.num]=nl; p.L=nl; p.fur=nl.fur; rebuildPlayer(p);

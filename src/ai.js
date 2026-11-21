@@ -71,11 +71,11 @@ function updateAnimal(a,dt){
     if(!seeking()){ a.g.visible=false; return; }
   }
   const dv=players.length>1?nearestDist(a):d;
+  if(a.ev&&a.stun<=0&&eventStep(a,dt,moveAnimal)){ a.g.visible=dv<=VIEW_D&&!a.gone; a.g.position.set(a.x,H(a.x,a.z),a.z); pounceHits(a); return; }   // Ereignis steuert das Tier (auch außer Sicht)
   if(dv>VIEW_D&&a!==G.raider){ a.g.visible=false; return; } a.g.visible=dv<=VIEW_D;
   a.cd-=dt; if(a.scared>0) a.scared-=dt;
   const hostile=sp.hunt&&T.L.lvl<sp.hunt&&!(a.scared>0);
   const detect=sp.sense*stealth*D().sense*(sp.pred?1+0.25*(1-dayF):1)*(d>0.1?windMulDir(-dx/d,-dz/d):1);
-  if(a.ev&&a.stun<=0&&eventStep(a,dt,moveAnimal)){ a.g.position.set(a.x,H(a.x,a.z),a.z); pounceHits(a); return; }   // Ereignis steuert das Tier
   if(sp.croc){ if(a.stun>0) a.stun-=dt; else crocStep(a,dt,d,dx,dz,stealth*D().sense,hostile,T);
     pounceHits(a);
     return; }

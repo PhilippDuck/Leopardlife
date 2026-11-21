@@ -137,13 +137,14 @@ function updateUI(p=P){
   const cb=h('cubBox'), cu=S.cub;
   const kid=kidMode();
   if(cu||S.preg>0||(canMate()&&seekT<15)||kid){
-    cb.style.display='block'; h('cubBars').style.display=cu&&cu.grow<1?'block':'none'; let msg='';
-    if(cu&&cu.grow<1){
-      const ki=kidOf(p)||{full:denFull(),hp:1}, own=!!kidOf(p);   // eigenes Junges dieses Spielers (sonst die Geschwister im Bau)
-      h('cubT').textContent=(own?'Dein Junges':'Geschwister')+' · satt '+Math.round(ki.full)+' % · groß '+Math.round(cu.grow*100)+' %'+(cu.grow<LEARN_AT?' · Lehrzeit ab 25 %':cu.grow<SWITCH_AT?' · Wechsel ab 50 %':' · halbstark'); h('foodT').textContent=S.food>0?'Vorrat '+S.food:'';
-      h('bCf').style.width=ki.full+'%'; h('bCg').style.width=(cu.grow*100)+'%';
-      msg=G.raider?(G.raider.found?'⚠ Dein Junges wird angegriffen!':'⚠ Räuber sucht dein Junges!'):ki.full<=0?'⚠ Dein Junges verhungert!':ki.hp<1?'Leben des Jungen: '+Math.max(0,Math.round(ki.hp*100))+' %':ki.full<25?'Dein Junges hat Hunger':cu.grow>=LEARN_AT?(followerOf(p)?(followerOf(p).wait?'Wartet auf dich · ':'Kommt mit · ')+learnText(p):'Am Bau abholen und mit auf die Jagd nehmen'):'';
-    } else if(cu){ h('cubT').textContent='Nachwuchs ausgewachsen'; h('foodT').textContent='dein Erbe'; }
+    const ki=kidOf(p)||{full:denFull(),hp:1,grow:cu?cu.grow:0}, own=!!kidOf(p), kg=ki.grow;   // eigenes Junges dieses Spielers (sonst die Geschwister im Bau)
+    cb.style.display='block'; h('cubBars').style.display=cu&&kg<1?'block':'none'; let msg='';
+    if(cu&&kg<1){
+      h('cubT').textContent=(own?'Dein Junges':'Geschwister')+' · satt '+Math.round(ki.full)+' % · groß '+Math.round(kg*100)+' %'+(kg<LEARN_AT?' · Lehrzeit ab 25 %':kg<SWITCH_AT?' · Wechsel ab 50 %':' · halbstark'); h('foodT').textContent=S.food>0?'Vorrat '+S.food:'';
+      h('bCf').style.width=ki.full+'%'; h('bCg').style.width=(kg*100)+'%';
+      msg=G.raider?(G.raider.found?'⚠ Dein Junges wird angegriffen!':'⚠ Räuber sucht dein Junges!'):ki.full<=0?'⚠ Dein Junges verhungert!':ki.hp<1?'Leben des Jungen: '+Math.max(0,Math.round(ki.hp*100))+' %':ki.full<25?'Dein Junges hat Hunger':kg>=LEARN_AT?(followerOf(p)?(followerOf(p).wait?'Wartet auf dich · ':'Kommt mit · ')+learnText(p):'Am Bau abholen und mit auf die Jagd nehmen'):'';
+    } else if(cu&&own){ h('cubT').textContent='Dein Junges ist ausgewachsen'; h('foodT').textContent='am Bau übernehmen'; }
+    else if(cu){ h('cubT').textContent='Geschwister am Bau'; h('foodT').textContent=''; }
     else if(S.preg>0){ h('cubT').textContent='Junges kommt bald im Bau zur Welt'; h('foodT').textContent=''; }
     else if(canMate()){ h('cubT').textContent=S.partner?'Dein Partner wartet':'Partner suchen'; h('foodT').textContent='rosa Punkt auf der Spürkarte'; }
     else { h('cubT').textContent='Eltern: '+((S.p1?1:0)+(S.p2?1:0)); h('foodT').textContent='bringen Futter'; }
