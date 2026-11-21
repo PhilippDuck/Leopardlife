@@ -19,6 +19,8 @@ import { goalEvent } from './goals.js';
 import { G } from './state.js';
 import { mateBecomeCub } from './kinship.js';
 import { playAsCub } from './kin.js';
+import { dayF } from './daynight.js';
+import { trees } from './vegetation.js';
 
 const LEARN_AT=0.25, SWITCH_AT=0.5, DEN_CAP=0.35;
 /** Was ein Junges lernen kann: so oft zusehen → Bonus beim Wechsel */
@@ -28,7 +30,7 @@ const LESSONS=[
   {k:'tree',n:'Beute im Baum',need:1,give:'climb'},
   {k:'kill',n:'Beute',need:4,give:'pt'}
 ];
-/** @type {{p:any,c:any,x:number,z:number,rot:number,g:any,ph:number,wait:boolean,eatT:number,hitT:number,mewT:number}[]} */
+/** @type {{p:any,c:any,x:number,z:number,rot:number,g:any,ph:number,wait:boolean,eatT:number,hitT:number,mewT:number,up:number,tree:number|null,waitTree:number|null}[]} */
 const followers=[];
 const numOf=p=>p===P?1:(p.num||2);
 const canSwitch=()=>!!S.cub&&Object.values(kidsOf()).some(k=>k.grow>=SWITCH_AT);
@@ -94,7 +96,7 @@ function addFollower(p){
   const c=S.cub; if(!c||denCount()<=0||followerOf(p)) return;
   const g=buildQuad({col:0xe0a23c,col2:0xf0c98a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.5,ears:0.17,tail:1.0,tailTip:0x2a1c10,spots:1},c.fur||null);
   g.userData.blob.visible=!QUAL[quality].sh; scene.add(g);
-  followers.push({p,c,x:cub.x,z:cub.z,rot:0,g,ph:0,wait:false,eatT:0,hitT:0,mewT:4});
+  followers.push({p,c,x:cub.x,z:cub.z,rot:0,g,ph:0,wait:false,eatT:0,hitT:0,mewT:4,up:0,tree:null,waitTree:null});
   snd.mew(); tell(p,'Dein Junges kommt mit! Es lernt, was es bei dir sieht. Aktionstaste beim Jungen: „Warte hier“.','#ff9ad0');
 }
 function dropFollower(f){ dropModel(f.g); const i=followers.indexOf(f); if(i>=0) followers.splice(i,1); }
@@ -169,24 +171,41 @@ function updateFollowers(dt){
     if(!c||f.c!==c||players.indexOf(p)<0||!kidOf(p)||kidOf(p).grow>=1){ dropFollower(f); continue; }
     let tx=p.x-Math.sin(p.rot)*2.6, tz=p.z-Math.cos(p.rot)*2.6;
     const dp=Math.hypot(p.x-f.x,p.z-f.z);
-    if(dp>110||p.dead){ f.x=p.x+rnd(-2,2); f.z=p.z+rnd(-2,2); }   // Spieler weit weg (z. B. neu erwacht): kommt nach
-    const crouch=p.sneak||f.wait;
+    if((dp>110&&f.up<=0)||p.dead){ f.x=p.x+rnd(-2,2); f.z=p.z+rnd(-2,2); f.up=0; f.tree=null; }   // Spieler weit weg (z. B. neu erwacht): kommt nach
+    // Baum: klettert mit, wenn sein Spieler oben ist; wartend nachts oder bei Gefahr sucht es sich selbst einen Baum
+    const danger=animals.some(a=>!a.dead&&a.sp.pred&&!a.sp.croc&&!a.sp.friend&&Math.hypot(a.x-f.x,a.z-f.z)<18);
+    let want=null;
+    if(p.tree!=null&&!p.dead) want=p.tree;
+    else if(f.wait&&(dayF<0.35||danger)){ if(f.waitTree==null){ let bi=-1, bd=30; trees.forEach((t,i)=>{ const d=Math.hypot(t.x-f.x,t.z-f.z); if(d<bd){ bd=d; bi=i; } }); f.waitTree=bi>=0?bi:null; } want=f.waitTree; }
+    if(!f.wait) f.waitTree=null;
+    if(f.up>0&&f.tree!=null&&want!==f.tree) want=null;   // erst herunter, dann woanders hin
+    const crouch=(p.sneak||f.wait)&&f.up<=0;
     let sp=0;
-    if(!f.wait&&!p.dead){ const d=Math.hypot(tx-f.x,tz-f.z); sp=d>9?9.5:d>2.5?4.2:d>0.8?1.6:0; if(p.sneak) sp*=0.7;
+    if(want!=null||f.up>0){
+      const ti=want!=null?want:f.tree, t=trees[ti], bx=t.x+t.perch[0]*0.35+0.5, bz=t.z+t.perch[2]*0.35+0.5;
+      if(f.up<=0&&want!=null&&Math.hypot(bx-f.x,bz-f.z)>0.8){ const d=Math.hypot(bx-f.x,bz-f.z); sp=d>6?9:4.5; const v=Math.min(d,sp*dt)/d; f.x+=(bx-f.x)*v; f.z+=(bz-f.z)*v; f.rot=Math.atan2(bx-f.x,bz-f.z); }
+      else { f.tree=ti; const was=f.up; f.up=want!=null?Math.min(1,f.up+dt/1.5):Math.max(0,f.up-dt/0.9); if(was<=0&&f.up>0) snd3d(['claws'],f.x,f.z,0.6,30,1.3);
+        f.x=bx; f.z=bz; f.rot=Math.atan2(t.x-bx,t.z-bz); if(f.up<=0) f.tree=null; }
+    }
+    else if(!f.wait&&!p.dead){ const d=Math.hypot(tx-f.x,tz-f.z); sp=d>9?9.5:d>2.5?4.2:d>0.8?1.6:0; if(p.sneak) sp*=0.7;
       if(sp>0){ const v=Math.min(d,sp*dt)/d; f.x+=(tx-f.x)*v; f.z+=(tz-f.z)*v; f.rot=Math.atan2(tx-f.x,tz-f.z); } }
-    f.ph+=dt*(sp>0?sp*2.2:0.5); animLegs(f.g,f.ph,sp>0?0.45:0.03);
+    const climbing=f.up>0&&f.up<1;
+    f.ph+=dt*(sp>0?sp*2.2:climbing?12:0.5); animLegs(f.g,f.ph,sp>0||climbing?0.45:0.03);
+    f.g.userData.inner.rotation.x=climbing?-1.1:0;
     const sc=0.34+0.66*Math.min(1,kidOf(p).grow); f.g.scale.set(sc,sc*(crouch?0.75:1),sc);
-    f.g.position.set(f.x,H(f.x,f.z),f.z); f.g.rotation.y=f.rot; f.g.visible=true;
+    let gy=H(f.x,f.z); if(f.tree!=null){ const t=trees[f.tree], e=f.up*f.up*(3-2*f.up); gy+=Math.max(0,t.y+t.perch[1]*0.8-gy)*e; }
+    f.g.position.set(f.x,gy,f.z); f.g.rotation.y=f.rot; f.g.visible=true;
+    const safe=f.up>=1;
     // ruft, wenn es den Anschluss verliert
     const kid=kidOf(p); if(!kid){ dropFollower(f); continue; }
     f.mewT-=dt; if(f.mewT<=0){ const lost=dp>18||kid.full<25; f.mewT=lost?rnd(4,7):rnd(14,28); snd3d(['mew'],f.x,f.z,lost?1.2:0.7,lost?70:35,rnd(1.05,1.3)); }   // ab und zu ein leises Miauen, laut wenn es den Anschluss verliert oder hungert
     // frisst an Beute in der Nähe mit
     f.eatT-=dt;
-    if(f.eatT<=0&&kid.full<97){ const a=animals.find(o=>o.dead&&o.carc&&o.carc.meat>0&&o.carc.tree==null&&Math.hypot(o.x-f.x,o.z-f.z)<3);
+    if(f.eatT<=0&&kid.full<97&&f.up<=0){ const a=animals.find(o=>o.dead&&o.carc&&o.carc.meat>0&&o.carc.tree==null&&Math.hypot(o.x-f.x,o.z-f.z)<3);
       if(a){ f.eatT=2.2; a.carc.meat--; kid.full=Math.min(100,kid.full+12); kid.hp=Math.min(1,kid.hp+0.05); kid.grow=Math.min(1,kid.grow+0.02); snd3d(['eat'],f.x,f.z,0.5,30,1.3); puff(a.x,H(a.x,a.z)+0.5,a.z,0xc0392b,3,0.3); } }
     // Gefahr: Raubtiere in der Nähe schnappen nach dem Jungen; ist sein Spieler weit weg, schleichen sie sich heran
     f.hitT-=dt;
-    for(const a of animals){ if(a.dead||!a.sp.pred||a.sp.croc||a.sp.friend) continue;
+    for(const a of animals){ if(safe||a.dead||!a.sp.pred||a.sp.croc||a.sp.friend) continue;   // oben im Baum ist es sicher
       const d=Math.hypot(a.x-f.x,a.z-f.z);
       if(d<14&&dp>20&&a.state==='wander'){ a.tx=f.x; a.tz=f.z; a.timer=2; }
       if(d<2.4&&f.hitT<=0&&(a.state==='chase'||a.state==='wander'||a.state==='scav')){ f.hitT=1.2; kid.hp-=0.14; snd3d(['mew'],f.x,f.z,1.2,70,1.3); puff(f.x,H(f.x,f.z)+0.5,f.z,0xc0392b,4,0.4);

@@ -1,13 +1,18 @@
 // LeopardLife – Gelände: Höhenformel und Wasserlöcher, Kacheln mit Sichtbarkeitsprüfung, Boden, fernes Umland, Wasser und Hindernisse (Kollision).
 import { camera, scene } from './engine.js';
-import { REG } from './save.js';
+import { REG, S } from './save.js';
+import { GLSL_SNOISE, seeded, snoise } from './noise.js';
 import { G } from './state.js';
 import { rnd } from './util.js';
 
 // Radius der begehbaren Welt in Metern
 const WORLD=235;
-/* Gelände: Hügel + flache Wasserlöcher. Dieselbe Formel steht als GLSL im Gras-Shader. */
-const H0=(x,z)=>Math.sin(x*0.021)*Math.cos(z*0.024)*4.6+Math.sin(x*0.07+z*0.05)*1.0+Math.cos(z*0.09-x*0.03)*0.7;
+/* Gelände: Hügel aus Simplex-Rauschen (drei Lagen, verschoben durch den Weltsamen) + flache Wasserlöcher.
+   Dieselbe Formel steht als GLSL im Gras-Shader. Um den Bau herum wird das Gelände sanft eingeebnet. */
+const _rs=seeded(S.seed), NO=[0,1,2].map(()=>[(_rs()-0.5)*400,(_rs()-0.5)*400]);
+const Hn=(x,z)=>6.2*snoise(x*0.0062+NO[0][0],z*0.0062+NO[0][1])+2.0*snoise(x*0.021+NO[1][0],z*0.021+NO[1][1])+0.6*snoise(x*0.065+NO[2][0],z*0.065+NO[2][1]);
+const DEN_H=Hn(7,5);
+function H0(x,z){ const h=Hn(x,z), d=Math.hypot(x-7,z-5); if(d>=22) return h; let w=Math.min(1,(22-d)/12); w=w*w*(3-2*w); return h+(DEN_H-h)*w*0.85; }
 const PONDS=REG.ponds.map(p=>({x:p[0],z:p[1],r:p[2],L:H0(p[0],p[1])}));
 const WATER_D=0.4;
 function H(x,z){
@@ -20,7 +25,9 @@ function H(x,z){
 }
 function pondAt(x,z,m){ for(let i=0;i<PONDS.length;i++){ const p=PONDS[i]; if(Math.hypot(x-p.x,z-p.z)<p.r*(m||1)) return p; } return null; }
 function inWater(x,z){ const p=pondAt(x,z,1); return !!p&&H(x,z)<p.L-WATER_D-0.05; }
-const GLSL_H='float H0(vec2 p){ return sin(p.x*0.021)*cos(p.y*0.024)*4.6+sin(p.x*0.07+p.y*0.05)*1.0+cos(p.y*0.09-p.x*0.03)*0.7; }\n'+
+const f6=v=>v.toFixed(6);
+const GLSL_H=GLSL_SNOISE+'float H0(vec2 p){ float h=6.2*snoise(p*0.0062+vec2('+f6(NO[0][0])+','+f6(NO[0][1])+'))+2.0*snoise(p*0.021+vec2('+f6(NO[1][0])+','+f6(NO[1][1])+'))+0.6*snoise(p*0.065+vec2('+f6(NO[2][0])+','+f6(NO[2][1])+'));\n'+
+  '  float d=distance(p,vec2(7.0,5.0)); float w=clamp((22.0-d)/12.0,0.0,1.0); w=w*w*(3.0-2.0*w); return h+('+f6(DEN_H)+'-h)*w*0.85; }\n'+
   'float Hh(vec2 p){ float h=H0(p); float d; float w; float u; float t;\n'+
   PONDS.map(p=>'  d=distance(p,vec2('+p.x.toFixed(2)+','+p.z.toFixed(2)+')); if(d<'+(p.r*1.5).toFixed(2)+'){ w=clamp(('+(p.r*1.5).toFixed(2)+'-d)/'+(p.r*0.6).toFixed(2)+',0.0,1.0); w=w*w*(3.0-2.0*w); u=d/'+p.r.toFixed(2)+'; t=d<'+p.r.toFixed(2)+'?'+p.L.toFixed(4)+'-(1.0-u*u):'+p.L.toFixed(4)+'; h+=(t-h)*w; }\n').join('')+
   '  return h; }\n';

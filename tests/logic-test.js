@@ -438,4 +438,13 @@ console.log('audio nodes created',ACs&&ACs.count());
     Object.keys(S).forEach(x=>delete S[x]); Object.assign(S,JSON.parse(snap)); Q.L=qL; P.swArm=0; T.rebuildPlayer&&0;
     if(!ok1||!ok2){ console.log('FEHLER: eigener Nachwuchs / Übernehmen',ok1,ok2,lab); process.exit(1); }
     console.log('Eigener Nachwuchs neben vorhandenem Jungen; ausgewachsenes Junges am Bau übernehmen ('+lab+')'); } }
+{ const S=T.S(), P=T.P, keep=S.cub;
+  S.cub={grow:0.3,n:1,gen:2,parents:[S.id,'wild'],trait:'flink',kids:{1:{full:90,hp:1,grow:0.3}}};
+  P.dead=false; P.tree=null; P.x=T.cub.x+1; P.z=T.cub.z; const ctx=T.cubFollowContext(P); ctx&&ctx.fn(); const f=T.followers[0];
+  const ti=globalThis.__trees.findIndex(t=>Math.hypot(t.x-P.x,t.z-P.z)<60); P.tree=ti; P.climbT=1; P.safe=true; const t=globalThis.__trees[ti]; P.x=t.x; P.z=t.z;
+  for(let i=0;i<120;i++) T.updateFollowers(0.1); const up=f&&f.up===1&&f.tree===ti;
+  P.tree=null; P.safe=false; for(let i=0;i<40;i++) T.updateFollowers(0.1); const down=f&&f.up===0&&f.tree==null;
+  S.cub=null; T.updateFollowers(0.1); S.cub=keep;
+  if(!up||!down){ console.log('FEHLER: Junges klettert mit',up,down); process.exit(1); }
+  console.log('Junges klettert mit auf den Baum und wieder herunter'); }
 console.log('ALL OK');
