@@ -16,6 +16,7 @@ import { newGoals } from './goals.js';
 import { padUI } from './gamepad.js';
 import { updateUI } from './hud.js';
 import { nameOf, tell } from './coop.js';
+import { kidsOf } from './cubfollow.js';
 
 /* ---------- Tag und Nacht ---------- */
 // S.tod: 0 = Mitternacht, 0.25 = Sonnenaufgang, 0.5 = Mittag, 0.75 = Sonnenuntergang. Ein ganzer Tag dauert DAY_LEN Sekunden.
@@ -104,7 +105,7 @@ function doSleep(){
       p.hp=maxHp(L); p.st=maxSt(L);
       L.hunger=Math.max(5,Math.min(L.hunger-45,30));   // man wacht hungrig auf
       if(L.lvl>=8) L.age+=secs; }
-    if(S.cub&&S.cub.grow<1) S.cub.full=Math.max(8,S.cub.full-secs*0.28*D().hunger);
+    if(S.cub&&S.cub.grow<1) Object.values(kidsOf()).forEach(k=>{ k.full=Math.max(8,k.full-secs*0.28*D().hunger); });
     if(S.preg>0) S.preg=Math.max(0.1,S.preg-secs);
     G.raidT=rnd(90,130)*D().raid; if(G.raider) endRaid(G.raider);
     animals.forEach(o=>{ o.aggro=0; o.sus=0; if(o.state==='chase'){ o.state='wander'; o.timer=0; } });

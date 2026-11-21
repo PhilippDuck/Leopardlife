@@ -167,7 +167,8 @@ $('btnRespawn').onclick=()=>respawn();
 /** Spieler p trifft Tier a: Schaden, Hinterhalt, Beute, Erfahrung (Erfahrung und Stufe sind noch gemeinsam). */
 function hitAnimal(a,p=P){
   let d=dmg(p.L), amb=false;
-  if(a.state==='wander'||a.state==='lurk'||a.stun>0){ d*=2+0.6*p.L.b.amb; amb=true; }
+  // Hinterhalt – auch bei Tieren auf der Flucht vor dem Feuer und bei ziehenden Gnus (sie achten nicht auf dich)
+  if(a.state==='wander'||a.state==='lurk'||a.stun>0||a.ev==='fire'||a.ev==='migr'){ d*=2+0.6*p.L.b.amb; amb=true; }
   if(p.leap){ d*=1.25+0.25*p.L.b.climb; p.leap=false; floatText('Sprung vom Baum!',p.x,p.camY+2*pScale(p.L),p.z,'#9be07f'); }
   d=Math.round(d*rnd(0.9,1.1));
   a.hp-=d; p.combatT=5;

@@ -14,7 +14,7 @@ import { toast } from './ui.js';
 import { rnd } from './util.js';
 import { carcassContext, nearCarcass, recordAncestor, takeMeat } from './carcass.js';
 import { canSleepNow, sleepOnTree } from './daynight.js';
-import { applyLearned, canSwitch, canSwitchFor, cubFollowContext, dropFollower, followerOf, markTaken } from './cubfollow.js';
+import { applyLearned, canSwitch, canSwitchFor, cubFollowContext, denFull, dropFollower, followerOf, kidsOf, markTaken, numOf } from './cubfollow.js';
 
 /** Neue Kennung für einen Leoparden */
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -88,7 +88,7 @@ function mateBecomeCub(p){
   return true;
 }
 /** Ein Junges wurde von einem Spieler übernommen: Wurf verkleinern, ohne weitere Junge endet die Aufzucht. */
-function takeFromLitter(p){ const c=S.cub; if(!c) return; markTaken(p); c.n=(c.n||1)-1; c.taken=true; if(c.n<=0){ S.cub=null; S.food=0; } }
+function takeFromLitter(p){ const c=S.cub; if(!c) return; markTaken(p); delete kidsOf(c)[numOf(p)]; c.n=(c.n||1)-1; c.taken=true; if(c.n<=0){ S.cub=null; S.food=0; } }
 /** Übrig gebliebene Junge eines Wurfs, aus dem schon ein Spieler stammt, wandern ab, wenn sie groß sind. */
 function litterLeaves(){ toast('Dein übriges Geschwister ist groß geworden und wandert ab, um ein eigenes Revier zu suchen.','#ff9ad0'); S.cub=null; S.food=0; save(); }
 
@@ -100,7 +100,7 @@ function mateContextInfo(p){
   const q=pairCandidate(p); if(q&&canPair(p,q)) return {label:'Paaren mit '+nameOf(q)};   // Erbe zeigt das Geburtsfenster
   { const cf=cubFollowContext(p); if(cf) return {label:cf.label}; }
   if(playerSeeks(p)){ const m=nearestWild(p); if(m&&m.d<4.5) return {label:'Paaren · Erbe: '+offerText(m.a.trait,p.L)}; }
-  if(S.cub&&S.cub.grow<1&&S.food>0&&S.cub.full<97&&nearCub(p)) return {label:'Füttern'};
+  if(S.cub&&S.cub.grow<1&&S.food>0&&denFull()<97&&nearCub(p)) return {label:'Füttern'};
   return null;
 }
 /** Aktionstaste eines Mitspielers (X antippen): paaren, Junges füttern. */
@@ -112,7 +112,7 @@ function mateContext(p){
   if(q&&related(p.L,q.L)&&p.L.lvl>=8&&!S.cub&&!(S.preg>0)){ tell(p,'Ihr seid verwandt – Verwandte paaren sich nicht.','#ff9ad0'); return; }
   { const cf=cubFollowContext(p); if(cf){ cf.fn(); return; } }
   if(playerSeeks(p)){ const m=nearestWild(p); if(m&&m.d<4.5){ mateWild(p,m.a); return; } }
-  if(S.cub&&S.cub.grow<1&&S.food>0&&S.cub.full<97&&nearCub(p)){ feedCub(); return; }
+  if(S.cub&&S.cub.grow<1&&S.food>0&&denFull()<97&&nearCub(p)){ feedCub(); return; }
 }
 
 ensureKin(S);

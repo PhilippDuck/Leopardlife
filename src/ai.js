@@ -20,6 +20,7 @@ import { crocStep } from './crocodile.js';
 import { syncOrbs } from './effects.js';
 import { growlAt } from './calls.js';
 import { weakRecover, woundSlow, woundTick, woundTrail } from './bite.js';
+import { eventStep } from './worldevents.js';
 
 /* Rudel: Hyänen und Schakale rufen ihre Artgenossen zur Jagd (je nach Schwierigkeit) */
 const PACK={hyena:1,jack:1};
@@ -59,6 +60,7 @@ function updateAnimal(a,dt){
   const T=targetOf(a), stealth=T.stealth==null?1:T.stealth;
   if(a.dead){
     if(a.carc){ a.carc.t-=dt; if(a.carc.t<=0||a.carc.meat<=0){ endCarcass(a); a.g.visible=false; a.g.rotation.z=0; } else syncOrbs(a.carc.orbs,a.carc.meat,a.carc.t,performance.now()/1000); return; }
+    if(a.temp){ a.gone=true; return; }   // Ereignistiere kommen nicht wieder
     a.respawn-=dt; if(a.respawn<=0) placeAnimal(a); return; }
   if(a.held){ a.ph+=dt*14; animLegs(a.g,a.ph,0.5); return; }   // festgebissen: zappelt, bewegt sich nicht
   if(a.wound) woundTick(a,dt); if(a.dead) return;
@@ -73,6 +75,7 @@ function updateAnimal(a,dt){
   a.cd-=dt; if(a.scared>0) a.scared-=dt;
   const hostile=sp.hunt&&T.L.lvl<sp.hunt&&!(a.scared>0);
   const detect=sp.sense*stealth*D().sense*(sp.pred?1+0.25*(1-dayF):1)*(d>0.1?windMulDir(-dx/d,-dz/d):1);
+  if(a.ev&&a.stun<=0&&eventStep(a,dt,moveAnimal)){ a.g.position.set(a.x,H(a.x,a.z),a.z); pounceHits(a); return; }   // Ereignis steuert das Tier
   if(sp.croc){ if(a.stun>0) a.stun-=dt; else crocStep(a,dt,d,dx,dz,stealth*D().sense,hostile,T);
     pounceHits(a);
     return; }
