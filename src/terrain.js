@@ -1,13 +1,18 @@
 // LeopardLife – Gelände: Höhenformel und Wasserlöcher, Kacheln mit Sichtbarkeitsprüfung, Boden, fernes Umland, Wasser und Hindernisse (Kollision).
 import { camera, scene } from './engine.js';
-import { REG } from './save.js';
+import { REG, S } from './save.js';
+import { GLSL_SNOISE, seeded, snoise } from './noise.js';
 import { G } from './state.js';
 import { rnd } from './util.js';
 
 // Radius der begehbaren Welt in Metern
 const WORLD=235;
-/* Gelände: Hügel + flache Wasserlöcher. Dieselbe Formel steht als GLSL im Gras-Shader. */
-const H0=(x,z)=>Math.sin(x*0.021)*Math.cos(z*0.024)*4.6+Math.sin(x*0.07+z*0.05)*1.0+Math.cos(z*0.09-x*0.03)*0.7;
+/* Gelände: Hügel aus Simplex-Rauschen (drei Lagen, verschoben durch den Weltsamen) + flache Wasserlöcher.
+   Dieselbe Formel steht als GLSL im Gras-Shader. Um den Bau herum wird das Gelände sanft eingeebnet. */
+const _rs=seeded(S.seed), NO=[0,1,2].map(()=>[(_rs()-0.5)*400,(_rs()-0.5)*400]);
+const Hn=(x,z)=>6.2*snoise(x*0.0062+NO[0][0],z*0.0062+NO[0][1])+2.0*snoise(x*0.021+NO[1][0],z*0.021+NO[1][1])+0.6*snoise(x*0.065+NO[2][0],z*0.065+NO[2][1]);
+const DEN_H=Hn(7,5);
+function H0(x,z){ const h=Hn(x,z), d=Math.hypot(x-7,z-5); if(d>=22) return h; let w=Math.min(1,(22-d)/12); w=w*w*(3-2*w); return h+(DEN_H-h)*w*0.85; }
 const PONDS=REG.ponds.map(p=>({x:p[0],z:p[1],r:p[2],L:H0(p[0],p[1])}));
 const WATER_D=0.4;
 function H(x,z){
@@ -20,7 +25,9 @@ function H(x,z){
 }
 function pondAt(x,z,m){ for(let i=0;i<PONDS.length;i++){ const p=PONDS[i]; if(Math.hypot(x-p.x,z-p.z)<p.r*(m||1)) return p; } return null; }
 function inWater(x,z){ const p=pondAt(x,z,1); return !!p&&H(x,z)<p.L-WATER_D-0.05; }
-const GLSL_H='float H0(vec2 p){ return sin(p.x*0.021)*cos(p.y*0.024)*4.6+sin(p.x*0.07+p.y*0.05)*1.0+cos(p.y*0.09-p.x*0.03)*0.7; }\n'+
+const f6=v=>v.toFixed(6);
+const GLSL_H=GLSL_SNOISE+'float H0(vec2 p){ float h=6.2*snoise(p*0.0062+vec2('+f6(NO[0][0])+','+f6(NO[0][1])+'))+2.0*snoise(p*0.021+vec2('+f6(NO[1][0])+','+f6(NO[1][1])+'))+0.6*snoise(p*0.065+vec2('+f6(NO[2][0])+','+f6(NO[2][1])+'));\n'+
+  '  float d=distance(p,vec2(7.0,5.0)); float w=clamp((22.0-d)/12.0,0.0,1.0); w=w*w*(3.0-2.0*w); return h+('+f6(DEN_H)+'-h)*w*0.85; }\n'+
   'float Hh(vec2 p){ float h=H0(p); float d; float w; float u; float t;\n'+
   PONDS.map(p=>'  d=distance(p,vec2('+p.x.toFixed(2)+','+p.z.toFixed(2)+')); if(d<'+(p.r*1.5).toFixed(2)+'){ w=clamp(('+(p.r*1.5).toFixed(2)+'-d)/'+(p.r*0.6).toFixed(2)+',0.0,1.0); w=w*w*(3.0-2.0*w); u=d/'+p.r.toFixed(2)+'; t=d<'+p.r.toFixed(2)+'?'+p.L.toFixed(4)+'-(1.0-u*u):'+p.L.toFixed(4)+'; h+=(t-h)*w; }\n').join('')+
   '  return h; }\n';
@@ -33,10 +40,18 @@ const vnoise=(x,z)=>Math.sin(x*0.11+Math.sin(z*0.07)*2.1)*Math.cos(z*0.13+Math.s
 const TILE=100, TN=6, TOFF=300;
 const tileOf=(x,z)=>Math.max(0,Math.min(TN-1,Math.floor((x+TOFF)/TILE)))*TN+Math.max(0,Math.min(TN-1,Math.floor((z+TOFF)/TILE)));
 const tileCenter=k=>({x:Math.floor(k/TN)*TILE-TOFF+TILE/2,z:(k%TN)*TILE-TOFF+TILE/2});
+/** @type {((cam:any)=>void)|null} */
+let viewHook=null;
+/** Etwas, das jeder Ansicht folgen soll (Fernlandschaft, Berge), vor dem Zeichnen jeder Ansicht aufrufen */
+function onView(fn){ viewHook=fn; }
 const cullList=[], _fr=new THREE.Frustum(), _pm=new THREE.Matrix4(), _sp=new THREE.Sphere();
 function registerTile(mesh,k,r){ const c=tileCenter(k); mesh.frustumCulled=false; cullList.push({mesh,s:new THREE.Sphere(new THREE.Vector3(c.x,H(c.x,c.z)+5,c.z),r)}); }
+/** Beliebiges Stück (z. B. Chunk-Boden) in die Sichtprüfung aufnehmen; liefert den Eintrag zum späteren Verschieben/Entfernen */
+function registerCull(mesh,x,z,r){ mesh.frustumCulled=false; const e={mesh,s:new THREE.Sphere(new THREE.Vector3(x,H(x,z)+5,z),r)}; cullList.push(e); return e; }
+function unregisterCull(e){ const i=cullList.indexOf(e); if(i>=0) cullList.splice(i,1); }
 /** Blendet Kacheln außerhalb des Sichtfelds von cam aus (beim Splitscreen vor jedem Ausschnitt). */
 function cullTiles(cam=camera){
+  if(viewHook) viewHook(cam);
   cam.updateMatrixWorld(); _pm.multiplyMatrices(cam.projectionMatrix,cam.matrixWorldInverse); _fr.setFromProjectionMatrix(_pm);
   const far=scene.fog.far+10;
   for(let i=0;i<cullList.length;i++){ const t=cullList[i]; _sp.center.copy(t.s.center); _sp.radius=t.s.radius+35;
@@ -44,64 +59,9 @@ function cullTiles(cam=camera){
 }
 const hash2=(x,z)=>{ const h=Math.sin(x*12.9898+z*78.233)*43758.5453; return h-Math.floor(h); };
 
-/* Boden (in Kacheln, Normalen aus der Höhenformel, damit an den Kachelrändern keine Kanten sichtbar sind) */
-(function(){
-  const mat=new THREE.MeshLambertMaterial({vertexColors:true}), SEG=40, E=0.5;
-  const c1=new THREE.Color(REG.ground[0]), c2=new THREE.Color(REG.ground[1]), dirt=new THREE.Color(0x8f7248), sand=new THREE.Color(0xcbbb8c), mud=new THREE.Color(0x66684a), c=new THREE.Color();
-  for(let k=0;k<TN*TN;k++){
-    const tc=tileCenter(k), g=new THREE.PlaneGeometry(TILE,TILE,SEG,SEG); g.rotateX(-Math.PI/2); g.translate(tc.x,0,tc.z);
-    const p=g.attributes.position, col=new Float32Array(p.count*3), nor=new Float32Array(p.count*3);
-    for(let i=0;i<p.count;i++){
-      const x=p.getX(i), z=p.getZ(i); p.setY(i,H(x,z));
-      const t=Math.min(1,Math.max(0,(Math.hypot(x,z)-60)/130));
-      c.copy(c1).lerp(c2,t);
-      const n=vnoise(x,z);
-      if(n>0.3) c.lerp(dirt,Math.min(1,(n-0.3)*3)*0.75); else if(n<-0.3) c.multiplyScalar(1+Math.max(-0.22,(n+0.3)*0.6));
-      const po=pondAt(x,z,1.35);
-      if(po){ const d=Math.hypot(x-po.x,z-po.z)/po.r; if(d<0.86) c.copy(mud); else c.lerp(sand,Math.min(1,(1.35-d)/0.3)); }
-      const kk=0.94+hash2(x,z)*0.12;
-      col[i*3]=c.r*kk; col[i*3+1]=c.g*kk; col[i*3+2]=c.b*kk;
-      const hx=(H(x+E,z)-H(x-E,z))/(2*E), hz=(H(x,z+E)-H(x,z-E))/(2*E), l=Math.hypot(hx,1,hz);
-      nor[i*3]=-hx/l; nor[i*3+1]=1/l; nor[i*3+2]=-hz/l;
-    }
-    g.setAttribute('color',new THREE.BufferAttribute(col,3)); g.setAttribute('normal',new THREE.BufferAttribute(nor,3));
-    const m=new THREE.Mesh(g,mat); m.receiveShadow=true; scene.add(m); registerTile(m,k,76);
-  }
-})();
+/* Boden: siehe chunks.js (mitwandernde Bodenstücke je Chunk) */
 
-/* Fernes Umland (nicht begehbar) und Bergkette am Horizont, damit die Welt bei weiter Sicht nicht abbricht */
-(function(){
-  const CS=30, g=new THREE.PlaneGeometry(3000,3000,100,100); g.rotateX(-Math.PI/2);
-  const p=g.attributes.position, col=new Float32Array(p.count*3), c=new THREE.Color(), c2=new THREE.Color(0xbfa95c), dirt=new THREE.Color(0x8f7248);
-  for(let i=0;i<p.count;i++){
-    const x=p.getX(i), z=p.getZ(i); p.setY(i,Math.max(Math.abs(x),Math.abs(z))<290?-25:H0(x,z)-0.15);
-    c.copy(c2); const n=vnoise(x,z); if(n>0.3) c.lerp(dirt,Math.min(1,(n-0.3)*3)*0.75);
-    const k=0.94+Math.random()*0.12; col[i*3]=c.r*k; col[i*3+1]=c.g*k; col[i*3+2]=c.b*k;
-  }
-  g.setAttribute('color',new THREE.BufferAttribute(col,3)); g.computeVertexNormals();
-  scene.add(new THREE.Mesh(g,new THREE.MeshLambertMaterial({vertexColors:true})));
-  // Höhe auf dem groben Raster (bilinear), damit ferne Bäume auf dem Boden stehen
-  const Hc=(x,z)=>{ const x0=Math.floor(x/CS)*CS, z0=Math.floor(z/CS)*CS, u=(x-x0)/CS, v=(z-z0)/CS;
-    return (H0(x0,z0)*(1-u)+H0(x0+CS,z0)*u)*(1-v)+(H0(x0,z0+CS)*(1-u)+H0(x0+CS,z0+CS)*u)*v-0.15; };
-  const N=280, m=new THREE.Matrix4(), q=new THREE.Quaternion(), s=new THREE.Vector3(), v=new THREE.Vector3(), cc=new THREE.Color();
-  const tr=new THREE.InstancedMesh(new THREE.CylinderGeometry(0.3,0.45,5,5),new THREE.MeshLambertMaterial({color:0x6b4a2b}),N);
-  const tp=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(3,0),new THREE.MeshLambertMaterial({color:0xffffff}),N);
-  for(let i=0;i<N;i++){
-    let x,z; do{ const r=rnd(320,820), a=Math.random()*6.283; x=Math.cos(a)*r; z=Math.sin(a)*r; }while(Math.max(Math.abs(x),Math.abs(z))<325);
-    const k=rnd(0.8,1.5), y=Hc(x,z), w=rnd(1.5,2.1);
-    m.compose(v.set(x,y+2.5*k,z),q,s.set(k*0.7,k,k*0.7)); tr.setMatrixAt(i,m);
-    m.compose(v.set(x,y+6*k,z),q,s.set(k*w,k*rnd(0.28,0.4),k*w)); tp.setMatrixAt(i,m);
-    tp.setColorAt(i,cc.setHSL(rnd(0.19,0.25),rnd(0.35,0.45),rnd(0.34,0.42)));
-  }
-  tr.frustumCulled=false; tp.frustumCulled=false; scene.add(tr,tp);
-  const M2=46, mt=new THREE.InstancedMesh(new THREE.ConeGeometry(1,1,7),new THREE.MeshBasicMaterial({color:0xffffff,fog:false}),M2);
-  for(let i=0;i<M2;i++){
-    const a=i/M2*6.283+rnd(-0.05,0.05), r=rnd(880,960), h=rnd(110,260), w=rnd(150,280);
-    m.compose(v.set(Math.cos(a)*r,h/2-25,Math.sin(a)*r),q,s.set(w,h,w)); mt.setMatrixAt(i,m);
-    mt.setColorAt(i,cc.setHSL(rnd(0.5,0.55),rnd(0.14,0.2),rnd(0.68,0.74)));
-  }
-  mt.frustumCulled=false; scene.add(mt); G.farMount=mt;
-})();
+/* Fernes Umland und Berge am Horizont: siehe chunks.js (folgen der Kamera) */
 
 /* Wasserlöcher */
 const waters=[];
@@ -111,19 +71,24 @@ PONDS.forEach(p=>{
   m.position.set(p.x,p.L-WATER_D,p.z); m.userData.y=p.L-WATER_D; m.receiveShadow=true; scene.add(m); waters.push(m);
 });
 
-/* Hindernisse: Kreis-Kollider in einem Raster. low = niedrig, kann im Sprung überquert werden */
-const CG=8, CN=64, colGrid=[]; for(let i=0;i<CN*CN;i++) colGrid.push([]);
+/* Hindernisse: Kreis-Kollider in einem Raster ohne Rand (Zellen nach Bedarf). low = niedrig, kann im Sprung überquert werden */
+const CG=8, colGrid=new Map();
+const cKey=(i,j)=>i*1000003+j;
 function addCol(x,z,r,low){
   const c={x,z,r,low:!!low}, m=r+2.5;
-  const x0=Math.max(0,Math.floor((x-m+256)/CG)), x1=Math.min(CN-1,Math.floor((x+m+256)/CG));
-  const z0=Math.max(0,Math.floor((z-m+256)/CG)), z1=Math.min(CN-1,Math.floor((z+m+256)/CG));
-  for(let i=x0;i<=x1;i++) for(let j=z0;j<=z1;j++) colGrid[i*CN+j].push(c);
+  const x0=Math.floor((x-m)/CG), x1=Math.floor((x+m)/CG), z0=Math.floor((z-m)/CG), z1=Math.floor((z+m)/CG);
+  for(let i=x0;i<=x1;i++) for(let j=z0;j<=z1;j++){ const k=cKey(i,j); let L=colGrid.get(k); if(!L) colGrid.set(k,L=[]); L.push(c); }
+  return c;
+}
+/** Kollider wieder entfernen (wenn ein Chunk entladen wird) */
+function removeCol(c){
+  const m=c.r+2.5, x0=Math.floor((c.x-m)/CG), x1=Math.floor((c.x+m)/CG), z0=Math.floor((c.z-m)/CG), z1=Math.floor((c.z+m)/CG);
+  for(let i=x0;i<=x1;i++) for(let j=z0;j<=z1;j++){ const k=cKey(i,j), L=colGrid.get(k); if(!L) continue; const n=L.indexOf(c); if(n>=0) L.splice(n,1); if(!L.length) colGrid.delete(k); }
 }
 const _col={x:0,z:0};
 function collide(x,z,rad,skipLow){
-  const i=Math.floor((x+256)/CG), j=Math.floor((z+256)/CG);
-  if(i>=0&&j>=0&&i<CN&&j<CN){
-    const L=colGrid[i*CN+j];
+  const L=colGrid.get(cKey(Math.floor(x/CG),Math.floor(z/CG)));
+  if(L){
     for(let k=0;k<L.length;k++){
       const c=L[k]; if(skipLow&&c.low) continue;
       const dx=x-c.x, dz=z-c.z, m=c.r+rad, d2=dx*dx+dz*dz;
@@ -133,4 +98,4 @@ function collide(x,z,rad,skipLow){
   _col.x=x; _col.z=z; return _col;
 }
 
-export { GLSL_H, GLSL_PONDMASK, H, PONDS, WATER_D, WORLD, addCol, collide, cullTiles, inWater, pondAt, registerTile, tileOf, waters };
+export { GLSL_H, GLSL_PONDMASK, H, H0, PONDS, WATER_D, WORLD, addCol, collide, cullTiles, hash2, inWater, onView, pondAt, registerCull, registerTile, removeCol, tileOf, unregisterCull, vnoise, waters };

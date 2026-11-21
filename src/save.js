@@ -14,7 +14,7 @@ const fresh=()=>({region:'savanne',beat:{},day:0,goals:null,kills:0,anc:[],diff:
 const D=()=>DIFF[S.diff]||DIFF.normal;
 // Spielstand: wird nie ersetzt, sondern an Ort und Stelle neu befüllt, damit alle Teile des Spiels dasselbe Objekt behalten
 const S=fresh();
-function resetState(o){ for(const k of Object.keys(S)) delete S[k]; Object.assign(S,o||fresh()); }
+function resetState(o){ const seed=S.seed; for(const k of Object.keys(S)) delete S[k]; Object.assign(S,o||fresh()); if(!S.seed&&seed) S.seed=seed; }   // der Weltsamen bleibt (die Landschaft wird beim Laden gebaut)
 /** Lädt den Spielstand des aktuellen Modus (oder beginnt neu) und stellt die Startknöpfe passend ein. */
 function loadSave(){
   resetState(); $('btnReset').style.display='none'; $('btnPlay').textContent='Spielen';
@@ -22,6 +22,8 @@ function loadSave(){
 }
 loadSave();
 function save(){ try{ localStorage.setItem(SAVE_KEY,JSON.stringify(S)); }catch(e){} }
+// Weltsamen: bestimmt die Landschaft (Hügel, später auch Pflanzen und Wasser je Chunk). Alte Spielstände bekommen hier ihren.
+if(!S.seed){ S.seed=1+Math.floor(Math.random()*2147483000); save(); }
 
 const xpNeed=l=>Math.round(20*Math.pow(l,1.4));
 // Erbanlagen: jedes Junge bekommt eine; bis zu drei werden über die Generationen weitergegeben

@@ -55,7 +55,6 @@ function stepPlayer(p,dt){
     if(p.sneak){ p.stalk=(p.stalk||0)+spd*dt; if(p.stalk>=1){ p.stalk-=1; goalEvent('stalk',1); } }   // Tagesziel: schleichend pirschen
     let tr=Math.atan2(mx,mz), df=tr-p.rot; while(df>Math.PI) df-=6.283; while(df<-Math.PI) df+=6.283; p.rot+=df*Math.min(1,dt*12);
   }
-  const pr=Math.hypot(p.x,p.z); if(pr>WORLD){ p.x*=WORLD/pr; p.z*=WORLD/pr; }
   if(p.tree==null){ const c=collide(p.x,p.z,0.3+0.4*sc,p.pounce>0); p.x=c.x; p.z=c.z; }
   p.pcd=Math.max(0,p.pcd-dt); p.rcd=Math.max(0,p.rcd-dt); p.combatT=Math.max(0,p.combatT-dt);
   if(p.combatT<=0&&p.L.hunger>25) p.hp=Math.min(maxHp(p.L),p.hp+maxHp(p.L)*0.015*dt);
