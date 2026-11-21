@@ -25,6 +25,7 @@ import { emit } from './events.js';
 import { toggleSkills } from './skills.js';
 import { bitable, biteHit, forgetWounds, startBite } from './bite.js';
 import { SWITCH_AT, cubLearn, cubSpot, growOf, hasOwnCub, heirLevel } from './cubfollow.js';
+import { humanHit } from './worldevents.js';
 
 /* ---------- Aktionen ---------- */
 /** Index des nächsten erreichbaren Baums für Spieler p, sonst -1. */
@@ -166,6 +167,7 @@ function respawn(p=P){
 $('btnRespawn').onclick=()=>respawn();
 /** Spieler p trifft Tier a: Schaden, Hinterhalt, Beute, Erfahrung (Erfahrung und Stufe sind noch gemeinsam). */
 function hitAnimal(a,p=P){
+  if(a.sp.human){ humanHit(a,p); return; }   // Wilderer: verletzen und vertreiben, nicht erlegen
   let d=dmg(p.L), amb=false;
   // Hinterhalt – auch bei Tieren auf der Flucht vor dem Feuer und bei ziehenden Gnus (sie achten nicht auf dich)
   if(a.state==='wander'||a.state==='lurk'||a.stun>0||a.ev==='fire'||a.ev==='migr'){ d*=2+0.6*p.L.b.amb; amb=true; }

@@ -18,7 +18,7 @@ import { cubLearn } from './cubfollow.js';
 
 /** Festbeißen bei jedem Tier, das ein Biss nicht sofort erledigt (d = Schaden dieses Bisses) – außer Leoparden und Krokodilen im Wasser */
 const fights=a=>!!(a.sp.pred||a.sp.fight);
-const bitable=(a,d)=>!a.sp.friend&&!a.sp.croc&&a.hp>d;
+const bitable=(a,d)=>!a.sp.friend&&!a.sp.croc&&!a.sp.human&&a.hp>d;
 /** Festbeißen beginnen (statt eines normalen Treffers) */
 function startBite(p,a,d){
   // je zäher das Tier im Verhältnis zu deinem Biss, desto mehr Bisse (3–5) und desto schneller der Punkt

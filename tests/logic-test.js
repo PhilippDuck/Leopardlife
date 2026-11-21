@@ -447,4 +447,14 @@ console.log('audio nodes created',ACs&&ACs.count());
   S.cub=null; T.updateFollowers(0.1); S.cub=keep;
   if(!up||!down){ console.log('FEHLER: Junges klettert mit',up,down); process.exit(1); }
   console.log('Junges klettert mit auf den Baum und wieder herunter'); }
+{ const P=T.P, n0=T.animals.length; T.EV.on=null; P.dead=false; P.tree=null; P.hp=999; P.sneak=false; P.stealth=1; P.x=0; P.z=0;
+  T.startEvent('poach'); const ws=T.animals.filter(a=>a.sp.id==='poacher'), w=ws[0];
+  w.x=P.x+25; w.z=P.z; w.shotT=0; const hp0=P.hp; let shots=0;
+  for(let i=0;i<120;i++){ for(const o of ws) T.updateAnimal(o,0.1); T.updateEvents(0.1); if(w.aimT<0.4&&w.shotT>2) shots++; }
+  const hurtOrShot=P.hp<hp0||shots>0;
+  w.hp=w.sp.hp; for(let i=0;i<20&&w.ev==='poach';i++) T.hitAnimal(w,P); const gone=w.ev==='leave'&&!w.dead;
+  T.endEvent(); P.x=5000; for(let i=0;i<300;i++){ for(const o of T.animals.slice()) if(o.temp) T.updateAnimal(o,0.1); T.updateEvents(0.1); }
+  const cleaned=!T.animals.some(a=>a.sp.id==='poacher'); P.x=0; P.hp=200;
+  if(ws.length<2||!hurtOrShot||!gone||!cleaned){ console.log('FEHLER: Wilderer',ws.length,hurtOrShot,gone,cleaned); process.exit(1); }
+  console.log('Wilderer: '+ws.length+' streifen umher, schießen auf den Leoparden, lassen sich vertreiben, verschwinden danach'); }
 console.log('ALL OK');

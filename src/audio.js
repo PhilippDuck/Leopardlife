@@ -75,6 +75,18 @@ function snd3d(ks,x,z,vol,maxD,rate){
   s.connect(lp); lp.connect(g); let out=g; if(AC.createStereoPanner){ const p=AC.createStereoPanner(); p.pan.value=Math.max(-0.9,Math.min(0.9,side*Math.min(1,d/6))); g.connect(p); out=p; }
   out.connect(master); s.start(t); return true;
 }
+/** Gewehrschuss bei (x,z): scharfer Knall, dumpfer Nachhall und Echo – weit zu hören, aus seiner Richtung */
+function gunshot(x,z){
+  if(!AC||!LIS.length) return; let L=LIS[0], d=1e9; for(const l of LIS){ const e=Math.hypot(x-l.x,z-l.z); if(e<d){ d=e; L=l; } }
+  if(d>600) return; const near=Math.pow(1-d/600,1.3), t=AC.currentTime+Math.min(0.6,d/340);   // Schall braucht etwas
+  const fx=-Math.sin(L.yaw), fz=-Math.cos(L.yaw), side=((x-L.x)*(-fz)+(z-L.z)*fx)/(d||1);
+  const pan=AC.createStereoPanner?AC.createStereoPanner():null; const out=AC.createGain(); out.gain.value=1; if(pan){ pan.pan.value=Math.max(-0.85,Math.min(0.85,side*Math.min(1,d/8))); out.connect(pan); pan.connect(master); } else out.connect(master);
+  const burst=(dur,vol,type,f,q,delay)=>{ const s=AC.createBufferSource(); s.buffer=nbuf; const fl=AC.createBiquadFilter(); fl.type=type; fl.frequency.value=f; if(q) fl.Q.value=q;
+    const g=AC.createGain(), t0=t+(delay||0); g.gain.setValueAtTime(vol,t0); g.gain.exponentialRampToValueAtTime(0.0001,t0+dur); s.connect(fl); fl.connect(g); g.connect(out); s.start(t0,Math.random()); s.stop(t0+dur+0.05); };
+  burst(0.07,1.6*near*near,'highpass',1800+4000*near);          // Knall (nah scharf)
+  burst(0.55,1.4*near,'lowpass',260+500*near);                    // Wumms
+  burst(1.3,0.35*near+0.05,'lowpass',380,0,0.25+d/900);           // Echo über die Ebene
+}
 /** Ist die Aufnahme k geladen? */
 const hasSample=k=>!!bufs[k];
 
@@ -248,4 +260,4 @@ function musicTick(){
   while(mNext<now+0.3){ mSchedule(mStep,mNext); mNext+=M_STEP; mStep++; }
 }
 
-export { AC, ambTick, climbStop, musicSoon, setListeners, snd3d, hasSample, master, nbuf, initAudio, tone, snd, musicTick };
+export { AC, ambTick, climbStop, musicSoon, setListeners, snd3d, hasSample, master, nbuf, initAudio, tone, snd, musicTick , gunshot };

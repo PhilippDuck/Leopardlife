@@ -172,6 +172,7 @@ function updateUI(p=P){
   if(best){ te.style.display='block'; h('tName').textContent=(best.fur&&best.fur.albino?'Albino-':'')+best.sp.n; h('bT').style.width=Math.max(0,best.hp/best.sp.hp*100)+'%';
     const tg=h('tTag'); const hostile=best.sp.hunt&&p.L.lvl<best.sp.hunt;
     if(best.sp.friend){ const fi=fam.indexOf(best); tg.textContent=fi===0?'· dein Partner':fi<3?'· dein Elterntier':'· Artgenosse'; tg.style.color='#ff9ad0'; }
+    else if(best.sp.human){ tg.textContent='· schießt – vertreib ihn!'; tg.style.color='var(--red)'; }
     else if(hostile){ tg.textContent='· Gefahr – jagt dich!'; tg.style.color='var(--red)'; }
     else if(best.sp.fight){ tg.textContent='· wehrt sich'; tg.style.color='var(--gold)'; }
     else { tg.textContent='· Beute'; tg.style.color='var(--green)'; }
