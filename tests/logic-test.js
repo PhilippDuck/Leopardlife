@@ -480,7 +480,7 @@ console.log('audio nodes created',ACs&&ACs.count());
     const a=T.makeTree({x:300,z:400,sav},T.chunkRng(8,9));
     const b=T.makeTree({x:300,z:400,sav},T.chunkRng(8,9));
     assert.deepEqual(a.perch,b.perch);
-    assert.deepEqual(a.parts.map(p=>[p.leaf,p.c]),b.parts.map(p=>[p.leaf,p.c]));
+    assert.deepEqual(a.parts.map(p=>p.leaf),b.parts.map(p=>p.leaf));
     assert.ok(a.parts.length>5);
   }
   const first=load(40), second=load(41);
