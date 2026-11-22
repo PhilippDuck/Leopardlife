@@ -76,7 +76,7 @@ function tickKids(dt){
     const say=(m,col)=>{ if(q) tell(q,m,col); else toast(m,col); };
     if(f0>=30&&kid.full<30) say('Dein Junges hat Hunger – lass es an Beute fressen.','#ffb070');
     if(kid.full<=0){ kid.hp-=dt*0.012; kid.warnT=(kid.warnT||0)-dt;
-      if(kid.warnT<=0){ kid.warnT=15; say('⚠ Dein Junges verhungert! Noch '+Math.max(1,Math.round(kid.hp/0.012))+' s – bring ihm Beute!','#ff5a3a'); }
+      if(kid.warnT<=0){ kid.warnT=15; say('Dein Junges verhungert! Noch '+Math.max(1,Math.round(kid.hp/0.012))+' s – bring ihm Beute!','#ff5a3a'); }
       if(kid.hp<=0){ kidDies(k,'ist verhungert'); return; } }
     else if(kid.hp<1&&!G.raider) kid.hp=Math.min(1,kid.hp+dt*0.01);
   }
@@ -209,7 +209,7 @@ function updateFollowers(dt){
       const d=Math.hypot(a.x-f.x,a.z-f.z);
       if(d<14&&dp>20&&a.state==='wander'){ a.tx=f.x; a.tz=f.z; a.timer=2; }
       if(d<2.4&&f.hitT<=0&&(a.state==='chase'||a.state==='wander'||a.state==='scav')){ f.hitT=1.2; kid.hp-=0.14; snd3d(['mew'],f.x,f.z,1.2,70,1.3); puff(f.x,H(f.x,f.z)+0.5,f.z,0xc0392b,4,0.4);
-        tell(p,'⚠ Dein Junges wird angegriffen! (Leben '+Math.max(0,Math.round(kid.hp*100))+' %)','#ff8a70');
+        tell(p,'Dein Junges wird angegriffen! (Leben '+Math.max(0,Math.round(kid.hp*100))+' %)','#ff8a70');
         if(kid.hp<=0){ followerDies(f); break; } } }
   }
 }

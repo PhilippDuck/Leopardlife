@@ -1,7 +1,7 @@
 // Vegetation außerhalb des Startgebiets. Baumplätze erst freigeben, wenn kein Tier mehr darauf sitzt.
 import { CHUNK } from './chunks.js';
 import { scene } from './engine.js';
-import { H, WORLD, addCol, addSight, removeCol, removeSight, registerCull, unregisterCull } from './terrain.js';
+import { H, WORLD, dryness, pondAt, addCol, addSight, removeCol, removeSight, registerCull, unregisterCull } from './terrain.js';
 import { makeTree, woodMeshes, leafMeshes, leafGeoHi, leafGeoLo, trees, setTree, fadedTrees, patches, tallGeo, tallMat } from './vegetation.js';
 import { players } from './player.js';
 import { followers } from './cubfollow.js';
@@ -17,7 +17,7 @@ function fillPlants(chunk){
   const rng=chunk.rng, slots=[], cleanup=[];
   const ox=chunk.cx*CHUNK, oz=chunk.cz*CHUNK;
   const place=(margin)=>({x:ox+margin+rng()*(CHUNK-2*margin),z:oz+margin+rng()*(CHUNK-2*margin)});
-  const outside=p=>Math.hypot(p.x,p.z)>WORLD+5;
+  const outside=p=>Math.hypot(p.x,p.z)>WORLD+5&&!pondAt(p.x,p.z,1.5);
   function show(mesh){
     scene.add(mesh);
     const cull=registerCull(mesh,ox+CHUNK/2,oz+CHUNK/2,55);
@@ -29,15 +29,18 @@ function fillPlants(chunk){
   }
   const stems=Array.from({length:3},()=>place(4)).filter(outside);
   if(stems.length){
-    const generated=stems.map(({x,z})=>makeTree({x,z,sav:rng()>0.2},rng));
+    const generated=stems.map(({x,z})=>makeTree({x,z,sav:rng()<dryness(x,z)},rng));
     const parts=generated.flatMap(t=>t.parts);
     const trunks=new THREE.InstancedMesh(woodMeshes[0].geometry,woodMeshes[0].material,parts.filter(p=>!p.leaf).length);
     const crowns=new THREE.InstancedMesh(quality==='low'?leafGeoLo:leafGeoHi,leafMeshes[0].material,parts.filter(p=>p.leaf).length);
-    leafMeshes.push(crowns);
-    cleanup.push(()=>leafMeshes.splice(leafMeshes.indexOf(crowns),1));
+    if(crowns.count>0){
+      leafMeshes.push(crowns);
+      cleanup.push(()=>leafMeshes.splice(leafMeshes.indexOf(crowns),1));
+      show(crowns);
+    }
     trunks.castShadow=crowns.castShadow=true;
     trunks.receiveShadow=crowns.receiveShadow=true;
-    show(trunks); show(crowns);
+    show(trunks);
     let woodIndex=0, leafIndex=0;
     const color=new THREE.Color();
     generated.forEach(tree=>{
@@ -76,6 +79,7 @@ function fillPlants(chunk){
     for(let j=0;j<patch.r*patch.r*4;j++){
       const angle=rng()*2*Math.PI, distance=Math.sqrt(rng())*patch.r;
       const x=center.x+Math.cos(angle)*distance, z=center.z+Math.sin(angle)*distance;
+      if(pondAt(x,z,1.05)) continue;
       pos.push(x,H(x,z),z); rotations.push(rng()*2*Math.PI,0.75+rng()*0.45); hues.push(rng());
     }
   }

@@ -55,7 +55,15 @@ const hearR=p=>(p.noise||0)*D().sense;
 // In jeder Herde hält eins Wache (stirbt es, übernimmt ein anderes); über ihm schwebt ein kleines Auge, wenn ein Spieler nah ist.
 function eyeSprite(){
   const c=document.createElement('canvas'); c.width=c.height=64; const x=c.getContext('2d');
-  if(x){ x.fillStyle='rgba(255,255,255,0.92)'; x.beginPath(); x.ellipse(32,32,26,15,0,0,6.283); x.fill(); x.fillStyle='#2a1c10'; x.beginPath(); x.arc(32,32,10,0,6.283); x.fill(); x.fillStyle='#fff'; x.beginPath(); x.arc(28,28,3,0,6.283); x.fill(); }
+  if(x){
+    x.strokeStyle='rgba(255,255,255,0.92)';
+    x.lineWidth=4;
+    x.lineJoin='round';
+    x.beginPath();
+    x.moveTo(8,32); x.quadraticCurveTo(32,6,56,32);
+    x.quadraticCurveTo(32,58,8,32); x.closePath(); x.stroke();
+    x.fillStyle=x.strokeStyle; x.beginPath(); x.arc(32,32,7,0,Math.PI*2); x.fill();
+  }
   const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true,depthWrite:false})); s.scale.set(0.9,0.9,1); s.visible=false; scene.add(s); return s;
 }
 let eyes=null;

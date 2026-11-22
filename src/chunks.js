@@ -5,7 +5,7 @@
 import { scene } from './engine.js';
 import { P, players } from './player.js';
 import { G } from './state.js';
-import { GLSL_H, H, hash2, onView, pondAt, registerCull, unregisterCull, vnoise } from './terrain.js';
+import { dryness, GLSL_H, H, hash2, onView, pondAt, registerCull, unregisterCull, vnoise } from './terrain.js';
 import { rnd } from './util.js';
 import { seeded } from './noise.js';
 import { REG, S } from './save.js';
@@ -34,7 +34,7 @@ function fillGround(m,cx,cz){
   for(let i=0;i<p.count;i++){
     const x=base[i*3]+ox, z=base[i*3+2]+oz;
     p.setXYZ(i,x,H(x,z),z);
-    const t=Math.min(1,Math.max(0,(Math.hypot(x,z)-60)/130));
+    const t=dryness(x,z);
     _c.copy(c1).lerp(c2,t);
     const n=vnoise(x,z);
     if(n>0.3) _c.lerp(dirt,Math.min(1,(n-0.3)*3)*0.75); else if(n<-0.3) _c.multiplyScalar(1+Math.max(-0.22,(n+0.3)*0.6));
