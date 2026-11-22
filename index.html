@@ -120,6 +120,7 @@
   /* Festbeißen (bite.js): Balken mit pendelndem Punkt, Mitte golden */
   #bite{display:none;position:fixed;left:50%;bottom:22%;transform:translateX(-50%);width:min(380px,80vw);padding:10px 14px;text-align:center;z-index:3;border:1px solid var(--gold)}
   #biteHint{font-size:13px;margin-bottom:8px;color:var(--gold);font-weight:bold}
+  #biteTap{display:none;margin:8px auto 0;min-width:130px}
   #biteBar{position:relative;height:16px;border-radius:8px;background:rgba(255,255,255,.12);overflow:hidden}
   #biteBar .z2{position:absolute;left:32%;width:36%;top:0;bottom:0;background:rgba(155,224,127,.35)} #biteBar .z1{position:absolute;left:44%;width:12%;top:0;bottom:0;background:var(--gold)}
   #biteDot{position:absolute;top:-3px;width:6px;height:22px;margin-left:-3px;border-radius:3px;background:#fff;box-shadow:0 0 6px #000}
@@ -238,7 +239,7 @@ body.quad .ph{--rad:92px}
 </div>
 <div id="radar" class="panel"><canvas id="rc" width="280" height="280"></canvas></div>
 <button id="menuBtn" class="sec">☰ Menü</button>
-<div id="bite" class="panel"><div id="biteHint"></div><div id="biteResW" title="Widerstand der Beute"><div id="biteRes"></div></div><div id="biteBar"><i class="z2"></i><i class="z1"></i><b id="biteDot"></b></div><div id="biteRounds"></div></div>
+<div id="bite" class="panel"><div id="biteHint"></div><div id="biteResW" title="Widerstand der Beute"><div id="biteRes"></div></div><div id="biteBar"><i class="z2"></i><i class="z1"></i><b id="biteDot"></b></div><div id="biteRounds"></div><button id="biteTap" type="button">Zubeißen</button></div>
 <div id="tut" class="panel"><div id="tutHead"></div><div id="tutText"></div><button id="tutSkip">Einführung überspringen</button><div id="tutSkipK" style="font-size:11px;color:var(--mut);margin-top:6px"></div></div>
 <div id="target" class="panel"><span id="tName"></span> <span id="tTag"></span><div class="bar"><i id="bT"></i></div></div>
 <svg id="stRing" viewBox="0 0 64 64"><circle id="stBg" cx="32" cy="32" r="27"/><circle id="stArc" cx="32" cy="32" r="27"/></svg>

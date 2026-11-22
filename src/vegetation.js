@@ -131,6 +131,12 @@ function applyTreeView(j){
 }
 
 /* Büsche, Felsen, Stämme, Blumen */
+const bushGeometry=new THREE.IcosahedronGeometry(1,0);
+const bushMaterial=new THREE.MeshLambertMaterial({color:0xffffff});
+function bushColor(sav,random=Math.random){
+  const range=(a,b)=>a+random()*(b-a);
+  return {h:sav?range(0.17,0.24):range(0.28,0.36),s:range(0.35,0.5),l:sav?range(0.33,0.42):range(0.24,0.34)};
+}
 (function(){
   const mat=new THREE.MeshLambertMaterial({color:0xffffff});
   const m=new THREE.Matrix4(), q=new THREE.Quaternion(), s=new THREE.Vector3(), v=new THREE.Vector3(), e=new THREE.Euler(), c=new THREE.Color();
@@ -142,9 +148,9 @@ function applyTreeView(j){
       mesh.castShadow=!!shadow; mesh.receiveShadow=true; scene.add(mesh); registerTile(mesh,+k,78); }
   }
   function spot(rmin,rmax){ let x,z,t=0; do{ const r=Math.sqrt(rnd(rmin*rmin,rmax*rmax)), a=Math.random()*6.283; x=Math.cos(a)*r; z=Math.sin(a)*r; }while(pondAt(x,z,1.05)&&++t<20); return {x,z,r:Math.hypot(x,z)}; }
-  scatter(320,new THREE.IcosahedronGeometry(1,0),()=>{ const p=spot(9,WORLD), sy=rnd(0.5,0.95), sav=p.r>115;
+  scatter(320,bushGeometry,()=>{ const p=spot(9,WORLD), sy=rnd(0.5,0.95), sav=p.r>115;
     const bsx=rnd(0.8,1.7), bsz=rnd(0.8,1.7); addSight(p.x,p.z,(bsx+bsz)*0.42,sy*0.9,0.8);   // Busch: verdeckt fast ganz
-    return {x:p.x,z:p.z,y:H(p.x,p.z)+sy*0.45,sx:bsx,sy,sz:bsz,ry:Math.random()*6,h:sav?rnd(0.17,0.24):rnd(0.28,0.36),s:rnd(0.35,0.5),l:sav?rnd(0.33,0.42):rnd(0.24,0.34)}; },true);
+    return {x:p.x,z:p.z,y:H(p.x,p.z)+sy*0.45,sx:bsx,sy,sz:bsz,ry:Math.random()*6,...bushColor(sav)}; },true);
   scatter(170,new THREE.DodecahedronGeometry(1,0),()=>{ const p=spot(12,WORLD), sy=rnd(0.3,1.2), sx=rnd(0.4,1.8), sz=rnd(0.4,1.8);
     if(sy>0.45&&sx+sz>1.4) addCol(p.x,p.z,(sx+sz)*0.4,true);   // kleine Steine bleiben begehbar
     if(sy>0.4) addSight(p.x,p.z,(sx+sz)*0.42,sy*0.95,1);   // Felsen verdecken ganz
@@ -247,4 +253,4 @@ function inGrass(x,z){ for(let i=0;i<patches.length;i++){ const p=patches[i]; if
   [[-3,0,-3,2.2],[-0.5,0,-4.2,2.8],[2.2,0,-3.2,2]].forEach(r=>{ const m=new THREE.Mesh(new THREE.DodecahedronGeometry(r[3],0),mat); m.position.set(r[0],H(r[0],r[2])+r[3]*0.5,r[2]); m.rotation.set(Math.random(),Math.random(),0); m.castShadow=true; m.receiveShadow=true; scene.add(m); addSight(r[0],r[2],r[3]*0.9,r[3]*1.4,1); addCol(r[0],r[2],r[3]*0.9); });
 })();
 
-export { makeTree, woodMeshes, setTree, fadedTrees, applyTreeView, _tm, _tv, inGrass, leafGeoHi, leafGeoLo, leafMeshes, leafTime, patches, tallGeo, tallMat, trees, updateTrees };
+export { bushGeometry, bushMaterial, bushColor, makeTree, woodMeshes, setTree, fadedTrees, applyTreeView, _tm, _tv, inGrass, leafGeoHi, leafGeoLo, leafMeshes, leafTime, patches, tallGeo, tallMat, trees, updateTrees };

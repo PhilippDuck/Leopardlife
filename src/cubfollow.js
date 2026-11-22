@@ -27,7 +27,7 @@ const LEARN_AT=0.25, SWITCH_AT=0.5, DEN_CAP=0.35;
 const LESSONS=[
   {k:'amb',n:'Hinterhalt',need:3,give:'amb'},
   {k:'bite',n:'Festbeißen',need:2,give:'jmp'},
-  {k:'tree',n:'Beute im Baum',need:1,give:'climb'},
+  {k:'tree',n:'Klettern',need:1,give:'climb'},
   {k:'kill',n:'Beute',need:4,give:'pt'}
 ];
 /** @type {{p:any,c:any,x:number,z:number,rot:number,g:any,ph:number,wait:boolean,eatT:number,hitT:number,mewT:number,up:number,tree:number|null,waitTree:number|null}[]} */
@@ -136,9 +136,18 @@ function learnText(p){ const l=learnOf(p); return LESSONS.map(L=>L.n+' '+Math.mi
 /** Beim Wechsel ins Junge: Boni aus dem Gelernten auf die Werte L anwenden; liefert die Namen für die Meldung */
 function applyLearned(p,L){
   const l=learnOf(p), got=[];
+  const levelBudget=Math.max(0,(L.lvl-1)*2);
+  const carried=Math.floor((p.L?.pts||0)*0.1);
+  let inheritedCost=0;
   for(const o of LESSONS){ if((l[o.k]||0)<o.need) continue;
-    if(o.give==='pt') L.pts=(L.pts||0)+1; else L.b[o.give]=Math.min(3,(L.b[o.give]||0)+1);
+    if(o.give==='pt') L.pts=(L.pts||0)+1;
+    else {
+      const before=L.b[o.give]||0;
+      L.b[o.give]=Math.min(3,before+1);
+      inheritedCost+=(L.b[o.give]-before)*2;
+    }
     got.push(bonusName(o)); }
+  L.pts=Math.max(0,levelBudget+carried-inheritedCost+(L.pts||0));
   return got;
 }
 /** Wo Spieler p als Junges startet: bei seinem mitlaufenden Jungen, sonst am Bau */

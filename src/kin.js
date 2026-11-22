@@ -112,7 +112,7 @@ function updateFamily(dt){
 function becomeCub(vol){
   recordAncestor(vol?'zog sein Junges groß und lebt als Elterntier weiter':G.lastCause);
   // Tod vor „halbstark“: der Partner zieht das Junge allein groß – Zeitsprung auf 50 %, aber ohne das, was du ihm beigebracht hättest
-  { const k=kidOf(P); if(!vol&&k&&k.grow<SWITCH_AT){ k.grow=SWITCH_AT; if(S.cub.learn) delete S.cub.learn[1]; } }
+  { const k=kidOf(P); if(!vol&&k&&k.grow<SWITCH_AT) k.grow=SWITCH_AT; }
   const ki=kidInfo(P), hl=heirLevel(), ox=P.x, oz=P.z, hadPartner=S.partner&&fam[0].famOn, mateParent=S.p2&&fam[2].famOn, myFur=S.fur?Object.assign({},S.fur):{albino:false,melan:false,l:1,s:1,sn:1,ss:1};
   S.p1=!!vol; S.p2=!!hadPartner||!!mateParent; S.partner=false;
   if(hadPartner) famPlace(fam[2],fam[0].x,fam[0].z,fam[0].fur); else if(!mateParent) fam[2].famOn=false;

@@ -195,7 +195,7 @@ function eventStep(a,dt,move){
   if(a.ev==='fire'){   // kopflos mit dem Wind davon
     const r=Math.hypot(a.x,a.z); let mx=EV.dir.x, mz=EV.dir.z; if(r>WORLD-20){ mx+=-a.z/r*0.9; mz+=a.x/r*0.9; }
     move(a,mx,mz,sp.spd*0.85,dt);
-    if(along(a.x,a.z)<EV.s-1&&!pondAt(a.x,a.z,0.2)){ a.ev=null; if(a.temp){ a.gone=true; a.dead=true; a.g.visible=false; } else { a.dead=true; a.respawn=rnd(60,120); a.g.visible=false; } }   // von den Flammen eingeholt
+    if(along(a.x,a.z)<EV.s-1&&!pondAt(a.x,a.z,0.2)){ a.ev=null; if(a.temp){ a.gone=true; a.dead=true; a.g.visible=false; } else { a.dead=true; a.respawn=rnd(60,120); a.g.visible=false; a.ev=null; a.held=null; } }   // von den Flammen eingeholt
     return true; }
   return false;
 }
