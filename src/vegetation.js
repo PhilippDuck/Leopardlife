@@ -21,18 +21,18 @@ function blobGeo(detail){
   for(let i=0;i<p.count;i++){ const x=p.getX(i), y=p.getY(i), z=p.getZ(i), n=1+0.14*Math.sin(x*12.9+y*7.3)*Math.cos(z*9.1-x*3.7)+0.07*Math.sin(y*21.0+z*13.0); p.setXYZ(i,x*n,y*n,z*n); }
   g.computeVertexNormals(); return g;
 }
-(function(){
-  const hsl=(h,s,l)=>new THREE.Color().setHSL(h,s,l).getHex();
-  function make(o){
+const hsl=(h,s,l)=>new THREE.Color().setHSL(h,s,l).getHex();
+function makeTree(o,random=Math.random){
+    const rnd=(min,max)=>min+random()*(max-min);
     const t={x:o.x,z:o.z,y:H(o.x,o.z),f:1,parts:[],cx:0,cz:0};
     const wood=(a,b,r,c)=>{ const dx=b[0]-a[0], dy=b[1]-a[1], dz=b[2]-a[2], len=Math.hypot(dx,dy,dz)||0.01;
       _tq.setFromUnitVectors(_UP,_tv.set(dx/len,dy/len,dz/len));
       t.parts.push({leaf:false,c,m:new THREE.Matrix4().compose(new THREE.Vector3(a[0],a[1],a[2]),_tq.clone(),new THREE.Vector3(r,len,r))}); };
     const leaf=(p,sx,sy,sz,c,q)=>t.parts.push({leaf:true,c,m:new THREE.Matrix4().compose(new THREE.Vector3(p[0],p[1],p[2]),
-      q||new THREE.Quaternion().setFromEuler(new THREE.Euler(rnd(-0.25,0.25),Math.random()*6.28,rnd(-0.25,0.25))),new THREE.Vector3(sx,sy,sz))});
+      q||new THREE.Quaternion().setFromEuler(new THREE.Euler(rnd(-0.25,0.25),random()*6.28,rnd(-0.25,0.25))),new THREE.Vector3(sx,sy,sz))});
     if(o.palm){
       // Palme: gebogener Stamm aus Segmenten, Wedel hängen nach unten
-      const k=rnd(0.85,1.2), a=Math.random()*6.283, bark=hsl(0.09,0.28,rnd(0.38,0.46)); let p=[0,-0.2,0];
+      const k=rnd(0.85,1.2), a=random()*6.283, bark=hsl(0.09,0.28,rnd(0.38,0.46)); let p=[0,-0.2,0];
       for(let s=0;s<6;s++){ const th=0.06+0.075*s, L=1.25*k, q=[p[0]+Math.cos(a)*Math.sin(th)*L,p[1]+Math.cos(th)*L,p[2]+Math.sin(a)*Math.sin(th)*L]; wood(p,q,(0.26-0.012*s)*k,bark); p=q; }
       const hue=rnd(0.24,0.3);
       for(let j=0;j<8;j++){ const yaw=j/8*6.283+rnd(-0.25,0.25), pit=rnd(0.22,0.55), d=1.55*k;
@@ -40,11 +40,11 @@ function blobGeo(detail){
         leaf([p[0]+Math.sin(yaw)*Math.cos(pit)*d,p[1]-Math.sin(pit)*d+0.15*k,p[2]+Math.cos(yaw)*Math.cos(pit)*d],0.5*k,0.09*k,2.0*k,hsl(hue+rnd(-0.02,0.02),rnd(0.45,0.58),rnd(0.3,0.38)),q); }
       leaf([p[0],p[1]-0.15*k,p[2]],0.45*k,0.35*k,0.45*k,hsl(0.08,0.45,0.28));
       t.cx=p[0]; t.cz=p[2]; t.cy=p[1]; t.rx=2.6*k; t.ry=1.1*k; t.perch=[p[0],p[1]+0.25*k,p[2]]; t.tr=0.28*k;
-    } else if(o.sav&&Math.random()<0.1){
+    } else if(o.sav&&random()<0.1){
       // Toter Baum: kahle, graue Äste
       const k=rnd(0.8,1.25), h=rnd(4,6)*k, bark=hsl(0.08,0.07,rnd(0.46,0.56)), top=[rnd(-0.4,0.4)*k,h,rnd(-0.4,0.4)*k];
       wood([0,-0.2,0],top,0.28*k,bark);
-      const nb=3+Math.floor(Math.random()*2);
+      const nb=3+Math.floor(random()*2);
       for(let j=0;j<nb;j++){ const a=j/nb*6.283+rnd(-0.4,0.4), u=rnd(0.5,0.9), s=[top[0]*u,h*u,top[2]*u], L=rnd(1.4,2.4)*k, e=[s[0]+Math.cos(a)*L,s[1]+rnd(0.9,1.9)*k,s[2]+Math.sin(a)*L];
         wood(s,e,0.13*k,bark); const b=a+rnd(-0.9,0.9); wood(e,[e[0]+Math.cos(b)*0.9*k,e[1]+0.7*k,e[2]+Math.sin(b)*0.9*k],0.07*k,bark); }
       t.cx=top[0]*0.7; t.cz=top[2]*0.7; t.cy=h*0.75; t.rx=1.5*k; t.ry=h*0.3; t.perch=[top[0],h,top[2]]; t.tr=0.28*k;
@@ -52,35 +52,36 @@ function blobGeo(detail){
       // Schirmakazie: kurzer Stamm, gabelt sich, flache breite Laubschirme
       const k=rnd(0.85,1.3), h1=rnd(1.8,2.8)*k, bark=hsl(0.06,0.25,rnd(0.17,0.24)), ln=[rnd(-0.3,0.3)*k,h1,rnd(-0.3,0.3)*k], hue=rnd(0.19,0.25);
       wood([0,-0.2,0],ln,0.3*k,bark);
-      const nf=2+Math.floor(Math.random()*2); let top=0;
+      const nf=2+Math.floor(random()*2); let top=0;
       for(let j=0;j<nf;j++){ const a=j/nf*6.283+rnd(-0.5,0.5), L=rnd(1.6,2.6)*k, e=[ln[0]+Math.cos(a)*L,h1+rnd(1.8,2.8)*k,ln[2]+Math.sin(a)*L]; top=Math.max(top,e[1]);
         wood(ln,e,0.17*k,bark);
-        leaf([e[0],e[1]+0.3*k,e[2]],rnd(2,2.8)*k,rnd(0.42,0.6)*k,rnd(2,2.8)*k,hsl(hue+rnd(-0.015,0.015),rnd(0.34,0.44),rnd(0.31,0.4)),new THREE.Quaternion().setFromEuler(new THREE.Euler(rnd(-0.08,0.08),Math.random()*6.28,rnd(-0.08,0.08)))); }
-      leaf([ln[0],top+0.35*k,ln[2]],rnd(2.6,3.3)*k,0.55*k,rnd(2.6,3.3)*k,hsl(hue,rnd(0.36,0.44),rnd(0.36,0.43)),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,Math.random()*6.28,0)));
+        leaf([e[0],e[1]+0.3*k,e[2]],rnd(2,2.8)*k,rnd(0.42,0.6)*k,rnd(2,2.8)*k,hsl(hue+rnd(-0.015,0.015),rnd(0.34,0.44),rnd(0.31,0.4)),new THREE.Quaternion().setFromEuler(new THREE.Euler(rnd(-0.08,0.08),random()*6.28,rnd(-0.08,0.08)))); }
+      leaf([ln[0],top+0.35*k,ln[2]],rnd(2.6,3.3)*k,0.55*k,rnd(2.6,3.3)*k,hsl(hue,rnd(0.36,0.44),rnd(0.36,0.43)),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,random()*6.28,0)));
       t.cx=ln[0]; t.cz=ln[2]; t.cy=top+0.2*k; t.rx=4*k; t.ry=1.2*k; t.perch=[ln[0],top+0.35*k+0.47*k,ln[2]]; t.tr=0.3*k;
     } else {
       // Urwaldbaum (selten ein Riese): Brettwurzeln, Äste mit eigenen Laubballen, oben hellere Blätter
-      const big=Math.random()<0.1, k=rnd(0.8,1.4), kb=k*(big?1.45:1), h=(big?rnd(10,12.5):rnd(5.5,8))*k, r=(big?0.62:0.42)*k;
+      const big=random()<0.1, k=rnd(0.8,1.4), kb=k*(big?1.45:1), h=(big?rnd(10,12.5):rnd(5.5,8))*k, r=(big?0.62:0.42)*k;
       const bark=hsl(rnd(0.06,0.09),rnd(0.25,0.35),rnd(0.2,0.29)), top=[rnd(-0.5,0.5)*k,h,rnd(-0.5,0.5)*k], hue=rnd(0.27,0.36), sat=rnd(0.42,0.56), lit=rnd(0.19,0.27);
       wood([0,-0.3,0],top,r,bark);
-      const nr=3+Math.floor(Math.random()*2);
+      const nr=3+Math.floor(random()*2);
       for(let j=0;j<nr;j++){ const a=j/nr*6.283+rnd(-0.3,0.3); wood([Math.cos(a)*1.3*k*(big?1.4:1),-0.25,Math.sin(a)*1.3*k*(big?1.4:1)],[Math.cos(a)*0.15*k,(big?2.2:1.4)*k,Math.sin(a)*0.15*k],0.2*k,bark); }
-      const nb=3+Math.floor(Math.random()*2);
+      const nb=3+Math.floor(random()*2);
       for(let j=0;j<nb;j++){ const a=j/nb*6.283+rnd(-0.4,0.4), u=rnd(0.62,0.86), s=[top[0]*u,h*u,top[2]*u], L=rnd(2,3.2)*k*(big?1.4:1), e=[s[0]+Math.cos(a)*L,s[1]+rnd(1,2.2)*k,s[2]+Math.sin(a)*L];
         wood(s,e,0.17*k*(big?1.3:1),bark);
         leaf([e[0],e[1]+0.4*k,e[2]],rnd(1.7,2.3)*kb,rnd(1.1,1.5)*kb,rnd(1.7,2.3)*kb,hsl(hue+rnd(-0.02,0.02),sat,lit+rnd(0,0.03))); }
       leaf([top[0],h+0.7*k,top[2]],2.6*kb,1.7*kb,2.6*kb,hsl(hue,sat,lit+0.04));
-      const nx=1+Math.floor(Math.random()*2);
-      for(let j=0;j<nx;j++){ const a=Math.random()*6.283; leaf([top[0]+Math.cos(a)*1.4*kb,h+rnd(1,1.8)*k,top[2]+Math.sin(a)*1.4*kb],rnd(1.2,1.7)*kb,rnd(0.9,1.2)*kb,rnd(1.2,1.7)*kb,hsl(hue+rnd(-0.02,0.02),sat,lit+0.06)); }
+      const nx=1+Math.floor(random()*2);
+      for(let j=0;j<nx;j++){ const a=random()*6.283; leaf([top[0]+Math.cos(a)*1.4*kb,h+rnd(1,1.8)*k,top[2]+Math.sin(a)*1.4*kb],rnd(1.2,1.7)*kb,rnd(0.9,1.2)*kb,rnd(1.2,1.7)*kb,hsl(hue+rnd(-0.02,0.02),sat,lit+0.06)); }
       t.cx=top[0]; t.cz=top[2]; t.cy=h+0.6*k; t.rx=(big?6:4.5)*k; t.ry=2.4*kb; t.perch=[top[0],h+0.7*k+1.7*kb*0.85,top[2]]; t.tr=r+0.05;
     }
     return t;
   }
+(function(){
   for(let i=0;i<REG.trees;i++){
     let x,z,r; do{ r=Math.sqrt(Math.random())*WORLD; const a=Math.random()*6.283; x=Math.cos(a)*r; z=Math.sin(a)*r; }while(r<10||(r>110&&Math.random()<0.7)||pondAt(x,z,1.3));
-    trees.push(make({x,z,sav:r>REG.savFrom}));
+    trees.push(makeTree({x,z,sav:r>REG.savFrom}));
   }
-  PONDS.forEach(p=>{ const n=REG.palms[0]+Math.floor(Math.random()*(REG.palms[1]-REG.palms[0]+1)); for(let j=0;j<n;j++){ const a=Math.random()*6.283, d=p.r*rnd(1.12,1.45); trees.push(make({x:p.x+Math.cos(a)*d,z:p.z+Math.sin(a)*d,palm:true})); } });
+  PONDS.forEach(p=>{ const n=REG.palms[0]+Math.floor(Math.random()*(REG.palms[1]-REG.palms[0]+1)); for(let j=0;j<n;j++){ const a=Math.random()*6.283, d=p.r*rnd(1.12,1.45); trees.push(makeTree({x:p.x+Math.cos(a)*d,z:p.z+Math.sin(a)*d,palm:true})); } });
   const nW={}, nL={}; trees.forEach(t=>{ const k=tileOf(t.x,t.z); t.parts.forEach(p=>{ const N=p.leaf?nL:nW; p.k=k; p.i=N[k]=(N[k]||0); N[k]++; }); });
   const wg=new THREE.CylinderGeometry(0.7,1,1,7,1); wg.translate(0,0.5,0);
   const wm=new THREE.MeshLambertMaterial({color:0xffffff});
@@ -246,4 +247,4 @@ function inGrass(x,z){ for(let i=0;i<patches.length;i++){ const p=patches[i]; if
   [[-3,0,-3,2.2],[-0.5,0,-4.2,2.8],[2.2,0,-3.2,2]].forEach(r=>{ const m=new THREE.Mesh(new THREE.DodecahedronGeometry(r[3],0),mat); m.position.set(r[0],H(r[0],r[2])+r[3]*0.5,r[2]); m.rotation.set(Math.random(),Math.random(),0); m.castShadow=true; m.receiveShadow=true; scene.add(m); addSight(r[0],r[2],r[3]*0.9,r[3]*1.4,1); addCol(r[0],r[2],r[3]*0.9); });
 })();
 
-export { setTree, fadedTrees, applyTreeView, _tm, _tv, inGrass, leafGeoHi, leafGeoLo, leafMeshes, leafTime, patches, tallGeo, tallMat, trees, updateTrees };
+export { makeTree, woodMeshes, setTree, fadedTrees, applyTreeView, _tm, _tv, inGrass, leafGeoHi, leafGeoLo, leafMeshes, leafTime, patches, tallGeo, tallMat, trees, updateTrees };

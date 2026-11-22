@@ -2,7 +2,7 @@
 import { CHUNK } from './chunks.js';
 import { scene } from './engine.js';
 import { H, WORLD, addCol, addSight, removeCol, removeSight, registerCull, unregisterCull } from './terrain.js';
-import { trees, setTree, fadedTrees, patches, tallGeo, tallMat } from './vegetation.js';
+import { makeTree, woodMeshes, leafMeshes, leafGeoHi, leafGeoLo, trees, setTree, fadedTrees, patches, tallGeo, tallMat } from './vegetation.js';
 import { players } from './player.js';
 import { followers } from './cubfollow.js';
 import { animals } from './animals.js';
@@ -10,10 +10,7 @@ import { QUAL } from './data.js';
 import { quality } from './quality.js';
 
 const freeSlots=[];
-const barkGeo=new THREE.CylinderGeometry(0.7,1,1,7);
 const crownGeo=new THREE.IcosahedronGeometry(1,1);
-const barkMat=new THREE.MeshLambertMaterial({color:0x705538});
-const crownMat=new THREE.MeshLambertMaterial({color:0x658443});
 const bushMat=new THREE.MeshLambertMaterial({color:0x788f43});
 
 function fillPlants(chunk){
@@ -32,24 +29,30 @@ function fillPlants(chunk){
   }
   const stems=Array.from({length:3},()=>place(4)).filter(outside);
   if(stems.length){
-    const trunks=new THREE.InstancedMesh(barkGeo,barkMat,stems.length);
-    const crowns=new THREE.InstancedMesh(crownGeo,crownMat,stems.length);
+    const generated=stems.map(({x,z})=>makeTree({x,z,sav:rng()>0.2},rng));
+    const parts=generated.flatMap(t=>t.parts);
+    const trunks=new THREE.InstancedMesh(woodMeshes[0].geometry,woodMeshes[0].material,parts.filter(p=>!p.leaf).length);
+    const crowns=new THREE.InstancedMesh(quality==='low'?leafGeoLo:leafGeoHi,leafMeshes[0].material,parts.filter(p=>p.leaf).length);
+    leafMeshes.push(crowns);
+    cleanup.push(()=>leafMeshes.splice(leafMeshes.indexOf(crowns),1));
+    trunks.castShadow=crowns.castShadow=true;
+    trunks.receiveShadow=crowns.receiveShadow=true;
     show(trunks); show(crowns);
-    stems.forEach(({x,z},i)=>{
-      const h=4+rng()*2, radius=2.5+rng();
-      function part(mesh,w,height,y){
-        const m=new THREE.Matrix4().makeScale(w,height,w);
-        m.setPosition(0,y,0);
-        return {mesh,i,m};
+    let woodIndex=0, leafIndex=0;
+    const color=new THREE.Color();
+    generated.forEach(tree=>{
+      for(const part of tree.parts){
+        part.mesh=part.leaf?crowns:trunks;
+        part.i=part.leaf?leafIndex++:woodIndex++;
+        part.mesh.setColorAt(part.i,color.setHex(part.c));
       }
       const slot=freeSlots.pop()??trees.length;
-      trees[slot]={x,z,y:H(x,z),f:1,cx:0,cy:h,cz:0,rx:radius,ry:1,tr:0.38,perch:[0,h,0],
-        parts:[part(trunks,0.38,h,h/2),part(crowns,radius,1,h)]};
+      trees[slot]=tree;
       slots.push(slot);
       setTree(slot);
-      const collider=addCol(x,z,0.48,false);
+      const collider=addCol(tree.x,tree.z,tree.tr+0.1,false);
       cleanup.push(()=>{ removeCol(collider); fadedTrees.delete(slot); delete trees[slot]; freeSlots.push(slot); });
-      sight(x,z,0.53,h,0.55);
+      sight(tree.x,tree.z,tree.tr+0.15,6,0.55);
     });
   }
   const shrubs=Array.from({length:5},()=>place(2)).filter(outside);
