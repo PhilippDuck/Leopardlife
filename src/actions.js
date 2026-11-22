@@ -86,10 +86,10 @@ function doRoar(p=P){
 }
 /**
  * Spieler p bekommt n Erfahrung; Stufenaufstieg gibt 2 Punkte für die Entwicklung.
- * Im gemeinsamen Spiel bekommt jeder Spieler die volle Erfahrung – ihr werdet gemeinsam stärker.
+ * Im gemeinsamen Spiel wird die Erfahrung gleichmäßig auf alle Spieler verteilt.
  */
 function gainXp(n,p=P){
-  if(players.length>1){ for(const q of players) gainXpOne(n,q); return; }
+  if(players.length>1){ const share=n/players.length; for(const q of players) gainXpOne(share,q); return; }
   gainXpOne(n,p);
 }
 function gainXpOne(n,p){
