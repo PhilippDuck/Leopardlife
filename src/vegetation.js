@@ -2,7 +2,7 @@
 import { camera, grassLight, scene, windU } from './engine.js';
 import { REG, pScale } from './save.js';
 import { G } from './state.js';
-import { GLSL_H, GLSL_PONDMASK, H, PONDS, WORLD, addCol, pondAt, registerTile, tileOf } from './terrain.js';
+import { GLSL_H, GLSL_PONDMASK, H, PONDS, WORLD, addCol, addSight, pondAt, registerTile, tileOf } from './terrain.js';
 import { rnd } from './util.js';
 import { P } from './player.js';
 
@@ -98,7 +98,7 @@ function blobGeo(detail){
   for(const k in nW){ const m=WM[k]=new THREE.InstancedMesh(wg,wm,nW[k]); woodMeshes.push(m); registerTile(m,+k,84); }
   for(const k in nL){ const m=LM[k]=new THREE.InstancedMesh(leafGeoHi,lm,nL[k]); leafMeshes.push(m); registerTile(m,+k,84); }
   const c=new THREE.Color();
-  trees.forEach((t,i)=>{ t.parts.forEach(p=>{ p.mesh=(p.leaf?LM:WM)[p.k]; p.mesh.setColorAt(p.i,c.setHex(p.c)); }); setTree(i); addCol(t.x,t.z,t.tr+0.1); });
+  trees.forEach((t,i)=>{ t.parts.forEach(p=>{ p.mesh=(p.leaf?LM:WM)[p.k]; p.mesh.setColorAt(p.i,c.setHex(p.c)); }); setTree(i); addCol(t.x,t.z,t.tr+0.1); addSight(t.x,t.z,t.tr+0.15,6,0.55); });   // Stamm verdeckt teilweise
   woodMeshes.concat(leafMeshes).forEach(m=>{ m.castShadow=true; m.receiveShadow=true; scene.add(m); });
 })();
 /** Bäume, die gerade in mindestens einer Ansicht ausgeblendet sind oder es waren (nur diese müssen je Ansicht umgestellt werden) */
@@ -142,12 +142,14 @@ function applyTreeView(j){
   }
   function spot(rmin,rmax){ let x,z,t=0; do{ const r=Math.sqrt(rnd(rmin*rmin,rmax*rmax)), a=Math.random()*6.283; x=Math.cos(a)*r; z=Math.sin(a)*r; }while(pondAt(x,z,1.05)&&++t<20); return {x,z,r:Math.hypot(x,z)}; }
   scatter(320,new THREE.IcosahedronGeometry(1,0),()=>{ const p=spot(9,WORLD), sy=rnd(0.5,0.95), sav=p.r>115;
-    return {x:p.x,z:p.z,y:H(p.x,p.z)+sy*0.45,sx:rnd(0.8,1.7),sy,sz:rnd(0.8,1.7),ry:Math.random()*6,h:sav?rnd(0.17,0.24):rnd(0.28,0.36),s:rnd(0.35,0.5),l:sav?rnd(0.33,0.42):rnd(0.24,0.34)}; },true);
+    const bsx=rnd(0.8,1.7), bsz=rnd(0.8,1.7); addSight(p.x,p.z,(bsx+bsz)*0.42,sy*0.9,0.8);   // Busch: verdeckt fast ganz
+    return {x:p.x,z:p.z,y:H(p.x,p.z)+sy*0.45,sx:bsx,sy,sz:bsz,ry:Math.random()*6,h:sav?rnd(0.17,0.24):rnd(0.28,0.36),s:rnd(0.35,0.5),l:sav?rnd(0.33,0.42):rnd(0.24,0.34)}; },true);
   scatter(170,new THREE.DodecahedronGeometry(1,0),()=>{ const p=spot(12,WORLD), sy=rnd(0.3,1.2), sx=rnd(0.4,1.8), sz=rnd(0.4,1.8);
     if(sy>0.45&&sx+sz>1.4) addCol(p.x,p.z,(sx+sz)*0.4,true);   // kleine Steine bleiben begehbar
+    if(sy>0.4) addSight(p.x,p.z,(sx+sz)*0.42,sy*0.95,1);   // Felsen verdecken ganz
     return {x:p.x,z:p.z,y:H(p.x,p.z)+sy*0.25,sx,sy,sz,ry:Math.random()*6,h:rnd(0.07,0.12),s:rnd(0.04,0.12),l:rnd(0.42,0.6)}; },true);
   scatter(34,new THREE.CylinderGeometry(0.34,0.4,1,7),()=>{ const p=spot(15,170), len=rnd(2.5,5.5), ry=Math.random()*6, n=Math.ceil(len/0.7);
-    for(let j=0;j<=n;j++){ const u=(j/n-0.5)*len; addCol(p.x+Math.cos(ry)*u,p.z-Math.sin(ry)*u,0.42,true); }
+    for(let j=0;j<=n;j++){ const u=(j/n-0.5)*len; addCol(p.x+Math.cos(ry)*u,p.z-Math.sin(ry)*u,0.42,true); addSight(p.x+Math.cos(ry)*u,p.z-Math.sin(ry)*u,0.4,0.62,0.7); }
     return {x:p.x,z:p.z,y:H(p.x,p.z)+0.28,sx:rnd(0.8,1.3),sy:len,sz:rnd(0.8,1.3),rz:Math.PI/2,ry,h:rnd(0.06,0.09),s:rnd(0.3,0.45),l:rnd(0.2,0.3)}; },true);
   // Blumen in kleinen Gruppen, vor allem im grünen Zentrum
   const fl=[[0.14,0.9,0.6],[0.92,0.7,0.68],[0.0,0.0,0.95],[0.06,0.9,0.58],[0.75,0.5,0.7]]; let cl=null, cc=null;
@@ -241,7 +243,7 @@ function inGrass(x,z){ for(let i=0;i<patches.length;i++){ const p=patches[i]; if
 /* Bau (Startpunkt) */
 (function(){
   const mat=new THREE.MeshLambertMaterial({color:0x8a8a80});
-  [[-3,0,-3,2.2],[-0.5,0,-4.2,2.8],[2.2,0,-3.2,2]].forEach(r=>{ const m=new THREE.Mesh(new THREE.DodecahedronGeometry(r[3],0),mat); m.position.set(r[0],H(r[0],r[2])+r[3]*0.5,r[2]); m.rotation.set(Math.random(),Math.random(),0); m.castShadow=true; m.receiveShadow=true; scene.add(m); addCol(r[0],r[2],r[3]*0.9); });
+  [[-3,0,-3,2.2],[-0.5,0,-4.2,2.8],[2.2,0,-3.2,2]].forEach(r=>{ const m=new THREE.Mesh(new THREE.DodecahedronGeometry(r[3],0),mat); m.position.set(r[0],H(r[0],r[2])+r[3]*0.5,r[2]); m.rotation.set(Math.random(),Math.random(),0); m.castShadow=true; m.receiveShadow=true; scene.add(m); addSight(r[0],r[2],r[3]*0.9,r[3]*1.4,1); addCol(r[0],r[2],r[3]*0.9); });
 })();
 
 export { applyTreeView, _tm, _tv, inGrass, leafGeoHi, leafGeoLo, leafMeshes, leafTime, patches, tallGeo, tallMat, trees, updateTrees };

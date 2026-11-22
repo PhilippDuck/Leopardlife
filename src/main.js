@@ -43,6 +43,7 @@ import { updateBite } from './bite.js';
 import { updateFollowers } from './cubfollow.js';
 import { eventsVisual, updateEvents } from './worldevents.js';
 import { updateChunks } from './chunks.js';
+import { updateWatchers } from './vision.js';
 if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }); }
 if(typeof THREE==='undefined'){ $('err').textContent='Three.js konnte nicht geladen werden. Bitte Seite neu laden.'; $('btnPlay').disabled=true; throw new Error('three.js fehlt'); }
 
@@ -87,7 +88,7 @@ function step(dt){
   G.birdT-=dt; if(G.birdT<=0){ G.birdT=rnd(4,11); if(dayF>0.45&&W.rain<0.5&&!hasSample('birdA')) snd.bird(); }   // Synth-Vögel nur, solange die Vogel-Aufnahmen fehlen
   updateWeather(dt);
   for(let i=0;i<animals.length;i++) updateAnimal(animals[i],dt);
-  updateEvents(dt);
+  updateEvents(dt); updateWatchers();
   setListeners(players.map(p=>({x:p.x,z:p.z,yaw:p.cam.yaw}))); updateCalls(dt);
   for(let i=puffs.length-1;i>=0;i--){ const p=puffs[i]; p.t-=dt; p.vy-=12*dt; p.m.position.x+=p.vx*dt; p.m.position.y+=p.vy*dt; p.m.position.z+=p.vz*dt; p.m.material.opacity=Math.max(0,p.t/0.7); if(p.t<=0){ scene.remove(p.m); p.m.material.dispose(); puffs.splice(i,1); } }
   updateFx(dt);

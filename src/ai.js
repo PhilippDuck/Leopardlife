@@ -21,6 +21,7 @@ import { syncOrbs } from './effects.js';
 import { growlAt } from './calls.js';
 import { weakRecover, woundSlow, woundTick, woundTrail } from './bite.js';
 import { eventStep } from './worldevents.js';
+import { hearR, visibility } from './vision.js';
 
 /* Rudel: Hyänen und Schakale rufen ihre Artgenossen zur Jagd (je nach Schwierigkeit) */
 const PACK={hyena:1,jack:1};
@@ -75,7 +76,9 @@ function updateAnimal(a,dt){
   if(dv>VIEW_D&&a!==G.raider){ a.g.visible=false; return; } a.g.visible=dv<=VIEW_D;
   a.cd-=dt; if(a.scared>0) a.scared-=dt;
   const hostile=sp.hunt&&T.L.lvl<sp.hunt&&!(a.scared>0);
-  const detect=sp.sense*stealth*D().sense*(sp.pred?1+0.25*(1-dayF):1)*(d>0.1?windMulDir(-dx/d,-dz/d):1);
+  // Wahrnehmung: Reichweite (Art, Tarnung, Schwierigkeit, Nacht, Wind) × was das Tier wirklich sieht (vision.js) – Hören geht rundum
+  const reach0=sp.sense*stealth*D().sense*(sp.pred?1+0.25*(1-dayF):1.1)*(d>0.1?windMulDir(-dx/d,-dz/d):1);
+  const detect=d<reach0*1.35?Math.max(reach0*visibility(a,T,dt),hearR(T)):Math.max(reach0,hearR(T));
   if(sp.croc){ if(a.stun>0) a.stun-=dt; else crocStep(a,dt,d,dx,dz,stealth*D().sense,hostile,T);
     pounceHits(a);
     return; }

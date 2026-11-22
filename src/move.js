@@ -79,6 +79,7 @@ function stepPlayer(p,dt){
   { const lv=(p.safe||(grass&&(sneak||p.L.lvl<4)))?2:(grass||sneak)?1:0; if(lv!==p.hideLv) setHide(lv,p);
     if(lv===2&&S.goals&&S.goals.list.some(g=>g.id==='hide'&&!g.done)&&animals.some(a=>!a.dead&&a.sp.hunt&&p.L.lvl<a.sp.hunt&&Math.hypot(a.x-p.x,a.z-p.z)<25)) goalEvent('hide',dt); }
   p.stealth=st;   // für die Tiere: wie gut dieser Spieler gerade getarnt ist
+  p.noise=p.tree!=null?0:p.pounce>0?9:!moving?0:sprint?26:sneak?2.5:11;   // wie weit man ihn hört (Meter)
   return st;
 }
 

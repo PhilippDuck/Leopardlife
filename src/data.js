@@ -58,6 +58,7 @@ export const SPECIES=[
  {id:'bigcroc',n:'Riesenkrokodil',size:2.0,hp:950,spd:4,xp:1500,sense:11,ring:[0,230],count:0,hunt:99,fight:1,dmg:45,pred:1,croc:1,boss:1,m:{col:0x3f4a2c,col2:0x5e6740,len:2.6,hgt:0.32,wid:0.75,leg:0.22,head:0.42,ears:0.02,tail:1.8,tailTip:0x323a22,snout:1}},
  {id:'gnu',n:'Gnu',size:1.1,hp:170,spd:12.5,xp:180,sense:22,ring:[0,0],count:0,m:{col:0x5c5751,col2:0x3c3834,leg:1.0,neck:0.45,horns:0.55,stripe:0x2a2622,ears:0.2,tail:0.6}},
  {id:'rival',n:'Rivale',size:1.15,hp:320,spd:11,xp:600,sense:30,ring:[0,0],count:0,pred:1,fight:1,hunt:99,dmg:13,m:{col:0xb98a3a,col2:0xe2c08a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.46,ears:0.15,tail:1.1,tailTip:0x2a1c10,spots:1}},
+ {id:'poacher',n:'Wilderer',size:1,hp:150,spd:5.5,xp:250,sense:40,ring:[0,0],count:0,human:1,dmg:22,m:null},
  {id:'mate',n:'Leopard',size:1.0,hp:999,spd:7,xp:0,sense:0,ring:[40,150],count:5,friend:1,m:{col:0xe0a23c,col2:0xf0c98a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.44,ears:0.15,tail:1.1,tailTip:0x2a1c10,spots:1}}
 ];
 
@@ -94,6 +95,6 @@ export const ico=(k,c,sz)=>'<span class="ico" style="--ic:'+c+(sz?';--isz:'+sz+'
 
 export const FOOD={gnu:9,rival:8,croc:8,bigcroc:25,maus:1,hase:2,capy:4,boar:6,deer:8,anti:10,giant:20,jack:3,hyena:5,lion:8};
 
-export const DAT={gnu:'einer Gnu-Herde',fire:'dem Feuer',rival:'einem rivalisierenden Leoparden',croc:'einem Krokodil',bigcroc:'einem Riesenkrokodil',lion:'einem Löwen',hyena:'einer Hyäne',jack:'einem Schakal',boar:'einem Wildschwein',giant:'einer Riesenantilope'};
+export const DAT={poacher:'einem Wilderer',gnu:'einer Gnu-Herde',fire:'dem Feuer',rival:'einem rivalisierenden Leoparden',croc:'einem Krokodil',bigcroc:'einem Riesenkrokodil',lion:'einem Löwen',hyena:'einer Hyäne',jack:'einem Schakal',boar:'einem Wildschwein',giant:'einer Riesenantilope'};
 
 export const ART={croc:'ein',hase:'einen',maus:'eine',capy:'ein',boar:'ein',deer:'einen',anti:'eine',lion:'einen',hyena:'eine',jack:'einen'};

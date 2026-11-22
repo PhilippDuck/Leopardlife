@@ -4,13 +4,14 @@
 // Später hängen hier je Chunk Pflanzen, Wasser, Tiere und besondere Funde dran (chunk.content).
 import { scene } from './engine.js';
 import { P, players } from './player.js';
-import { REG } from './save.js';
 import { G } from './state.js';
 import { GLSL_H, H, hash2, onView, pondAt, registerCull, unregisterCull, vnoise } from './terrain.js';
 import { rnd } from './util.js';
+import { seeded } from './noise.js';
+import { REG, S } from './save.js';
 
 const CHUNK=64, SEG=26;
-/** @typedef {{cx:number,cz:number,key:string,mesh:any,cull:any,used:number}} Chunk */
+/** @typedef {{cx:number,cz:number,key:string,mesh:any,cull:any,used:number,rng:()=>number,content:any[]}} Chunk */
 /** @type {Map<string,Chunk>} */
 const chunks=new Map();
 const pool=[];
@@ -51,9 +52,19 @@ function loadChunk(cx,cz){
   const key=keyOf(cx,cz); if(chunks.has(key)) return;
   const mesh=pool.pop()||newGroundMesh(); fillGround(mesh,cx,cz); mesh.visible=true; scene.add(mesh);
   const x=cx*CHUNK+CHUNK/2, z=cz*CHUNK+CHUNK/2;
-  chunks.set(key,{cx,cz,key,mesh,cull:registerCull(mesh,x,z,CHUNK*0.75),used:performance.now()});
+  const c={cx,cz,key,mesh,cull:registerCull(mesh,x,z,CHUNK*0.75),used:performance.now(),rng:chunkRng(cx,cz),content:[]};
+  chunks.set(key,c); for(const fn of fillers) fn(c);
 }
-function unloadChunk(c){ unregisterCull(c.cull); scene.remove(c.mesh); pool.push(c.mesh); chunks.delete(c.key); }
+/** Zufall je Chunk aus Weltsamen + Koordinaten: kommt man zurück, entsteht derselbe Inhalt */
+function chunkRng(cx,cz){ return seeded((S.seed^Math.imul(cx,73856093)^Math.imul(cz,19349663))>>>0); }
+/**
+ * Inhalt für Chunks anmelden (Pflanzen, Wasser, Tiere, besondere Funde …): fn(chunk) füllt chunk.content,
+ * ein Eintrag mit drop() wird beim Entladen aufgeräumt.
+ * @type {((c:Chunk)=>void)[]}
+ */
+const fillers=[];
+function onChunkFill(fn){ fillers.push(fn); for(const c of chunks.values()) fn(c); }
+function unloadChunk(c){ for(const it of c.content) if(it&&it.drop) it.drop(); c.content.length=0; unregisterCull(c.cull); scene.remove(c.mesh); pool.push(c.mesh); chunks.delete(c.key); }
 
 /* ---------- Welche Chunks werden gebraucht? ---------- */
 /** Laderadius in Metern: bis knapp hinter die Nebelgrenze, aber begrenzt (dahinter übernimmt die Fernlandschaft) */
@@ -123,4 +134,4 @@ onView(cam=>{
 
 loadAllNow();
 
-export { CHUNK, chunkOf, chunks, loadAllNow, updateChunks };
+export { CHUNK, chunkOf, chunkRng, chunks, loadAllNow, onChunkFill, updateChunks };
