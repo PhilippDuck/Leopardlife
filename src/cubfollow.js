@@ -107,8 +107,8 @@ function clearFollowers(){ while(followers.length) dropFollower(followers[0]); }
 function cubFollowContext(p){
   const c=S.cub; if(!c||p.dead||p.tree!=null) return null;
   const kid=kidOf(p); if(!kid) return null;
-  // ausgewachsen: am Bau übernehmen (zweimal drücken)
-  if(kid.grow>=1){ if(Math.hypot(cub.x-p.x,cub.z-p.z)>4.5) return null;
+  // Ausgewachsenes Junges kann am Bau oder unterwegs bei seinem Mitspieler übernommen werden.
+  if(kid.grow>=1){ const f=followerOf(p), spot=f||cub; if(Math.hypot(spot.x-p.x,spot.z-p.z)>4.5) return null;
     return {label:p.swArm>0?'Wirklich? Nochmal: als Junges weiterspielen':'Als dein Junges weiterspielen (Stufe '+heirLevel(p)+')',fn:()=>{ if(!(p.swArm>0)){ p.swArm=4; return; } p.swArm=0; if(p===P) playAsCub(); else mateBecomeCub(p); }}; }
   const f=followerOf(p);
   if(f){ if(Math.hypot(f.x-p.x,f.z-p.z)>4.5) return null;
@@ -165,7 +165,7 @@ function stageCheck(){
     const q=playerNum(k), say=m=>{ if(q) tell(q,m,'#ff9ad0'); else toast(m,'#ff9ad0'); };
     if(st===1) say('Dein Junges ist alt genug für die Lehrzeit: Hol es am Bau ab und nimm es mit auf die Jagd!');
     if(st===2) say('Dein Junges ist halbstark! Du kannst jetzt als Junges weiterspielen (Menü) – mit allem, was es gelernt hat.');
-    if(st===3) say('Dein Junges ist ausgewachsen! Es wartet am Bau: Aktionstaste dort = als dein Junges weiterspielen. Oder behalte es als Erben.');
+    if(st===3) say(followerOf(q)?'Dein Junges ist ausgewachsen! Wenn es bei dir ist: Aktionstaste beim Jungen = als dein Junges weiterspielen. Oder behalte es als Erben.':'Dein Junges ist ausgewachsen! Es wartet am Bau: Aktionstaste dort = als dein Junges weiterspielen. Oder behalte es als Erben.');
     save(); }
 }
 /** Stufe, mit der Spieler p als sein Junges startet */
@@ -177,7 +177,7 @@ function updateFollowers(dt){
   stageCheck();
   for(const f of followers.slice()){
     const p=f.p, c=S.cub;
-    if(!c||f.c!==c||players.indexOf(p)<0||!kidOf(p)||kidOf(p).grow>=1){ dropFollower(f); continue; }
+    if(!c||f.c!==c||players.indexOf(p)<0||!kidOf(p)){ dropFollower(f); continue; }
     let tx=p.x-Math.sin(p.rot)*2.6, tz=p.z-Math.cos(p.rot)*2.6;
     const dp=Math.hypot(p.x-f.x,p.z-f.z);
     if((dp>110&&f.up<=0)||p.dead){ f.x=p.x+rnd(-2,2); f.z=p.z+rnd(-2,2); f.up=0; f.tree=null; }   // Spieler weit weg (z. B. neu erwacht): kommt nach
