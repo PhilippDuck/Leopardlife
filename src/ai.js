@@ -33,7 +33,7 @@ function moveAnimal(a,dx,dz,spd,dt){
   if(a.wound){ spd*=woundSlow(a); woundTrail(a,spd*dt); }
   const l=Math.hypot(dx,dz)||1; dx/=l; dz/=l;
   a.x+=dx*spd*dt; a.z+=dz*spd*dt;
-  const r=Math.hypot(a.x,a.z); if(r>WORLD){ a.x*=WORLD/r; a.z*=WORLD/r; }
+  const r=Math.hypot(a.x,a.z); if(!a.world&&r>WORLD){ a.x*=WORLD/r; a.z*=WORLD/r; }
   const cc=collide(a.x,a.z,a.rad*0.55,false); a.x=cc.x; a.z=cc.z;
   if(!a.sp.friend){ a.trk=(a.trk||0)+spd*dt; if(a.trk>0.9+a.sp.size*1.2){ a.trk=0; if(players.some(p=>Math.abs(a.x-p.x)<70&&Math.abs(a.z-p.z)<70)){ a.tside=-(a.tside||1); addTrack(a,a.tside); } } }
   let tr=Math.atan2(dx,dz), df=tr-a.g.rotation.y; while(df>Math.PI) df-=6.283; while(df<-Math.PI) df+=6.283;
@@ -61,6 +61,7 @@ function updateAnimal(a,dt){
   const T=targetOf(a), stealth=T.stealth==null?1:T.stealth;
   if(a.dead){
     if(a.carc){ a.carc.t-=dt; if(a.carc.t<=0||a.carc.meat<=0){ endCarcass(a); a.g.visible=false; a.g.rotation.z=0; } else syncOrbs(a.carc.orbs,a.carc.meat,a.carc.t,performance.now()/1000); return; }
+    if(a.world) return;
     if(a.temp){ a.gone=true; return; }   // Ereignistiere kommen nicht wieder
     a.respawn-=dt; if(a.respawn<=0) placeAnimal(a); return; }
   if(a.held){ a.ph+=dt*14; animLegs(a.g,a.ph,0.5); return; }   // festgebissen: zappelt, bewegt sich nicht
@@ -86,7 +87,7 @@ function updateAnimal(a,dt){
   else if(a.state==='wander'){
     a.timer-=dt;
     if(a.timer<=0||Math.hypot(a.tx-a.x,a.tz-a.z)<1){ const an=Math.random()*6.283, r=rnd(4,16); a.tx=a.x+Math.cos(an)*r; a.tz=a.z+Math.sin(an)*r;
-      const cr=Math.hypot(a.tx,a.tz); if(cr<sp.ring[0]||cr>sp.ring[1]){ const k=(sp.ring[0]+sp.ring[1])/2/(cr||1); a.tx=a.x+(a.tx*k-a.x)*0.3; a.tz=a.z+(a.tz*k-a.z)*0.3; }
+      const cr=Math.hypot(a.tx,a.tz); if(!a.world&&(cr<sp.ring[0]||cr>sp.ring[1])){ const k=(sp.ring[0]+sp.ring[1])/2/(cr||1); a.tx=a.x+(a.tx*k-a.x)*0.3; a.tz=a.z+(a.tz*k-a.z)*0.3; }
       a.timer=rnd(3,8); a.idle=Math.random()<0.4?rnd(1,3):0;
       if(a.herd){ const L=herdLead(a); if(L!==a){ a.tx=L.x+rnd(-7,7); a.tz=L.z+rnd(-7,7); a.timer=rnd(2,5); } } }
     const farH=a.herd&&Math.hypot(herdLead(a).x-a.x,herdLead(a).z-a.z)>16;
@@ -129,7 +130,7 @@ function updateAnimal(a,dt){
       if(a.zzT<=0){ a.zzT=rnd(1.4,4)*(0.8+sp.size*0.4);   // selten und zufällig: oft geradeaus, ab und zu ein Haken zu einer beliebigen Seite
         if(Math.random()<0.55*SMART()){ a.zzSide=Math.random()<0.5?1:-1; a.zzA=rnd(0.6,1.1); a.zzT=rnd(0.5,1.1); } else { a.zzSide=1; a.zzA=0; } }
       const th=a.zzSide*a.zzA, c=Math.cos(th), sn=Math.sin(th), ux=fx/d, uz=fz/d; fx=ux*c-uz*sn; fz=ux*sn+uz*c; }
-    if(r>WORLD-25){ fx+=-a.z*1.5*(a.side||(a.side=Math.random()<.5?1:-1))-a.x*0.5; fz+=a.x*1.5*a.side-a.z*0.5; }
+    if(!a.world&&r>WORLD-25){ fx+=-a.z*1.5*(a.side||(a.side=Math.random()<.5?1:-1))-a.x*0.5; fz+=a.x*1.5*a.side-a.z*0.5; }
     moveAnimal(a,fx,fz,sp.spd*tired,dt);
     if(d>Math.max(detect,sp.sense*0.6)*2+18||a.fleeT>22){ a.state='wander'; a.timer=0; }
   }

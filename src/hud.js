@@ -15,7 +15,7 @@ import { hudExp, xb } from './menu.js';
 import { P, players } from './player.js';
 import { D, DIE_AT, S, baseSpeed, has, maxHp, maxSt, oldF, pScale, tf, xpNeed } from './save.js';
 import { G } from './state.js';
-import { H, PONDS } from './terrain.js';
+import { H, PONDS, streamedPonds } from './terrain.js';
 import { $ } from './util.js';
 import { patches } from './vegetation.js';
 import { W } from './weather.js';
@@ -71,8 +71,8 @@ function updateWarn(dt,p=P){
   if(top){
     const v=top._v, nm=top.sp.n, m=Math.round(top._d)+' m';
     w.style.display='block'; h('warnBar').style.display=(v>0&&v<2)?'block':'none';
-    if(v>=2){ h('warnTxt').textContent='⚠ '+nm+' jagt dich! ('+m+')'; w.style.color='#ff6a50'; }
-    else if(v>0){ h('warnTxt').textContent='⚠ '+nm+' wird misstrauisch – zieh dich zurück! ('+m+')'; w.style.color='#ffb04a'; h('bW').style.width=(v*100)+'%'; }
+    if(v>=2){ h('warnTxt').textContent=nm+' jagt dich! ('+m+')'; w.style.color='#ff6a50'; }
+    else if(v>0){ h('warnTxt').textContent=nm+' wird misstrauisch – zieh dich zurück! ('+m+')'; w.style.color='#ffb04a'; h('bW').style.width=(v*100)+'%'; }
     else { h('warnTxt').textContent=nm+' in der Nähe – noch unbemerkt ('+m+')'; w.style.color='#f2d04b'; }
   } else w.style.display='none';
   if(!me) return;
@@ -115,7 +115,7 @@ function updateUI(p=P){
   const h=id=>hEl(p,id), me=p===P;
   h('lvl').textContent=(me?'':nameOf(p)+' · ')+'Stufe '+p.L.lvl+(S.gen>1?' · Gen. '+S.gen:'');
   if(me) renderGoals(); else { h('goalBox').innerHTML=$('goalBox').innerHTML; h('goalBox').style.display=tutActive(p)?'none':'block'; }
-  h('size').textContent=(W.rain>0.3?(W.storm?'⛈ ':'☔ '):dayF>0.5?'☀ ':'☾ ')+clockStr()+' · '+(p.L.lvl<4?'Jungtier':p.L.lvl<8?'Halbstark':oldF(p.L)>0?'Alt':p.L.lvl<12?'Ausgewachsen':'Alpha')+(p.L.lvl>=8?' · noch '+Math.max(1,Math.ceil((DIE_AT(p.L)-p.L.age)/60))+' min':'');
+  h('size').textContent=(W.rain>0.3?(W.storm?'Gewitter · ':'Regen · '):dayF>0.5?'Tag · ':'Nacht · ')+clockStr()+' · '+(p.L.lvl<4?'Jungtier':p.L.lvl<8?'Halbstark':oldF(p.L)>0?'Alt':p.L.lvl<12?'Ausgewachsen':'Alpha')+(p.L.lvl>=8?' · noch '+Math.max(1,Math.ceil((DIE_AT(p.L)-p.L.age)/60))+' min':'');
   h('bHu').style.width=p.L.hunger+'%'; h('bHu').classList.toggle('low',p.L.hunger<25); h('tHu').textContent=p.L.hunger<=0?'verhungert!':p.L.hunger<25?'hungrig':Math.round(p.L.hunger)+' %';
   const mh=maxHp(p.L), ms=maxSt(p.L), xn=xpNeed(p.L.lvl);
   h('bHp').style.width=Math.max(0,p.hp/mh*100)+'%'; h('tHp').textContent=Math.ceil(p.hp)+' / '+mh;
@@ -142,7 +142,7 @@ function updateUI(p=P){
     if(cu&&kg<1){
       h('cubT').textContent=(own?'Dein Junges':'Geschwister')+' · satt '+Math.round(ki.full)+' % · groß '+Math.round(kg*100)+' %'+(kg<LEARN_AT?' · Lehrzeit ab 25 %':kg<SWITCH_AT?' · Wechsel ab 50 %':' · halbstark'); h('foodT').textContent=S.food>0?'Vorrat '+S.food:'';
       h('bCf').style.width=ki.full+'%'; h('bCg').style.width=(kg*100)+'%';
-      msg=G.raider?(G.raider.found?'⚠ Dein Junges wird angegriffen!':'⚠ Räuber sucht dein Junges!'):ki.full<=0?'⚠ Dein Junges verhungert!':ki.hp<1?'Leben des Jungen: '+Math.max(0,Math.round(ki.hp*100))+' %':ki.full<25?'Dein Junges hat Hunger':kg>=LEARN_AT?(followerOf(p)?(followerOf(p).wait?'Wartet auf dich · ':'Kommt mit · ')+learnText(p):'Am Bau abholen und mit auf die Jagd nehmen'):'';
+      msg=G.raider?(G.raider.found?'Dein Junges wird angegriffen!':'Räuber sucht dein Junges!'):ki.full<=0?'Dein Junges verhungert!':ki.hp<1?'Leben des Jungen: '+Math.max(0,Math.round(ki.hp*100))+' %':ki.full<25?'Dein Junges hat Hunger':kg>=LEARN_AT?(followerOf(p)?(followerOf(p).wait?'Wartet auf dich · ':'Kommt mit · ')+learnText(p):'Am Bau abholen und mit auf die Jagd nehmen'):'';
     } else if(cu&&own){ h('cubT').textContent='Dein Junges ist ausgewachsen'; h('foodT').textContent='am Bau übernehmen'; }
     else if(cu){ h('cubT').textContent='Geschwister am Bau'; h('foodT').textContent=''; }
     else if(S.preg>0){ h('cubT').textContent='Junges kommt bald im Bau zur Welt'; h('foodT').textContent=''; }
@@ -178,15 +178,7 @@ function updateUI(p=P){
     else { tg.textContent='· Beute'; tg.style.color='var(--green)'; }
   } else te.style.display='none';
 }
-/* Spürkarte: Gras, Wasser und Bau sind einmal in ein großes Hintergrundbild gezeichnet; pro Bild wird nur noch dieses
-   verschoben und gedreht und die Tiere in vier Farbgruppen darübergelegt. Wird jedes Bild neu gezeichnet statt 10-mal pro Sekunde. */
-const radarBg=document.createElement('canvas'), RB=2, RW=256;   // 2 Pixel pro Meter, Welt von -256 bis 256
-radarBg.width=radarBg.height=RW*2*RB;
-(function(){ const c=radarBg.getContext('2d'); c.scale(RB,RB); c.translate(RW,RW);
-  c.fillStyle='rgba(120,190,90,.35)'; c.beginPath(); for(const p of patches){ c.moveTo(p.x+p.r,p.z); c.arc(p.x,p.z,p.r,0,6.283); } c.fill();
-  c.fillStyle='rgba(90,160,200,.55)'; c.beginPath(); for(const p of PONDS){ c.moveTo(p.x+p.r,p.z); c.arc(p.x,p.z,p.r,0,6.283); } c.fill();
-  c.fillStyle='#ddd'; c.fillRect(-5,-5,10,10);
-})();
+/* Spürkarte: geladene Gras- und Wasserflächen sowie Tiere in Reichweite jeder Ansicht. */
  const RADAR_COL=['#ff7ab8','#ff5a3c','#f2b84b','#9be07f'];
 /**
  * Spürkarte von Spieler p auf die Zeichenfläche cv (Kontext ctx): Gelände, Tiere, Kadaver, Junges, Mitspieler, Wahrnehmungskreis, Wind.
@@ -199,7 +191,19 @@ function drawRadar(p=P,cv=/** @type {HTMLCanvasElement} */(hEl(p,'rc')),ctx=p===
   const W=cv.width||280, R=45+22*p.L.b.nose+25*tf('nase',p.L), k=W/2/R, sc=W/280;
   rc.setTransform(1,0,0,1,0,0); rc.clearRect(0,0,W,W); rc.fillStyle='rgba(30,50,25,.55)'; rc.fillRect(0,0,W,W);
   rc.save(); rc.translate(W/2,W/2); rc.rotate(p.cam.yaw);
-  rc.save(); rc.scale(k/RB,k/RB); rc.drawImage(radarBg,-(p.x+RW)*RB,-(p.z+RW)*RB); rc.restore();
+  function drawAreas(areas,color){
+    rc.fillStyle=color;
+    rc.beginPath();
+    for(const area of areas){
+      if(area.burnt) continue;
+      const dx=area.x-p.x, dz=area.z-p.z;
+      if(Math.hypot(dx,dz)>R+area.r) continue;
+      rc.moveTo((dx+area.r)*k,dz*k); rc.arc(dx*k,dz*k,area.r*k,0,Math.PI*2);
+    }
+    rc.fill();
+  }
+  drawAreas(patches,'rgba(120,190,90,.35)');
+  drawAreas([...PONDS,...streamedPonds],'rgba(90,160,200,.55)');
   // Zuhause: Haus-Zeichen am Bau, außerhalb der Reichweite am Rand der Spürkarte
   { let dx=CUB_HOME.x-p.x, dz=CUB_HOME.z-p.z; const d=Math.hypot(dx,dz), rim=R*0.8; if(d>rim){ dx*=rim/d; dz*=rim/d; }
     rc.save(); rc.translate(dx*k,dz*k); rc.rotate(-p.cam.yaw); const u=11*sc;

@@ -289,7 +289,7 @@ function updateMarks(v,dt){
     let el=pool[n]; if(!el){ el=document.createElement('div'); el.className='mk'; frame.appendChild(el); pool.push(el); } n++;
     const W=frame.clientWidth, Hh=frame.clientHeight, d=Math.round(Math.hypot(q.x-v.x,q.z-v.z)), col=PCOL[(q.num||1)-1];
     _mv.set(q.x,q.y+1.4*pScale(q.L)+0.6,q.z).project(v.camera);
-    const label=(q.dead?'⚠ ':'')+nameOf(q)+' · '+d+' m';
+    const label=(q.dead?'Am Boden · ':'')+nameOf(q)+' · '+d+' m';
     el.style.display='block'; el.style.color=col;
     if(_mv.z<1&&Math.abs(_mv.x)<0.95&&Math.abs(_mv.y)<0.95){   // im Bild: über dem Kopf
       el.className='mk'; el.innerHTML=esc(label)+'<br>▼';

@@ -246,7 +246,7 @@ function updateEvents(dt){
       // am Bau: greift die Jungen an
       if(Math.hypot(a.x-CUB_HOME.x,a.z-CUB_HOME.z)<5){ const kids=denKids(); EV.kidT-=dt;
         if(kids.length&&EV.kidT<=0){ EV.kidT=1.5; growlAt(a); snd3d(['mew'],CUB_HOME.x,CUB_HOME.z,1.3,100,1.3);
-          players.forEach(p=>tell(p,'⚠ Der Rivale greift die Jungen im Bau an!','#ff5a3a'));
+          players.forEach(p=>tell(p,'Der Rivale greift die Jungen im Bau an!','#ff5a3a'));
           for(const [k,kid] of kids){ kid.hp-=0.09; if(kid.hp<=0) kidDies(k,'wurde vom Rivalen getötet'); } } }
     }
     // stark verletzt: flieht
