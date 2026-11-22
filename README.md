@@ -85,7 +85,15 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 | `tools/coop-shot.py` | Splitscreen-Browsertest mit simulierten Controllern (Einsteigen, Bewegen, Aussteigen, Pause) |
 | `tools/shot.py` | Startet das Spiel in Headless-Chrome, öffnet alle Fenster, macht Bildschirmfotos und meldet Fehler |
 
-Nach Änderungen am Spiel `python3 tools/bump-sw.py` ausführen: Das trägt alle Module in den Service-Worker-Cache ein und zählt die Version hoch, sonst behalten installierte Geräte den alten Stand.
+## App-Version
+
+Die Version steht in `src/version.js` und erscheint auf dem Startbildschirm und in den Einstellungen. Sie folgt dem Schema `MAJOR.MINOR.PATCH`.
+
+- **Major** legt Philipp fest. Für eine von ihm freigegebene Major-Version die Nummer in `src/version.js` eintragen und `python3 tools/bump-sw.py sync` ausführen.
+- **Minor** eignet sich für neue Funktionen. `python3 tools/bump-sw.py minor` erhöht Minor und setzt Patch auf null.
+- **Patch** eignet sich für Fehlerkorrekturen und kleine Anpassungen. `python3 tools/bump-sw.py patch` erhöht Patch. Das ist auch die Voreinstellung ohne Argument.
+
+Agenten wählen Minor oder Patch nach eigenem Ermessen. Das Skript aktualisiert auch den Service-Worker-Cache für installierte und offline gestartete Apps.
 
 ## Lokal starten und testen
 

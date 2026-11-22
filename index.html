@@ -49,6 +49,7 @@
   body.title .ph, body.title #touch, body.title .tb, body.title #tapHelp, body.title #fps, body.title #tut{display:none!important}
   #start .ttl{font-size:clamp(34px,5.4vw,58px);margin:0;letter-spacing:.5px;text-shadow:0 2px 18px rgba(242,184,75,.35),0 2px 3px rgba(0,0,0,.6)}
   #start .sub{color:var(--txt);opacity:.8;margin:-2px 0 12px;font-size:15px;letter-spacing:2px;text-transform:uppercase}
+  .app-version{display:block;margin-top:10px;font-size:11px;color:var(--mut)}
   #startPlayers{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px} #startPlayers .sp{font-size:12px;padding:4px 9px;border-radius:12px;background:rgba(20,26,18,.8);border:1px solid var(--gold)}
   #startPlayers .sp.add{border-style:dashed;border-color:var(--line);color:var(--mut)}
   #soundHint{font-size:12px;color:var(--mut);margin:0 0 8px}
@@ -291,6 +292,7 @@ body.quad .ph{--rad:92px}
     <button id="btnPlay">Spielen</button>
     <button id="btnReset" class="sec" style="display:none">Neu anfangen</button>
   </div>
+  <small class="app-version" data-app-version></small>
   <div id="err" style="color:var(--red);margin-top:10px;font-size:13px"></div>
 </div></div>
 
@@ -334,6 +336,7 @@ body.quad .ph{--rad:92px}
   <button id="btnCtrlSet" class="sec">🎮 Steuerung ansehen</button>
   <p style="font-size:12px;color:var(--mut)">Die Anzeige wechselt automatisch zu dem, was du zuletzt benutzt hast: Tastatur und Maus, Touch oder Xbox-Controller.</p>
   <button id="btnSetBack">Zurück</button>
+  <small class="app-version" data-app-version></small>
 </div></div>
 
 <div id="guide" class="overlay" style="display:none"><div class="card panel" style="max-height:92vh;overflow:auto">
