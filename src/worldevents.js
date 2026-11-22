@@ -25,8 +25,8 @@ import { goalEvent } from './goals.js';
 import { dmg } from './save.js';
 import { hearR, visibility } from './vision.js';
 
-/** @type {{on:string|null,t:number,next:number,last:string,dir:{x:number,z:number},s:number,herd:any[],rival:any,panic:number,burnT:number,regrow:number,lionT:number,kidT:number,home:{x:number,z:number}|null}} */
-const EV={on:null,t:0,next:rnd(150,240),last:'',dir:{x:1,z:0},s:0,herd:[],rival:null,panic:0,burnT:0,regrow:0,lionT:0,kidT:0,home:null};
+/** @type {{on:string|null,t:number,next:number,last:string,fireCooldown:number,dir:{x:number,z:number},s:number,herd:any[],rival:any,panic:number,burnT:number,regrow:number,lionT:number,kidT:number,home:{x:number,z:number}|null}} */
+const EV={on:null,t:0,next:rnd(150,240),last:'',fireCooldown:900,dir:{x:1,z:0},s:0,herd:[],rival:null,panic:0,burnT:0,regrow:0,lionT:0,kidT:0,home:null};
 const spOf=id=>SPECIES.find(s=>s.id===id);
 const maxLvl=()=>Math.max(...players.map(p=>p.L.lvl));
 
@@ -155,6 +155,7 @@ function startEvent(id){
     for(let i=0;i<n;i++){ const q=frontPt(-(WORLD-12)-rnd(0,26),side+rnd(-14,14)); const a=spawnTemp(sp,q.x,q.z); a.ev='migr'; a.gx=rnd(-6,6); EV.herd.push(a); }
   }
   if(id==='fire'){
+    EV.fireCooldown=900;
     // die Front kommt mit dem Wind
     { const wx=windU.value.x||0, wz=windU.value.y||0, l=Math.hypot(wx,wz); if(l>0.1) EV.dir={x:wx/l,z:wz/l}; } EV.s=-(WORLD+5); EV.burnT=0; fireFx(true);
   }
@@ -212,11 +213,13 @@ function eventStep(a,dt,move){
 /* ---------- Pro Bild ---------- */
 function updateEvents(dt){
   sweepTemp();
+  EV.fireCooldown=Math.max(0,EV.fireCooldown-dt);
   if(EV.regrow>0){ EV.regrow-=dt; if(EV.regrow<=0){ burnGrass(true); } }
   if(!EV.on){
     if(players.some(p=>tutActive(p))) return;
     EV.next-=dt; if(EV.next>0||players.every(p=>p.dead)) return;
-    const pool=['migr','rival','poach'].concat(EV.regrow>0?[]:['fire']).filter(id=>id!==EV.last&&(id!=='rival'||maxLvl()>=5)&&(id!=='poach'||maxLvl()>=3));
+    const available=['migr','rival','poach'].concat(EV.regrow>0||EV.fireCooldown>0||maxLvl()<5?[]:['fire']).filter(id=>(id!=='rival'||maxLvl()>=5)&&(id!=='poach'||maxLvl()>=3));
+    const freshEvents=available.filter(id=>id!==EV.last), pool=freshEvents.length?freshEvents:available;
     startEvent(pool[Math.floor(Math.random()*pool.length)]); return; }
   EV.t+=dt;
   if(EV.on==='migr'){
