@@ -31,7 +31,7 @@ const doc={ querySelectorAll:()=>[], getElementById:el, addEventListener(){}, cr
 let raf=null;
 const g={ window:win, document:doc, navigator:{maxTouchPoints:0}, localStorage:{getItem:k=>(k in ls?ls[k]:null),setItem:(k,v)=>{ls[k]=String(v);}}, THREE:win.THREE,
   requestAnimationFrame:fn=>{ if(fn.name==='frame') raf=fn; else fn(); }, setTimeout:fn=>{ fn(); } };
-const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,H,visibility,lineOfSight,addSight,hearR,startEvent,endEvent,EV,updateEvents,eventOn,inGrass,patches,updateAnimal,WORLD,kidOf,kidsOf,tickKids,updateLife,playerSeeks,canSwitchFor,markTaken,cubFollowContext,cubLearn,updateFollowers,followers,learnOf,canSwitch,woundTick,forgetWounds,resetMates,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping};';
+const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,fillPlants,chunkRng,sightAt,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,H,visibility,lineOfSight,addSight,hearR,startEvent,endEvent,EV,updateEvents,eventOn,inGrass,patches,updateAnimal,WORLD,kidOf,kidsOf,tickKids,updateLife,playerSeeks,canSwitchFor,markTaken,cubFollowContext,cubLearn,updateFollowers,followers,learnOf,canSwitch,woundTick,forgetWounds,resetMates,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping};';
 new Function(...Object.keys(g), body)(...Object.values(g));
 const T=globalThis.__T; const rnd2=()=>Math.random()*8-4; const localStorageDump=()=>ls['jaguar-lines'];
 els.btnPlay.onclick();
@@ -467,4 +467,34 @@ console.log('audio nodes created',ACs&&ACs.count());
   a.x=k[0]; a.z=k[1]; a.g.rotation.y=k[2]; a.idle=k[3]; a.state=k[4]; P.x=k[5]; P.z=k[6]; P.sneak=k[7]; P.tree=k[8]; a.visT=0;
   if(!(front>0.9)||!(behind<0.35)||!(grazing<front*0.7)||rock!==0||!(hear>20)){ console.log('FEHLER: Sehen',front,behind,grazing,rock,hear); process.exit(1); }
   console.log('Sehen: vorne '+front.toFixed(2)+', von hinten '+behind.toFixed(2)+', grasend '+grazing.toFixed(2)+', hinter Fels '+rock+', Rennen hört man '+hear.toFixed(0)+' m weit'); }
+// Ein besetzter Baum behält seinen Platz, während ein anderer Abschnitt entladen wird.
+{
+  const assert=require('node:assert/strict');
+  const trees=globalThis.__trees;
+  function load(cx){
+    const c={cx,cz:-30,rng:T.chunkRng(cx,-30),content:[]};
+    T.fillPlants(c);
+    return c.content[0];
+  }
+  const first=load(40), second=load(41);
+  const tree=trees.find(t=>t&&Math.floor(t.x/64)===41);
+  const index=trees.indexOf(tree);
+  const mate={tree:index}, cub={tree:index};
+  T.players.push(mate); T.followers.push(cub);
+  assert.ok(second.inUse());
+  first.drop();
+  assert.equal(trees[index],tree);
+  T.players.pop();
+  assert.ok(second.inUse());
+  T.followers.pop();
+  assert.ok(!second.inUse());
+  second.drop();
+  assert.ok(!T.sightAt(tree.x,tree.z)?.some(o=>o.x===tree.x&&o.z===tree.z));
+  const again=load(41);
+  assert.equal(trees.filter(t=>t&&t.x===tree.x&&t.z===tree.z).length,1);
+  assert.ok(T.patches.some(p=>Math.floor(p.x/64)===41&&T.inGrass(p.x,p.z)));
+  again.drop();
+  assert.ok(!T.patches.some(p=>Math.floor(p.x/64)===41));
+  console.log('Chunk-Pflanzen: Koop-Baum stabil, Deckung entladen, gleicher Standort bei Rückkehr');
+}
 console.log('ALL OK');

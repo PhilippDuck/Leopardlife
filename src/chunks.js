@@ -80,7 +80,7 @@ function plan(){
   // weit außerhalb aller Ladebereiche: entladen (mit Spielraum, damit es an der Grenze nicht flackert)
   for(const c of [...chunks.values()]){ if(need.has(c.key)) { c.used=performance.now(); continue; }
     const x=c.cx*CHUNK+CHUNK/2, z=c.cz*CHUNK+CHUNK/2; const d=Math.min(...players.map(p=>Math.hypot(x-p.x,z-p.z)));
-    if(d>R+CHUNK*2) unloadChunk(c); }
+    if(d>R+CHUNK*2&&!c.content.some(item=>item.inUse?.())) unloadChunk(c); }
 }
 /** Pro Bild: Plan auffrischen und ein paar Chunks aufbauen (nahe sofort, ferne verteilt über mehrere Bilder) */
 function updateChunks(dt){

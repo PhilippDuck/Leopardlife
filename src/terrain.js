@@ -81,9 +81,11 @@ function addCol(x,z,r,low){
   return c;
 }
 /** Kollider wieder entfernen (wenn ein Chunk entladen wird) */
-function removeCol(c){
-  const m=c.r+2.5, x0=Math.floor((c.x-m)/CG), x1=Math.floor((c.x+m)/CG), z0=Math.floor((c.z-m)/CG), z1=Math.floor((c.z+m)/CG);
-  for(let i=x0;i<=x1;i++) for(let j=z0;j<=z1;j++){ const k=cKey(i,j), L=colGrid.get(k); if(!L) continue; const n=L.indexOf(c); if(n>=0) L.splice(n,1); if(!L.length) colGrid.delete(k); }
+function removeCol(c){ removeFromGrid(colGrid,c,c.r+2.5); }
+function removeSight(o){ removeFromGrid(sightGrid,o,o.r); }
+function removeFromGrid(grid,c,m){
+  const  x0=Math.floor((c.x-m)/CG), x1=Math.floor((c.x+m)/CG), z0=Math.floor((c.z-m)/CG), z1=Math.floor((c.z+m)/CG);
+  for(let i=x0;i<=x1;i++) for(let j=z0;j<=z1;j++){ const k=cKey(i,j), L=grid.get(k); if(!L) continue; const n=L.indexOf(c); if(n>=0) L.splice(n,1); if(!L.length) grid.delete(k); }
 }
 /* Sichthindernisse (Felsen, Büsche, Baumstämme): Kreis mit Höhe und Deckkraft 0…1, im selben Rasterprinzip */
 const sightGrid=new Map();
@@ -107,4 +109,4 @@ function collide(x,z,rad,skipLow){
   _col.x=x; _col.z=z; return _col;
 }
 
-export { addSight, sightAt, GLSL_H, GLSL_PONDMASK, H, H0, PONDS, WATER_D, WORLD, addCol, collide, cullTiles, hash2, inWater, onView, pondAt, registerCull, registerTile, removeCol, tileOf, unregisterCull, vnoise, waters };
+export { removeSight, addSight, sightAt, GLSL_H, GLSL_PONDMASK, H, H0, PONDS, WATER_D, WORLD, addCol, collide, cullTiles, hash2, inWater, onView, pondAt, registerCull, registerTile, removeCol, tileOf, unregisterCull, vnoise, waters };

@@ -111,7 +111,7 @@ function updateTrees(dt,views){
   const L=views.map(({camera:c,p})=>{ const cx=c.position.x, cy=c.position.y, cz=c.position.z, sx=p.x-cx, sy=(p.camY+pScale(p.L)*0.6)-cy, sz=p.z-cz; return [cx,cy,cz,sx,sy,sz,sx*sx+sy*sy+sz*sz||1,p.tree]; });
   const stp=dt*5;
   for(let i=0;i<trees.length;i++){
-    const t=trees[i], kx=t.x+t.cx, ky=t.y+t.cy, kz=t.z+t.cz; const fv=t.fv||(t.fv=[]);
+    const t=trees[i]; if(!t) continue; const kx=t.x+t.cx, ky=t.y+t.cy, kz=t.z+t.cz; const fv=t.fv||(t.fv=[]);
     for(let j=0;j<L.length;j++){ const [cx,cy,cz,sx,sy,sz,len2,own]=L[j]; let target=1;
       if(i!==own){ let u=((kx-cx)*sx+(ky-cy)*sy+(kz-cz)*sz)/len2; u=Math.max(0,Math.min(1,u));
         const dx=(kx-(cx+sx*u))/t.rx, dy=(ky-(cy+sy*u))/t.ry, dz=(kz-(cz+sz*u))/t.rx; if(dx*dx+dy*dy+dz*dz<1) target=0.001; }
@@ -246,4 +246,4 @@ function inGrass(x,z){ for(let i=0;i<patches.length;i++){ const p=patches[i]; if
   [[-3,0,-3,2.2],[-0.5,0,-4.2,2.8],[2.2,0,-3.2,2]].forEach(r=>{ const m=new THREE.Mesh(new THREE.DodecahedronGeometry(r[3],0),mat); m.position.set(r[0],H(r[0],r[2])+r[3]*0.5,r[2]); m.rotation.set(Math.random(),Math.random(),0); m.castShadow=true; m.receiveShadow=true; scene.add(m); addSight(r[0],r[2],r[3]*0.9,r[3]*1.4,1); addCol(r[0],r[2],r[3]*0.9); });
 })();
 
-export { applyTreeView, _tm, _tv, inGrass, leafGeoHi, leafGeoLo, leafMeshes, leafTime, patches, tallGeo, tallMat, trees, updateTrees };
+export { setTree, fadedTrees, applyTreeView, _tm, _tv, inGrass, leafGeoHi, leafGeoLo, leafMeshes, leafTime, patches, tallGeo, tallMat, trees, updateTrees };
