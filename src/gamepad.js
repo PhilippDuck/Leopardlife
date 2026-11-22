@@ -8,7 +8,7 @@ import { toggleSkills } from './skills.js';
 import { G } from './state.js';
 import { toast } from './ui.js';
 import { $ } from './util.js';
-import { MAX_PLAYERS, joinPlayer, leavePlayer, padTaken, panelNav, pingMates, pollCoop } from './coop.js';
+import { MAX_PLAYERS, joinPlayer, disconnectPlayer, padTaken, panelNav, pingMates, pollCoop } from './coop.js';
 import { titleOn } from './title.js';
 
 /* ---------- Controller-Steuerung (Gamepad, Standardbelegung wie Xbox/PlayStation) ----------
@@ -91,7 +91,7 @@ function pollPads(dt){
 }
 window.addEventListener('gamepadconnected',e=>{ const extra=G.started&&padIdx>=0&&e.gamepad.index!==padIdx?' – Start drücken zum Mitspielen':'';
   toast('Controller verbunden: '+String(e.gamepad.id||'').split('(')[0].trim().slice(0,40)+extra,'#9be07f'); });
-window.addEventListener('gamepaddisconnected',e=>{ const m=players.find(p=>p!==P&&p.pad===e.gamepad.index); if(m) leavePlayer(m);
+window.addEventListener('gamepaddisconnected',e=>{ const m=players.find(p=>p!==P&&p.pad===e.gamepad.index); if(m) disconnectPlayer(m);
   if(e.gamepad.index===padIdx){ padIdx=-1; padX=padY=0; toast('Controller getrennt','#f2b84b'); } });
 
 export { claimOverlay, padAct, padSprint, padUI, padX, padY, pdz, pollPads };

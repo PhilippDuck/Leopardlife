@@ -85,7 +85,7 @@ $('skills').addEventListener('click',e=>skillClick(e,skP,null));
  * und nur sein Leopard steht still – deshalb nicht, solange ihn ein Raubtier jagt.
  */
 function toggleSkills(p=P){
-  if(players.length>1){ toggleSkillPanel(p); return; }
+  if(p.skOpen||players.length>1){ toggleSkillPanel(p); return; }
   if(sleeping||(p===P&&P.dead)||$('win').style.display==='flex'||$('birth').style.display==='flex'||menuOpen()) return; const el=$('skills'); const open=el.style.display==='none';
   if(open){ skP=p; snapSkills(p); G.ovPad=p===P?null:p.pad; renderSkills(p,null); el.style.display='flex'; G.paused=true; if(document.exitPointerLock) document.exitPointerLock(); for(const k in keys) keys[k]=false; }
   else { el.style.display='none'; G.paused=false; G.ovPad=null; skP=P; } }

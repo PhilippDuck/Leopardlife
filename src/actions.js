@@ -23,7 +23,7 @@ import { updateUI, updateWarn } from './hud.js';
 import { downPlayer, hEl, othersAlive, resetMates, tell } from './coop.js';
 import { emit } from './events.js';
 import { toggleSkills } from './skills.js';
-import { bitable, biteHit, forgetWounds, startBite } from './bite.js';
+import { assistBite, bitable, biteHit, forgetWounds, startBite } from './bite.js';
 import { SWITCH_AT, cubLearn, cubSpot, growOf, hasOwnCub, heirLevel } from './cubfollow.js';
 import { humanHit } from './worldevents.js';
 
@@ -59,6 +59,7 @@ function doPounce(p=P){
   if(p.tree!=null&&p.climbT<1) return;
   if(p.st<15){ noStamina(p); return; }
   p.leap=false;
+  if(assistBite(p)) return;
   if(p.tree!=null){ if(p.climbT<1) return; const h=p.upNow; p.leap=true; leaveTree(p,1); p.dropRate=h/(0.55+0.04*p.L.b.jmp); }
   p.st-=15; p.pounce=(p.leap?0.55:0.38)+0.04*p.L.b.jmp; p.pT=p.pounce; p.pcd=1.3-0.2*p.L.b.jmp; p.hit=false; snd.pounce();
   if(!pounceRun(p)) p.rot=Math.atan2(-Math.sin(p.cam.yaw),-Math.cos(p.cam.yaw));   // sonst: in die Richtung, in die er gerade läuft bzw. schaut
