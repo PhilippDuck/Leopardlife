@@ -2,7 +2,7 @@
 import { camera, grassLight, scene, windU } from './engine.js';
 import { REG, pScale } from './save.js';
 import { G } from './state.js';
-import { GLSL_H, GLSL_PONDMASK, H, PONDS, WORLD, addCol, addSight, pondAt, registerTile, tileOf } from './terrain.js';
+import { GLSL_H, GLSL_PONDMASK, H, PONDS, WORLD, addCol, addSight, dryness, pondAt, registerTile, tileOf } from './terrain.js';
 import { rnd } from './util.js';
 import { P } from './player.js';
 
@@ -218,29 +218,29 @@ const patches=[]; let tallGeo=null, tallMat=null, TALL_N=0;
     const rr=Math.sqrt(Math.random())*p.r, a=Math.random()*6.283, x=p.x+Math.cos(a)*rr, z=p.z+Math.sin(a)*rr;
     if(pondAt(x,z,0.8)) continue;
     if(Math.hypot(x-7,z-5)<2.8) continue;   // Nest am Bau frei lassen, damit man die Jungen sieht
-    list.push([x,H(x,z),z,Math.random()*6.283,rnd(0.75,1.2),Math.random()]);
+    list.push([x,H(x,z),z,Math.random()*6.283,rnd(0.75,1.2),Math.random(),dryness(x,z)]);
   }});
   for(let i=list.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)), t=list[i]; list[i]=list[j]; list[j]=t; }   // gemischt, damit "niedrig" gleichmäßig ausdünnt
   TALL_N=list.length; tallGeo=[];
   const posAttr=new THREE.BufferAttribute(pos,3), byT={};
   list.forEach(o=>{ const k=tileOf(o[0],o[2]); (byT[k]=byT[k]||[]).push(o); });
-  for(const k in byT){ const L=byT[k], n=L.length, iPos=new Float32Array(n*3), iRS=new Float32Array(n*2), iHue=new Float32Array(n);
-    L.forEach((o,i)=>{ iPos[i*3]=o[0]; iPos[i*3+1]=o[1]; iPos[i*3+2]=o[2]; iRS[i*2]=o[3]; iRS[i*2+1]=o[4]; iHue[i]=o[5]; });
+  for(const k in byT){ const L=byT[k], n=L.length, iPos=new Float32Array(n*3), iRS=new Float32Array(n*2), iHue=new Float32Array(n), iDry=new Float32Array(n);
+    L.forEach((o,i)=>{ iPos[i*3]=o[0]; iPos[i*3+1]=o[1]; iPos[i*3+2]=o[2]; iRS[i*2]=o[3]; iRS[i*2+1]=o[4]; iHue[i]=o[5]; iDry[i]=o[6]; });
     const g=new THREE.InstancedBufferGeometry();
     g.setAttribute('position',posAttr); g.setAttribute('iPos',new THREE.InstancedBufferAttribute(iPos,3));
-    g.setAttribute('iRS',new THREE.InstancedBufferAttribute(iRS,2)); g.setAttribute('iHue',new THREE.InstancedBufferAttribute(iHue,1));
+    g.setAttribute('iRS',new THREE.InstancedBufferAttribute(iRS,2)); g.setAttribute('iHue',new THREE.InstancedBufferAttribute(iHue,1)); g.setAttribute('iDry',new THREE.InstancedBufferAttribute(iDry,1));
     g.instanceCount=n; tallGeo.push({g,n,k:+k}); }
   tallMat=new THREE.ShaderMaterial({
     side:THREE.DoubleSide, fog:true,
     uniforms:THREE.UniformsUtils.merge([THREE.UniformsLib.fog,{uP:{value:new THREE.Vector2()},uR:{value:1.5},uTime:{value:0}}]),
-    vertexShader:'uniform vec2 uWind; attribute vec3 iPos; attribute vec2 iRS; attribute float iHue; uniform vec2 uP; uniform float uR; uniform float uTime; varying float vH; varying vec3 vCol;\n#include <fog_pars_vertex>\n'+
+    vertexShader:'uniform vec2 uWind; attribute vec3 iPos; attribute vec2 iRS; attribute float iHue; attribute float iDry; uniform vec2 uP; uniform float uR; uniform float uTime; varying float vH; varying float vDry; varying vec3 vCol;\n#include <fog_pars_vertex>\n'+
       'void main(){\n  float c=cos(iRS.x); float s=sin(iRS.x);\n  vec3 p=position; p.xz=vec2(c*p.x-s*p.z,s*p.x+c*p.z); p.y*=iRS.y;\n'+
       '  float hh=clamp(position.y/1.9,0.0,1.0); float k=hh*hh;\n  vec2 w=iPos.xz;\n'+
       '  float sway=sin(uTime*1.5+w.x*0.4+w.y*0.3)*0.26+sin(uTime*2.7+w.x*1.1-w.y*0.8)*0.08;\n  p.xz+=uWind*(sway+0.15)*k;\n'+
       '  vec2 d=w-uP; float dist=length(d); float push=1.0-smoothstep(0.2,uR,dist);\n  p.xz+=(d/max(dist,0.001))*push*k*1.3; p.y-=push*k*0.55;\n'+
-      '  vCol=mix(vec3(0.27,0.50,0.16),vec3(0.50,0.62,0.22),iHue);\n  vH=hh;\n'+
+      '  vCol=mix(vec3(0.27,0.50,0.16),vec3(0.50,0.62,0.22),iHue);\n  vDry=iDry; vH=hh;\n'+
       '  vec4 mvPosition=viewMatrix*vec4(w.x+p.x,iPos.y+p.y,w.y+p.z,1.0);\n  gl_Position=projectionMatrix*mvPosition;\n  #include <fog_vertex>\n}',
-    fragmentShader:'uniform vec3 uLight; varying float vH; varying vec3 vCol;\n#include <fog_pars_fragment>\nvoid main(){\n  vec3 col=mix(vCol*0.42,vCol,smoothstep(0.0,0.6,vH));\n  col=mix(col,vec3(0.86,0.82,0.46),smoothstep(0.7,1.0,vH)*0.55);\n  gl_FragColor=vec4(col*uLight,1.0);\n  #include <fog_fragment>\n}'
+    fragmentShader:'uniform vec3 uLight; varying float vH; varying float vDry; varying vec3 vCol;\n#include <fog_pars_fragment>\nvoid main(){\n  vec3 col=mix(vCol*0.42,vCol,smoothstep(0.0,0.6,vH));\n  vec3 tip=mix(vec3(0.38,0.64,0.25),vec3(0.86,0.82,0.46),vDry);\n  col=mix(col,tip,smoothstep(0.7,1.0,vH)*0.55);\n  gl_FragColor=vec4(col*uLight,1.0);\n  #include <fog_fragment>\n}'
   });
   tallMat.uniforms.uLight=grassLight; tallMat.uniforms.uWind=windU;
   tallGeo.forEach(t=>{ const mesh=new THREE.Mesh(t.g,tallMat); scene.add(mesh); registerTile(mesh,t.k,76); });

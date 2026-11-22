@@ -95,6 +95,7 @@ function fillPlants(chunk){
     g.setAttribute('iPos',new THREE.InstancedBufferAttribute(new Float32Array(pos),3));
     g.setAttribute('iRS',new THREE.InstancedBufferAttribute(new Float32Array(rotations),2));
     g.setAttribute('iHue',new THREE.InstancedBufferAttribute(new Float32Array(hues),1));
+    g.setAttribute('iDry',new THREE.InstancedBufferAttribute(new Float32Array(pos.length/3).map((_,i)=>dryness(pos[i*3],pos[i*3+2])),1));
     const entry={g,n:hues.length};
     tallGeo.push(entry); g.instanceCount=Math.floor(entry.n*QUAL[quality].tall);
     show(new THREE.Mesh(g,tallMat));
