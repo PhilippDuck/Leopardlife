@@ -44,6 +44,8 @@ import { updateFollowers } from './cubfollow.js';
 import { eventsVisual, updateEvents } from './worldevents.js';
 import { updateChunks } from './chunks.js';
 import { updateWatchers } from './vision.js';
+import { APP_VERSION } from './version.js';
+document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent='Version '+APP_VERSION; });
 if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }); }
 if(typeof THREE==='undefined'){ $('err').textContent='Three.js konnte nicht geladen werden. Bitte Seite neu laden.'; $('btnPlay').disabled=true; throw new Error('three.js fehlt'); }
 
