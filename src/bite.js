@@ -15,6 +15,7 @@ import { hurtPlayer, killAnimal } from './actions.js';
 import { padUI } from './gamepad.js';
 import { touchUI } from './input.js';
 import { cubLearn } from './cubfollow.js';
+import { $ } from './util.js';
 
 /** Festbeißen bei jedem Tier, das ein Biss nicht sofort erledigt (d = Schaden dieses Bisses) – außer Leoparden und Krokodilen im Wasser */
 const fights=a=>!!(a.sp.pred||a.sp.fight);
@@ -80,8 +81,12 @@ function biteUi(p){
   const res=1-b.scores.reduce((x,y)=>x+y,0)/b.n; hEl(p,'biteRes').style.width=Math.max(0,res*100)+'%';
   hEl(p,'biteRounds').textContent=Array.from({length:b.n},(_,i)=>i<b.scores.length?(b.scores[i]>0.65?'●':'◐'):'○').join(' ');
   const k=p!==P||padUI()?'RT / Ⓐ':touchUI()?'tippen':'Leertaste / Klick';
+  const tap=hEl(p,'biteTap');
+  tap.style.display=touchUI()?'block':'none';
   hEl(p,'biteHint').textContent=(fights(b.a)?'Es wehrt sich! ':'Festgebissen! ')+'In der Mitte drücken ('+k+')';
 }
+/** Touch-Zugebissknopf: übernimmt den aktiven Festbiss des Spielers. */
+$('biteTap').addEventListener('click',()=>{ const p=players.find(q=>q.bite); if(p) biteHit(p); });
 /** Jedes Bild: Punkt pendeln lassen, Leopard am Tier halten; Wunden bluten und schwächen */
 function updateBite(dt){
   for(const p of players){ const b=p.bite; if(!b) continue;

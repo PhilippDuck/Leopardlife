@@ -2,7 +2,7 @@
 import { CHUNK } from './chunks.js';
 import { scene } from './engine.js';
 import { H, WORLD, dryness, pondAt, addCol, addSight, removeCol, removeSight, registerCull, unregisterCull } from './terrain.js';
-import { makeTree, woodMeshes, leafMeshes, leafGeoHi, leafGeoLo, trees, setTree, fadedTrees, patches, tallGeo, tallMat } from './vegetation.js';
+import { bushGeometry, bushMaterial, bushColor, makeTree, woodMeshes, leafMeshes, leafGeoHi, leafGeoLo, trees, setTree, fadedTrees, patches, tallGeo, tallMat } from './vegetation.js';
 import { players } from './player.js';
 import { followers } from './cubfollow.js';
 import { animals } from './animals.js';
@@ -10,8 +10,7 @@ import { QUAL } from './data.js';
 import { quality } from './quality.js';
 
 const freeSlots=[];
-const crownGeo=new THREE.IcosahedronGeometry(1,1);
-const bushMat=new THREE.MeshLambertMaterial({color:0x788f43});
+const vegetationBushes={geometry:bushGeometry,material:bushMaterial};
 
 function fillPlants(chunk){
   const rng=chunk.rng, slots=[], cleanup=[];
@@ -29,7 +28,7 @@ function fillPlants(chunk){
   }
   const stems=Array.from({length:3},()=>place(4)).filter(outside);
   if(stems.length){
-    const generated=stems.map(({x,z})=>makeTree({x,z,sav:rng()<dryness(x,z)},rng));
+    const generated=stems.map(({x,z})=>makeTree({x,z,sav:dryness(x,z)>0.45},rng));
     const parts=generated.flatMap(t=>t.parts);
     const trunks=new THREE.InstancedMesh(woodMeshes[0].geometry,woodMeshes[0].material,parts.filter(p=>!p.leaf).length);
     const crowns=new THREE.InstancedMesh(quality==='low'?leafGeoLo:leafGeoHi,leafMeshes[0].material,parts.filter(p=>p.leaf).length);
@@ -58,14 +57,21 @@ function fillPlants(chunk){
       sight(tree.x,tree.z,tree.tr+0.15,6,0.55);
     });
   }
-  const shrubs=Array.from({length:5},()=>place(2)).filter(outside);
+  const shrubs=Array.from({length:18},()=>place(2)).filter(outside);
   if(shrubs.length){
-    const mesh=new THREE.InstancedMesh(crownGeo,bushMat,shrubs.length);
+    const mesh=new THREE.InstancedMesh(vegetationBushes.geometry,vegetationBushes.material,shrubs.length);
+    const color=new THREE.Color();
     shrubs.forEach(({x,z},i)=>{
-      const r=1+rng(), h=0.6+rng()*0.5;
-      const m=new THREE.Matrix4().makeScale(r,h,r);
-      m.setPosition(x,H(x,z)+h*0.6,z); mesh.setMatrixAt(i,m);
-      sight(x,z,r,h*1.6,0.8);
+      const savanna=Math.hypot(x,z)>WORLD+180, sy=0.5+rng()*0.45;
+      const sx=0.8+rng()*0.9, sz=0.8+rng()*0.9;
+      const m=new THREE.Matrix4().compose(new THREE.Vector3(x,H(x,z)+sy*0.45,z),
+        new THREE.Quaternion().setFromEuler(new THREE.Euler(0,rng()*6.28,0)),
+        new THREE.Vector3(sx,sy,sz));
+      mesh.setMatrixAt(i,m);
+      const tint=bushColor(savanna,rng);
+      mesh.setColorAt(i,color.setHSL(tint.h,tint.s,tint.l));
+      const radius=(sx+sz)*0.42;
+      sight(x,z,radius,sy*0.9,0.8);
     });
     show(mesh);
   }
