@@ -30,7 +30,7 @@ import { humanHit } from './worldevents.js';
 /* ---------- Aktionen ---------- */
 /** Index des nächsten erreichbaren Baums für Spieler p, sonst -1. */
 function nearestTree(p=P){
-  let bi=-1, bd=1e9; for(let i=0;i<trees.length;i++){ const t=trees[i], d=Math.hypot(t.x-p.x,t.z-p.z); if(d<bd){ bd=d; bi=i; } }
+  let bi=-1, bd=1e9; for(let i=0;i<trees.length;i++){ const t=trees[i]; if(!t) continue; const d=Math.hypot(t.x-p.x,t.z-p.z); if(d<bd){ bd=d; bi=i; } }
   return bd<3.4+pScale(p.L)*0.8?bi:-1;
 }
 function leaveTree(p,rate){ p.tOff=null; climbStop(); p.dropY=p.upNow; p.dropRate=rate; p.tree=null; p.safe=false; p.upNow=0; }
