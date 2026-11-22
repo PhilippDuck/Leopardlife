@@ -143,7 +143,7 @@ function updateUI(p=P){
       h('cubT').textContent=(own?'Dein Junges':'Geschwister')+' · satt '+Math.round(ki.full)+' % · groß '+Math.round(kg*100)+' %'+(kg<LEARN_AT?' · Lehrzeit ab 25 %':kg<SWITCH_AT?' · Wechsel ab 50 %':' · halbstark'); h('foodT').textContent=S.food>0?'Vorrat '+S.food:'';
       h('bCf').style.width=ki.full+'%'; h('bCg').style.width=(kg*100)+'%';
       msg=G.raider?(G.raider.found?'Dein Junges wird angegriffen!':'Räuber sucht dein Junges!'):ki.full<=0?'Dein Junges verhungert!':ki.hp<1?'Leben des Jungen: '+Math.max(0,Math.round(ki.hp*100))+' %':ki.full<25?'Dein Junges hat Hunger':kg>=LEARN_AT?(followerOf(p)?(followerOf(p).wait?'Wartet auf dich · ':'Kommt mit · ')+learnText(p):'Am Bau abholen und mit auf die Jagd nehmen'):'';
-    } else if(cu&&own){ h('cubT').textContent='Dein Junges ist ausgewachsen'; h('foodT').textContent='am Bau übernehmen'; }
+    } else if(cu&&own){ h('cubT').textContent='Dein Junges ist ausgewachsen'; h('foodT').textContent=followerOf(p)?'bei dir: Aktionstaste zum Übernehmen':'am Bau übernehmen'; }
     else if(cu){ h('cubT').textContent='Geschwister am Bau'; h('foodT').textContent=''; }
     else if(S.preg>0){ h('cubT').textContent='Junges kommt bald im Bau zur Welt'; h('foodT').textContent=''; }
     else if(canMate()){ h('cubT').textContent=S.partner?'Dein Partner wartet':'Partner suchen'; h('foodT').textContent='rosa Punkt auf der Spürkarte'; }
@@ -210,7 +210,12 @@ function drawRadar(p=P,cv=/** @type {HTMLCanvasElement} */(hEl(p,'rc')),ctx=p===
     rc.fillStyle='rgba(20,16,10,.75)'; rc.beginPath(); rc.arc(0,0,u*1.55,0,6.283); rc.fill();
     rc.fillStyle='#f2b84b'; rc.beginPath(); rc.moveTo(-u,-0.1*u); rc.lineTo(0,-u); rc.lineTo(u,-0.1*u); rc.closePath(); rc.fill();
     rc.fillRect(-0.7*u,-0.1*u,1.4*u,0.95*u); rc.fillStyle='rgba(20,16,10,.9)'; rc.fillRect(-0.2*u,0.3*u,0.4*u,0.55*u); rc.restore(); }
-  for(const f of followers){ const dx=f.x-p.x, dz=f.z-p.z; if(dx*dx+dz*dz<R*R){ rc.fillStyle='#ff7ab8'; rc.beginPath(); rc.arc(dx*k,dz*k,4.5*sc,0,6.283); rc.fill(); } }
+  { const f=followerOf(p); if(f){ let dx=f.x-p.x, dz=f.z-p.z, d=Math.hypot(dx,dz), u=5.5*sc;
+    if(d<=R){ rc.fillStyle='#ff7ab8'; rc.beginPath(); rc.arc(dx*k,dz*k,4.5*sc,0,6.283); rc.fill(); }
+    else { const r=R*0.8; dx=dx/d*r; dz=dz/d*r; rc.save(); rc.translate(dx*k,dz*k); rc.rotate(Math.atan2(dz,dx));
+      rc.fillStyle='rgba(20,16,10,.85)'; rc.beginPath(); rc.arc(0,0,u*1.7,0,6.283); rc.fill();
+      rc.fillStyle='#ff7ab8'; rc.beginPath(); rc.moveTo(u*1.5,0); rc.lineTo(-u,-u); rc.lineTo(-u,u); rc.closePath(); rc.fill(); rc.restore(); }
+  } }
   for(let g=0;g<4;g++){
     rc.fillStyle=RADAR_COL[g]; rc.beginPath(); let any=false;
     for(let i=0;i<animals.length;i++){ const a=animals[i]; if(a.dead||(a.sp.friend&&!a.g.visible)) continue; if(a.state==='lurk'&&Math.abs(a.x-p.x)+Math.abs(a.z-p.z)>18) continue;
