@@ -42,17 +42,22 @@ function sweepTemp(){
     scene.remove(a.g); a.g.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); animals.splice(i,1); }
 }
 
-/* ---------- Feuer: Flammen und Rauch als Partikel entlang der Front ---------- */
-function dotTex(soft){ try{ const c=document.createElement('canvas'); c.width=c.height=64; const x=c.getContext('2d'), g=x.createRadialGradient(32,32,0,32,32,32);
-  g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(soft?0.5:0.35,'rgba(255,255,255,'+(soft?0.5:0.7)+')'); g.addColorStop(1,'rgba(255,255,255,0)'); x.fillStyle=g; x.fillRect(0,0,64,64); return new THREE.CanvasTexture(c); }catch(e){ return null; } }
+/* ---------- Feuer: flammenförmige 2D-Sprites und Rauch entlang der Front ---------- */
+function fireTex(){ try{ const c=document.createElement('canvas'); c.width=c.height=64; const x=c.getContext('2d');
+  const g=x.createLinearGradient(0,62,0,2); g.addColorStop(0,'#d93416'); g.addColorStop(0.38,'#ff6a16'); g.addColorStop(0.72,'#ffd23f'); g.addColorStop(1,'#fff2a1');
+  x.beginPath(); x.moveTo(32,62); x.bezierCurveTo(9,52,13,38,21,28); x.bezierCurveTo(22,38,28,36,29,18); x.bezierCurveTo(38,26,35,33,39,35); x.bezierCurveTo(49,26,45,17,46,12); x.bezierCurveTo(62,34,56,52,32,62); x.fillStyle=g; x.fill();
+  const inner=x.createLinearGradient(0,60,0,34); inner.addColorStop(0,'#ff9b23'); inner.addColorStop(1,'#fff4a0'); x.beginPath(); x.moveTo(32,59); x.bezierCurveTo(20,51,25,42,30,36); x.bezierCurveTo(33,45,39,44,41,37); x.bezierCurveTo(49,48,43,57,32,59); x.fillStyle=inner; x.fill(); return new THREE.CanvasTexture(c); }catch(e){ return null; } }
+function smokeTex(){ try{ const c=document.createElement('canvas'); c.width=c.height=64; const x=c.getContext('2d'), g=x.createRadialGradient(32,32,0,32,32,32);
+  g.addColorStop(0,'rgba(255,255,255,0.65)'); g.addColorStop(0.5,'rgba(255,255,255,0.3)'); g.addColorStop(1,'rgba(255,255,255,0)'); x.fillStyle=g; x.fillRect(0,0,64,64); return new THREE.CanvasTexture(c); }catch(e){ return null; } }
 const FLAMES=260, SMOKE=110;
 let flames=null, smoke=null;
 function fireFx(on){
   if(on&&!flames){
-    const mk=(n,size,col,add,op,soft)=>{ const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(new Float32Array(n*3),3));
-      const m=new THREE.Points(g,new THREE.PointsMaterial({size,color:col,map:dotTex(soft),transparent:true,opacity:op,depthWrite:false,blending:add?THREE.AdditiveBlending:THREE.NormalBlending}));
+    const mk=(n,size,col,add,op,texture)=>{ const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(new Float32Array(n*3),3));
+      if(add){ const palette=[0xff4a20,0xff7420,0xffa126,0xffd34a], colors=new Float32Array(n*3); for(let i=0;i<n;i++){ const color=new THREE.Color(palette[i%palette.length]); colors[i*3]=color.r; colors[i*3+1]=color.g; colors[i*3+2]=color.b; } g.setAttribute('color',new THREE.BufferAttribute(colors,3)); }
+      const m=new THREE.Points(g,new THREE.PointsMaterial({size,color:add?0xffffff:col,map:texture,vertexColors:add,transparent:true,opacity:op,depthWrite:false,blending:add?THREE.AdditiveBlending:THREE.NormalBlending,alphaTest:0.08,sizeAttenuation:true}));
       m.frustumCulled=false; scene.add(m); return m; };
-    flames=mk(FLAMES,3.4,0xff7a1e,true,0.9,false); smoke=mk(SMOKE,9,0x5a524a,false,0.32,true);
+    flames=mk(FLAMES,6,0xffffff,true,0.95,fireTex()); smoke=mk(SMOKE,9,0x5a524a,false,0.32,smokeTex());
   }
   if(flames){ flames.visible=on; smoke.visible=on; }
 }
@@ -67,7 +72,7 @@ function drawFire(){
   const centers=players.map(p=>across(p.x,p.z));
   for(let i=0;i<FLAMES;i++){ const u=centers[i%centers.length]+(((i*97)%FLAMES)/FLAMES-0.5)*220+Math.sin(tm*3+i)*1.5, s=EV.s-Math.abs(Math.sin(i*12.9+tm*2.3))*5;
     const q=frontPt(s,u), fl=Math.abs(Math.sin(tm*(5+i%7)+i)); const wet=pondAt(q.x,q.z,0.5)||Math.hypot(q.x,q.z)>WORLD;
-    fp[i*3]=q.x; fp[i*3+1]=wet?-50:H(q.x,q.z)+0.3+fl*2.2; fp[i*3+2]=q.z; }
+    fp[i*3]=q.x; fp[i*3+1]=wet?-50:H(q.x,q.z)+0.3+fl*3.5; fp[i*3+2]=q.z; }
   for(let i=0;i<SMOKE;i++){ const u=centers[i%centers.length]+(((i*61)%SMOKE)/SMOKE-0.5)*240, k=((tm*0.15+i*0.37)%1), s=EV.s-4-k*30;
     const q=frontPt(s,u); sp[i*3]=q.x+windU.value.x*k*12; sp[i*3+1]=H(q.x,q.z)+2+k*16; sp[i*3+2]=q.z+windU.value.y*k*12; }
   flames.geometry.attributes.position.needsUpdate=true; smoke.geometry.attributes.position.needsUpdate=true;
