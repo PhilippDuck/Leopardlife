@@ -107,6 +107,16 @@ function updateCross(p=P){
   ring.style.opacity=low?1:Math.max(0,Math.min(1,(0.5-fr)/0.2))*0.9;
 }
 /**
+ * Ringanzeige k (Hp, St, Hu, Th) auf den Anteil fr (0…1) setzen. Ohne always erscheint sie erst unter 75 %
+ * und verschwindet wieder ab 78 % (damit sie an der Grenze nicht flackert). Unter 25 % färbt sie sich rot und pulsiert.
+ */
+function gauge(h,k,fr,always,txt){
+  fr=Math.max(0,Math.min(1,fr||0));
+  const el=h('g'+k), on=always||fr<(el.classList.contains('off')?0.75:0.78);
+  el.classList.toggle('off',!on); el.classList.toggle('low',fr<0.25);
+  h('a'+k).style.strokeDashoffset=String(106.81*(1-fr)); h('t'+k).textContent=txt;
+}
+/**
  * Anzeige von Spieler p auffrischen: Stufe, Leisten, Status, Familie, Aufträge, Punkte, Fähigkeitenleiste, Ziel.
  * Mitspieler haben dieselbe Anzeige als Kopie (coop.js hEl).
  * @param {import('./player.js').Player} [p]
@@ -116,12 +126,12 @@ function updateUI(p=P){
   h('lvl').textContent=(me?'':nameOf(p)+' · ')+'Stufe '+p.L.lvl+(S.gen>1?' · Gen. '+S.gen:'');
   if(me) renderGoals(); else { h('goalBox').innerHTML=$('goalBox').innerHTML; h('goalBox').style.display=tutActive(p)?'none':'block'; }
   h('size').textContent=(W.rain>0.3?(W.storm?'Gewitter · ':'Regen · '):dayF>0.5?'Tag · ':'Nacht · ')+clockStr()+' · '+(p.L.lvl<4?'Jungtier':p.L.lvl<8?'Halbstark':oldF(p.L)>0?'Alt':p.L.lvl<12?'Ausgewachsen':'Alpha')+(p.L.lvl>=8?' · noch '+Math.max(1,Math.ceil((DIE_AT(p.L)-p.L.age)/60))+' min':'');
-  h('bHu').style.width=p.L.hunger+'%'; h('bHu').classList.toggle('low',p.L.hunger<25); h('tHu').textContent=p.L.hunger<=0?'verhungert!':p.L.hunger<25?'hungrig':Math.round(p.L.hunger)+' %';
-  { const th=p.L.thirst??100; h('bTh').style.width=th+'%'; h('bTh').classList.toggle('low',th<25); h('tTh').textContent=p.drinking?'trinkt …':th<=0?'verdurstet!':th<25?'durstig':Math.round(th)+' %'; }
-  const mh=maxHp(p.L), ms=maxSt(p.L), xn=xpNeed(p.L.lvl);
-  h('bHp').style.width=Math.max(0,p.hp/mh*100)+'%'; h('tHp').textContent=Math.ceil(p.hp)+' / '+mh;
-  h('bSt').style.width=Math.max(0,p.st/ms*100)+'%'; h('tSt').textContent=Math.floor(p.st)+' / '+ms;
-  h('bXp').style.width=(p.L.xp/xn*100)+'%'; h('tXp').textContent=p.L.xp+' / '+xn;
+  const mh=maxHp(p.L), ms=maxSt(p.L), xn=xpNeed(p.L.lvl), th=p.L.thirst??100;
+  gauge(h,'Hp',p.hp/mh,true,Math.max(0,Math.ceil(p.hp))+'/'+mh);
+  gauge(h,'St',p.st/ms,false,Math.floor(p.st)+'/'+ms);
+  gauge(h,'Hu',p.L.hunger/100,false,Math.round(p.L.hunger)+' %');
+  gauge(h,'Th',th/100,p.drinking,p.drinking?'trinkt':Math.round(th)+' %');
+  h('bXp').style.width=(p.L.xp/xn*100)+'%'; h('tXp').textContent=p.L.xp+' / '+xn+' EP';
   const stEl=h('status');
   const nt=(p.L.b.climb>0&&p.tree==null)?nearestTree(p):-1;
   const sm=(!me||players.length>1||touchUI()||padUI()||window.innerWidth<=820||window.innerHeight<=520)&&!hudExp;
