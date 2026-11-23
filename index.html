@@ -46,7 +46,9 @@
   body.split .gg .gv{display:none}
   .lab{display:flex;justify-content:space-between;font-size:11px;color:var(--mut)}
   #status{margin-top:2px;font-size:12px;min-height:16px}
-  #pts{display:none;margin-top:6px;padding:5px 8px;background:var(--gold);color:#2a1d00;border-radius:6px;font-weight:bold;font-size:12px;cursor:pointer;text-align:center;pointer-events:auto}
+  /* Freie Punkte: kleiner goldener Knopf rechts unter dem Menü (bei Mitspielern an dessen Stelle) */
+  #pts{display:none;z-index:1;position:fixed;right:12px;top:calc(var(--rad) + 54px);padding:4px 10px;background:var(--gold);color:#2a1d00;border:none;border-radius:6px;font-family:inherit;font-weight:bold;font-size:12px;line-height:1.3;cursor:pointer;text-shadow:none;box-shadow:0 1px 4px rgba(0,0,0,.4);pointer-events:auto}
+  .ph:not(#ph0) .h-pts{top:calc(var(--rad) + 20px)}
   #radar{position:fixed;right:12px;top:12px;width:var(--rad);height:var(--rad);border-radius:50%;padding:0;overflow:hidden}
   #radar canvas{width:var(--rad);height:var(--rad);display:block}
   #target{position:fixed;left:50%;top:12px;transform:translateX(-50%);padding:7px 14px;min-width:190px;text-align:center;font-size:13px;display:none}
@@ -195,7 +197,7 @@
     #hud{cursor:pointer} #hudTog{display:inline-block}
     #hud.exp{width:clamp(180px,55vw,270px);font-size:11.5px;padding:5px 7px} #hud.panel.exp{background:rgba(20,26,18,.9);border:1px solid var(--line)} #hud.exp .bar{height:8px}
     #status{font-size:10px;min-height:0;margin-top:3px;line-height:1.2}
-    #pts{margin-top:4px;padding:3px 6px;font-size:10.5px}
+    #pts{right:6px;top:calc(var(--rad) + 40px);padding:3px 8px;font-size:10.5px} .ph:not(#ph0) .h-pts{top:calc(var(--rad) + 11px)}
     #radar{right:6px;top:6px} #menuBtn{right:6px;padding:4px 8px;font-size:10.5px;top:calc(var(--rad) + 11px)}
     #target{top:6px;padding:4px 10px;min-width:130px;font-size:11px} #target .bar{height:6px;margin:3px 0 1px} #tTag{font-size:10px}
     #warn{top:46px;padding:4px 10px;font-size:11px}
@@ -258,10 +260,10 @@ body.quad .ph{--rad:92px}
   <div id="cubBox"><div class="cl"><span id="cubT"></span><span id="foodT"></span></div>
     <div id="cubBars"><div class="bar"><i id="bCf"></i></div><div class="bar"><i id="bCg"></i></div></div><div id="cubMsg"></div></div>
   <div id="goalBox"></div>
-  <div id="pts"></div>
 </div>
 <div id="radar" class="panel"><canvas id="rc" width="280" height="280"></canvas></div>
 <button id="menuBtn" class="sec">☰ Menü</button>
+<button id="pts" type="button" title="Punkte für Eigenschaften und Fähigkeiten vergeben"></button>
 <div id="bite" class="panel"><div id="biteHint"></div><div id="biteResW" title="Widerstand der Beute"><div id="biteRes"></div></div><div id="biteBar"><i class="z2"></i><i class="z1"></i><b id="biteDot"></b></div><div id="biteRounds"></div><button id="biteTap" type="button">Zubeißen</button></div>
 <div id="tut" class="panel"><div id="tutHead"></div><div id="tutText"></div><button id="tutSkip">Einführung überspringen</button><div id="tutSkipK" style="font-size:11px;color:var(--mut);margin-top:6px"></div></div>
 <div id="target" class="panel"><span id="tName"></span> <span id="tTag"></span><div class="bar"><i id="bT"></i></div></div>
