@@ -77,6 +77,6 @@ function buildQuad(o,v){
   g.userData={legs,tail,head,inner,blob:sh};
   return g;
 }
-function animLegs(g,t,amp){ const l=g.userData.legs; const a=Math.sin(t)*amp; l[0].rotation.x=a; l[3].rotation.x=a; l[1].rotation.x=-a; l[2].rotation.x=-a; if(g.userData.tail) g.userData.tail.rotation.y=Math.sin(t*0.5)*0.3; }
+function animLegs(g,t,amp){ if(g.userData.anim){ g.userData.anim(t,amp); return; } const l=g.userData.legs; const a=Math.sin(t)*amp; l[0].rotation.x=a; l[3].rotation.x=a; l[1].rotation.x=-a; l[2].rotation.x=-a; if(g.userData.tail) g.userData.tail.rotation.y=Math.sin(t*0.5)*0.3; }
 
 export { animLegs, buildQuad, furColor, furName, makeFur };

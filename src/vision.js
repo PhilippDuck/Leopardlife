@@ -38,7 +38,7 @@ function visibility(a,p,dt){
   a.visT=(a.visT||0)-dt; a.vis=a.vis||new Map();
   if(a.visT>0&&a.vis.has(p)) return a.vis.get(p);
   a.visT=0.2+Math.random()*0.1;
-  const sp=a.sp, gy=H(a.x,a.z), eye=gy+Math.max(0.5,sp.size*(sp.human?1.65:1.15)), sc=pScale(p.L);
+  const sp=a.sp, gy=H(a.x,a.z), eye=gy+Math.max(0.5,sp.size*(sp.human?1.8:1.15)), sc=pScale(p.L);
   const ty=(p.tree!=null?p.y+p.upNow:H(p.x,p.z))+(p.sneak?0.32:0.55)*sc;
   const look=a.g.rotation.y+(a.watch&&a.idle>0?Math.sin(performance.now()/900+a.uid)*1.2:0);
   let ang=Math.atan2(p.x-a.x,p.z-a.z)-look; while(ang>Math.PI) ang-=6.283; while(ang<-Math.PI) ang+=6.283;

@@ -12,6 +12,7 @@ import { scene, windU } from './engine.js';
 import { CUB_HOME } from './family.js';
 import { denKids, kidDies } from './cubfollow.js';
 import { animLegs, buildQuad, makeFur } from './models.js';
+import { buildHuman } from './human.js';
 import { P, players } from './player.js';
 import { H, WORLD, pondAt } from './terrain.js';
 import { floatText, toast } from './ui.js';
@@ -90,25 +91,11 @@ function burnGrass(regrow){
 }
 
 /* ---------- Wilderer ---------- */
-/** Einfache Menschenfigur (Beine/Arme passen zu animLegs: 0/3 und 1/2 schwingen gegengleich) mit Gewehr */
-function buildHuman(){
-  const g=new THREE.Group(), inner=new THREE.Group(); g.add(inner);
-  const M=c=>new THREE.MeshLambertMaterial({color:c}), cloth=M(0x5f5a36), skin=M(0x7a4e33), dark=M(0x2b2a24), hat=M(0x4c4229);
-  const box=(w,h,d,m,x,y,z)=>{ const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m); o.position.set(x,y,z); o.castShadow=true; return o; };
-  const limb=(w,h,m,x,y)=>{ const piv=new THREE.Group(); piv.position.set(x,y,0); const o=box(w,h,w,m,0,-h/2,0); piv.add(o); inner.add(piv); return piv; };
-  const legL=limb(0.16,0.86,dark,-0.12,0.88), legR=limb(0.16,0.86,dark,0.12,0.88), armL=limb(0.12,0.6,cloth,-0.3,1.45), armR=limb(0.12,0.6,cloth,0.3,1.45);
-  inner.add(box(0.48,0.62,0.27,cloth,0,1.2,0));
-  const head=new THREE.Mesh(new THREE.SphereGeometry(0.15,10,8),skin); head.position.set(0,1.68,0); inner.add(head);
-  const brim=new THREE.Mesh(new THREE.CylinderGeometry(0.27,0.27,0.03,12),hat); brim.position.set(0,1.79,0); inner.add(brim);
-  const top=new THREE.Mesh(new THREE.CylinderGeometry(0.14,0.16,0.14,10),hat); top.position.set(0,1.86,0); inner.add(top);
-  const gun=new THREE.Group(); gun.add(box(0.05,0.06,1.05,dark,0,0,0.3)); gun.add(box(0.07,0.13,0.28,M(0x5a3a22),0,-0.04,-0.18)); gun.position.set(0.18,1.38,0.12); inner.add(gun);
-  g.userData={inner,legs:[legL,armR,armL,legR],gun}; return g;
-}
 /** Sieht der Wilderer w Spieler p? (Tarnung, Gras, Schleichen und Baum verstecken) */
 function seesPlayer(w,p,dt=0.1){ if(p.dead) return false; const d=Math.hypot(p.x-w.x,p.z-w.z); if(d>60) return false; return d<55*Math.max(0.25,p.stealth==null?1:p.stealth)*visibility(w,p,dt)||d<hearR(p); }
 function fire(w,tx,tz){
-  gunshot(w.x,w.z); const gy=H(w.x,w.z)+1.4, a=Math.atan2(tx-w.x,tz-w.z);
-  puff(w.x+Math.sin(a)*0.9,gy,w.z+Math.cos(a)*0.9,0xffd27a,5,0.25); puff(w.x+Math.sin(a)*1.1,gy+0.1,w.z+Math.cos(a)*1.1,0x9a958a,4,0.45);
+  gunshot(w.x,w.z); const gy=H(w.x,w.z)+2.35, a=Math.atan2(tx-w.x,tz-w.z);
+  puff(w.x+Math.sin(a)*1.75,gy,w.z+Math.cos(a)*1.75,0xffd27a,5,0.25); puff(w.x+Math.sin(a)*1.95,gy+0.1,w.z+Math.cos(a)*1.95,0x9a958a,4,0.45);
   for(const o of animals){ if(o.dead||o.sp.friend||o.sp.human||o.sp.croc) continue; if(Math.hypot(o.x-w.x,o.z-w.z)<90&&o.state!=='chase'&&!o.ev){ o.state='flee'; o.fleeT=0; o.sus=0; } }   // der Knall scheucht alles auf
 }
 /** Wilderer-Verhalten: streift umher, schießt auf Wild, zielt auf entdeckte Leoparden */
@@ -118,7 +105,7 @@ function poachStep(a,dt,move){
   let tgt=a.aimAt&&!a.aimAt.dead&&a.aimAt.L&&seesPlayer(a,a.aimAt,dt)?a.aimAt:null;
   if(!tgt) for(const p of players) if(seesPlayer(a,p,dt)){ tgt=p; break; }
   if(tgt){ if(a.aimAt!==tgt){ a.aimAt=tgt; a.aimT=0; }
-    a.g.rotation.y=Math.atan2(tgt.x-a.x,tgt.z-a.z); a.aimT+=dt; a.g.userData.gun.rotation.x=-0.05;
+    a.g.rotation.y=Math.atan2(tgt.x-a.x,tgt.z-a.z); a.aimT+=dt; a.g.userData.aim=1;
     if(a.aimT>1.5&&a.shotT<=0){ a.shotT=rnd(3,4.5); a.aimT=0.3; fire(a,tgt.x,tgt.z);
       const mov=Math.hypot(tgt.ctl.fw,tgt.ctl.rt)>0.2, chance=0.7-(mov?0.25:0)-(tgt.sneak?0.15:0)-(tgt.tree!=null?0.2:0);
       if(Math.random()<chance){ hurtPlayer(a.sp.dmg,a,false,tgt); floatText('Schuss!',tgt.x,tgt.y+2,tgt.z,'#ff5a3a'); } else floatText('daneben',tgt.x,tgt.y+2,tgt.z,'#ddd'); }
@@ -126,7 +113,7 @@ function poachStep(a,dt,move){
   a.aimAt=null; a.aimT=0;
   // Wild in Reichweite? stehen bleiben, zielen, schießen
   if(a.shotT<=0){ let prey=null, bd=70; for(const o of animals){ if(o.dead||o.sp.friend||o.sp.human||o.sp.croc||o.held) continue; const d=Math.hypot(o.x-a.x,o.z-a.z); if(d<bd){ bd=d; prey=o; } }
-    if(prey){ a.g.rotation.y=Math.atan2(prey.x-a.x,prey.z-a.z); a.prey=prey; a.preyT=(a.preyT||0)+dt; animLegs(a.g,a.ph,0.02);
+    if(prey){ a.g.rotation.y=Math.atan2(prey.x-a.x,prey.z-a.z); a.prey=prey; a.preyT=(a.preyT||0)+dt; a.g.userData.aim=1; animLegs(a.g,a.ph,0.02);
       if(a.preyT>1.6){ a.preyT=0; a.shotT=rnd(12,22); fire(a,prey.x,prey.z);
         if(Math.random()<0.75&&!prey.dead){ prey.dead=true; prey.state='wander'; prey.respawn=rnd(60,120); prey.wound=null; makeCarcass(prey,FOOD[prey.sp.id]||3); } }
       return true; }
@@ -134,7 +121,7 @@ function poachStep(a,dt,move){
   // umherstreifen um ihr Lager
   const h=EV.home||{x:a.x,z:a.z};
   if(Math.hypot(a.tx-a.x,a.tz-a.z)<2){ a.tx=h.x+rnd(-45,45); a.tz=h.z+rnd(-45,45); }
-  move(a,a.tx-a.x,a.tz-a.z,2.2,dt); a.g.userData.gun.rotation.x=0.5;
+  a.g.userData.aim=0; move(a,a.tx-a.x,a.tz-a.z,2.2,dt);
   return true;
 }
 /** Ein Leopard greift einen Wilderer an: verletzt ihn; ab etwa der Hälfte ergreift er die Flucht (Wilderer werden vertrieben, nicht erlegt) */
@@ -184,6 +171,7 @@ function endEvent(msg,col){
 function eventStep(a,dt,move){
   const sp=a.sp;
   if(a.ev==='leave'){   // von den Spielern weg und außer Sicht verschwinden
+    if(sp.human) a.g.userData.aim=0;
     let q=players[0], qd=1e9; for(const p of players){ const d=Math.hypot(p.x-a.x,p.z-a.z); if(d<qd){ qd=d; q=p; } }
     const dx=a.x-q.x, dz=a.z-q.z; move(a,dx||1,dz,sp.human?6.5:sp.spd*0.8,dt);
     if(qd>175||(!sp.human&&!a.temp&&Math.hypot(a.x,a.z)>WORLD-6)){ a.ev=null; if(a.temp){ a.gone=true; a.dead=true; a.g.visible=false; } } return true; }
