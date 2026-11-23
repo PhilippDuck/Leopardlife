@@ -72,7 +72,9 @@ const GLSL_H=GLSL_SNOISE+'float H0(vec2 p){ float h=6.2*snoise(p*0.0062+vec2('+f
   'float Hh(vec2 p){ float h=H0(p); float d; float w; float u; float t;\n'+
   PONDS.map(p=>'  d=distance(p,vec2('+p.x.toFixed(2)+','+p.z.toFixed(2)+')); if(d<'+(p.r*1.5).toFixed(2)+'){ w=clamp(('+(p.r*1.5).toFixed(2)+'-d)/'+(p.r*0.6).toFixed(2)+',0.0,1.0); w=w*w*(3.0-2.0*w); u=d/'+p.r.toFixed(2)+'; t=d<'+p.r.toFixed(2)+'?'+p.L.toFixed(4)+'-(1.0-u*u):'+p.L.toFixed(4)+'; h+=(t-h)*w; }\n').join('')+
   '  return worldBasin(p,h); }\n';
-const GLSL_PONDMASK=PONDS.map(p=>'  if(distance(w,vec2('+p.x.toFixed(2)+','+p.z.toFixed(2)+'))<'+(p.r*0.93).toFixed(2)+') fade=0.0;\n').join('');
+const GLSL_PONDMASK=PONDS.map(p=>'  if(distance(w,vec2('+p.x.toFixed(2)+','+p.z.toFixed(2)+'))<'+(p.r*0.93).toFixed(2)+') fade=0.0;\n').join('')+
+  // Tümpel der weiten Welt (wie worldPond): je 256-m-Feld höchstens einer, in der Feldmitte, nur wo es feucht genug ist
+  '  { vec2 pc=(floor(w/256.0)+0.5)*256.0; float pm=moisture(pc); if(length(pc)>='+(WORLD+50).toFixed(1)+'&&pm>=0.62&&distance(w,pc)<(14.0+pm*10.0)*0.93) fade=0.0; }\n';
 const vnoise=(x,z)=>Math.sin(x*0.11+Math.sin(z*0.07)*2.1)*Math.cos(z*0.13+Math.sin(x*0.05)*1.7)*0.5+Math.sin(x*0.31-z*0.27)*0.25+Math.sin(x*0.53+z*0.61)*0.12;
 
 

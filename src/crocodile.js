@@ -17,10 +17,14 @@ import { rnd } from './util.js';
    rise:  kurzes Aufschäumen als Warnung, dann
    lunge: schnellt mit offenem Maul vor, beißt und zerrt die Beute Richtung Wasser
    return / chase / flee: zurück ins Wasser, am Ufer verteidigen, fliehen
+   Nach jedem Angriff ruht es eine Weile (a.rest) tief in der Mitte des Wasserlochs und jagt nicht –
+   nach einem Riss am längsten, denn es frisst. So gibt es kein Gemetzel, wenn morgens viele Tiere trinken.
    Am eigenen Wasserloch greifen Krokodile jeden Leoparden an, egal wie groß – wer trinkt, hat den Kopf unten und merkt es spät. */
+const REST_KILL=[100,160], REST_MISS=[35,60];   // Ruhezeit in Sekunden nach einem Riss bzw. nach einem Biss oder Fehlangriff
 /** @param {import('./player.js').Player} [T] Spieler, auf den das Krokodil reagiert */
 function crocStep(a,dt,d,dx,dz,stealth,hostile,T=P,prey=null){
   const sp=a.sp, p=a.pond, wl=p.L-WATER_D, s=sp.size;
+  if(a.rest>0) a.rest-=dt;
   // Tiere, die sich an diesem Wasserloch zum Trinken nähern, sind ebenfalls Beute.
   if(prey){
     a.near=false; a.hidden=false;
@@ -28,8 +32,8 @@ function crocStep(a,dt,d,dx,dz,stealth,hostile,T=P,prey=null){
     a.state='huntWild'; a.g.rotation.y=Math.atan2(x,z);
     if(dist>reach) moveAnimal(a,x,z,sp.spd*1.5,dt);
     else if(a.cd<=0){ a.cd=2.2; prey.hp-=sp.dmg*1.25; puff(prey.x,H(prey.x,prey.z)+0.3,prey.z,0xc0392b,7,0.45);
-      if(prey.hp<=0){ prey.dead=true; prey.crocKilled=true; a.state='return'; }
-      else { prey.state='flee'; prey.fleeT=0; prey.drinkPond=null; prey.thirst=45; }
+      if(prey.hp<=0){ prey.dead=true; prey.crocKilled=true; a.state='return'; a.rest=rnd(REST_KILL[0],REST_KILL[1]); }
+      else { prey.state='flee'; prey.fleeT=0; prey.drinkPond=null; prey.thirst=45; a.state='return'; a.rest=rnd(REST_MISS[0],REST_MISS[1]); }
       snd.snap(); }
     const inW=Math.hypot(a.x-p.x,a.z-p.z)<p.r*0.8,gy=H(a.x,a.z),ty=inW?Math.max(gy,wl-(CROC_EYE-0.07)*s):gy;
     a.sy=a.sy==null?ty:a.sy+(ty-a.sy)*Math.min(1,dt*5); a.g.position.set(a.x,a.sy,a.z);
@@ -49,16 +53,16 @@ function crocStep(a,dt,d,dx,dz,stealth,hostile,T=P,prey=null){
     if(d<a.rad+0.9+pScale(T.L)*0.6&&a.cd<=0&&!T.safe){ a.cd=1.6; a.hitT=true; snd.snap(); hurtPlayer(sp.dmg,a,false,T); a.lt=Math.min(a.lt,0.25);
       if(!T.dead&&tp>0.1){ const k=Math.min(1.4,tp*0.15); T.x+=(p.x-T.x)/tp*k; T.z+=(p.z-T.z)/tp*k; }   // zerrt Richtung Wasser
       puff(T.x,H(T.x,T.z)+0.4,T.z,0xd8ecf2,10,0.5); }
-    if(a.lt<=0){ a.state='return';
+    if(a.lt<=0){ a.state='return'; a.rest=rnd(REST_MISS[0],REST_MISS[1])*(a.hitT?1:0.6);
       // ausgewichen: Erfahrung, höchstens alle 45 Sekunden
       const now=performance.now(); if(!a.hitT&&!T.dead&&d<10&&now-(T.dodgeAt||-1e9)>45000){ T.dodgeAt=now; floatText('Ausgewichen! +25 EP',T.x,H(T.x,T.z)+2,T.z,'#9be07f'); gainXp(25,T); } }
   } else if(a.state==='lurk'||a.state==='stalk'){
     a.near=atPond&&d<25;
     if(a.state==='lurk'){
       a.timer-=dt;
-      if(a.timer<=0||Math.hypot(a.tx-a.x,a.tz-a.z)<1){ const an=Math.random()*6.283, r=Math.random()*p.r*0.6; a.tx=p.x+Math.cos(an)*r; a.tz=p.z+Math.sin(an)*r; a.timer=rnd(6,14); }
+      if(a.timer<=0||Math.hypot(a.tx-a.x,a.tz-a.z)<1){ const an=Math.random()*6.283, r=Math.random()*p.r*(a.rest>0?0.25:0.6); a.tx=p.x+Math.cos(an)*r; a.tz=p.z+Math.sin(an)*r; a.timer=rnd(6,14); }   // ruhend: tief in der Mitte
       moveAnimal(a,a.tx-a.x,a.tz-a.z,0.6,dt);
-      if(atPond&&a.cd<=0&&d<p.r*2.2) a.state='stalk';
+      if(atPond&&a.cd<=0&&!(a.rest>0)&&d<p.r*2.2) a.state='stalk';
     } else {
       // Ziel: der Punkt im Wasser vor dem Spieler, knapp unter der Wasserlinie
       const ux=(T.x-p.x)/(tp||1), uz=(T.z-p.z)/(tp||1), rr=Math.min(Math.max(0,tp-1.8),p.r*0.7);
@@ -68,7 +72,7 @@ function crocStep(a,dt,d,dx,dz,stealth,hostile,T=P,prey=null){
       if(!atPond||tp>p.r+9) { a.state='lurk'; a.timer=0; }
     }
     const reach=(4.5+2.5*s)*Math.max(0.55,stealth)*(drink?1.5:1);
-    if(atPond&&a.cd<=0&&d<reach){ a.state='rise'; a.lt=drink?0.4:0.55; snd.croc(); puff(a.x,wl+0.2,a.z,0xd8ecf2,8,0.4); floatText('!',a.x,wl+s*1.5,a.z,'#ff5a3c'); }
+    if(atPond&&a.cd<=0&&!(a.rest>0)&&d<reach){ a.state='rise'; a.lt=drink?0.4:0.55; snd.croc(); puff(a.x,wl+0.2,a.z,0xd8ecf2,8,0.4); floatText('!',a.x,wl+s*1.5,a.z,'#ff5a3c'); }
     if(!p.murky&&d<30&&Math.random()<dt*0.6) puff(a.x+rnd(-0.6,0.6),wl+0.05,a.z+rnd(-0.6,0.6),0xe0f0f4,2,0.15);   // Luftblasen
     if(p.murky) murkySigns(a,dt,d,tp,T);
   } else {
@@ -84,7 +88,7 @@ function crocStep(a,dt,d,dx,dz,stealth,hostile,T=P,prey=null){
   const inW=Math.hypot(a.x-p.x,a.z-p.z)<p.r*0.8, gy=H(a.x,a.z);
   const sub=a.state==='lurk'||a.state==='stalk';
   a.hidden=p.murky&&sub&&!(a.seenT>0); if(a.seenT>0) a.seenT-=dt;
-  const ty=inW?Math.max(gy,sub?wl-(CROC_EYE-0.07+(a.hidden?0.25:0))*s:wl-0.2*s):gy;
+  const ty=inW?Math.max(gy,sub?wl-(CROC_EYE-0.07+(a.hidden?0.25:a.rest>0?0.12:0))*s:wl-0.2*s):gy;   // ruhend tiefer abgetaucht
   a.sy=a.sy==null?ty:a.sy+(ty-a.sy)*Math.min(1,dt*5);
   a.g.position.set(a.x,a.sy,a.z);
   const u=a.g.userData; if(u.croc){ u.inner.rotation.x+=(tilt-u.inner.rotation.x)*Math.min(1,dt*8); animCroc(a.g,a.ph,0.3,swim&&inW,open); }
