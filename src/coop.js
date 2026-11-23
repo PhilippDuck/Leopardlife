@@ -102,6 +102,7 @@ function viewMin(p){ const i=Math.max(0,players.indexOf(p)), q=rectsFor(players.
 function layoutChanged(){
   const n=players.length, R=rectsFor(n), split=n>1;
   document.body.classList.toggle('split',split); document.body.classList.toggle('quad',n>=3);
+  document.body.classList.toggle('three',n===3);
   // Jeder Spieler hat einen Anzeige-Rahmen über seinem Ausschnitt; Spieler 1 nutzt #ph0, Mitspieler eine Kopie
   players.forEach((p,i)=>{ const el=p===P?$('ph0'):p.hud; if(!el) return; const q=R[i]; Object.assign(el.style,{left:q[0]*100+'%',top:q[1]*100+'%',width:q[2]*100+'%',height:q[3]*100+'%'}); });
   const empty=$('splitEmpty'); if(empty){ empty.style.display=n===3?'flex':'none'; }
@@ -277,6 +278,7 @@ on('toast',(t,c)=>{ for(const p of players) if(p!==P&&p.hud) mateToast(p,t,c); }
 /** Anzeige der Mitspieler auffrischen: dieselbe Anzeige wie bei Spieler 1, mit ihren eigenen Werten. */
 function updateCoopHud(dt){
   hudTick++;
+  if(players.length===3){ const src=$('goalBox'), dst=$('sharedGoals'); if(src&&dst) dst.innerHTML=src.innerHTML; }
   for(const v of players) updateMarks(v,dt);
   for(const p of players){
     if(!p.hud) continue; const h=p.hud;

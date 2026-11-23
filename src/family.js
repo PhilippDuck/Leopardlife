@@ -163,7 +163,7 @@ function raidStep(a,dt){
   }
 }
 /**
- * Geburt: Jeder Spieler, der gerade kein eigenes Junges hat, bekommt eins. Gibt es schon Junge (z. B. das der Mitspielerin),
+ * Geburt: Jeder beteiligte Eltern-Spieler, der noch kein eigenes Junges hat, bekommt eins. Gibt es schon Junge,
  * kommen die neuen dazu – mit eigener Größe, Erbanlage und Herkunft.
  */
 function birth(){
@@ -172,7 +172,7 @@ function birth(){
   const pg=players.filter(q=>parents.indexOf(q.L.id)>=0).map(q=>q.L.gen||1), gen=1+(pg.length?Math.max(...pg):(S.gen||1));
   const fur=cubFur(parents); if(tr==='dunkel'&&!fur.albino) fur.l=Math.min(fur.l,0.66);
   // Nur Spieler, deren Leopard tatsächlich zu dieser Paarung gehört, erhalten ein Junges.
-  let who=players.filter(q=>parents.indexOf(q.L.id)>=0&&!kidOf(q)); if(!who.length) who=[P];
+  const who=players.filter(q=>parents.indexOf(q.L.id)>=0&&!kidOf(q));
   if(!S.cub){ S.cub={full:70,grow:0,hp:1,trait:tr,n:0,gen,parents,fur,kids:{}}; cub.x=CUB_HOME.x; cub.z=CUB_HOME.z; cub.t=0; G.raidT=rnd(90,130)*D().raid; }
   const c=S.cub; kidsOf(c);
   for(const q of who){ const k=numOf(q); c.kids[k]={full:70,hp:1,grow:0,stage:0,trait:tr,gen,parents:parents.slice(),fur:Object.assign({},fur)}; if(c.took) delete c.took[k]; }

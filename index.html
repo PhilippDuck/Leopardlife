@@ -24,6 +24,9 @@
   #lvl{font-weight:bold;color:var(--gold);font-size:15px}
   .bar{height:11px;background:rgba(0,0,0,.45);border-radius:6px;overflow:hidden;margin:3px 0 7px}
   .bar>i{display:block;height:100%;width:50%;border-radius:6px;transition:width .15s}
+  #hud .bar.stat{position:relative;overflow:visible;margin-left:21px}
+  #hud .bar.stat:before{position:absolute;left:-20px;top:-3px;width:16px;text-align:center;font-size:12px;line-height:1.2;filter:drop-shadow(0 1px 2px #000)}
+  #hud .bar.stat.hp:before{content:'♥'} #hud .bar.stat.st:before{content:'⚡'} #hud .bar.stat.hu:before{content:'🍖'} #hud .bar.stat.xp:before{content:'✦'}
   #bHp{background:linear-gradient(#ef6b55,#c43d2a)} #bSt{background:linear-gradient(#f5d266,#d49a1e)} #bHu{background:linear-gradient(#e0a060,#b06a26)} #bHu.low{background:linear-gradient(#ef6b55,#c43d2a)} #bTh{background:linear-gradient(#7fc8e8,#2f7fb0)} #bTh.low{background:linear-gradient(#ef6b55,#c43d2a)} #bXp{background:linear-gradient(#8ad4ef,#3f8fc0)}
   .lab{display:flex;justify-content:space-between;font-size:11px;color:var(--mut)}
   #status{margin-top:2px;font-size:12px;min-height:16px}
@@ -140,6 +143,9 @@
   #goalBox .gx{font-style:normal;color:#9be07f;opacity:.75;font-size:10px;white-space:nowrap} #goalBox .gl.done .gx{display:none}
   #goalBox .gs{color:#f2b84b;font-weight:bold} #goalBox .gb{margin-top:3px;color:var(--gold);font-size:10.5px} #goalBox .gb.ok{color:#9be07f}
   #goalBox .gl.bump{animation:gbump 1.2s ease-out} @keyframes gbump{0%{background:rgba(242,184,75,.45)}100%{background:transparent}}
+  /* In der Dreier-Runde liegen gemeinsame Tagesziele im freien vierten Ausschnitt. */
+  #sharedGoals{display:none;pointer-events:none;width:88%;max-height:88%;overflow:hidden;padding:10px 12px;background:rgba(20,26,18,.88);border:1px solid var(--line);border-radius:10px;text-align:left;color:var(--txt);font-size:clamp(10px,1.3vw,15px)}
+  #sharedGoals .gh{color:#9be07f;font-weight:bold;margin-bottom:6px} #sharedGoals .gl{display:flex;gap:6px;line-height:1.35;margin:4px 0} #sharedGoals .gl.done{color:#7fae6f} #sharedGoals .gx{font-style:normal;color:#9be07f;opacity:.75;font-size:.9em;white-space:nowrap} #sharedGoals .gl.done .gx{display:none} #sharedGoals .gs{color:#f2b84b;font-weight:bold} #sharedGoals .gb{margin-top:5px;color:var(--gold);font-size:.95em} #sharedGoals .gb.ok{color:#9be07f}
   #cubMsg{font-size:11px;color:#ff8a70;font-weight:bold}
   #warnRing{position:fixed;left:50%;top:50%;width:0;height:0;pointer-events:none}
   .wa{position:absolute;left:-15px;top:-13px;width:0;height:0;border-left:15px solid transparent;border-right:15px solid transparent;border-bottom:26px solid #f2d04b;filter:drop-shadow(0 0 5px rgba(0,0,0,.9));display:none}
@@ -196,6 +202,8 @@
 body.split .ph{--rad:110px}
 /* Viertel (3–4 Spieler): Statusfeld, Leiste und Spürkarte kleiner */
 body.quad .ph #hud{transform:scale(.72);transform-origin:0 0}
+  body.three .ph #goalBox,body.three .ph .h-goalBox{display:none!important}
+body.three #sharedGoals{display:block}
 body.quad .ph #cds{transform:translateX(-50%) scale(.8);transform-origin:50% 100%}
 body.quad .ph{--rad:92px}
 .pvBar{width:140px;max-width:40%;height:7px;background:rgba(0,0,0,.5);border-radius:4px;margin-top:4px;overflow:hidden}
@@ -227,11 +235,11 @@ body.quad .ph{--rad:92px}
 <div id="hud" class="panel">
   <div class="row"><span id="lvl">Stufe 1</span><span id="hudTog">▾</span></div>
   <div id="size" style="color:var(--mut);font-size:11px;margin-bottom:3px"></div>
-  <div class="lab"><span>Leben</span><span id="tHp"></span></div><div class="bar"><i id="bHp"></i></div>
-  <div class="lab"><span>Ausdauer</span><span id="tSt"></span></div><div class="bar"><i id="bSt"></i></div>
-  <div class="lab"><span>Sättigung</span><span id="tHu"></span></div><div class="bar"><i id="bHu"></i></div>
+  <div class="lab"><span>Leben</span><span id="tHp"></span></div><div class="bar stat hp"><i id="bHp"></i></div>
+  <div class="lab"><span>Ausdauer</span><span id="tSt"></span></div><div class="bar stat st"><i id="bSt"></i></div>
+  <div class="lab"><span>Sättigung</span><span id="tHu"></span></div><div class="bar stat hu"><i id="bHu"></i></div>
   <div class="lab"><span>Wasser</span><span id="tTh"></span></div><div class="bar"><i id="bTh"></i></div>
-  <div class="lab"><span>Erfahrung</span><span id="tXp"></span></div><div class="bar"><i id="bXp"></i></div>
+  <div class="lab"><span>Erfahrung</span><span id="tXp"></span></div><div class="bar stat xp"><i id="bXp"></i></div>
   <div id="status"></div>
   <div id="cubBox"><div class="cl"><span id="cubT"></span><span id="foodT"></span></div>
     <div id="cubBars"><div class="bar"><i id="bCf"></i></div><div class="bar"><i id="bCg"></i></div></div><div id="cubMsg"></div></div>
@@ -426,6 +434,6 @@ body.quad .ph{--rad:92px}
 
 <script src="vendor/three.min.js"></script>
 <script type="module" src="src/main.js"></script>
-<div id="splitEmpty">Freier Platz<br>Weiterer Controller: Start drücken zum Mitspielen</div>
+<div id="splitEmpty"><div id="sharedGoals"></div></div>
 </body>
 </html>
