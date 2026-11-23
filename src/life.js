@@ -7,7 +7,7 @@ import { W } from './weather.js';
 import { G } from './state.js';
 import { floatText, toast } from './ui.js';
 import { newMate, tell } from './coop.js';
-import { SWITCH_AT, cubSpot, hasOwnCub, kidOf } from './cubfollow.js';
+import { SWITCH_AT, canSwitchFor, cubSpot, hasOwnCub, kidOf } from './cubfollow.js';
 import { ensureKin, mateBecomeCub, newId } from './kinship.js';
 import { recordAncestor } from './carcass.js';
 import { becomeCub } from './kin.js';
@@ -20,7 +20,7 @@ function mateDiesOfAge(p){
   if(hasOwnCub(p)){ const c=S.cub, k=kidOf(p); if(k.grow<SWITCH_AT){ k.grow=SWITCH_AT; if(c.learn) delete c.learn[p.num]; }
     if(mateBecomeCub(p)){ tell(p,'Dein Leopard ist an Altersschwäche gestorben – du lebst in deinem Jungen weiter.','#ff9ad0'); return; } }
   const L=newMate(p.num); L.id=newId(); L.parents=[]; ensureKin(L); S.mates[p.num]=L; p.L=L; p.fur=L.fur; rebuildPlayer(p); p.hp=maxHp(L); save();
-  tell(p,'Dein Leopard ist an Altersschwäche gestorben, ohne Nachwuchs. Du beginnst als neuer Leopard (Stufe '+L.lvl+', '+L.pts+' Punkte zum Verteilen).','#ff8a70');
+  tell(p,'Dein Leopard hat das Ende seiner Lebenszeit erreicht. Ohne eigenes Junges beginnst du als neuer Leopard (Stufe '+L.lvl+', '+L.pts+' Punkte zum Verteilen).','#ff8a70');
 }
 /**
  * Splitscreen: Spieler 1 stirbt an Altersschwäche. Nicht zu Boden gehen (Wiederbeleben würde ihn sofort wieder sterben lassen),
@@ -35,7 +35,7 @@ function p1DiesOfAge(){
   const lvl=Math.max(1,...players.filter(q=>q!==P).map(q=>q.L.lvl)), f=fresh();
   Object.assign(S,{lvl,xp:0,pts:2*(lvl-1),a:f.a,b:f.b,traits:[],age:0,hunger:100,thirst:100,kills:0,partner:false,p1:false,p2:false});
   S.id=newId(); S.parents=[]; ensureKin(S); rebuildPlayer(); P.hp=maxHp(); P.st=maxSt(); save();
-  tell(P,'Dein Leopard ist an Altersschwäche gestorben, ohne Nachwuchs. Du beginnst als neuer Leopard (Stufe '+lvl+', '+S.pts+' Punkte zum Verteilen).','#ff8a70');
+  tell(P,'Dein Leopard hat das Ende seiner Lebenszeit erreicht. Ohne eigenes Junges beginnst du als neuer Leopard (Stufe '+lvl+', '+S.pts+' Punkte zum Verteilen).','#ff8a70');
 }
 /** Durst von Spieler p: sinkt mit der Zeit (bei Regen langsamer), warnt einmal, wenn es knapp wird */
 function thirstStep(p,dt){
@@ -47,6 +47,7 @@ function thirstStep(p,dt){
 function updateLife(dt){
   // Mitspieler: eigener Hunger (satt werden sie durch eigene Beute); Altern und Erbe betreffen nur die Linie von Spieler 1
   for(const p of players){ if(p===P||p.dead) continue; const L=p.L;
+    if(canSwitchFor(p)&&!p.cubReadyNotice){ p.cubReadyNotice=true; tell(p,'Dein Junges ist halbstark. Im Entwicklungsfenster kannst du jetzt als Junges weiterspielen. Wenn du erwachsen bleibst, wechselst du erst am Ende deiner Lebenszeit.','#ff9ad0'); }
     L.hunger=Math.max(0,L.hunger-dt*hungerRate(L)); thirstStep(p,dt);
     if(L.hunger<=0){ p.hp-=maxHp(L)*0.015*dt; if(p.hp<=0) hurtPlayer(1e9,{sp:{id:'hunger',n:'Hunger'}},true,p); }
     if(!p.dead&&L.thirst<=0){ p.hp-=maxHp(L)*0.02*dt; if(p.hp<=0) hurtPlayer(1e9,{sp:{id:'thirst',n:'Durst'}},true,p); }
@@ -56,6 +57,7 @@ function updateLife(dt){
       if(a0<Dm-90&&L.age>=Dm-90) tell(p,'Deine Kräfte schwinden. Dir bleibt nicht mehr viel Zeit.','#ff8a70');
       if(L.age>=Dm) mateDiesOfAge(p); } }
   if(P.dead) return;
+  if(canSwitchFor(P)&&!P.cubReadyNotice){ P.cubReadyNotice=true; toast('Dein Junges ist halbstark. Im Menü kannst du jetzt als Junges weiterspielen. Wenn du erwachsen bleibst, wechselst du erst am Ende deiner Lebenszeit.','#ff9ad0'); }
   S.hunger=Math.max(0,S.hunger-dt*hungerRate()); thirstStep(P,dt);
   if(S.hunger<20&&S.food>0){ S.food--; S.hunger=Math.min(100,S.hunger+12); }   // Notration aus dem Vorrat
   if(S.hunger<=0){ P.hp-=maxHp()*0.015*dt; if(P.hp<=0){ hurtPlayer(1e9,{sp:{id:'hunger',n:'Hunger'}},true); return; } }
