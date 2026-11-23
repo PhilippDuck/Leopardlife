@@ -216,6 +216,10 @@ const snd={
   thunder(){ { const ks=['thunder','thunderMid','thunderMid2','thunderFar','thunderFar'].filter(hasSample); if(ks.length){ const k=ks[Math.floor(Math.random()*ks.length)]; sample(k,k==='thunderFar'?rnd(0.6,1):rnd(0.5,0.95),rnd(0.82,1.08)); return; } } noise(0.25,0.35,2600,900,'bandpass'); noise(2.8,0.5,220,60,'lowpass',0.05); tone(48,2.2,'sine',0.22,30,0.05); },
   splash(){ noise(0.16,0.16,1800,700,'bandpass'); },
   step(v){ noise(0.06,v,260,120,'lowpass'); },
+  /** Perlhühner schlagen Alarm: schnelles, metallisches Gackern (v: Lautstärke nach Entfernung) */
+  cackle(v){ if(v<=0.01) return; for(let i=0;i<9;i++){ const f=rnd(1100,1500); tone(f,0.05,'square',0.05*v,f*0.7,i*rnd(0.06,0.09)); noise(0.04,0.12*v,2600,1400,'bandpass',i*0.075); } },
+  /** Madenhacker fliegen zischend auf */
+  hiss(v){ if(v<=0.01) return; for(let i=0;i<4;i++) noise(0.12,0.16*v,5200,3600,'bandpass',i*0.1); tone(3400,0.06,'sine',0.03*v,2600,0.05); },
   bird(){ const b=rnd(1800,3200); for(let i=0;i<3;i++) tone(b*rnd(0.9,1.15),0.09,'sine',0.035,b*rnd(1.1,1.4),i*0.13); }
 };
 
