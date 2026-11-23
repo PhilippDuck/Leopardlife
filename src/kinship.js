@@ -79,6 +79,7 @@ function mateBecomeCub(p){
   const got=applyLearned(p,nl), fo=followerOf(p), fx=fo?fo.x:cub.x, fz=fo?fo.z:cub.z; if(fo) dropFollower(fo); if(c.learn) delete c.learn[p.num];
   recordAncestor('zog sein Junges groß und lebt als Elterntier weiter',L,nameOf(p));
   S.mates[p.num]=nl; p.L=nl; p.fur=nl.fur; rebuildPlayer(p);
+  p.cubReadyNotice=false;
   // Der alte Leopard bleibt als Elterntier am Bau (Platz 2), falls frei
   if(!S.p2){ S.p2=true; famPlace(fam[2],p.x,p.z,old.fur||{albino:false,melan:false,l:1,s:1,sn:1,ss:1}); }
   p.x=fx+rnd(-1,1); p.z=fz+rnd(-1,1); p.tree=null; p.safe=false; p.pounce=0; p.hp=maxHp(nl); p.st=maxSt(nl);
