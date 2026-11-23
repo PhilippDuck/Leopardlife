@@ -5,6 +5,7 @@ import { startFlee } from './carcass.js';
 import { tell } from './coop.js';
 import { scene } from './engine.js';
 import { players } from './player.js';
+import { baseSpeed } from './save.js';
 import { H, WORLD, pondAt } from './terrain.js';
 import { floatText } from './ui.js';
 import { rnd } from './util.js';
@@ -33,15 +34,16 @@ function buildFowl(){
   wbox(0.025,0.025,0.05,0xd8c49a,0,0.04,0.07,head);                                  // Schnabel
   wbox(0.04,0.035,0.02,0xc03a2e,0,0.0,0.055,head);                                   // roter Kehllappen
   const legs=[1,-1].map(s=>wbox(0.025,0.14,0.025,0x6e6a66,s*0.06,0.07,0,g));
+  const wings=[1,-1].map(s=>{ const w=new THREE.Group(); w.position.set(s*0.12,0.3,0); body.add(w); wbox(0.26,0.02,0.2,0x2f353f,s*0.13,0,0,w); w.visible=false; return w; });   // Flügel, nur beim Flattern
   g.scale.setScalar(1.35); g.traverse(o=>{ if(o.isMesh) o.castShadow=false; }); scene.add(g);
-  return {g,body,head,legs};
+  return {g,body,head,legs,wings};
 }
 function placeFlock(f,near){
   let x,z,t=0;
   do{ if(near){ const a=Math.random()*6.283, r=rnd(70,140); x=near.x+Math.cos(a)*r; z=near.z+Math.sin(a)*r; }
       else { const a=Math.random()*6.283, r=rnd(25,WORLD-20); x=Math.cos(a)*r; z=Math.sin(a)*r; } }
   while((pondAt(x,z,1.6)||players.some(p=>Math.hypot(p.x-x,p.z-z)<45))&&++t<20);
-  f.x=x; f.z=z; f.alarmT=0; f.calmT=0;
+  f.x=x; f.z=z; f.alarmT=0; f.calmT=0; f.threat=null;
   for(const b of f.birds){ b.x=x+rnd(-3,3); b.z=z+rnd(-3,3); b.tx=b.x; b.tz=b.z; b.alt=0; b.vy=0; b.state='peck'; b.t=rnd(0,3); b.head=Math.random()*6.283; }
 }
 for(let i=0;i<FLOCKS;i++){ const n=4+Math.floor(Math.random()*4), f={birds:Array.from({length:n},()=>({m:buildFowl()}))}; placeFlock(f,null); fowl.push(f); }
@@ -52,10 +54,13 @@ function fowlThreat(f){
   for(const a of animals){ if(a.dead||!a.sp.pred||a.sp.croc||a.sp.friend||!a.g.visible) continue; if(Math.hypot(a.x-f.x,a.z-f.z)<11) return a; }
   return null;
 }
+const FEAR_R=24;   // so lange ein Jäger näher ist, bleibt der Trupp auf der Flucht
+/** Wie schnell ist der Jäger höchstens? Die Hühner sind immer ein Stück schneller. */
+const hunterSpeed=w=>players.includes(w)?baseSpeed(w.L)*1.6:w.sp.spd*1.2;
 function fowlAlarm(f,who){
-  f.alarmT=3.5; f.calmT=rnd(8,12);
+  f.alarmT=2.5; f.calmT=rnd(6,9); f.threat=who; f.cackleT=2.5;
   const ax=who.x-f.x, az=who.z-f.z, al=Math.hypot(ax,az)||1;
-  for(const b of f.birds){ b.state='flee'; b.vy=rnd(3.5,5); b.dx=-ax/al+rnd(-0.5,0.5); b.dz=-az/al+rnd(-0.5,0.5); }
+  for(const b of f.birds){ b.state='flee'; b.vy=rnd(3.5,5); b.jit=rnd(-0.5,0.5); b.dx=-ax/al; b.dz=-az/al; }
   snd.cackle(volAt(f.x,f.z,90));
   floatText('Alarm!',f.x,H(f.x,f.z)+1.4,f.z,'#e8ecf2');
   // gewarnt: Wild in der Nähe flieht
@@ -69,17 +74,33 @@ function updateFowl(f,dt){
   const near=nearestPlayer(f.x,f.z);
   if(!near||near.d>260){ placeFlock(f,players[Math.floor(Math.random()*players.length)]); return; }
   const vis=near.d<150;
-  if(f.alarmT>0) f.alarmT-=dt; else if(f.calmT>0) f.calmT-=dt;
+  // Angst hält an: solange der Jäger (oder ein anderer) in der Nähe ist, bleibt der Trupp auf der Flucht
+  if(f.threat){ const w=f.threat, gone=w.dead||(players.includes(w)&&w.tree!=null)||Math.hypot(w.x-f.x,w.z-f.z)>FEAR_R;
+    const other=gone?fowlThreat(f):null;
+    if(!gone||other){ if(other) f.threat=other; f.alarmT=2.5; f.calmT=rnd(6,9);
+      f.cackleT-=dt; if(f.cackleT<=0){ f.cackleT=rnd(2,3.5); snd.cackle(volAt(f.x,f.z,70)*0.7); } } }
+  if(f.alarmT>0){ f.alarmT-=dt; if(f.alarmT<=0) f.threat=null; } else if(f.calmT>0) f.calmT-=dt;
   else { const w=fowlThreat(f); if(w) fowlAlarm(f,w); }
+  const T=f.threat, tSpd=T?hunterSpeed(T):0;
   let cx=0, cz=0;
   for(const b of f.birds){
     const m=b.m; b.t+=dt;
     if(b.state==='flee'){
-      const sp=b.alt>0.05?7:5.5; b.x+=b.dx*sp*dt; b.z+=b.dz*sp*dt; b.head=Math.atan2(b.dx,b.dz);
+      if(T){   // weg vom Jäger, mit etwas eigener Richtung, aber beim Trupp bleiben; Wasser umgehen
+        let ux=b.x-T.x, uz=b.z-T.z; const td=Math.hypot(ux,uz)||1; ux/=td; uz/=td;
+        const c=Math.cos(b.jit), sn=Math.sin(b.jit); let fx=ux*c-uz*sn+(f.x-b.x)*0.08, fz=ux*sn+uz*c+(f.z-b.z)*0.08;
+        if(pondAt(b.x+fx*3,b.z+fz*3,1.2)){ const t=fx; fx=-fz; fz=t; }
+        const fl=Math.hypot(fx,fz)||1; b.dx+=(fx/fl-b.dx)*Math.min(1,dt*4); b.dz+=(fz/fl-b.dz)*Math.min(1,dt*4);
+        b.close=td<9;   // zu nahe: flattern – kurze Flüge, schneller als jeder Jäger
+        if(b.close&&b.alt<0.05) b.vy=rnd(3.5,5);
+      } else b.close=false;
+      const dl=Math.hypot(b.dx,b.dz)||1, sp=b.close||b.alt>0.05?Math.max(9,tSpd*1.15):6.5;
+      b.x+=b.dx/dl*sp*dt; b.z+=b.dz/dl*sp*dt; b.head=Math.atan2(b.dx,b.dz);
       b.vy-=9*dt; b.alt=Math.max(0,b.alt+b.vy*dt); if(b.alt<=0) b.vy=0;
       m.legs.forEach((l,i)=>l.rotation.x=Math.sin(b.t*22+i*3)*0.7);
       m.body.rotation.x=-0.15; m.head.rotation.x=-0.2;
-      if(f.alarmT<=0&&b.alt<=0){ b.state='peck'; b.tx=b.x; b.tz=b.z; }
+      const fly=b.alt>0.05; m.wings.forEach((w,i)=>{ w.visible=fly; w.rotation.z=(i?-1:1)*Math.sin(b.t*28)*0.9; });
+      if(f.alarmT<=0&&b.alt<=0){ b.state='peck'; b.tx=b.x; b.tz=b.z; m.wings.forEach(w=>w.visible=false); }
     } else {
       // picken: kurze Schritte, Kopf runter, ab und zu umschauen
       if(b.t>rnd(1.5,4)){ b.t=0; b.tx=f.x+rnd(-3.5,3.5); b.tz=f.z+rnd(-3.5,3.5); }
