@@ -1,4 +1,4 @@
-// LeopardLife – Gelände: Höhenformel und Wasserlöcher, Kacheln mit Sichtbarkeitsprüfung, Boden, fernes Umland, Wasser und Hindernisse (Kollision).
+// LeoLife – Gelände: Höhenformel und Wasserlöcher, Kacheln mit Sichtbarkeitsprüfung, Boden, fernes Umland, Wasser und Hindernisse (Kollision).
 import { camera, scene } from './engine.js';
 import { REG, S } from './save.js';
 import { GLSL_SNOISE, seeded, snoise } from './noise.js';

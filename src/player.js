@@ -1,4 +1,4 @@
-// LeopardLife – Der Leopard des Spielers: Zustand, Startposition und Modell.
+// LeoLife – Der Leopard des Spielers: Zustand, Startposition und Modell.
 import { QUAL } from './data.js';
 import { camera, scene } from './engine.js';
 import { buildQuad } from './models.js';

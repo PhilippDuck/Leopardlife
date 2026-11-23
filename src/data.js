@@ -1,4 +1,4 @@
-// LeopardLife – feste Spieldaten: Eigenschaften, Fähigkeiten, Erbanlagen, Schwierigkeitsgrade, Gebiete,
+// LeoLife – feste Spieldaten: Eigenschaften, Fähigkeiten, Erbanlagen, Schwierigkeitsgrade, Gebiete,
 // Grafikstufen, Tierarten, Futterwerte, Sprachformen und Icons. Enthält keine Logik und keinen Zustand.
 export const ATTR=[
   {k:'str',n:'Stärke',d:'+3 Schaden pro Rang'},

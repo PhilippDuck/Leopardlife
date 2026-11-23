@@ -1,4 +1,4 @@
-// LeopardLife – Tiermodelle aus Blöcken, Fellvarianten (inkl. Albino und Panther), Zusammenführen starrer Teile, Laufanimation.
+// LeoLife – Tiermodelle aus Blöcken, Fellvarianten (inkl. Albino und Panther), Zusammenführen starrer Teile, Laufanimation.
 import { blobs } from './quality.js';
 import { rnd } from './util.js';
 

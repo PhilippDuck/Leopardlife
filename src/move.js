@@ -1,4 +1,4 @@
-// LeopardLife – Bewegung eines Leoparden pro Bild: Laufen, Sprinten, Sprung, Klettern, Kollision, Tarnung.
+// LeoLife – Bewegung eines Leoparden pro Bild: Laufen, Sprinten, Sprung, Klettern, Kollision, Tarnung.
 // Arbeitet auf dem übergebenen Spieler p (Position, Kamera, Steuerwunsch p.ctl), nicht fest auf dem einen Spieler.
 import { animals } from './animals.js';
 import { climbStop, snd } from './audio.js';

@@ -1,4 +1,4 @@
-// LeopardLife – Zufällige Ereignisse (ohne Ansage – man bekommt sie im Spiel mit; nur direkte Gefahr wird gemeldet), damit die Savanne jedes Mal anders verläuft:
+// LeoLife – Zufällige Ereignisse (ohne Ansage – man bekommt sie im Spiel mit; nur direkte Gefahr wird gemeldet), damit die Savanne jedes Mal anders verläuft:
 //   Gnu-Wanderung  – eine große Herde zieht quer durchs Gebiet, Löwen folgen ihr, in Panik trampeln die Gnus alles nieder.
 //   Steppenbrand   – eine Feuerfront wandert mit dem Wind über die Karte; Tiere fliehen kopflos (leichte Beute),
 //                    danach ist das hohe Gras abgebrannt (kaum Deckung), bis es nachwächst. Sicher: Bäume, Wasser, der Bau.

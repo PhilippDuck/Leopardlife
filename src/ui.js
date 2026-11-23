@@ -1,4 +1,4 @@
-// LeopardLife – Meldungen (mit Warteschlange) und schwebende Texte.
+// LeoLife – Meldungen (mit Warteschlange) und schwebende Texte.
 import { camera } from './engine.js';
 import { G } from './state.js';
 import { $ } from './util.js';

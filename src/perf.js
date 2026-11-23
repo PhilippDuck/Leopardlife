@@ -1,4 +1,4 @@
-// LeopardLife – Leistung: Schattentakt, automatische Auflösung, Bildratenanzeige.
+// LeoLife – Leistung: Schattentakt, automatische Auflösung, Bildratenanzeige.
 import { renderer, sun } from './engine.js';
 import { PX_BASE } from './quality.js';
 import { G } from './state.js';

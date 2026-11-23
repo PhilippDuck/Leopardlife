@@ -1,4 +1,4 @@
-// LeopardLife – Controller-Steuerung (Xbox-Belegung) und Menübedienung per Controller.
+// LeoLife – Controller-Steuerung (Xbox-Belegung) und Menübedienung per Controller.
 import { doClimb, doPounce, doRoar } from './actions.js';
 import { doContext } from './family.js';
 import { inputMode, setInputMode } from './input.js';

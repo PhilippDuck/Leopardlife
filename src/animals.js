@@ -1,4 +1,4 @@
-// LeopardLife – Alle Tiere der Welt: Anlegen pro Gebiet, Platzieren und Herden bilden.
+// LeoLife – Alle Tiere der Welt: Anlegen pro Gebiet, Platzieren und Herden bilden.
 import { SPECIES, TRAITS } from './data.js';
 import { scene } from './engine.js';
 import { buildCroc, buildQuad, buildSnake, makeFur } from './models.js';

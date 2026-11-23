@@ -1,4 +1,4 @@
-// LeopardLife – Versteck-Anzeige am Fadenkreuz und dunkler Bildrand.
+// LeoLife – Versteck-Anzeige am Fadenkreuz und dunkler Bildrand.
 import { P } from './player.js';
 import { $ } from './util.js';
 import { hEl } from './coop.js';

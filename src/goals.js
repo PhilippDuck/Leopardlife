@@ -1,4 +1,4 @@
-// LeopardLife – Tagesziele.
+// LeoLife – Tagesziele.
 import { gainXp } from './actions.js';
 import { animals } from './animals.js';
 import { snd } from './audio.js';

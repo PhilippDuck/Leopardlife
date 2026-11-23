@@ -1,4 +1,4 @@
-// LeopardLife – Chunks: die Welt ist in 64×64-m-Felder geteilt. Um jeden Spieler herum sind die Felder bis zur Sichtweite geladen,
+// LeoLife – Chunks: die Welt ist in 64×64-m-Felder geteilt. Um jeden Spieler herum sind die Felder bis zur Sichtweite geladen,
 // fernere werden entladen. Jedes Feld entsteht aus dem Weltsamen + seinen Koordinaten (kommt man zurück, sieht es gleich aus).
 // Schritt 2: mitwandernder Boden, Fernlandschaft und Berge folgen der Kamera – man kann endlos laufen.
 // Später hängen hier je Chunk Pflanzen, Wasser, Tiere und besondere Funde dran (chunk.content).

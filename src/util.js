@@ -1,4 +1,4 @@
-// LeopardLife – kleine Hilfsfunktionen ohne Spielzustand.
+// LeoLife – kleine Hilfsfunktionen ohne Spielzustand.
 // Element per id holen (jedes Element wird nur einmal nachgeschlagen)
 export const $=id=>EL[id]||(EL[id]=document.getElementById(id));
 const EL={};

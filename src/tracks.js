@@ -1,4 +1,4 @@
-// LeopardLife – Spuren und Fährten der Tiere.
+// LeoLife – Spuren und Fährten der Tiere.
 import { scene } from './engine.js';
 import { S, has, tf } from './save.js';
 import { H } from './terrain.js';

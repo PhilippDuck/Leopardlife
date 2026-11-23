@@ -1,4 +1,4 @@
-// Logiktest für LeopardLife: führt das Spielskript ohne Browser und ohne three.js aus.
+// Logiktest für LeoLife: führt das Spielskript ohne Browser und ohne three.js aus.
 require('./check-imports.js');
 require('./check-names.js');
 require('./typecheck.js');

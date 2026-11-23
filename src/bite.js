@@ -1,4 +1,4 @@
-// LeopardLife – Festbeißen: Springt ein Leopard aus der Deckung auf große Beute, beißt er sich fest. Ein Punkt pendelt über
+// LeoLife – Festbeißen: Springt ein Leopard aus der Deckung auf große Beute, beißt er sich fest. Ein Punkt pendelt über
 // einen Balken; im richtigen Moment drücken (Sprung-Taste: Leertaste/Klick, RT/Ⓐ, Doppeltipp). Je näher an der Mitte,
 // desto besser der Biss. Nach 3–5 Bissen entscheidet der Durchschnitt: erlegt – oder das Tier reißt sich los, blutet,
 // wird langsamer und erliegt je nach Schwere der Wunden später (Blutspur!). Ganz leichte Wunden heilen wieder.

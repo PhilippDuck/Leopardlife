@@ -1,4 +1,4 @@
-// LeopardLife – Ton: Geräusche, Umgebung (Tag, Nacht, Regen, Wind, Vögel) und laufend erzeugte Musik. Aufnahmen aus audio/, sonst synthetisch über WebAudio.
+// LeoLife – Ton: Geräusche, Umgebung (Tag, Nacht, Regen, Wind, Vögel) und laufend erzeugte Musik. Aufnahmen aus audio/, sonst synthetisch über WebAudio.
 import { $, rnd } from './util.js';
 import { G } from './state.js';
 

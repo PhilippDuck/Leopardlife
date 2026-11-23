@@ -1,4 +1,4 @@
-// LeopardLife – Einstieg: Hauptschleife (Bild für Bild: Spieler, Tiere, Kamera, Anzeige) und Spielstart.
+// LeoLife – Einstieg: Hauptschleife (Bild für Bild: Spieler, Tiere, Kamera, Anzeige) und Spielstart.
 // Wird Schritt für Schritt in Module nach Zuständigkeit aufgeteilt.
 import { ATTR, ABIL, TRAITS, DIFF, REGIONS, QUAL, SPECIES, FOOD, DAT, ART, ICONS, ICOL, ico } from './data.js';
 import { $, rnd } from './util.js';

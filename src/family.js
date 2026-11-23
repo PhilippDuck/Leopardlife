@@ -1,4 +1,4 @@
-// LeopardLife – Partnersuche, Paarung, Junges (Füttern, Wachsen, Überfälle) und Weiterleben als Junges.
+// LeoLife – Partnersuche, Paarung, Junges (Füttern, Wachsen, Überfälle) und Weiterleben als Junges.
 import { animals, placeAnimal } from './animals.js';
 import { snd, snd3d } from './audio.js';
 import { ICOL, QUAL, TRAITS, ico } from './data.js';

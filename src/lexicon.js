@@ -1,4 +1,4 @@
-// LeopardLife – Tierlexikon und Erfahrung für Spielweise: Arten entdecken, unbemerkt anpirschen, Beute im Baum,
+// LeoLife – Tierlexikon und Erfahrung für Spielweise: Arten entdecken, unbemerkt anpirschen, Beute im Baum,
 // eine Nacht ohne Verletzung, ein Junges vor einem Räuber retten.
 import { gainXp } from './actions.js';
 import { animals } from './animals.js';

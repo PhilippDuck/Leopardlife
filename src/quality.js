@@ -1,4 +1,4 @@
-// LeopardLife – Grafikstufen (niedrig/hoch/ultra) anwenden: Auflösung, Schatten, Gras, Nebel, Sichtweite.
+// LeoLife – Grafikstufen (niedrig/hoch/ultra) anwenden: Auflösung, Schatten, Gras, Nebel, Sichtweite.
 import { QUAL } from './data.js';
 import { renderer, resize, sun } from './engine.js';
 import { G } from './state.js';

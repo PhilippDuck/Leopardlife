@@ -1,4 +1,4 @@
-// LeopardLife – Sehen und Hören der Tiere.
+// LeoLife – Sehen und Hören der Tiere.
 // Ein Tier bemerkt einen Leoparden nicht mehr in einem Kreis, sondern so, wie es ihn wirklich wahrnehmen kann:
 //   Sichtfeld   – Beutetiere (Augen seitlich) sehen fast rundum, Raubtiere vor allem nach vorn; von hinten sieht keiner gut.
 //   Kopf unten  – grasende Tiere sehen schlecht; der Wächter einer Herde schaut sich ständig um und sieht weiter.

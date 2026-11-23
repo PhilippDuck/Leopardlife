@@ -1,4 +1,4 @@
-// LeopardLife – Steuerungsbilder: Tastatur & Maus, Controller und Touch als gezeichnete Grafik (SVG) mit Beschriftungen.
+// LeoLife – Steuerungsbilder: Tastatur & Maus, Controller und Touch als gezeichnete Grafik (SVG) mit Beschriftungen.
 // Die Beschriftungen stehen direkt an der Taste bzw. an der Stelle des Bildschirms, wo sie im Spiel liegt.
 const GOLD='#f2b84b', TXT='#f1eee2', MUT='#9a9a88', KEY='#232b20', LINE='rgba(242,184,75,.55)';
 const caEsc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');

@@ -1,4 +1,4 @@
-// LeopardLife – Aktionen des Leoparden: Sprung, Klettern, Brüllen, Treffer austeilen und einstecken, Tod und Neubeginn.
+// LeoLife – Aktionen des Leoparden: Sprung, Klettern, Brüllen, Treffer austeilen und einstecken, Tod und Neubeginn.
 import { animals, placeAnimal } from './animals.js';
 import { climbStop, initAudio, snd, tone } from './audio.js';
 import { DAT, FOOD } from './data.js';

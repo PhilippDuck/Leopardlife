@@ -1,4 +1,4 @@
-// LeopardLife – Gebiete-Fenster und Wandern zwischen Gebieten.
+// LeoLife – Gebiete-Fenster und Wandern zwischen Gebieten.
 import { REGIONS } from './data.js';
 import { showDiff } from './menu.js';
 import { REG_ID, S, beaten, save } from './save.js';

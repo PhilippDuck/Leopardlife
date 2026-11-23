@@ -39,7 +39,7 @@ def main():
     if version != match[1]:
         version_file.write_text(f"export const APP_VERSION = '{version}';\n", encoding='utf-8')
     worker_file.write_text(worker, encoding='utf-8')
-    print(f'LeopardLife {version}: {len(modules)} Module im Offline-Cache')
+    print(f'LeoLife {version}: {len(modules)} Module im Offline-Cache')
 
 
 if __name__ == '__main__':

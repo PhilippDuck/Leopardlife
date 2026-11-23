@@ -1,4 +1,4 @@
-// LeopardLife – Steuerquellen: übersetzen Tastatur, Maus, Touch oder Controller in den Steuerwunsch eines Spielers.
+// LeoLife – Steuerquellen: übersetzen Tastatur, Maus, Touch oder Controller in den Steuerwunsch eines Spielers.
 // p.ctl.source sagt, woher ein Spieler gesteuert wird. 'local' = alles zusammen (Einzelspieler).
 // Für Splitscreen kommen später 'pad0' … 'pad3' dazu: dann liest jeder Spieler nur seinen Controller.
 import { padAct, padSprint, padX, padY } from './gamepad.js';
