@@ -112,7 +112,7 @@ function poachStep(a,dt,move){
     animLegs(a.g,a.ph,0.02); return true; }
   a.aimAt=null; a.aimT=0;
   // Wild in Reichweite? stehen bleiben, zielen, schießen
-  if(a.shotT<=0){ let prey=null, bd=70; for(const o of animals){ if(o.dead||o.sp.friend||o.sp.human||o.sp.croc||o.held) continue; const d=Math.hypot(o.x-a.x,o.z-a.z); if(d<bd){ bd=d; prey=o; } }
+  if(a.shotT<=0){ let prey=null, bd=70; for(const o of animals){ if(o.dead||o.sp.friend||o.sp.human||o.sp.croc||o.sp.snake||o.held) continue; const d=Math.hypot(o.x-a.x,o.z-a.z); if(d<bd){ bd=d; prey=o; } }
     if(prey){ a.g.rotation.y=Math.atan2(prey.x-a.x,prey.z-a.z); a.prey=prey; a.preyT=(a.preyT||0)+dt; a.g.userData.aim=1; animLegs(a.g,a.ph,0.02);
       if(a.preyT>1.6){ a.preyT=0; a.shotT=rnd(12,22); fire(a,prey.x,prey.z);
         if(Math.random()<0.75&&!prey.dead){ prey.dead=true; prey.state='wander'; prey.respawn=rnd(60,120); prey.wound=null; makeCarcass(prey,FOOD[prey.sp.id]||3); } }
@@ -218,7 +218,7 @@ function updateEvents(dt){
     if(!live.length||EV.t>240) endEvent(live.length?'Die Gnus sind weitergezogen.':'Die Gnu-Herde hat die Savanne verlassen.','#b9b7a6');
   }
   if(EV.on==='poach'){
-    for(const a of EV.herd) if(a.ev==='poach'&&(a.stun>0||a.scared>0)){ a.stun=0; a.ev='leave'; floatText('Vertrieben!',a.x,H(a.x,a.z)+2.2,a.z,'#9be07f'); }   // Brüllen verscheucht sie
+    for(const a of EV.herd) if(a.ev==='poach'&&(a.stun>0||a.scared>0)){ a.stun=0; a.ev='leave'; floatText('Vertrieben! +'+Math.round(a.sp.xp*0.3)+' EP',a.x,H(a.x,a.z)+2.2,a.z,'#9be07f'); gainXp(Math.round(a.sp.xp*0.3)); }   // Brüllen verscheucht sie
     if(EV.herd.every(a=>a.ev!=='poach')||EV.t>210) endEvent();
   }
   if(EV.on==='fire'){
