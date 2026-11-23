@@ -126,11 +126,15 @@ function die(p,a){
     if(document.exitPointerLock) document.exitPointerLock();
     p.g.rotation.z=Math.PI/2; p.g.position.y=p.y+0.25*pScale();
     snd.death();
-    const fem=(a.sp.id==='hyena'||a.sp.id==='giant');
+    const fem=(a.sp.id==='hyena'||a.sp.id==='giant'||a.sp.id==='snake'||a.sp.id==='anti');
     G.lastCause=a.sp.id==='hunger'?'verhungert':a.sp.id==='thirst'?'verdurstet':a.sp.id==='age'?'an Altersschwäche gestorben':'von '+(DAT[a.sp.id]||'einem '+a.sp.n)+' getötet';
     const cause=a.sp.id==='hunger'?'Du bist verhungert.':a.sp.id==='thirst'?'Du bist verdurstet.':a.sp.id==='age'?'Du bist an Altersschwäche gestorben.':'Ein'+(fem?'e ':' ')+a.sp.n+' hat dich erwischt.';
     $('deadTxt').textContent=cause+(lost>0?' Du verlierst '+lost+' Erfahrung.':'')+' Stufe, Eigenschaften und Fähigkeiten bleiben dir erhalten.';
-    $('deadTip').textContent=a.sp.croc
+    $('deadTip').textContent=a.sp.snake
+      ? 'Tipp: Puffottern liegen still im Gras und zischen, bevor sie beißen. Hörst du das Zischen, geh langsam zurück – schleichend bemerkst du sie früher.'
+      : a.sp.guard&&!(a.sp.hunt&&S.lvl<a.sp.hunt)
+      ? 'Tipp: Elterntiere verteidigen ihre Jungen. Halte Abstand zu den Kleinen oder lock die Mutter erst weg.'
+      : a.sp.croc
       ? 'Tipp: Krokodile lauern abgetaucht im Wasserloch – nur Luftblasen verraten sie. Trink dort, wo keine aufsteigen, und spring zurück, sobald das Wasser aufschäumt.'
       : a.sp.hunt&&S.lvl<a.sp.hunt
       ? 'Tipp: '+(a.sp.id==='jack'?'Schakale':a.sp.id==='hyena'?'Hyänen':'Löwen')+' jagen dich bis Stufe '+a.sp.hunt+'. Schleiche (C) ins hohe Gras, bis sie dich verlieren.'
@@ -186,8 +190,17 @@ function hitAnimal(a,p=P){
   if(amb&&a.hp>0&&!a.held&&!players.some(o=>o.bite)&&bitable(a,0)){ a.hp+=d; startBite(p,a,d); return; }   // überlebt den Biss: festbeißen
   if(a.wound) a.hp-=Math.round(d*0.5);   // verwundete Beute ist leichter zu erlegen
   if(a.hp<=0){ killAnimal(a,p); return; }
+  if(a===G.raider&&!a.raidXp){ a.raidXp=true; tell(p,'Du stellst dich dem Räuber am Bau! +40 EP','#9be07f'); gainXp(40,p); }
+  if(a.juv){ startFlee(a); defendYoung(a,p); return; }
+  if(a.sp.snake){ a.state='chase'; a.aggro=6; return; }
   if(a.sp.fight){ a.state='chase'; a.aggro=10; a.scared=0; }
   else startFlee(a);
+}
+/** Junges a wurde von Spieler p angegriffen: Mutter und wehrhafte Artgenossen in der Nähe gehen auf ihn los */
+function defendYoung(kid,p){
+  for(const o of animals){ if(o.dead||o.juv||o.sp!==kid.sp||!o.sp.guard||o.held) continue;
+    if(o!==kid.mom&&Math.hypot(o.x-kid.x,o.z-kid.z)>30) continue;
+    o.state='chase'; o.tgt=p; o.aggro=6; o.lost=0; o.scared=0; o.gcd=12; floatText('!',o.x,H(o.x,o.z)+o.sp.size*2.2,o.z,'#ff5a3c'); }
 }
 /** Tier a ist erlegt (von Spieler p); fromWounds: an seinen Wunden gestorben, während der Jäger anderswo ist */
 function killAnimal(a,p=P,fromWounds){
@@ -199,13 +212,13 @@ function killAnimal(a,p=P,fromWounds){
   {
     a.dead=true; a.respawn=rnd(18,30); p.L.kills=(p.L.kills||0)+1; goalEvent('kill',1,{sp:a.sp.id,night:dayF<0.5,herd:!!a.herd});
     // Jede Beute bleibt als Kadaver mit einer Kugel je Bissen liegen. Futter fürs Junge: Kadaver zum Bau ziehen.
-    { const n=FOOD[a.sp.id]||1;
+    { const n=a.juv?Math.max(1,Math.ceil((FOOD[a.sp.id]||1)*0.4)):FOOD[a.sp.id]||1;
       { let m=n;   // jede Beute bleibt als Kadaver liegen: Fressen ist eine bewusste Entscheidung (Aktionstaste)
         makeCarcass(a,m); } }
     if(fromWounds) tell(woundOwner,a.sp.n+': an den Wunden verendet – folge der Blutspur zum Kadaver!','#f2b84b');
     puff(a.x,H(a.x,a.z)+a.sp.size*0.7,a.z,a.sp.m.col,10,0.5+a.sp.size*0.5);
     p.hp=Math.min(maxHp(p.L),p.hp+maxHp(p.L)*0.25+a.sp.xp*0.1);
-    const xpv=a.sp.xp*(a.fur&&a.fur.albino?2:1); if(a.fur&&a.fur.albino) tell(p,'Seltene Beute: ein Albino! Doppelte Erfahrung.','#f2b84b');
+    const xpv=Math.round(a.sp.xp*(a.juv?0.4:1))*(a.fur&&a.fur.albino?2:1); if(a.fur&&a.fur.albino) tell(p,'Seltene Beute: ein Albino! Doppelte Erfahrung.','#f2b84b');
     floatText('+'+xpv+' EP',p.x,p.y+2*pScale(p.L),p.z,'#8ad4ef');
     gainXp(xpv,p);
     if(a.sp.boss&&!beaten(REG_ID)){ S.beat=Object.assign({},S.beat,{[REG_ID]:true}); if(REG_ID==='savanne') S.won=true; save(); $('winTitle').textContent=REG.winT; $('winText').textContent=REG.winX; setTimeout(()=>{ snd.win(); $('win').style.display='flex'; G.paused=true; if(document.exitPointerLock) document.exitPointerLock(); },900); }
