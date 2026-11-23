@@ -19,7 +19,7 @@ function placeAnimal(a){
   if(sp.croc&&PONDS.length){ const free=PONDS.filter(q=>!animals.some(o=>o!==a&&o.sp.croc&&o.pond===q)), pool=free.length?free:PONDS;   // möglichst jedes Krokodil in einem eigenen Wasserloch
     a.pond=sp.boss?PONDS.reduce((m,q)=>q.r>m.r?q:m):pool[Math.floor(Math.random()*pool.length)]; const an=Math.random()*6.283, rr=Math.random()*a.pond.r*0.5; x=a.pond.x+Math.cos(an)*rr; z=a.pond.z+Math.sin(an)*rr; }
   if(a.carc&&a.carc.orbs) dropOrbs(a.carc.orbs); a.carc=null; a.g.rotation.z=0;
-  a.x=x; a.z=z; a.hp=sp.hp; a.state='wander'; a.tx=x; a.tz=z; a.timer=0; a.aggro=0; a.lost=0; a.fleeT=0; a.cd=0; a.stun=0; a.sus=0; a.near=false; a.dead=false; a.sy=null; a.ph=Math.random()*6; if(sp.croc) a.state='lurk';
+  a.x=x; a.z=z; a.hp=sp.hp; a.thirst=100; a.drinkPond=null; a.state='wander'; a.tx=x; a.tz=z; a.timer=0; a.aggro=0; a.lost=0; a.fleeT=0; a.cd=0; a.stun=0; a.sus=0; a.near=false; a.dead=false; a.sy=null; a.ph=Math.random()*6; if(sp.croc) a.state='lurk';
   if(sp.friend){ const ks=Object.keys(TRAITS); a.trait=ks[Math.floor(Math.random()*ks.length)]; }   // Erbanlage, die dieser Leopard weitergeben würde
   a.g.visible=true;
 }
