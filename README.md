@@ -13,7 +13,7 @@ durch Savanne und Sumpf.
 - Partner, Junges großziehen, Generationen mit Ahnenkraft und Ahnenbuch
 - Tag-Nacht-Wechsel, Regen und Gewitter, Tagesziele, drei Schwierigkeitsgrade
 - Hunger und Durst: Beute fressen und an Wasserlöchern trinken – dort lauern Krokodile, die sich an Trinkende heranschleichen
-- Wildtiere suchen regelmäßig Wasser und können an Krokodil-Wasserlöchern angegriffen werden; Geier kreisen über Kadavern, landen und fressen sie
+- Wildtiere suchen regelmäßig Wasser und können an Krokodil-Wasserlöchern angegriffen werden; Geier finden Kadaver nach einer Weile, kreisen lange darüber, landen nacheinander und fressen – wer sich nähert, verscheucht sie und kann sich die Beute sichern
 - Wasserschweine, Wildschweine, Hirsche, Antilopen, Hyänen und Löwen haben Junge; wehrhafte Eltern verteidigen sie
 - Puffottern liegen getarnt im Gras, zischen als Warnung und beißen mit nachwirkendem Gift
 - Trübe Tümpel verbergen Krokodile – nur feine Wellen und geducktes Lauschen am Ufer verraten sie
