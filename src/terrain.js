@@ -59,6 +59,9 @@ function nearestPond(x,z){
 }
 function inWater(x,z){ const p=pondAt(x,z,1); return !!p&&H(x,z)<p.L-WATER_D-0.05; }
 const f6=v=>v.toFixed(6);
+/** Trockenheit wie dryness() als GLSL (braucht GLSL_H wegen snoise): Bodengras färbt sich wie der Boden darunter */
+const GLSL_DRY='float dryG(vec2 p){ float d=length(p); float o=clamp((d-60.0)/130.0,0.0,1.0); float b=clamp((d-'+WORLD.toFixed(1)+')/160.0,0.0,1.0);\n'+
+  '  float m=clamp(0.5+1.3*snoise(p/420.0+vec2('+f6(NO[0][0])+','+f6(NO[0][1])+')),0.0,1.0); return o*(1.0-b)+(1.0-m)*b; }\n';
 const GLSL_H=GLSL_SNOISE+'float H0(vec2 p){ float h=6.2*snoise(p*0.0062+vec2('+f6(NO[0][0])+','+f6(NO[0][1])+'))+2.0*snoise(p*0.021+vec2('+f6(NO[1][0])+','+f6(NO[1][1])+'))+0.6*snoise(p*0.065+vec2('+f6(NO[2][0])+','+f6(NO[2][1])+'));\n'+
   '  float d=distance(p,vec2(7.0,5.0)); float w=clamp((22.0-d)/12.0,0.0,1.0); w=w*w*(3.0-2.0*w); return h+('+f6(DEN_H)+'-h)*w*0.85; }\n'+
   'float moisture(vec2 p){return clamp(0.5+1.3*snoise(p/420.0+vec2('+f6(NO[0][0])+','+f6(NO[0][1])+')),0.0,1.0); }\n'+
@@ -145,4 +148,4 @@ function collide(x,z,rad,skipLow){
   _col.x=x; _col.z=z; return _col;
 }
 
-export { moisture, dryness, worldPond, streamedPonds, removeSight, addSight, sightAt, GLSL_H, GLSL_PONDMASK, H, H0, PONDS, WATER_D, WORLD, addCol, collide, cullTiles, hash2, inWater, nearestPond, onView, pondAt, registerCull, registerTile, removeCol, tileOf, unregisterCull, vnoise, waters };
+export { GLSL_DRY, moisture, dryness, worldPond, streamedPonds, removeSight, addSight, sightAt, GLSL_H, GLSL_PONDMASK, H, H0, PONDS, WATER_D, WORLD, addCol, collide, cullTiles, hash2, inWater, nearestPond, onView, pondAt, registerCull, registerTile, removeCol, tileOf, unregisterCull, vnoise, waters };

@@ -2,7 +2,7 @@
 import { camera, grassLight, scene, windU } from './engine.js';
 import { REG, pScale } from './save.js';
 import { G } from './state.js';
-import { GLSL_H, GLSL_PONDMASK, H, PONDS, WORLD, addCol, addSight, dryness, pondAt, registerTile, tileOf } from './terrain.js';
+import { GLSL_DRY, GLSL_H, GLSL_PONDMASK, H, PONDS, WORLD, addCol, addSight, dryness, pondAt, registerTile, tileOf } from './terrain.js';
 import { rnd } from './util.js';
 import { P } from './player.js';
 
@@ -185,11 +185,11 @@ const GRASS_N=30000;
   G.grassMat=new THREE.ShaderMaterial({
     side:THREE.DoubleSide, fog:true,
     uniforms:THREE.UniformsUtils.merge([THREE.UniformsLib.fog,{uP:{value:new THREE.Vector2()},uTime:{value:0},uS:{value:S}}]),
-    vertexShader:'uniform vec2 uWind; attribute vec3 offset; attribute float aScale; uniform vec2 uP; uniform float uTime; uniform float uS; varying float vH; varying vec3 vCol;\n#include <fog_pars_vertex>\n'+GLSL_H+
+    vertexShader:'uniform vec2 uWind; attribute vec3 offset; attribute float aScale; uniform vec2 uP; uniform float uTime; uniform float uS; varying float vH; varying vec3 vCol;\n#include <fog_pars_vertex>\n'+GLSL_H+GLSL_DRY+
       'void main(){\n  vec2 o=offset.xz*uS; vec2 w=o+uS*floor((uP-o)/uS+0.5);\n  float fade=1.0-smoothstep(uS*0.34,uS*0.47,distance(w,uP));\n'+GLSL_PONDMASK+
       '  float a=offset.y*6.2832; float c=cos(a); float s=sin(a);\n  vec3 p=position; p.xz=vec2(c*p.x-s*p.z,s*p.x+c*p.z); p*=aScale*fade;\n'+
       '  float sway=sin(uTime*1.7+w.x*0.35+w.y*0.27)*0.14+sin(uTime*3.1+w.x*0.9-w.y*0.6)*0.05;\n  p.xz+=uWind*(sway+0.08)*p.y*1.3;\n'+
-      '  float zone=clamp((length(w)-60.0)/130.0,0.0,1.0);\n  vCol=mix(vec3(0.31,0.56,0.23),vec3(0.80,0.71,0.40),zone)*(0.82+0.36*offset.y);\n  vH=position.y/0.7;\n'+
+      '  float zone=dryG(w);\n  vCol=mix(vec3(0.31,0.56,0.23),vec3(0.80,0.71,0.40),zone)*(0.82+0.36*offset.y);\n  vH=position.y/0.7;\n'+
       '  vec4 mvPosition=viewMatrix*vec4(w.x+p.x,Hh(w)+p.y,w.y+p.z,1.0);\n  gl_Position=projectionMatrix*mvPosition;\n  #include <fog_vertex>\n}',
     fragmentShader:'uniform vec3 uLight; varying float vH; varying vec3 vCol;\n#include <fog_pars_fragment>\nvoid main(){\n  gl_FragColor=vec4(mix(vCol*0.5,vCol*1.08,vH)*uLight,1.0);\n  #include <fog_fragment>\n}'
   });
