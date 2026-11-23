@@ -2,7 +2,8 @@
 import { hitAnimal, hurtPlayer } from './actions.js';
 import { animals, placeAnimal } from './animals.js';
 import { snd } from './audio.js';
-import { endCarcass, herdLead, startFlee } from './carcass.js';
+import { endCarcass, herdLead, makeCarcass, startFlee } from './carcass.js';
+import { FOOD } from './data.js';
 import { dayF } from './daynight.js';
 import { SMART, windMulDir } from './engine.js';
 import { raidStep, seeking } from './family.js';
@@ -12,7 +13,7 @@ import { P, players } from './player.js';
 import { VIEW_D } from './quality.js';
 import { D, S, pScale } from './save.js';
 import { G } from './state.js';
-import { H, WORLD, collide } from './terrain.js';
+import { H, PONDS, WORLD, collide, nearestPond } from './terrain.js';
 import { addTrack } from './tracks.js';
 import { floatText } from './ui.js';
 import { rnd } from './util.js';
@@ -56,6 +57,23 @@ function targetOf(a){
   for(const p of players){ if(p.dead) continue; const d=(p.x-a.x)*(p.x-a.x)+(p.z-a.z)*(p.z-a.z); if(d<bd){ bd=d; best=p; } }
   return a.tgt=best;
 }
+/** Beutetiere suchen bei Durst Wasser und trinken dort automatisch. */
+function animalWater(a,dt){
+  a.thirst=Math.max(0,(a.thirst==null?100:a.thirst)-dt*(100/700));
+  if(a.state==='flee'||a.state==='chase'||a.state==='lunge'||a.state==='scav'||a.sp.human) return false;
+  if(a.state!=='drink'&&a.thirst<24){
+    const q=nearestPond(a.x,a.z); if(!q) return false;
+    a.drinkPond=q; const an=Math.atan2(a.z-q.z,a.x-q.x); a.drinkX=q.x+Math.cos(an)*q.r*0.93; a.drinkZ=q.z+Math.sin(an)*q.r*0.93; a.state='drink';
+  }
+  if(a.state!=='drink') return false;
+  const q=a.drinkPond;
+  if(!q){ a.state='wander'; return false; }
+  const dx=a.drinkX-a.x,dz=a.drinkZ-a.z,d=Math.hypot(dx,dz);
+  if(d>2.1) moveAnimal(a,dx,dz,Math.min(a.sp.spd*0.45,4.5),dt);
+  else { a.thirst=Math.min(100,a.thirst+24*dt); a.g.rotation.y=Math.atan2(q.x-a.x,q.z-a.z); animLegs(a.g,a.ph,0.03);
+    if(a.thirst>=94){ a.thirst=100; a.drinkPond=null; a.state='wander'; a.timer=0; } }
+  return true;
+}
 /** Ein Bild Tierverhalten für Tier a. Das Tier reagiert auf den Spieler T aus targetOf (Tarnung T.stealth). */
 function updateAnimal(a,dt){
   const T=targetOf(a), stealth=T.stealth==null?1:T.stealth;
@@ -74,13 +92,16 @@ function updateAnimal(a,dt){
   }
   const dv=players.length>1?nearestDist(a):d;
   if(a.ev&&a.stun<=0&&eventStep(a,dt,moveAnimal)){ a.g.visible=dv<=VIEW_D&&!a.gone; a.g.position.set(a.x,H(a.x,a.z),a.z); pounceHits(a); return; }   // Ereignis steuert das Tier (auch außer Sicht)
+  if(!a.sp.croc&&!a.sp.friend&&!a.sp.human&&animalWater(a,dt)){ a.g.visible=dv<=VIEW_D; a.g.position.set(a.x,H(a.x,a.z),a.z); return; }
   if(dv>VIEW_D&&a!==G.raider){ a.g.visible=false; return; } a.g.visible=dv<=VIEW_D;
   a.cd-=dt; if(a.scared>0) a.scared-=dt;
   const hostile=sp.hunt&&T.L.lvl<sp.hunt&&!(a.scared>0);
   // Wahrnehmung: Reichweite (Art, Tarnung, Schwierigkeit, Nacht, Wind) × was das Tier wirklich sieht (vision.js) – Hören geht rundum
   const reach0=sp.sense*stealth*D().sense*(sp.pred?1+0.25*(1-dayF):1.1)*(d>0.1?windMulDir(-dx/d,-dz/d):1);
   const detect=d<reach0*1.35?Math.max(reach0*visibility(a,T,dt),hearR(T)):Math.max(reach0,hearR(T));
-  if(sp.croc){ if(a.stun>0) a.stun-=dt; else crocStep(a,dt,d,dx,dz,stealth*D().sense,hostile,T);
+  if(sp.croc){ const prey=animals.filter(o=>o!==a&&!o.dead&&o.state==='drink'&&o.drinkPond===a.pond&&Math.hypot(o.x-a.pond.x,o.z-a.pond.z)<a.pond.r+8).sort((x,y)=>Math.hypot(x.x-a.x,x.z-a.z)-Math.hypot(y.x-a.x,y.z-a.z))[0];
+    if(a.stun>0) a.stun-=dt; else crocStep(a,dt,d,dx,dz,stealth*D().sense,hostile,T,prey);
+    if(prey&&prey.crocKilled){ prey.crocKilled=false; prey.respawn=rnd(18,30); makeCarcass(prey,FOOD[prey.sp.id]||1); }
     pounceHits(a);
     return; }
   if(a.stun>0){ a.stun-=dt; animLegs(a.g,a.ph,0.05); if(a.stun<=0) weakRecover(a); }

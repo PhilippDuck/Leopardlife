@@ -8,7 +8,7 @@ import { bloodDrop, puff } from './effects.js';
 import { players, P } from './player.js';
 import { has } from './save.js';
 import { H } from './terrain.js';
-import { floatText, toast } from './ui.js';
+import { floatText } from './ui.js';
 import { animals } from './animals.js';
 import { rnd } from './util.js';
 import { hurtPlayer, killAnimal } from './actions.js';
@@ -83,7 +83,7 @@ function endBite(p,broke){
   a.wound={sev:avg,t:0,die:avg<0.28?0:14+(1-avg)*70,heal:30,by:p,acc:0};
   a.hp=Math.max(1,Math.round(a.hp*(1-avg*0.6)));
   if(a.sp.fight||a.sp.pred){ a.state='chase'; a.aggro=10; a.scared=0; a.lost=0; } else { a.state='flee'; a.fleeT=0; }   // Raubtiere und Kämpfer wehren sich
-  toast(a.wound.die?(a.sp.n+' hat sich losgerissen und blutet stark – folge der Blutspur!'):(a.sp.n+' hat sich losgerissen – nur eine leichte Wunde.'),a.wound.die?'#ff7a5a':'#b9b7a6');
+  tell(p,a.wound.die?(a.sp.n+' hat sich losgerissen und blutet stark – folge der Blutspur!'):(a.sp.n+' hat sich losgerissen – nur eine leichte Wunde.'),a.wound.die?'#ff7a5a':'#b9b7a6');
 }
 /** Balken zeichnen: Punkt, Zielzone, Runden */
 function biteUi(p){

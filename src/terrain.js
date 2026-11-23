@@ -48,6 +48,14 @@ function H(x,z){
   return extra?basin(h,x,z,extra):h;
 }
 function pondAt(x,z,m){ for(let i=0;i<PONDS.length;i++){ const p=PONDS[i]; if(Math.hypot(x-p.x,z-p.z)<p.r*(m||1)) return p; } const extra=worldPond(x,z); return extra&&Math.hypot(x-extra.x,z-extra.z)<extra.r*(m||1)?extra:null; }
+/** Nächstes Wasserloch, auch in der gestreamten weiten Welt. */
+function nearestPond(x,z){
+  let best=null,bd=Infinity; const check=p=>{ if(!p) return; const d=(x-p.x)*(x-p.x)+(z-p.z)*(z-p.z); if(d<bd){bd=d;best=p;} };
+  PONDS.forEach(check);
+  const gx=Math.floor(x/256),gz=Math.floor(z/256);
+  for(let i=gx-2;i<=gx+2;i++) for(let j=gz-2;j<=gz+2;j++) check(worldPond((i+0.5)*256,(j+0.5)*256));
+  return best;
+}
 function inWater(x,z){ const p=pondAt(x,z,1); return !!p&&H(x,z)<p.L-WATER_D-0.05; }
 const f6=v=>v.toFixed(6);
 const GLSL_H=GLSL_SNOISE+'float H0(vec2 p){ float h=6.2*snoise(p*0.0062+vec2('+f6(NO[0][0])+','+f6(NO[0][1])+'))+2.0*snoise(p*0.021+vec2('+f6(NO[1][0])+','+f6(NO[1][1])+'))+0.6*snoise(p*0.065+vec2('+f6(NO[2][0])+','+f6(NO[2][1])+'));\n'+
@@ -135,4 +143,4 @@ function collide(x,z,rad,skipLow){
   _col.x=x; _col.z=z; return _col;
 }
 
-export { moisture, dryness, worldPond, streamedPonds, removeSight, addSight, sightAt, GLSL_H, GLSL_PONDMASK, H, H0, PONDS, WATER_D, WORLD, addCol, collide, cullTiles, hash2, inWater, onView, pondAt, registerCull, registerTile, removeCol, tileOf, unregisterCull, vnoise, waters };
+export { moisture, dryness, worldPond, streamedPonds, removeSight, addSight, sightAt, GLSL_H, GLSL_PONDMASK, H, H0, PONDS, WATER_D, WORLD, addCol, collide, cullTiles, hash2, inWater, nearestPond, onView, pondAt, registerCull, registerTile, removeCol, tileOf, unregisterCull, vnoise, waters };

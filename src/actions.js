@@ -40,7 +40,7 @@ function doClimb(p=P){
   if(G.paused||p.pounce>0) return;
   if(p.tree!=null){ leaveTree(p,24); p.x+=Math.sin(p.rot)*1.6; p.z+=Math.cos(p.rot)*1.6; snd.step(0.25); return; }
   if(p.L.b.climb<1){ tell(p,'Klettern ist noch nicht gelernt (Tab)','#b9b7a6'); return; }
-  const i=nearestTree(p); if(i<0){ toast('Kein Baum in Reichweite','#b9b7a6'); return; }
+  const i=nearestTree(p); if(i<0){ tell(p,'Kein Baum in Reichweite','#b9b7a6'); return; }
   const cost=45-5*(p.L.b.climb-1)+(p.drag?20:0); if(p.st<cost){ noStamina(p); return; } p.st-=cost;
   if(p.drag) carcassToTree(p,i);   // die Beute kommt mit hinauf
   goalEvent('climb',1); cubLearn(p,'tree'); p.tree=i; p.climbT=0; p.fromX=p.x; p.fromZ=p.z; p.sneak=false; p.dropY=0; snd.climb();
@@ -80,7 +80,7 @@ function doRoar(p=P){
   if(p.rcd>0) return;
   p.rcd=22-3*p.L.b.roar; const R=16+7*p.L.b.roar;
   const sc=p.g?p.g.scale.x:1; roarFx(p.x,p.camY||p.y,p.z,p.rot,sc,R); p.cam.shake=Math.max(p.cam.shake,0.35); buzz(p,0.6,0.9,600); p.roarT=0.9;
-  toast('ROAAAR!','#f2b84b'); snd.roar();
+  tell(p,'ROAAAR!','#f2b84b'); snd.roar();
   animals.forEach(a=>{ if(a.dead) return; const d=Math.hypot(a.x-p.x,a.z-p.z); if(d>R) return;
     if(a.sp.pred){ if(!a.sp.hunt||p.L.lvl+2*p.L.b.roar>=a.sp.hunt-3){ a.state='flee'; a.fleeT=0; a.aggro=0; a.scared=5; goalEvent('roar',1); } }
     else if(!a.sp.boss&&!a.sp.friend){ a.stun=1.2+0.5*p.L.b.roar; } });
@@ -191,6 +191,7 @@ function hitAnimal(a,p=P){
 }
 /** Tier a ist erlegt (von Spieler p); fromWounds: an seinen Wunden gestorben, während der Jäger anderswo ist */
 function killAnimal(a,p=P,fromWounds){
+  const woundOwner=a.wound&&a.wound.by&&players.includes(a.wound.by)?a.wound.by:p;
   if(!fromWounds&&!p.dead) cubLearn(p,'kill');
   if(a.dead) return;
   if(!fromWounds){ snd.kill(); buzz(p,0.5,0.8,180); G.slowT=Math.max(G.slowT,0.22); p.cam.shake=Math.max(p.cam.shake,0.4*pScale(p.L)); }
@@ -201,10 +202,10 @@ function killAnimal(a,p=P,fromWounds){
     { const n=FOOD[a.sp.id]||1;
       { let m=n;   // jede Beute bleibt als Kadaver liegen: Fressen ist eine bewusste Entscheidung (Aktionstaste)
         makeCarcass(a,m); } }
-    if(fromWounds) toast(a.sp.n+': an den Wunden verendet – folge der Blutspur zum Kadaver!','#f2b84b');
+    if(fromWounds) tell(woundOwner,a.sp.n+': an den Wunden verendet – folge der Blutspur zum Kadaver!','#f2b84b');
     puff(a.x,H(a.x,a.z)+a.sp.size*0.7,a.z,a.sp.m.col,10,0.5+a.sp.size*0.5);
     p.hp=Math.min(maxHp(p.L),p.hp+maxHp(p.L)*0.25+a.sp.xp*0.1);
-    const xpv=a.sp.xp*(a.fur&&a.fur.albino?2:1); if(a.fur&&a.fur.albino) toast('Seltene Beute: ein Albino! Doppelte Erfahrung.','#f2b84b');
+    const xpv=a.sp.xp*(a.fur&&a.fur.albino?2:1); if(a.fur&&a.fur.albino) tell(p,'Seltene Beute: ein Albino! Doppelte Erfahrung.','#f2b84b');
     floatText('+'+xpv+' EP',p.x,p.y+2*pScale(p.L),p.z,'#8ad4ef');
     gainXp(xpv,p);
     if(a.sp.boss&&!beaten(REG_ID)){ S.beat=Object.assign({},S.beat,{[REG_ID]:true}); if(REG_ID==='savanne') S.won=true; save(); $('winTitle').textContent=REG.winT; $('winText').textContent=REG.winX; setTimeout(()=>{ snd.win(); $('win').style.display='flex'; G.paused=true; if(document.exitPointerLock) document.exitPointerLock(); },900); }

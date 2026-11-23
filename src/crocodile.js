@@ -18,8 +18,24 @@ import { rnd } from './util.js';
    return / chase / flee: zurück ins Wasser, am Ufer verteidigen, fliehen
    Am eigenen Wasserloch greifen Krokodile jeden Leoparden an, egal wie groß – wer trinkt, hat den Kopf unten und merkt es spät. */
 /** @param {import('./player.js').Player} [T] Spieler, auf den das Krokodil reagiert */
-function crocStep(a,dt,d,dx,dz,stealth,hostile,T=P){
+function crocStep(a,dt,d,dx,dz,stealth,hostile,T=P,prey=null){
   const sp=a.sp, p=a.pond, wl=p.L-WATER_D, s=sp.size;
+  // Tiere, die sich an diesem Wasserloch zum Trinken nähern, sind ebenfalls Beute.
+  if(prey){
+    a.near=false;
+    const x=prey.x-a.x,z=prey.z-a.z,dist=Math.hypot(x,z),reach=a.rad+prey.rad+0.7;
+    a.state='huntWild'; a.g.rotation.y=Math.atan2(x,z);
+    if(dist>reach) moveAnimal(a,x,z,sp.spd*1.5,dt);
+    else if(a.cd<=0){ a.cd=2.2; prey.hp-=sp.dmg*1.25; puff(prey.x,H(prey.x,prey.z)+0.3,prey.z,0xc0392b,7,0.45);
+      if(prey.hp<=0){ prey.dead=true; prey.crocKilled=true; a.state='return'; }
+      else { prey.state='flee'; prey.fleeT=0; prey.drinkPond=null; prey.thirst=45; }
+      snd.snap(); }
+    const inW=Math.hypot(a.x-p.x,a.z-p.z)<p.r*0.8,gy=H(a.x,a.z),ty=inW?Math.max(gy,wl-(CROC_EYE-0.07)*s):gy;
+    a.sy=a.sy==null?ty:a.sy+(ty-a.sy)*Math.min(1,dt*5); a.g.position.set(a.x,a.sy,a.z);
+    const u=a.g.userData; if(u.croc){ u.inner.rotation.x*=Math.max(0,1-dt*8); animCroc(a.g,a.ph,0.4,inW,dist<=reach?1:0.2); }
+    return;
+  }
+  if(a.state==='huntWild') a.state='return';
   const tp=Math.hypot(T.x-p.x,T.z-p.z);                      // Abstand des Spielers zur Mitte des Wasserlochs
   const atPond=tp<p.r+5&&!T.safe&&!T.dead&&!(a.scared>0);    // steht am Ufer oder im Wasser
   const drink=!!T.drinking;
