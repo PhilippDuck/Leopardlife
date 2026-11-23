@@ -16,6 +16,7 @@ import { goalEvent } from './goals.js';
 import { related } from './kinship.js';
 import { alarmAt, callSoon } from './calls.js';
 import { tell } from './coop.js';
+import { gainXp } from './actions.js';
 import { trees } from './vegetation.js';
 import { cubLearn } from './cubfollow.js';
 
@@ -73,7 +74,8 @@ function carcassToTree(p,i){
   c.g.position.set(c.x,py-0.05,c.z); c.g.rotation.y=ang;
   const o=c.carc.orbs; o.position.set(c.x,py+c.sp.size*0.9+0.9,c.z); o.userData.y0=o.position.y;
   animals.forEach(a=>{ if(a.state==='scav'&&a.carc===c){ a.state='wander'; a.timer=0; a.carc=null; } });   // Aasfresser geben auf
-  goalEvent('treeMeat',1); cubLearn(p,'tree'); floatText('Beute im Baum',p.x,py+1.6,p.z,'#e0a060');
+  goalEvent('treeMeat',1); cubLearn(p,'tree');
+  if(!c.treeXp){ c.treeXp=true; floatText('Beute im Baum! +30 EP',p.x,py+1.6,p.z,'#e0a060'); gainXp(30,p); } else floatText('Beute im Baum',p.x,py+1.6,p.z,'#e0a060');
 }
 /** Kontextaktion am Kadaver für Spieler p (gemeinsam für Tastatur, Touch und Controller), sonst null */
 function carcassContext(p){

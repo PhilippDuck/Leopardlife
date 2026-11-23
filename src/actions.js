@@ -106,6 +106,7 @@ function buzz(p,strong,weak,ms){ if(p===P){ if(padUI()) rumble(strong,weak,ms); 
 function hurtPlayer(d,a,force,p=P){
   if(p.dead||(p.safe&&!force)) return;
   if(!force) d*=D().dmg;
+  if(dayF<0.5) p.nightHurt=true;   // für „Nacht ohne Verletzung“ (lexicon.js)
   snd.hurt();
   if(p.skOpen) toggleSkills(p);   // angegriffen: Entwicklung zu, damit man reagieren kann
   p.hp-=d; p.combatT=5; p.cam.shake=Math.max(p.cam.shake,Math.min(0.6,0.15+d/maxHp(p.L)));

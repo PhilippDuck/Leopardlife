@@ -18,6 +18,8 @@ durch Savanne und Sumpf.
 - Perlhühner schlagen Alarm, Madenhacker warnen ihre Wirte; Fliegen über Kadavern verraten Aas, nachts leuchten Glühwürmchen
 - Puffottern liegen getarnt im Gras, zischen als Warnung und beißen mit nachwirkendem Gift
 - Trübe Tümpel verbergen Krokodile – nur feine Wellen und geducktes Lauschen am Ufer verraten sie
+- Tierlexikon im Menü: jede neu entdeckte Art bringt Erfahrung und einen Tipp
+- Erfahrung auch für unbemerktes Anpirschen, Beute im Baum, eine Nacht ohne Verletzung und ein vor dem Räuber gerettetes Junges
 - Erfahrung gibt es auch fürs Erkunden neuer Wasserlöcher, Ausweichen vor Krokodilen, Vertreiben von Wilderern und Räubern und fürs Großziehen eines Jungen
 - Gebiete: Savanne (mit einzelnen Krokodilen) und Sumpf (mit vielen Krokodilen und dem Riesenkrokodil); weitere geplant
 - Steuerung mit Tastatur und Maus, Touch oder Xbox-Controller

@@ -20,6 +20,7 @@ import { carcassContext, endCarcass, nearCarcass, recordPartner, takeMeat } from
 import { goalEvent } from './goals.js';
 import { moveAnimal } from './ai.js';
 import { nameOf, tell, viewMin } from './coop.js';
+import { gainXp } from './actions.js';
 import { canPair, ensureKin, litterLeaves, litterSize, newId, pairCandidate, pairPlayers, related } from './kinship.js';
 import { DEN_CAP, SWITCH_AT, cubFollowContext, denCount, denFull, denKids, followerOf, hasOwnCub, kidDies, kidOf, kidsOf, numOf, syncLitter, tickKids } from './cubfollow.js';
 import { drinkContext } from './thirst.js';
@@ -185,7 +186,9 @@ function birth(){
   $('birth').style.display='flex'; G.paused=true; for(const k in keys) keys[k]=false; G.joyX=G.joyY=0; if(document.exitPointerLock) document.exitPointerLock();
 }
 function updateCub(dt){
-  if(G.raider&&(G.raider.dead||G.raider.state!=='raid')) G.raider=null;
+  if(G.raider&&(G.raider.dead||G.raider.state!=='raid')){   // Räuber weg: hatte er das Junge schon gefunden, gilt es als gerettet
+    if(G.raider.found&&G.raider.raidXp&&S.cub){ toast('Du hast dein Junges vor dem Räuber gerettet! +60 EP','#9be07f'); gainXp(60); }
+    G.raider=null; }
   if(S.preg>0){ S.preg-=dt; if(S.preg<=0){ S.preg=0; birth(); } }
   const c=S.cub; if(!c){ cubG.visible=false; updateSibs(null,dt); return; }
   syncLitter(); cubG.visible=denCount()>0;
