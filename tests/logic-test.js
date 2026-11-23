@@ -407,7 +407,7 @@ console.log('audio nodes created',ACs&&ACs.count());
   P.x=500; P.z=500; for(let i=0;i<50;i++){ for(const a of herd) T.updateAnimal(a,0.1); T.updateEvents(0.1); }
   const moved=(a0.x*T.EV.dir.x+a0.z*T.EV.dir.z)-f0;
   T.endEvent(); T.players.forEach(q=>{ q.x=500; q.z=500; }); for(let i=0;i<400;i++){ for(const a of T.animals.slice()) if(a.temp) T.updateAnimal(a,0.1); T.updateEvents(0.1); }
-  const left=T.animals.filter(a=>a.sp.id==='gnu').length;
+  const left=T.animals.filter(a=>a.sp.id==='gnu'&&!a.world).length;
   if(!(h0>=14)||!(moved>15)||left!==0||T.animals.length!==n0){ console.log('FEHLER: Gnu-Wanderung',h0,moved,left,T.animals.length,n0); process.exit(1); }
   console.log('Gnu-Wanderung: '+h0+' Gnus ziehen ('+moved.toFixed(0)+' m in 5 s) und verlassen danach die Welt');
   // Steppenbrand: Tiere vor der Front fliehen, Feuer verletzt, Gras brennt ab und wächst nach

@@ -4,7 +4,7 @@ import { worldPond, streamedPonds, waters, WATER_D, WORLD, H, pondAt, dryness, r
 import { scene } from './engine.js';
 import { animals, placeAnimal } from './animals.js';
 import { SPECIES } from './data.js';
-import { buildCroc, buildQuad, makeFur } from './models.js';
+import { buildCroc, buildQuad, buildSnake, makeFur } from './models.js';
 import { players, dropModel } from './player.js';
 import { S, save } from './save.js';
 import { endCarcass } from './carcass.js';
@@ -46,31 +46,44 @@ function spawnPondCroc(chunk,pond){
 }
 const worldHerds=new Map();
 let worldAnimalId=100000, worldContentTimer=0;
+/* Was in der weiten Welt lebt: je nach Trockenheit eine andere Mischung (Gewicht, Gruppengröße von–bis).
+   Große Räuber und Riesenantilopen nur weit draußen und selten. */
+const WILD_WET=[['deer',3,3,5],['boar',2,2,3],['capy',2,3,5],['hase',2,1,2],['gnu',1,5,8],['hyena',1,2,3],['jack',0.7,2,3],['snake',0.7,1,1]];
+const WILD_DRY=[['anti',3,3,5],['gnu',2,5,8],['hase',1.5,1,2],['jack',1,2,3],['hyena',1.2,2,3],['snake',1,1,1],['giant',0.25,1,1],['lion',0.3,1,2]];
+const FAR_ONLY={giant:600,lion:520};   // Mindestabstand zur Weltmitte
+const W_JUV=0.55;   // wie JUV in animals.js
+function pickWild(random,x,z){
+  const list=(dryness(x,z)>0.5?WILD_DRY:WILD_WET).filter(([id])=>!FAR_ONLY[id]||Math.hypot(x,z)>FAR_ONLY[id]);
+  let r=random()*list.reduce((s,e)=>s+e[1],0);
+  for(const e of list){ r-=e[1]; if(r<=0) return e; }
+  return list[0];
+}
+function makeWorldAnimal(sp,x,z,mom){
+  const fur=makeFur(), g=sp.snake?buildSnake(sp.m,fur):buildQuad(sp.m,fur), k=mom?W_JUV:1;
+  g.scale.setScalar(sp.size*k); scene.add(g);
+  const a={sp,g,fur,rad:sp.size*k*0.8+0.25,uid:worldAnimalId++,world:true};
+  if(mom){ a.juv=true; a.mom=mom; (mom.kids||(mom.kids=[])).push(a); }
+  placeAnimal(a);
+  a.x=x; a.z=z; a.tx=x; a.tz=z; a.g.position.set(x,H(x,z),z);
+  animals.push(a); return a;
+}
 function spawnWorldHerd(chunk,now){
   if(worldHerds.has(chunk.key)) return;
   if(S.worldHunts&&S.worldHunts[chunk.key]>now) return;
   const random=chunkRng(chunk.cx+104729,chunk.cz-13007);
-  if(random()>0.16) return;
+  if(random()>0.3) return;
   const x=(chunk.cx+0.5)*CHUNK, z=(chunk.cz+0.5)*CHUNK;
   if(Math.hypot(x,z)<WORLD+40||pondAt(x,z,1.6)) return;
   // Tiere entstehen erst mit Abstand zu jedem Spieler.
   if(players.some(p=>Math.hypot(p.x-x,p.z-z)<65)) return;
-  const predator=random()<0.16;
-  const id=predator?'hyena':dryness(x,z)>0.5?'anti':'deer';
+  const [id,,lo,hi]=pickWild(random,x,z);
   const sp=SPECIES.find(species=>species.id===id);
-  const group=[];
-  const count=predator?2:3+Math.floor(random()*2);
-  for(let i=0;i<count;i++){
-    const fur=makeFur(), g=buildQuad(sp.m,fur);
-    g.scale.setScalar(sp.size); scene.add(g);
-    const animal={sp,g,fur,rad:sp.size*0.8+0.25,uid:worldAnimalId++,world:true};
-    placeAnimal(animal);
-    animal.x=x+(random()-0.5)*12; animal.z=z+(random()-0.5)*12;
-    animal.tx=animal.x; animal.tz=animal.z;
-    animal.g.position.set(animal.x,H(animal.x,animal.z),animal.z);
-    group.push(animal); animals.push(animal);
-  }
-  if(!predator) for(const animal of group) animal.herd=group;
+  const group=[], count=lo+Math.floor(random()*(hi-lo+1)), spread=sp.snake?0:4+count*2;
+  for(let i=0;i<count;i++) group.push(makeWorldAnimal(sp,x+(random()-0.5)*spread,z+(random()-0.5)*spread,null));
+  // Junge: in gut der Hälfte der Gruppen, bei Arten, die welche haben
+  if(sp.young&&random()<0.6){ const n=1+Math.floor(random()*Math.min(sp.young,2));
+    for(let i=0;i<n;i++){ const mom=group[i%group.length]; group.push(makeWorldAnimal(sp,mom.x+(random()-0.5)*3,mom.z+(random()-0.5)*3,mom)); } }
+  if(!sp.pred&&!sp.snake){ const adults=group.filter(a=>!a.juv); for(const animal of adults) animal.herd=adults; }   // Junge folgen der Mutter, nicht der Herde
   worldHerds.set(chunk.key,{group,deadCount:0});
 }
 function updateWorldContent(dt){
