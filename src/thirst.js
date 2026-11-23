@@ -4,7 +4,7 @@ import { snd } from './audio.js';
 import { puff } from './effects.js';
 import { goalEvent } from './goals.js';
 import { pScale } from './save.js';
-import { WATER_D, pondAt } from './terrain.js';
+import { WATER_D, pondAt, samePond } from './terrain.js';
 import { floatText } from './ui.js';
 
 /** Wasser je Sekunde beim Trinken */
@@ -34,7 +34,7 @@ function updateDrinking(p,dt){
   p.drinkT+=dt;
   if(p.drinkT>=0.45){ p.drinkT=0; snd.lap();
     const r=0.9*pScale(L); puff(p.x+Math.sin(p.rot)*r,q.L-WATER_D+0.04,p.z+Math.cos(p.rot)*r,0xd8ecf2,2,0.12); }
-  if(L.thirst>=100){ p.drinking=null; floatText('getrunken',p.x,p.y+1.6*pScale(L),p.z,'#7fc8e8'); if(animals.some(a=>a.sp.croc&&!a.dead&&a.pond===q)) goalEvent('crocDrink',1); }
+  if(L.thirst>=100){ p.drinking=null; floatText('getrunken',p.x,p.y+1.6*pScale(L),p.z,'#7fc8e8'); if(animals.some(a=>a.sp.croc&&!a.dead&&samePond(a.pond,q))) goalEvent('crocDrink',1); }
 }
 
 export { drinkContext, shoreOf, updateDrinking };

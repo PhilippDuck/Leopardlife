@@ -2,7 +2,7 @@
 import { CHUNK } from './chunks.js';
 import { scene } from './engine.js';
 import { H, WORLD, dryness, pondAt, addCol, addSight, removeCol, removeSight, registerCull, unregisterCull } from './terrain.js';
-import { bushGeometry, bushMaterial, bushColor, makeTree, woodMeshes, leafMeshes, leafGeoHi, leafGeoLo, trees, setTree, fadedTrees, patches, tallGeo, tallMat } from './vegetation.js';
+import { dryBushGeometry, dryBushColor, shrubKind, bushGeometry, bushMaterial, bushColor, makeTree, woodMeshes, leafMeshes, leafGeoHi, leafGeoLo, trees, setTree, fadedTrees, patches, tallGeo, tallMat } from './vegetation.js';
 import { players } from './player.js';
 import { followers } from './cubfollow.js';
 import { animals } from './animals.js';
@@ -10,6 +10,7 @@ import { QUAL } from './data.js';
 import { quality } from './quality.js';
 
 const freeSlots=[];
+const rockGeometry=new THREE.DodecahedronGeometry(1,0);
 const vegetationBushes={geometry:bushGeometry,material:bushMaterial};
 
 function fillPlants(chunk){
@@ -57,7 +58,26 @@ function fillPlants(chunk){
       sight(tree.x,tree.z,tree.tr+0.15,6,0.55);
     });
   }
-  const shrubs=Array.from({length:18},()=>place(2)).filter(outside);
+  // Buschplätze je nach Trockenheit: grüne Büsche, vertrocknete Büsche oder Steine
+  const kinds={green:[],dry:[],rock:[]};
+  for(const p of Array.from({length:18},()=>place(2)).filter(outside)){ const k=shrubKind(dryness(p.x,p.z),rng); if(k) kinds[k].push(p); }
+  const shrubs=kinds.green;
+  if(kinds.dry.length){
+    const mesh=new THREE.InstancedMesh(dryBushGeometry,vegetationBushes.material,kinds.dry.length), color=new THREE.Color();
+    kinds.dry.forEach(({x,z},i)=>{ const k=0.6+rng()*0.45, sy=0.6+rng()*0.4;
+      mesh.setMatrixAt(i,new THREE.Matrix4().compose(new THREE.Vector3(x,H(x,z)-0.05,z),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,rng()*6.28,0)),new THREE.Vector3(k,sy,k)));
+      const t=dryBushColor(rng); mesh.setColorAt(i,color.setHSL(t.h,t.s,t.l)); sight(x,z,k*0.8,sy*0.9,0.35); });
+    mesh.castShadow=true; show(mesh);
+  }
+  if(kinds.rock.length){
+    const mesh=new THREE.InstancedMesh(rockGeometry,vegetationBushes.material,kinds.rock.length), color=new THREE.Color();
+    kinds.rock.forEach(({x,z},i)=>{ const sy=0.25+rng()*0.45, sx=0.4+rng()*0.8, sz=0.4+rng()*0.8;
+      mesh.setMatrixAt(i,new THREE.Matrix4().compose(new THREE.Vector3(x,H(x,z)+sy*0.25,z),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,rng()*6.28,0)),new THREE.Vector3(sx,sy,sz)));
+      mesh.setColorAt(i,color.setHSL(0.07+rng()*0.04,0.06+rng()*0.08,0.45+rng()*0.15));
+      if(sy>0.45&&sx+sz>1.4){ const c=addCol(x,z,(sx+sz)*0.4,true); cleanup.push(()=>removeCol(c)); }
+      if(sy>0.4) sight(x,z,(sx+sz)*0.42,sy*0.95,1); });
+    mesh.castShadow=true; mesh.receiveShadow=true; show(mesh);
+  }
   if(shrubs.length){
     const mesh=new THREE.InstancedMesh(vegetationBushes.geometry,vegetationBushes.material,shrubs.length);
     const color=new THREE.Color();
