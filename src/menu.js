@@ -14,6 +14,7 @@ import { respawn, setPounceLabel } from './actions.js';
 import { rebuildCub } from './family.js';
 import { clockStr, sleeping } from './daynight.js';
 import { bookOpen } from './carcass.js';
+import { lexOpen } from './lexicon.js';
 import { padUI } from './gamepad.js';
 import { updateUI } from './hud.js';
 import { newGoals } from './goals.js';
@@ -28,7 +29,7 @@ import { canSwitch, canSwitchFor, growOf, hasOwnCub } from './cubfollow.js';
 G.menuT=0; let hadLock=false, restartArm=false;
 function menuOpen(){ return $('menu').style.display==='flex'; }
 function toggleMenu(){
-  if(ctrlOpen()||guideOpen()||bookOpen()||settingsOpen()||regionsOpen()||sleeping||!G.started||P.dead||$('win').style.display==='flex'||$('birth').style.display==='flex'||$('skills').style.display!=='none') return;
+  if(ctrlOpen()||guideOpen()||bookOpen()||lexOpen()||settingsOpen()||regionsOpen()||sleeping||!G.started||P.dead||$('win').style.display==='flex'||$('birth').style.display==='flex'||$('skills').style.display!=='none') return;
   const el=$('menu');
   if(!menuOpen()){
     $('menuInfo').textContent='Gebiet: '+REG.n+' · Schwierigkeit: '+D().n+' · Uhrzeit '+clockStr()+(D().perma?' · ohne Nachwuchs endgültig':'');
