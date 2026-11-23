@@ -1,4 +1,4 @@
-// LeopardLife – Spielstand: Laden/Speichern, Gebiet, Schwierigkeit und daraus abgeleitete Werte (Leben, Ausdauer, Schaden, Tempo …).
+// LeoLife – Spielstand: Laden/Speichern, Gebiet, Schwierigkeit und daraus abgeleitete Werte (Leben, Ausdauer, Schaden, Tempo …).
 import { DIFF, REGIONS, TRAITS } from './data.js';
 import { $ } from './util.js';
 

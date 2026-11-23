@@ -1,4 +1,4 @@
-// LeopardLife – Warnvögel: Perlhühner und Madenhacker verraten Jäger – dich, aber auch Raubtiere, die dir gefährlich werden.
+// LeoLife – Warnvögel: Perlhühner und Madenhacker verraten Jäger – dich, aber auch Raubtiere, die dir gefährlich werden.
 import { animals } from './animals.js';
 import { snd } from './audio.js';
 import { startFlee } from './carcass.js';

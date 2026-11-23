@@ -1,4 +1,4 @@
-// LeopardLife – Wetter: Regen und Gewitter.
+// LeoLife – Wetter: Regen und Gewitter.
 import { animals } from './animals.js';
 import { AC, hasSample, master, nbuf, snd } from './audio.js';
 import { startFlee } from './carcass.js';

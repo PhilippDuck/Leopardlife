@@ -1,4 +1,4 @@
-// LeopardLife – Gelände-Rauschen: 2D-Simplex-Rauschen (nach Stefan Gustavson / Ashima Arts, MIT) –
+// LeoLife – Gelände-Rauschen: 2D-Simplex-Rauschen (nach Stefan Gustavson / Ashima Arts, MIT) –
 // in JavaScript und als GLSL-Text mit denselben Rechenschritten, damit Boden (JS) und Gras-Shader (GPU) dieselbe Höhe ergeben.
 // Der Weltsamen verschiebt die Rauschfelder: jede Welt hat ihre eigene Landschaft, ohne Wiederholungen.
 

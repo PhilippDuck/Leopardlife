@@ -1,4 +1,4 @@
-// LeopardLife – Menschenfigur (Wilderer): gegliederter Körper mit Knien und Ellbogen, Buschhut, Weste, Rucksack
+// LeoLife – Menschenfigur (Wilderer): gegliederter Körper mit Knien und Ellbogen, Buschhut, Weste, Rucksack
 // und Zielfernrohrgewehr. Beide Hände liegen per Zwei-Knochen-IK immer am Gewehr; Haltung blendet zwischen
 // „Tragen" (schräg vor der Brust) und „Anlegen" (Kolben in der Schulter, Oberkörper seitlich gedreht) über.
 import { blobs } from './quality.js';

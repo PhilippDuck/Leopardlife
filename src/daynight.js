@@ -1,4 +1,4 @@
-// LeopardLife – Tag und Nacht: Sonne, Mond, Himmelsfarben, Nebel, Nachtsicht, Schlafen auf Bäumen.
+// LeoLife – Tag und Nacht: Sonne, Mond, Himmelsfarben, Nebel, Nachtsicht, Schlafen auf Bäumen.
 import { animals } from './animals.js';
 import { HORIZON, SUN_OFF, grassLight, hemi, scene, sun } from './engine.js';
 import { endRaid } from './family.js';

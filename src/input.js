@@ -1,4 +1,4 @@
-// LeopardLife – Eingabe über Tastatur, Maus und Touch, Umschalten der Anzeige je nach zuletzt benutzter Eingabe.
+// LeoLife – Eingabe über Tastatur, Maus und Touch, Umschalten der Anzeige je nach zuletzt benutzter Eingabe.
 import { canvas } from './engine.js';
 import { P } from './player.js';
 import { S } from './save.js';

@@ -1,4 +1,4 @@
-// LeopardLife – Darstellung: Zeichenfläche, Renderer, Szene, Kamera, Licht (Himmelslicht, Sonne/Mond), Wind und Fenstergröße.
+// LeoLife – Darstellung: Zeichenfläche, Renderer, Szene, Kamera, Licht (Himmelslicht, Sonne/Mond), Wind und Fenstergröße.
 import { REG, S } from './save.js';
 import { G } from './state.js';
 import { $ } from './util.js';

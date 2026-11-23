@@ -1,4 +1,4 @@
-// LeopardLife – Durst: am Ufer eines Wasserlochs trinken (Aktionstaste). Wer trinkt, hat den Kopf unten – Krokodile nutzen das.
+// LeoLife – Durst: am Ufer eines Wasserlochs trinken (Aktionstaste). Wer trinkt, hat den Kopf unten – Krokodile nutzen das.
 import { animals } from './animals.js';
 import { snd } from './audio.js';
 import { puff } from './effects.js';

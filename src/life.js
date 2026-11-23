@@ -1,4 +1,4 @@
-// LeopardLife – Lebenslauf: Hunger, Altern, Fressen aus dem Vorrat.
+// LeoLife – Lebenslauf: Hunger, Altern, Fressen aus dem Vorrat.
 import { gainXp, hurtPlayer } from './actions.js';
 import { snd } from './audio.js';
 import { P, players, rebuildPlayer } from './player.js';

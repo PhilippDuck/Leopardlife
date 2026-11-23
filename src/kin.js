@@ -1,4 +1,4 @@
-// LeopardLife – Partner und Elterntiere am Bau: verteidigen, Futter bringen, beschützen; Wechsel ins Junge.
+// LeoLife – Partner und Elterntiere am Bau: verteidigen, Futter bringen, beschützen; Wechsel ins Junge.
 import { gainXp } from './actions.js';
 import { animals } from './animals.js';
 import { snd } from './audio.js';

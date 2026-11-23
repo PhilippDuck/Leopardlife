@@ -1,4 +1,4 @@
-// LeopardLife – Geier: kommen erst, wenn irgendwo ein Kadaver liegt, kreisen lange darüber, landen nacheinander und fressen.
+// LeoLife – Geier: kommen erst, wenn irgendwo ein Kadaver liegt, kreisen lange darüber, landen nacheinander und fressen.
 // Wer sich nähert, verscheucht sie – sie kreisen dann wieder, bis die Luft rein ist. So kann man sich den Kadaver sichern.
 import { animals } from './animals.js';
 import { scene } from './engine.js';

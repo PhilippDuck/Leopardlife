@@ -1,4 +1,4 @@
-// LeopardLife – Tierrufe aus der Umgebung: Hyänen kichern, Löwen brüllen in der Ferne, Schakale heulen nachts.
+// LeoLife – Tierrufe aus der Umgebung: Hyänen kichern, Löwen brüllen in der Ferne, Schakale heulen nachts.
 // Jeder Ruf kommt aus der Richtung des Tieres und wird mit der Entfernung leiser (snd3d in audio.js).
 import { animals } from './animals.js';
 import { snd3d } from './audio.js';

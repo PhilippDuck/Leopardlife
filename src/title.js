@@ -1,4 +1,4 @@
-// LeopardLife – Startbildschirm in 3D: Die Kamera schwebt langsam um den eigenen Leoparden (groß im Bild, rechts),
+// LeoLife – Startbildschirm in 3D: Die Kamera schwebt langsam um den eigenen Leoparden (groß im Bild, rechts),
 // er atmet, schaut sich um und wedelt mit dem Schwanz. Musik läuft, sobald der Browser Ton erlaubt (erster Klick/Tipp/Taste).
 // Weitere Controller können hier schon mit Start einsteigen – ihre Leoparden stellen sich daneben.
 import { AC, initAudio, musicSoon } from './audio.js';

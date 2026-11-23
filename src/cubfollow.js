@@ -1,4 +1,4 @@
-// LeopardLife – Lehrzeit des Jungen: Ab 25 % Größe nimmt jeder Spieler sein eigenes Junges aus dem Wurf mit auf die Jagd.
+// LeoLife – Lehrzeit des Jungen: Ab 25 % Größe nimmt jeder Spieler sein eigenes Junges aus dem Wurf mit auf die Jagd.
 // Es folgt ihm, duckt sich beim Schleichen, frisst an seiner Beute mit (wächst dabei) und lernt, was es aus der Nähe sieht.
 // Ab 50 % („halbstark“) kann man als Junges weiterspielen – mit Boni aus dem Gelernten. Raubtiere können es unterwegs angreifen.
 import { animals } from './animals.js';

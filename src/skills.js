@@ -1,4 +1,4 @@
-// LeopardLife – Entwicklungsfenster: Eigenschaften, Fähigkeiten, Erbanlagen, Ahnenkraft.
+// LeoLife – Entwicklungsfenster: Eigenschaften, Fähigkeiten, Erbanlagen, Ahnenkraft.
 import { snd } from './audio.js';
 import { ABIL, ATTR, ICOL, TRAITS, ico } from './data.js';
 import { keys, touchUI } from './input.js';

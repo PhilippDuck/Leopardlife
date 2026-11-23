@@ -1,4 +1,4 @@
-// LeopardLife – Krokodile: lauern abgetaucht im Wasser, schleichen sich an Trinkende heran und schnellen hervor.
+// LeoLife – Krokodile: lauern abgetaucht im Wasser, schleichen sich an Trinkende heran und schnellen hervor.
 import { gainXp, hurtPlayer } from './actions.js';
 import { tell } from './coop.js';
 import { moveAnimal } from './ai.js';

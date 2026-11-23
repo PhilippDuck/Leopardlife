@@ -1,4 +1,4 @@
-// LeopardLife – Insekten: Fliegenschwärme über Kadavern (ein Zeichen für Aas) und Glühwürmchen in grünen Nächten.
+// LeoLife – Insekten: Fliegenschwärme über Kadavern (ein Zeichen für Aas) und Glühwürmchen in grünen Nächten.
 import { animals } from './animals.js';
 import { dayF } from './daynight.js';
 import { scene } from './engine.js';

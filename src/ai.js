@@ -1,4 +1,4 @@
-// LeopardLife – Tierverhalten: Rudeljagd, Flucht, Angriff, Herden.
+// LeoLife – Tierverhalten: Rudeljagd, Flucht, Angriff, Herden.
 import { hitAnimal, hurtPlayer } from './actions.js';
 import { animals, placeAnimal } from './animals.js';
 import { snd } from './audio.js';

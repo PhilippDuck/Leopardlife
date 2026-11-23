@@ -1,4 +1,4 @@
-// LeopardLife – Mitspieler am selben Gerät: Beitreten per Controller, geteiltes Bild, eigene Anzeige, am Boden und Wiederbeleben.
+// LeoLife – Mitspieler am selben Gerät: Beitreten per Controller, geteiltes Bild, eigene Anzeige, am Boden und Wiederbeleben.
 // Spieler 1 bleibt der „lokale" Spieler (Tastatur, Maus, Touch oder erster Controller) mit der großen Anzeige.
 // Jeder weitere Spieler hat genau einen Controller (p.pad) und eine kleine Anzeige in seinem Bildausschnitt.
 import { doClimb, doPounce, doRoar } from './actions.js';

@@ -1,4 +1,4 @@
-// LeopardLife – Erkunden: Wer ein Wasserloch zum ersten Mal erreicht, bekommt Erfahrung.
+// LeoLife – Erkunden: Wer ein Wasserloch zum ersten Mal erreicht, bekommt Erfahrung.
 import { gainXp } from './actions.js';
 import { tell } from './coop.js';
 import { players } from './player.js';

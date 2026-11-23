@@ -1,4 +1,4 @@
-// LeopardLife – Verwandtschaft und Familie im gemeinsamen Spiel: wer mit wem verwandt ist, Spieler als Paar, Wurf mit einem Jungen je Spieler.
+// LeoLife – Verwandtschaft und Familie im gemeinsamen Spiel: wer mit wem verwandt ist, Spieler als Paar, Wurf mit einem Jungen je Spieler.
 // Regel: Verwandte paaren sich nie (Eltern/Kinder, Geschwister, Großeltern/Enkel, Tante/Onkel mit Nichte/Neffe). Cousins dürfen. Wer neu einsteigt, ist fremd.
 import { snd } from './audio.js';
 import { nameOf, tell } from './coop.js';

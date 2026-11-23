@@ -1,4 +1,4 @@
-// LeopardLife – Pflanzen: Bäume (mit Ausblenden vor der Kamera), Büsche, Felsen, Stämme, Blumen, Bodengras, hohes Gras als Versteck und die Felsen am Bau.
+// LeoLife – Pflanzen: Bäume (mit Ausblenden vor der Kamera), Büsche, Felsen, Stämme, Blumen, Bodengras, hohes Gras als Versteck und die Felsen am Bau.
 import { camera, grassLight, scene, windU } from './engine.js';
 import { REG, pScale } from './save.js';
 import { G } from './state.js';

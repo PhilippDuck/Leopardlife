@@ -1,4 +1,4 @@
-# LeopardLife – Jäger der Wildnis
+# LeoLife – Jäger der Wildnis
 
 Third-Person-Jagdspiel im Browser (Three.js, installierbar als PWA). Du beginnst als kleines Leoparden-Jungtier,
 jagst, versteckst dich vor Raubtieren, wächst, gründest eine Familie und führst deine Blutlinie über Generationen

@@ -1,4 +1,4 @@
-// LeopardLife – Anzeige: Entdeckungswarnung, Kamera, Fadenkreuz, Statusleisten, Ziel, Spürkarte.
+// LeoLife – Anzeige: Entdeckungswarnung, Kamera, Fadenkreuz, Statusleisten, Ziel, Spürkarte.
 import { nearestTree, pounceRun } from './actions.js';
 import { animals } from './animals.js';
 import { snd } from './audio.js';

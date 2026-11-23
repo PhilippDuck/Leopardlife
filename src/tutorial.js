@@ -1,4 +1,4 @@
-// LeopardLife – Erste Schritte: ein geführtes erstes Leben für neue Spieler.
+// LeoLife – Erste Schritte: ein geführtes erstes Leben für neue Spieler.
 // Rechts unter der Spürkarte steht immer genau eine Aufgabe; ist sie erfüllt, kommt die nächste. Die Texte passen sich an die
 // Steuerung an (Tastatur, Touch, Controller). Jeder Spieler hat seine eigene Einführung (Splitscreen: im eigenen Ausschnitt).
 // Der Fortschritt wird je Spielernummer gespeichert: nach einem Neustart geht es bei der Aufgabe weiter, an der man war.

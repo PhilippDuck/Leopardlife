@@ -1,4 +1,4 @@
-// LeopardLife – Partikel-Wolken (Staub, Blut, Blasen) und Brüll-Wellen.
+// LeoLife – Partikel-Wolken (Staub, Blut, Blasen) und Brüll-Wellen.
 import { scene } from './engine.js';
 import { rnd } from './util.js';
 import { G } from './state.js';

@@ -1,4 +1,4 @@
-// LeopardLife – Pausenmenü, Einstellungen, Steuerungsliste, Neustart.
+// LeoLife – Pausenmenü, Einstellungen, Steuerungsliste, Neustart.
 import { animals, placeAnimal } from './animals.js';
 import { initAudio, snd } from './audio.js';
 import { canvas } from './engine.js';

@@ -1,4 +1,4 @@
-// LeopardLife – Kadaver, Aasfresser, Herden und Ahnenbuch.
+// LeoLife – Kadaver, Aasfresser, Herden und Ahnenbuch.
 import { animals } from './animals.js';
 import { snd } from './audio.js';
 import { DIFF, FOOD, ICOL, TRAITS, ico } from './data.js';

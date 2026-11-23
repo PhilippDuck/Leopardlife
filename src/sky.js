@@ -1,4 +1,4 @@
-// LeopardLife – Himmel: Farbverlauf mit Sonne, Wolken und Sterne.
+// LeoLife – Himmel: Farbverlauf mit Sonne, Wolken und Sterne.
 import { HORIZON, SUN_OFF, scene } from './engine.js';
 import { G } from './state.js';
 import { rnd } from './util.js';

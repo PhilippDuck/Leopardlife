@@ -1,4 +1,4 @@
-// LeopardLife – Schlangen (Puffottern): liegen getarnt im Gras, warnen zischend und beißen, wenn man sie übersieht.
+// LeoLife – Schlangen (Puffottern): liegen getarnt im Gras, warnen zischend und beißen, wenn man sie übersieht.
 import { hurtPlayer } from './actions.js';
 import { snd } from './audio.js';
 import { tell } from './coop.js';
