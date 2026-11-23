@@ -14,6 +14,29 @@ const Hn=(x,z)=>6.2*snoise(x*0.0062+NO[0][0],z*0.0062+NO[0][1])+2.0*snoise(x*0.0
 const DEN_H=Hn(7,5);
 function H0(x,z){ const h=Hn(x,z), d=Math.hypot(x-7,z-5); if(d>=22) return h; let w=Math.min(1,(22-d)/12); w=w*w*(3-2*w); return h+(DEN_H-h)*w*0.85; }
 const PONDS=REG.ponds.map(p=>({x:p[0],z:p[1],r:p[2],L:H0(p[0],p[1])}));
+// Feuchte Landschaften kehren außerhalb des Startgebiets in großen zusammenhängenden Flächen wieder.
+function moisture(x,z){
+  return Math.max(0,Math.min(1,0.5+1.3*snoise(x/420+NO[0][0],z/420+NO[0][1])));
+}
+function dryness(x,z){
+  const distance=Math.hypot(x,z);
+  const original=Math.min(1,Math.max(0,(distance-60)/130));
+  const blend=Math.min(1,Math.max(0,(distance-WORLD)/160));
+  return original*(1-blend)+(1-moisture(x,z))*blend;
+}
+function worldPond(x,z){
+  const px=(Math.floor(x/256)+0.5)*256, pz=(Math.floor(z/256)+0.5)*256;
+  if(Math.hypot(px,pz)<WORLD+50||moisture(px,pz)<0.62) return null;
+  return {x:px,z:pz,r:14+moisture(px,pz)*10,L:H0(px,pz)};
+}
+const streamedPonds=[];
+function basin(h,x,z,p){
+  const d=Math.hypot(x-p.x,z-p.z);
+  if(d>=p.r*1.5) return h;
+  let w=Math.min(1,(p.r*1.5-d)/(p.r*0.6)); w=w*w*(3-2*w);
+  const q=d/p.r, target=d<p.r?p.L-(1-q*q):p.L;
+  return h+(target-h)*w;
+}
 const WATER_D=0.4;
 function H(x,z){
   let h=H0(x,z);
@@ -21,16 +44,19 @@ function H(x,z){
     const p=PONDS[i], d=Math.hypot(x-p.x,z-p.z);
     if(d<p.r*1.5){ let w=(p.r*1.5-d)/(p.r*0.6); if(w>1) w=1; w=w*w*(3-2*w); const q=d/p.r; const t=d<p.r?p.L-(1-q*q):p.L; h+=(t-h)*w; }
   }
-  return h;
+  const extra=worldPond(x,z);
+  return extra?basin(h,x,z,extra):h;
 }
-function pondAt(x,z,m){ for(let i=0;i<PONDS.length;i++){ const p=PONDS[i]; if(Math.hypot(x-p.x,z-p.z)<p.r*(m||1)) return p; } return null; }
+function pondAt(x,z,m){ for(let i=0;i<PONDS.length;i++){ const p=PONDS[i]; if(Math.hypot(x-p.x,z-p.z)<p.r*(m||1)) return p; } const extra=worldPond(x,z); return extra&&Math.hypot(x-extra.x,z-extra.z)<extra.r*(m||1)?extra:null; }
 function inWater(x,z){ const p=pondAt(x,z,1); return !!p&&H(x,z)<p.L-WATER_D-0.05; }
 const f6=v=>v.toFixed(6);
 const GLSL_H=GLSL_SNOISE+'float H0(vec2 p){ float h=6.2*snoise(p*0.0062+vec2('+f6(NO[0][0])+','+f6(NO[0][1])+'))+2.0*snoise(p*0.021+vec2('+f6(NO[1][0])+','+f6(NO[1][1])+'))+0.6*snoise(p*0.065+vec2('+f6(NO[2][0])+','+f6(NO[2][1])+'));\n'+
   '  float d=distance(p,vec2(7.0,5.0)); float w=clamp((22.0-d)/12.0,0.0,1.0); w=w*w*(3.0-2.0*w); return h+('+f6(DEN_H)+'-h)*w*0.85; }\n'+
+  'float moisture(vec2 p){return clamp(0.5+1.3*snoise(p/420.0+vec2('+f6(NO[0][0])+','+f6(NO[0][1])+')),0.0,1.0); }\n'+
+  'float worldBasin(vec2 p,float h){vec2 center=(floor(p/256.0)+0.5)*256.0; float wet=moisture(center); if(length(center)<285.0||wet<0.62)return h; float r=14.0+wet*10.0; float d=distance(p,center); if(d>=r*1.5)return h; float w=clamp((r*1.5-d)/(r*0.6),0.0,1.0); w=w*w*(3.0-2.0*w); float q=d/r; float level=H0(center); float target=d<r?level-(1.0-q*q):level; return h+(target-h)*w; }\n'+
   'float Hh(vec2 p){ float h=H0(p); float d; float w; float u; float t;\n'+
   PONDS.map(p=>'  d=distance(p,vec2('+p.x.toFixed(2)+','+p.z.toFixed(2)+')); if(d<'+(p.r*1.5).toFixed(2)+'){ w=clamp(('+(p.r*1.5).toFixed(2)+'-d)/'+(p.r*0.6).toFixed(2)+',0.0,1.0); w=w*w*(3.0-2.0*w); u=d/'+p.r.toFixed(2)+'; t=d<'+p.r.toFixed(2)+'?'+p.L.toFixed(4)+'-(1.0-u*u):'+p.L.toFixed(4)+'; h+=(t-h)*w; }\n').join('')+
-  '  return h; }\n';
+  '  return worldBasin(p,h); }\n';
 const GLSL_PONDMASK=PONDS.map(p=>'  if(distance(w,vec2('+p.x.toFixed(2)+','+p.z.toFixed(2)+'))<'+(p.r*0.93).toFixed(2)+') fade=0.0;\n').join('');
 const vnoise=(x,z)=>Math.sin(x*0.11+Math.sin(z*0.07)*2.1)*Math.cos(z*0.13+Math.sin(x*0.05)*1.7)*0.5+Math.sin(x*0.31-z*0.27)*0.25+Math.sin(x*0.53+z*0.61)*0.12;
 
@@ -81,9 +107,11 @@ function addCol(x,z,r,low){
   return c;
 }
 /** Kollider wieder entfernen (wenn ein Chunk entladen wird) */
-function removeCol(c){
-  const m=c.r+2.5, x0=Math.floor((c.x-m)/CG), x1=Math.floor((c.x+m)/CG), z0=Math.floor((c.z-m)/CG), z1=Math.floor((c.z+m)/CG);
-  for(let i=x0;i<=x1;i++) for(let j=z0;j<=z1;j++){ const k=cKey(i,j), L=colGrid.get(k); if(!L) continue; const n=L.indexOf(c); if(n>=0) L.splice(n,1); if(!L.length) colGrid.delete(k); }
+function removeCol(c){ removeFromGrid(colGrid,c,c.r+2.5); }
+function removeSight(o){ removeFromGrid(sightGrid,o,o.r); }
+function removeFromGrid(grid,c,m){
+  const  x0=Math.floor((c.x-m)/CG), x1=Math.floor((c.x+m)/CG), z0=Math.floor((c.z-m)/CG), z1=Math.floor((c.z+m)/CG);
+  for(let i=x0;i<=x1;i++) for(let j=z0;j<=z1;j++){ const k=cKey(i,j), L=grid.get(k); if(!L) continue; const n=L.indexOf(c); if(n>=0) L.splice(n,1); if(!L.length) grid.delete(k); }
 }
 /* Sichthindernisse (Felsen, Büsche, Baumstämme): Kreis mit Höhe und Deckkraft 0…1, im selben Rasterprinzip */
 const sightGrid=new Map();
@@ -107,4 +135,4 @@ function collide(x,z,rad,skipLow){
   _col.x=x; _col.z=z; return _col;
 }
 
-export { addSight, sightAt, GLSL_H, GLSL_PONDMASK, H, H0, PONDS, WATER_D, WORLD, addCol, collide, cullTiles, hash2, inWater, onView, pondAt, registerCull, registerTile, removeCol, tileOf, unregisterCull, vnoise, waters };
+export { moisture, dryness, worldPond, streamedPonds, removeSight, addSight, sightAt, GLSL_H, GLSL_PONDMASK, H, H0, PONDS, WATER_D, WORLD, addCol, collide, cullTiles, hash2, inWater, onView, pondAt, registerCull, registerTile, removeCol, tileOf, unregisterCull, vnoise, waters };

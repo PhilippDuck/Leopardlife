@@ -76,16 +76,43 @@ function snd3d(ks,x,z,vol,maxD,rate){
   out.connect(master); s.start(t); return true;
 }
 /** Gewehrschuss bei (x,z): scharfer Knall, dumpfer Nachhall und Echo – weit zu hören, aus seiner Richtung */
+/* Gewehrschuss, synthetisch: scharfer Mündungsknall, tiefer Druckstoß mit sich schließendem Filter, leicht übersteuert,
+   dann Hall und zwei Echos von der Ebene. Mit der Entfernung wird alles dumpfer und der Nachhall überwiegt. */
+let gunIR=null, gunShape=null;
+function gunBus(){
+  if(gunIR) return;
+  const n=Math.floor(AC.sampleRate*2.6), ir=AC.createBuffer(2,n,AC.sampleRate);
+  for(let c=0;c<2;c++){ const d=ir.getChannelData(c); for(let i=0;i<n;i++){ const t=i/AC.sampleRate; d[i]=(Math.random()*2-1)*Math.pow(1-i/n,2.2)*Math.exp(-t*1.6)*(t<0.012?t/0.012:1); } }
+  gunIR=ir;
+  const k=new Float32Array(1024); for(let i=0;i<1024;i++){ const x=i/511.5-1; k[i]=Math.tanh(x*2.2)/Math.tanh(2.2); } gunShape=k;
+}
 function gunshot(x,z){
   if(!AC||!LIS.length) return; let L=LIS[0], d=1e9; for(const l of LIS){ const e=Math.hypot(x-l.x,z-l.z); if(e<d){ d=e; L=l; } }
-  if(d>600) return; const near=Math.pow(1-d/600,1.3), t=AC.currentTime+Math.min(0.6,d/340);   // Schall braucht etwas
+  if(d>700) return; gunBus();
+  const near=Math.pow(1-d/700,1.4), t=AC.currentTime+0.01+Math.min(0.8,d/340);   // Schall braucht etwas
   const fx=-Math.sin(L.yaw), fz=-Math.cos(L.yaw), side=((x-L.x)*(-fz)+(z-L.z)*fx)/(d||1);
-  const pan=AC.createStereoPanner?AC.createStereoPanner():null; const out=AC.createGain(); out.gain.value=1; if(pan){ pan.pan.value=Math.max(-0.85,Math.min(0.85,side*Math.min(1,d/8))); out.connect(pan); pan.connect(master); } else out.connect(master);
-  const burst=(dur,vol,type,f,q,delay)=>{ const s=AC.createBufferSource(); s.buffer=nbuf; const fl=AC.createBiquadFilter(); fl.type=type; fl.frequency.value=f; if(q) fl.Q.value=q;
-    const g=AC.createGain(), t0=t+(delay||0); g.gain.setValueAtTime(vol,t0); g.gain.exponentialRampToValueAtTime(0.0001,t0+dur); s.connect(fl); fl.connect(g); g.connect(out); s.start(t0,Math.random()); s.stop(t0+dur+0.05); };
-  burst(0.07,1.6*near*near,'highpass',1800+4000*near);          // Knall (nah scharf)
-  burst(0.55,1.4*near,'lowpass',260+500*near);                    // Wumms
-  burst(1.3,0.35*near+0.05,'lowpass',380,0,0.25+d/900);           // Echo über die Ebene
+  const out=AC.createGain(); out.gain.value=0.62;
+  const pan=AC.createStereoPanner?AC.createStereoPanner():null; if(pan){ pan.pan.value=Math.max(-0.8,Math.min(0.8,side*Math.min(1,d/8))); out.connect(pan); pan.connect(master); } else out.connect(master);
+  // Entfernung: Luft schluckt die Höhen
+  const air=AC.createBiquadFilter(); air.type='lowpass'; air.frequency.value=900+16000*near*near; air.Q.value=0.5; air.connect(out);
+  const dry=AC.createGain(); dry.gain.value=0.12+0.88*near; const sat=AC.createWaveShaper(); sat.curve=gunShape; sat.oversample='2x'; dry.connect(sat); sat.connect(air);
+  const wet=AC.createGain(); wet.gain.value=0.2+0.25*(1-near); const verbLp=AC.createBiquadFilter(); verbLp.type='lowpass'; verbLp.frequency.value=1400+1800*near;
+  const verb=AC.createConvolver(); verb.buffer=gunIR; wet.connect(verb); verb.connect(verbLp); verbLp.connect(air);
+  setTimeout(()=>{ try{ out.disconnect(); }catch(e){} },(t+3.4-AC.currentTime)*1000);   // nach dem Nachhall abhängen
+  const env=(g,t0,peak,att,dur)=>{ g.gain.setValueAtTime(0.0001,t0); g.gain.linearRampToValueAtTime(peak,t0+att); g.gain.exponentialRampToValueAtTime(0.0001,t0+dur); };
+  const noise=(t0,dur,peak,att,type,f0,f1,q,dst)=>{ const s=AC.createBufferSource(); s.buffer=nbuf; s.playbackRate.value=0.9+Math.random()*0.2;
+    const fl=AC.createBiquadFilter(); fl.type=type; fl.frequency.setValueAtTime(f0,t0); fl.frequency.exponentialRampToValueAtTime(f1,t0+dur); fl.Q.value=q||0.7;
+    const g=AC.createGain(); env(g,t0,peak,att,dur); s.connect(fl); fl.connect(g); g.connect(dst); s.start(t0,Math.random()*1.5); s.stop(t0+dur+0.05); };
+  // 1) Mündungsknall: sehr kurz, breitbandig, nah ohrenbetäubend scharf
+  noise(t,0.045,1.5*near+0.05,0.0015,'highpass',2600,1200,0.6,dry);
+  noise(t,0.11,1.1*near+0.1,0.002,'bandpass',1900,700,0.9,dry);
+  // 2) Druckstoß: Sinus fällt von ~140 auf 45 Hz, dazu Rauschen, dessen Filter sich schnell schließt
+  const o=AC.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(150,t); o.frequency.exponentialRampToValueAtTime(42,t+0.22);
+  const og=AC.createGain(); env(og,t,1.3*near+0.2,0.003,0.32); o.connect(og); og.connect(dry); og.connect(wet); o.start(t); o.stop(t+0.4);
+  noise(t,0.42,1.25*near+0.2,0.003,'lowpass',5200,170,0.8,dry);
+  noise(t,0.5,0.45+0.45*near,0.004,'lowpass',3000,220,0.7,wet);
+  // 3) Echos von Hügeln und Baumreihen
+  [[0.32+d/1200,0.38],[0.78+d/900,0.2]].forEach(([dl,v])=>noise(t+dl,0.7,v*(0.35+0.65*near)+0.04,0.03,'lowpass',900,160,0.7,air));
 }
 /** Ist die Aufnahme k geladen? */
 const hasSample=k=>!!bufs[k];

@@ -99,7 +99,7 @@ function updateEating(p,dt){
   p.eatT+=dt; if(p.eatT<BITE_T) return; p.eatT=0;
   c.carc.meat--; L.hunger=Math.min(100,L.hunger+10); if(p.tree!=null) goalEvent('treeEat',1); p.hp=Math.min(maxHp(L),p.hp+maxHp(L)*0.05);
   snd.eat(); puff(c.x,H(c.x,c.z)+0.6,c.z,0xc0392b,3,0.35);
-  if(L.hunger>=100) floatText('satt',p.x,p.y+1.8,p.z,'#e0a060');
+  if(L.hunger>=100){ p.eatC=null; floatText('satt',p.x,p.y+1.8,p.z,'#e0a060'); }
 }
 // Herden: Wasserschweine, Hirsche und Antilopen ziehen in Gruppen. Flieht eines, fliehen die Nachbarn mit.
 const herdLead=a=>{ for(const m of a.herd) if(!m.dead) return m; return a; };

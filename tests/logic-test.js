@@ -31,7 +31,7 @@ const doc={ querySelectorAll:()=>[], getElementById:el, addEventListener(){}, cr
 let raf=null;
 const g={ window:win, document:doc, navigator:{maxTouchPoints:0}, localStorage:{getItem:k=>(k in ls?ls[k]:null),setItem:(k,v)=>{ls[k]=String(v);}}, THREE:win.THREE,
   requestAnimationFrame:fn=>{ if(fn.name==='frame') raf=fn; else fn(); }, setTimeout:fn=>{ fn(); } };
-const body=code+'\n;globalThis.__trees=trees;globalThis.__T={G,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,H,visibility,lineOfSight,addSight,hearR,startEvent,endEvent,EV,updateEvents,eventOn,inGrass,patches,updateAnimal,WORLD,kidOf,kidsOf,tickKids,updateLife,playerSeeks,canSwitchFor,markTaken,cubFollowContext,cubLearn,updateFollowers,followers,learnOf,canSwitch,woundTick,forgetWounds,resetMates,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping,PONDS,drinkContext,updateDrinking,hungerRate,crocStep};';
+const body=code+'\n;globalThis.__trees=trees;globalThis.__T={assistBite,disconnectPlayer,pollCoop,leavePlayer,G,makeTree,fillPlants,chunkRng,sightAt,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,H,visibility,lineOfSight,addSight,hearR,startEvent,endEvent,EV,updateEvents,eventOn,inGrass,patches,updateAnimal,WORLD,kidOf,kidsOf,tickKids,updateLife,playerSeeks,canSwitchFor,markTaken,cubFollowContext,cubLearn,updateFollowers,followers,learnOf,canSwitch,woundTick,forgetWounds,resetMates,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping,PONDS,drinkContext,updateDrinking,hungerRate,crocStep};';
 new Function(...Object.keys(g), body)(...Object.values(g));
 const T=globalThis.__T; const rnd2=()=>Math.random()*8-4; const localStorageDump=()=>ls['jaguar-lines'];
 els.btnPlay.onclick();
@@ -483,4 +483,76 @@ console.log('audio nodes created',ACs&&ACs.count());
   const bitten=P.hp<hp0; S.lvl=lv; P.hp=T.maxHp(); P.drinking=null; P.x=0; P.z=0; c.x=q.x; c.z=q.z; c.state='lurk';
   if(!fell||!ctx||!drank||!noCtx||!(h4<h0*0.85)||!bitten||!states.has('stalk')||!states.has('rise')){ console.log('FEHLER: Durst/Krokodil',fell,!!ctx,drank,noCtx,h0,h4,bitten,[...states]); process.exit(1); }
   console.log('Durst: sinkt, am Ufer getrunken; Genügsamer Magen '+(h4/h0*100).toFixed(0)+' % Hunger; Krokodil schleicht heran und beißt ('+[...states].join(' → ')+')'); }
+// Ein besetzter Baum behält seinen Platz, während ein anderer Abschnitt entladen wird.
+{
+  const assert=require('node:assert/strict');
+  const trees=globalThis.__trees;
+  function load(cx){
+    const c={cx,cz:-30,rng:T.chunkRng(cx,-30),content:[]};
+    T.fillPlants(c);
+    return c.content[0];
+  }
+  for(const sav of [true,false]){
+    const a=T.makeTree({x:300,z:400,sav},T.chunkRng(8,9));
+    const b=T.makeTree({x:300,z:400,sav},T.chunkRng(8,9));
+    assert.deepEqual(a.perch,b.perch);
+    assert.deepEqual(a.parts.map(p=>p.leaf),b.parts.map(p=>p.leaf));
+    assert.ok(a.parts.length>5);
+  }
+  const first=load(40), second=load(41);
+  const tree=trees.find(t=>t&&Math.floor(t.x/64)===41);
+  const index=trees.indexOf(tree);
+  const mate={tree:index}, cub={tree:index};
+  T.players.push(mate); T.followers.push(cub);
+  assert.ok(second.inUse());
+  first.drop();
+  assert.equal(trees[index],tree);
+  T.players.pop();
+  assert.ok(second.inUse());
+  T.followers.pop();
+  assert.ok(!second.inUse());
+  second.drop();
+  assert.ok(!T.sightAt(tree.x,tree.z)?.some(o=>o.x===tree.x&&o.z===tree.z));
+  const again=load(41);
+  assert.equal(trees.filter(t=>t&&t.x===tree.x&&t.z===tree.z).length,1);
+  assert.ok(T.patches.some(p=>Math.floor(p.x/64)===41&&T.inGrass(p.x,p.z)));
+  again.drop();
+  assert.ok(!T.patches.some(p=>Math.floor(p.x/64)===41));
+  console.log('Chunk-Pflanzen: Koop-Baum stabil, Deckung entladen, gleicher Standort bei Rückkehr');
+}
 console.log('ALL OK');
+
+// Controllerverlust: Frist, Wiederverbindung und endgültiges Entfernen.
+{
+ const p=T.makePlayer({L:T.copyLeopard(T.S())}); p.pad=7; p.num=2; T.players.push(p);
+ T.disconnectPlayer(p);
+ if(!p.reconnectUntil||!T.players.includes(p)) throw Error('Keine Wiederverbindungsfrist');
+ const gps=[]; gps[7]={connected:true,buttons:Array.from({length:16},()=>({pressed:false})),axes:[0,0,0,0]};
+ T.pollCoop(0.016,gps);
+ if(p.reconnectUntil||!T.players.includes(p)) throw Error('Wiederverbindung fehlgeschlagen');
+ T.disconnectPlayer(p); p.reconnectUntil=performance.now()-1; T.pollCoop(0.016,[]);
+ if(T.players.includes(p)) throw Error('Frist entfernt Spieler nicht');
+}
+// Unterstützung: nur in Reichweite, höchstens einmal pro Runde, begrenzter Bonus.
+{
+ const a=T.animals.find(a=>a.sp.id==='deer'), p=T.makePlayer({L:T.copyLeopard(T.S())});
+ T.players.push(p); p.dead=false; T.P.dead=false; T.P.bite={a,round:0}; p.x=a.x+100; p.z=a.z;
+ if(T.assistBite(p)) throw Error('Fernunterstützung');
+ p.x=a.x; if(!T.assistBite(p)||T.P.bite.help!==0.05) throw Error('Kein Koop-Bonus');
+ T.assistBite(p); if(T.P.bite.help!==0.05) throw Error('Bonus durch Tastenspam');
+ for(let i=1;i<8;i++){ T.P.bite.round=i; T.assistBite(p); }
+ if(T.P.bite.help!==0.2) throw Error('Bonus nicht begrenzt');
+ T.P.bite=null; T.players.splice(T.players.indexOf(p),1);
+}
+console.log('Controller-Wiederverbindung und Koop-Jagd OK');
+
+// Auch wenn nur Gnu-Wanderungen freigeschaltet sind, bleibt die Auswahl gültig.
+{
+ const old=T.players.map(p=>[p,p.L.lvl,p.tut]); for(const p of T.players){ p.L.lvl=1; p.tut=null; } T.P.dead=false;
+ T.EV.on=null; T.EV.last='migr'; T.EV.next=0; T.EV.fireCooldown=0;
+ T.updateEvents(0);
+ if(T.EV.on!=='migr') throw Error('Frühes Ereignis ungültig oder Feuer zu früh');
+ T.endEvent(); for(const [p,lvl,tut] of old){ p.L.lvl=lvl; p.tut=tut; }
+ T.startEvent('fire'); if(T.EV.fireCooldown!==900) throw Error('Feuerpause fehlt'); T.endEvent();
+}
+console.log('Ereignis-Auswahl und Feuerpause OK');

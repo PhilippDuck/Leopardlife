@@ -23,14 +23,14 @@ import { updateUI, updateWarn } from './hud.js';
 import { downPlayer, hEl, othersAlive, resetMates, tell } from './coop.js';
 import { emit } from './events.js';
 import { toggleSkills } from './skills.js';
-import { bitable, biteHit, forgetWounds, startBite } from './bite.js';
+import { assistBite, bitable, biteHit, forgetWounds, startBite } from './bite.js';
 import { SWITCH_AT, cubLearn, cubSpot, growOf, hasOwnCub, heirLevel } from './cubfollow.js';
 import { humanHit } from './worldevents.js';
 
 /* ---------- Aktionen ---------- */
 /** Index des nächsten erreichbaren Baums für Spieler p, sonst -1. */
 function nearestTree(p=P){
-  let bi=-1, bd=1e9; for(let i=0;i<trees.length;i++){ const t=trees[i], d=Math.hypot(t.x-p.x,t.z-p.z); if(d<bd){ bd=d; bi=i; } }
+  let bi=-1, bd=1e9; for(let i=0;i<trees.length;i++){ const t=trees[i]; if(!t) continue; const d=Math.hypot(t.x-p.x,t.z-p.z); if(d<bd){ bd=d; bi=i; } }
   return bd<3.4+pScale(p.L)*0.8?bi:-1;
 }
 function leaveTree(p,rate){ p.tOff=null; climbStop(); p.dropY=p.upNow; p.dropRate=rate; p.tree=null; p.safe=false; p.upNow=0; }
@@ -43,7 +43,7 @@ function doClimb(p=P){
   const i=nearestTree(p); if(i<0){ toast('Kein Baum in Reichweite','#b9b7a6'); return; }
   const cost=45-5*(p.L.b.climb-1)+(p.drag?20:0); if(p.st<cost){ noStamina(p); return; } p.st-=cost;
   if(p.drag) carcassToTree(p,i);   // die Beute kommt mit hinauf
-  goalEvent('climb',1); p.tree=i; p.climbT=0; p.fromX=p.x; p.fromZ=p.z; p.sneak=false; p.dropY=0; snd.climb();
+  goalEvent('climb',1); cubLearn(p,'tree'); p.tree=i; p.climbT=0; p.fromX=p.x; p.fromZ=p.z; p.sneak=false; p.dropY=0; snd.climb();
 }
 G.noStT=0;
 /** Ausdauerring blinkt und der Hinweis 'Zu wenig Ausdauer' erscheint bei Spieler p */
@@ -59,6 +59,7 @@ function doPounce(p=P){
   if(p.tree!=null&&p.climbT<1) return;
   if(p.st<15){ noStamina(p); return; }
   p.leap=false;
+  if(assistBite(p)) return;
   if(p.tree!=null){ if(p.climbT<1) return; const h=p.upNow; p.leap=true; leaveTree(p,1); p.dropRate=h/(0.55+0.04*p.L.b.jmp); }
   p.st-=15; p.pounce=(p.leap?0.55:0.38)+0.04*p.L.b.jmp; p.pT=p.pounce; p.pcd=1.3-0.2*p.L.b.jmp; p.hit=false; snd.pounce();
   if(!pounceRun(p)) p.rot=Math.atan2(-Math.sin(p.cam.yaw),-Math.cos(p.cam.yaw));   // sonst: in die Richtung, in die er gerade läuft bzw. schaut
@@ -86,10 +87,10 @@ function doRoar(p=P){
 }
 /**
  * Spieler p bekommt n Erfahrung; Stufenaufstieg gibt 2 Punkte für die Entwicklung.
- * Im gemeinsamen Spiel bekommt jeder Spieler die volle Erfahrung – ihr werdet gemeinsam stärker.
+ * Im gemeinsamen Spiel wird die Erfahrung gleichmäßig auf alle Spieler verteilt.
  */
 function gainXp(n,p=P){
-  if(players.length>1){ for(const q of players) gainXpOne(n,q); return; }
+  if(players.length>1){ const share=n/players.length; for(const q of players) gainXpOne(share,q); return; }
   gainXpOne(n,p);
 }
 function gainXpOne(n,p){

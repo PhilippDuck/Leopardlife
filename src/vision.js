@@ -38,7 +38,7 @@ function visibility(a,p,dt){
   a.visT=(a.visT||0)-dt; a.vis=a.vis||new Map();
   if(a.visT>0&&a.vis.has(p)) return a.vis.get(p);
   a.visT=0.2+Math.random()*0.1;
-  const sp=a.sp, gy=H(a.x,a.z), eye=gy+Math.max(0.5,sp.size*(sp.human?1.65:1.15)), sc=pScale(p.L);
+  const sp=a.sp, gy=H(a.x,a.z), eye=gy+Math.max(0.5,sp.size*(sp.human?1.8:1.15)), sc=pScale(p.L);
   const ty=(p.tree!=null?p.y+p.upNow:H(p.x,p.z))+(p.sneak?0.32:0.55)*sc;
   const look=a.g.rotation.y+(a.watch&&a.idle>0?Math.sin(performance.now()/900+a.uid)*1.2:0);
   let ang=Math.atan2(p.x-a.x,p.z-a.z)-look; while(ang>Math.PI) ang-=6.283; while(ang<-Math.PI) ang+=6.283;
@@ -55,7 +55,15 @@ const hearR=p=>(p.noise||0)*D().sense;
 // In jeder Herde hält eins Wache (stirbt es, übernimmt ein anderes); über ihm schwebt ein kleines Auge, wenn ein Spieler nah ist.
 function eyeSprite(){
   const c=document.createElement('canvas'); c.width=c.height=64; const x=c.getContext('2d');
-  if(x){ x.fillStyle='rgba(255,255,255,0.92)'; x.beginPath(); x.ellipse(32,32,26,15,0,0,6.283); x.fill(); x.fillStyle='#2a1c10'; x.beginPath(); x.arc(32,32,10,0,6.283); x.fill(); x.fillStyle='#fff'; x.beginPath(); x.arc(28,28,3,0,6.283); x.fill(); }
+  if(x){
+    x.strokeStyle='rgba(255,255,255,0.92)';
+    x.lineWidth=4;
+    x.lineJoin='round';
+    x.beginPath();
+    x.moveTo(8,32); x.quadraticCurveTo(32,6,56,32);
+    x.quadraticCurveTo(32,58,8,32); x.closePath(); x.stroke();
+    x.fillStyle=x.strokeStyle; x.beginPath(); x.arc(32,32,7,0,Math.PI*2); x.fill();
+  }
   const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true,depthWrite:false})); s.scale.set(0.9,0.9,1); s.visible=false; scene.add(s); return s;
 }
 let eyes=null;

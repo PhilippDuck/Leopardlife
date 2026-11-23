@@ -77,6 +77,7 @@ function buildQuad(o,v){
   g.userData={legs,tail,head,inner,blob:sh};
   return g;
 }
+function animLegs(g,t,amp){ if(g.userData.anim){ g.userData.anim(t,amp); return; } const l=g.userData.legs; const a=Math.sin(t)*amp; l[0].rotation.x=a; l[3].rotation.x=a; l[1].rotation.x=-a; l[2].rotation.x=-a; if(g.userData.tail) g.userData.tail.rotation.y=Math.sin(t*0.5)*0.3; }
 
 /* Krokodil: flacher, gepanzerter Körper mit Rückenschuppen, langer Schnauze mit Zähnen und beweglichem Unterkiefer,
    Augenhöckern oben auf dem Kopf (nur sie schauen beim Lauern aus dem Wasser), seitlich abstehenden Beinen und
@@ -120,7 +121,7 @@ function buildCroc(o,v){
   mergeRigid(inner,stop); mergeRigid(head,new Set([jaw])); mergeRigid(jaw,new Set()); legs.forEach(l=>mergeRigid(l,new Set()));
   segs.forEach((sg,i)=>mergeRigid(sg,new Set(i<4?[segs[i+1]]:[])));
   const sh=new THREE.Mesh(shadowGeo,shadowMat); sh.scale.set(0.75,1,2.2); sh.position.y=0.03; g.add(sh); blobs.push(sh);
-  g.userData={legs,tail:null,head,inner,blob:sh,jaw,segs,croc:true};
+  g.userData={legs,tail:null,head,inner,blob:sh,jaw,segs,croc:true,anim:(t,amp)=>animCroc(g,t,amp*0.6,false,null)};
   return g;
 }
 const s0=i=>i%2?1:-1;
@@ -133,6 +134,5 @@ function animCroc(g,t,amp,swim,open){
   if(open!=null) u.jaw.rotation.x+=(open*0.75-u.jaw.rotation.x)*0.35;
 }
 
-function animLegs(g,t,amp){ if(g.userData.croc){ animCroc(g,t,amp*0.6,false,null); return; } const l=g.userData.legs; const a=Math.sin(t)*amp; l[0].rotation.x=a; l[3].rotation.x=a; l[1].rotation.x=-a; l[2].rotation.x=-a; if(g.userData.tail) g.userData.tail.rotation.y=Math.sin(t*0.5)*0.3; }
 
 export { CROC_EYE, animCroc, animLegs, buildCroc, buildQuad, furColor, furName, makeFur };

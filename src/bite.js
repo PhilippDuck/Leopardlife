@@ -15,6 +15,7 @@ import { hurtPlayer, killAnimal } from './actions.js';
 import { padUI } from './gamepad.js';
 import { touchUI } from './input.js';
 import { cubLearn } from './cubfollow.js';
+import { $ } from './util.js';
 
 /** Festbeißen bei jedem Tier, das ein Biss nicht sofort erledigt (d = Schaden dieses Bisses) – außer Leoparden und Krokodilen im Wasser */
 const fights=a=>!!(a.sp.pred||a.sp.fight);
@@ -28,6 +29,17 @@ function startBite(p,a,d){
   p.x=a.x-Math.sin(a.g.rotation.y)*(a.rad*0.6); p.z=a.z-Math.cos(a.g.rotation.y)*(a.rad*0.6); p.rot=a.g.rotation.y;
   snd.hit(); puff(a.x,H(a.x,a.z)+a.sp.size,a.z,0xc0392b,6,0.5);
   biteUi(p); hEl(p,'bite').style.display='block';
+}
+/** Ein naher Mitspieler unterstützt einmal pro Runde durch einen Angriff. */
+function assistBite(p){
+  if(p.dead||p.reconnectUntil) return false;
+  const owner=players.find(o=>o!==p&&o.bite&&!o.dead&&Math.hypot(o.bite.a.x-p.x,o.bite.a.z-p.z)<o.bite.a.rad+3);
+  if(!owner) return false;
+  const b=owner.bite;
+  if(b.helpRound===b.round) return true;
+  b.helpRound=b.round; b.help=Math.min(0.2,(b.help||0)+0.05);
+  floatText('Gemeinsamer Angriff! +'+Math.round(b.help*100)+'%',b.a.x,H(b.a.x,b.a.z)+2,b.a.z,'#9be07f');
+  snd.hit(); return true;
 }
 /** Druck auf die Sprung-Taste während des Festbeißens: Treffer bewerten */
 function biteHit(p){
@@ -65,7 +77,7 @@ function endBite(p,broke){
   const b=p.bite; p.bite=null; hEl(p,'bite').style.display='none';
   const a=b.a; a.held=null; if(a.dead) return;
   const avg=b.scores.reduce((x,y)=>x+y,0)/b.n;   // nicht mehr geschaffte Bisse zählen als 0
-  const chance=Math.max(0.03,Math.min(0.97,avg*1.15+(has('kiefer',p.L)?0.08:0)+Math.min(0.1,(p.L.lvl-(a.sp.hunt||a.sp.lvl||1))*0.02)-(a.sp.boss?0.12:0)-(fights(a)?0.1:0)));
+  const chance=Math.max(0.03,Math.min(0.97,avg*1.15+(b.help||0)+(has('kiefer',p.L)?0.08:0)+Math.min(0.1,(p.L.lvl-(a.sp.hunt||a.sp.lvl||1))*0.02)-(a.sp.boss?0.12:0)-(fights(a)?0.1:0)));
   if(!broke&&Math.random()<chance){ cubLearn(p,'bite'); killAnimal(a,p); return; }
   // losgerissen: blutet je nach Schwere; leicht verletzt heilt es wieder
   a.wound={sev:avg,t:0,die:avg<0.28?0:14+(1-avg)*70,heal:30,by:p,acc:0};
@@ -80,8 +92,12 @@ function biteUi(p){
   const res=1-b.scores.reduce((x,y)=>x+y,0)/b.n; hEl(p,'biteRes').style.width=Math.max(0,res*100)+'%';
   hEl(p,'biteRounds').textContent=Array.from({length:b.n},(_,i)=>i<b.scores.length?(b.scores[i]>0.65?'●':'◐'):'○').join(' ');
   const k=p!==P||padUI()?'RT / Ⓐ':touchUI()?'tippen':'Leertaste / Klick';
-  hEl(p,'biteHint').textContent=(fights(b.a)?'Es wehrt sich! ':'Festgebissen! ')+'In der Mitte drücken ('+k+')';
+  const tap=hEl(p,'biteTap');
+  tap.style.display=touchUI()?'block':'none';
+  hEl(p,'biteHint').textContent=(fights(b.a)?'Es wehrt sich! ':'Festgebissen! ')+'In der Mitte drücken ('+k+')'+(b.help?' · Koop +'+Math.round(b.help*100)+'%':players.length>1?' · Mitspieler: nah heran und angreifen':'');
 }
+/** Touch-Zugebissknopf: übernimmt den aktiven Festbiss des Spielers. */
+$('biteTap').addEventListener('click',()=>{ const p=players.find(q=>q.bite); if(p) biteHit(p); });
 /** Jedes Bild: Punkt pendeln lassen, Leopard am Tier halten; Wunden bluten und schwächen */
 function updateBite(dt){
   for(const p of players){ const b=p.bite; if(!b) continue;
@@ -115,4 +131,4 @@ function woundTrail(a,dist){
   if(w.acc>(w.die?1.1:2.2)){ w.acc=0; bloodDrop(a.x+rnd(-0.3,0.3),a.z+rnd(-0.3,0.3),w.die?1:0.6); }
 }
 
-export { biteHit, bitable, endBite, forgetWounds, startBite, updateBite, weakRecover, woundSlow, woundTick, woundTrail };
+export { assistBite, biteHit, bitable, endBite, forgetWounds, startBite, updateBite, weakRecover, woundSlow, woundTick, woundTrail };

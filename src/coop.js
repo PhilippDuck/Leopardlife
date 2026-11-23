@@ -2,6 +2,7 @@
 // Spieler 1 bleibt der „lokale" Spieler (Tastatur, Maus, Touch oder erster Controller) mit der großen Anzeige.
 // Jeder weitere Spieler hat genau einen Controller (p.pad) und eine kleine Anzeige in seinem Bildausschnitt.
 import { doClimb, doPounce, doRoar } from './actions.js';
+import { endBite } from './bite.js';
 import { animals } from './animals.js';
 import { snd } from './audio.js';
 import { SUN_OFF, camera, renderer, resize, scene, sun } from './engine.js';
@@ -71,9 +72,21 @@ function resetMates(){
 function leavePlayer(p){
   if(p===P) return;
   const i=players.indexOf(p); if(i<0) return;
+  for(const o of players) if(o.skOpen) toggleSkills(o);
+  if(p.bite) endBite(p,true);
+  if(G.ovPad===p.pad){ G.ovPad=null; }
   players.splice(i,1); dropModel(p.g); if(p.hud) p.hud.remove(); renderPlayers();
   for(const a of animals) if(a.tgt===p) a.tgt=null;
   layoutChanged(); toast(NAMES[p.num-1]+' ist ausgestiegen.','#f2b84b');
+}
+/** Echtzeitfrist funktioniert auch bei pausiertem Spiel. */
+function disconnectPlayer(p){
+  if(p.reconnectUntil) return;
+  p.reconnectUntil=performance.now()+30000;
+  p.ctl.fw=p.ctl.rt=0; p.ctl.sprint=p.ctl.act=false;
+  if(p.skOpen) toggleSkills(p);
+  if(p.bite) endBite(p,true);
+  if(G.ovPad===p.pad) G.ovPad=null;
 }
 function firstFreeNum(){ for(let n=2;n<=MAX_PLAYERS;n++) if(!players.some(p=>p.num===n)) return n; return MAX_PLAYERS; }
 
@@ -129,6 +142,14 @@ function viewSetup(p,cam){
 function pollCoop(dt,gps){
   for(const p of players.slice()){
     if(p===P||p.pad==null) continue;
+    const connected=gps[p.pad]&&gps[p.pad].connected;
+    if(!connected){
+      disconnectPlayer(p);
+      if(performance.now()>=p.reconnectUntil){ leavePlayer(p); continue; }
+      mateToast(p,'Controller getrennt – noch '+Math.ceil((p.reconnectUntil-performance.now())/1000)+' s zum Verbinden.','#f2b84b');
+      continue;
+    }
+    if(p.reconnectUntil){ p.reconnectUntil=0; p.padPrev=gps[p.pad].buttons.map(b=>!!b.pressed); p.leaveT=0; p.leaveAt=performance.now(); tell(p,'Controller wieder verbunden!','#9be07f'); }
     if(G.ovPad===p.pad&&topOverlayOpen()) continue;   // bedient gerade ein Fenster (gamepad.js)
     const gp=gps[p.pad], c=p.ctl;
     if(gp&&gp.connected&&p.skOpen){   // eigene Entwicklung offen: Controller bedient das Fenster, der Leopard steht still
@@ -289,7 +310,7 @@ function updateMarks(v,dt){
     let el=pool[n]; if(!el){ el=document.createElement('div'); el.className='mk'; frame.appendChild(el); pool.push(el); } n++;
     const W=frame.clientWidth, Hh=frame.clientHeight, d=Math.round(Math.hypot(q.x-v.x,q.z-v.z)), col=PCOL[(q.num||1)-1];
     _mv.set(q.x,q.y+1.4*pScale(q.L)+0.6,q.z).project(v.camera);
-    const label=(q.dead?'⚠ ':'')+nameOf(q)+' · '+d+' m';
+    const label=(q.dead?'Am Boden · ':'')+nameOf(q)+' · '+d+' m';
     el.style.display='block'; el.style.color=col;
     if(_mv.z<1&&Math.abs(_mv.x)<0.95&&Math.abs(_mv.y)<0.95){   // im Bild: über dem Kopf
       el.className='mk'; el.innerHTML=esc(label)+'<br>▼';
@@ -304,4 +325,4 @@ function updateMarks(v,dt){
 }
 /** Hinweis zum Wiederbeleben für Spieler o (oder null): wen, wie weit, Fortschritt 0…1 */
 function reviveHint(o){ const p=o.reviveNear; if(!p) return null; const d=Math.hypot(o.x-p.x,o.z-p.z); return {name:nameOf(p),close:d<REVIVE_DIST,progress:p.revT/REVIVE_TIME,left:Math.max(0,REVIVE_TIME-p.revT)}; }
-export { newMate, resetMates, panelNav, cloneWithClasses, pingMates, updateMarks, reviveHint, hEl, mateToast, viewMin, tell, MAX_PLAYERS, joinPlayer, leavePlayer, renderAll, pollCoop, padTaken, downPlayer, updateCoop, updateCoopHud, othersAlive, nameOf };
+export { disconnectPlayer, newMate, resetMates, panelNav, cloneWithClasses, pingMates, updateMarks, reviveHint, hEl, mateToast, viewMin, tell, MAX_PLAYERS, joinPlayer, leavePlayer, renderAll, pollCoop, padTaken, downPlayer, updateCoop, updateCoopHud, othersAlive, nameOf };

@@ -15,7 +15,7 @@ let travelArm=null;
 function renderRegions(){
   $('regList').innerHTML=Object.keys(REGIONS).map(id=>{ const r=REGIONS[id], open=!r.soon&&(S.gen||1)>=r.gen, here=id===REG_ID;
     const st=here?'<span style="color:#9be07f">Hier bist du</span>':r.soon?'<span style="color:var(--mut)">kommt bald · ab Generation '+r.gen+'</span>':open?'<span style="color:var(--gold)">offen</span>':'<span style="color:var(--mut)">ab Generation '+r.gen+'</span>';
-    return '<div class="skill"><div><b>'+r.n+(beaten(id)?' ✔':'')+'</b><small>'+r.d+(r.boss?' Endgegner: '+r.boss+'.':'')+'</small><small>'+st+'</small></div><span></span>'+
+    return '<div class="skill"><div><b>'+r.n+(beaten(id)?' · abgeschlossen':'')+'</b><small>'+r.d+(r.boss?' Endgegner: '+r.boss+'.':'')+'</small><small>'+st+'</small></div><span></span>'+
       (open&&!here?'<button data-r="'+id+'">'+(travelArm===id?'Wirklich wandern?':'Hinwandern')+'</button>':'<span></span>')+'</div>'; }).join('');
 }
 $('regList').addEventListener('click',e=>{ const b=e.target.closest('button[data-r]'); if(!b) return; const id=b.dataset.r;

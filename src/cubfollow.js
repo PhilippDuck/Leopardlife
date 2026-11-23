@@ -27,7 +27,7 @@ const LEARN_AT=0.25, SWITCH_AT=0.5, DEN_CAP=0.35;
 const LESSONS=[
   {k:'amb',n:'Hinterhalt',need:3,give:'amb'},
   {k:'bite',n:'Festbeißen',need:2,give:'jmp'},
-  {k:'tree',n:'Beute im Baum',need:1,give:'climb'},
+  {k:'tree',n:'Klettern',need:1,give:'climb'},
   {k:'kill',n:'Beute',need:4,give:'pt'}
 ];
 /** @type {{p:any,c:any,x:number,z:number,rot:number,g:any,ph:number,wait:boolean,eatT:number,hitT:number,mewT:number,up:number,tree:number|null,waitTree:number|null}[]} */
@@ -76,7 +76,7 @@ function tickKids(dt){
     const say=(m,col)=>{ if(q) tell(q,m,col); else toast(m,col); };
     if(f0>=30&&kid.full<30) say('Dein Junges hat Hunger – lass es an Beute fressen.','#ffb070');
     if(kid.full<=0){ kid.hp-=dt*0.012; kid.warnT=(kid.warnT||0)-dt;
-      if(kid.warnT<=0){ kid.warnT=15; say('⚠ Dein Junges verhungert! Noch '+Math.max(1,Math.round(kid.hp/0.012))+' s – bring ihm Beute!','#ff5a3a'); }
+      if(kid.warnT<=0){ kid.warnT=15; say('Dein Junges verhungert! Noch '+Math.max(1,Math.round(kid.hp/0.012))+' s – bring ihm Beute!','#ff5a3a'); }
       if(kid.hp<=0){ kidDies(k,'ist verhungert'); return; } }
     else if(kid.hp<1&&!G.raider) kid.hp=Math.min(1,kid.hp+dt*0.01);
   }
@@ -107,8 +107,8 @@ function clearFollowers(){ while(followers.length) dropFollower(followers[0]); }
 function cubFollowContext(p){
   const c=S.cub; if(!c||p.dead||p.tree!=null) return null;
   const kid=kidOf(p); if(!kid) return null;
-  // ausgewachsen: am Bau übernehmen (zweimal drücken)
-  if(kid.grow>=1){ if(Math.hypot(cub.x-p.x,cub.z-p.z)>4.5) return null;
+  // Ausgewachsenes Junges kann am Bau oder unterwegs bei seinem Mitspieler übernommen werden.
+  if(kid.grow>=1){ const f=followerOf(p), spot=f||cub; if(Math.hypot(spot.x-p.x,spot.z-p.z)>4.5) return null;
     return {label:p.swArm>0?'Wirklich? Nochmal: als Junges weiterspielen':'Als dein Junges weiterspielen (Stufe '+heirLevel(p)+')',fn:()=>{ if(!(p.swArm>0)){ p.swArm=4; return; } p.swArm=0; if(p===P) playAsCub(); else mateBecomeCub(p); }}; }
   const f=followerOf(p);
   if(f){ if(Math.hypot(f.x-p.x,f.z-p.z)>4.5) return null;
@@ -136,9 +136,18 @@ function learnText(p){ const l=learnOf(p); return LESSONS.map(L=>L.n+' '+Math.mi
 /** Beim Wechsel ins Junge: Boni aus dem Gelernten auf die Werte L anwenden; liefert die Namen für die Meldung */
 function applyLearned(p,L){
   const l=learnOf(p), got=[];
+  const levelBudget=Math.max(0,(L.lvl-1)*2);
+  const carried=Math.floor((p.L?.pts||0)*0.1);
+  let inheritedCost=0;
   for(const o of LESSONS){ if((l[o.k]||0)<o.need) continue;
-    if(o.give==='pt') L.pts=(L.pts||0)+1; else L.b[o.give]=Math.min(3,(L.b[o.give]||0)+1);
+    if(o.give==='pt') L.pts=(L.pts||0)+1;
+    else {
+      const before=L.b[o.give]||0;
+      L.b[o.give]=Math.min(3,before+1);
+      inheritedCost+=(L.b[o.give]-before)*2;
+    }
     got.push(bonusName(o)); }
+  L.pts=Math.max(0,levelBudget+carried-inheritedCost+(L.pts||0));
   return got;
 }
 /** Wo Spieler p als Junges startet: bei seinem mitlaufenden Jungen, sonst am Bau */
@@ -156,7 +165,7 @@ function stageCheck(){
     const q=playerNum(k), say=m=>{ if(q) tell(q,m,'#ff9ad0'); else toast(m,'#ff9ad0'); };
     if(st===1) say('Dein Junges ist alt genug für die Lehrzeit: Hol es am Bau ab und nimm es mit auf die Jagd!');
     if(st===2) say('Dein Junges ist halbstark! Du kannst jetzt als Junges weiterspielen (Menü) – mit allem, was es gelernt hat.');
-    if(st===3) say('Dein Junges ist ausgewachsen! Es wartet am Bau: Aktionstaste dort = als dein Junges weiterspielen. Oder behalte es als Erben.');
+    if(st===3) say(followerOf(q)?'Dein Junges ist ausgewachsen! Wenn es bei dir ist: Aktionstaste beim Jungen = als dein Junges weiterspielen. Oder behalte es als Erben.':'Dein Junges ist ausgewachsen! Es wartet am Bau: Aktionstaste dort = als dein Junges weiterspielen. Oder behalte es als Erben.');
     save(); }
 }
 /** Stufe, mit der Spieler p als sein Junges startet */
@@ -168,7 +177,7 @@ function updateFollowers(dt){
   stageCheck();
   for(const f of followers.slice()){
     const p=f.p, c=S.cub;
-    if(!c||f.c!==c||players.indexOf(p)<0||!kidOf(p)||kidOf(p).grow>=1){ dropFollower(f); continue; }
+    if(!c||f.c!==c||players.indexOf(p)<0||!kidOf(p)){ dropFollower(f); continue; }
     let tx=p.x-Math.sin(p.rot)*2.6, tz=p.z-Math.cos(p.rot)*2.6;
     const dp=Math.hypot(p.x-f.x,p.z-f.z);
     if((dp>110&&f.up<=0)||p.dead){ f.x=p.x+rnd(-2,2); f.z=p.z+rnd(-2,2); f.up=0; f.tree=null; }   // Spieler weit weg (z. B. neu erwacht): kommt nach
@@ -209,7 +218,7 @@ function updateFollowers(dt){
       const d=Math.hypot(a.x-f.x,a.z-f.z);
       if(d<14&&dp>20&&a.state==='wander'){ a.tx=f.x; a.tz=f.z; a.timer=2; }
       if(d<2.4&&f.hitT<=0&&(a.state==='chase'||a.state==='wander'||a.state==='scav')){ f.hitT=1.2; kid.hp-=0.14; snd3d(['mew'],f.x,f.z,1.2,70,1.3); puff(f.x,H(f.x,f.z)+0.5,f.z,0xc0392b,4,0.4);
-        tell(p,'⚠ Dein Junges wird angegriffen! (Leben '+Math.max(0,Math.round(kid.hp*100))+' %)','#ff8a70');
+        tell(p,'Dein Junges wird angegriffen! (Leben '+Math.max(0,Math.round(kid.hp*100))+' %)','#ff8a70');
         if(kid.hp<=0){ followerDies(f); break; } } }
   }
 }

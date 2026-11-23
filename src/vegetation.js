@@ -2,7 +2,7 @@
 import { camera, grassLight, scene, windU } from './engine.js';
 import { REG, pScale } from './save.js';
 import { G } from './state.js';
-import { GLSL_H, GLSL_PONDMASK, H, PONDS, WORLD, addCol, addSight, pondAt, registerTile, tileOf } from './terrain.js';
+import { GLSL_H, GLSL_PONDMASK, H, PONDS, WORLD, addCol, addSight, dryness, pondAt, registerTile, tileOf } from './terrain.js';
 import { rnd } from './util.js';
 import { P } from './player.js';
 
@@ -21,18 +21,18 @@ function blobGeo(detail){
   for(let i=0;i<p.count;i++){ const x=p.getX(i), y=p.getY(i), z=p.getZ(i), n=1+0.14*Math.sin(x*12.9+y*7.3)*Math.cos(z*9.1-x*3.7)+0.07*Math.sin(y*21.0+z*13.0); p.setXYZ(i,x*n,y*n,z*n); }
   g.computeVertexNormals(); return g;
 }
-(function(){
-  const hsl=(h,s,l)=>new THREE.Color().setHSL(h,s,l).getHex();
-  function make(o){
+const hsl=(h,s,l)=>new THREE.Color().setHSL(h,s,l).getHex();
+function makeTree(o,random=Math.random){
+    const rnd=(min,max)=>min+random()*(max-min);
     const t={x:o.x,z:o.z,y:H(o.x,o.z),f:1,parts:[],cx:0,cz:0};
     const wood=(a,b,r,c)=>{ const dx=b[0]-a[0], dy=b[1]-a[1], dz=b[2]-a[2], len=Math.hypot(dx,dy,dz)||0.01;
       _tq.setFromUnitVectors(_UP,_tv.set(dx/len,dy/len,dz/len));
       t.parts.push({leaf:false,c,m:new THREE.Matrix4().compose(new THREE.Vector3(a[0],a[1],a[2]),_tq.clone(),new THREE.Vector3(r,len,r))}); };
     const leaf=(p,sx,sy,sz,c,q)=>t.parts.push({leaf:true,c,m:new THREE.Matrix4().compose(new THREE.Vector3(p[0],p[1],p[2]),
-      q||new THREE.Quaternion().setFromEuler(new THREE.Euler(rnd(-0.25,0.25),Math.random()*6.28,rnd(-0.25,0.25))),new THREE.Vector3(sx,sy,sz))});
+      q||new THREE.Quaternion().setFromEuler(new THREE.Euler(rnd(-0.25,0.25),random()*6.28,rnd(-0.25,0.25))),new THREE.Vector3(sx,sy,sz))});
     if(o.palm){
       // Palme: gebogener Stamm aus Segmenten, Wedel hängen nach unten
-      const k=rnd(0.85,1.2), a=Math.random()*6.283, bark=hsl(0.09,0.28,rnd(0.38,0.46)); let p=[0,-0.2,0];
+      const k=rnd(0.85,1.2), a=random()*6.283, bark=hsl(0.09,0.28,rnd(0.38,0.46)); let p=[0,-0.2,0];
       for(let s=0;s<6;s++){ const th=0.06+0.075*s, L=1.25*k, q=[p[0]+Math.cos(a)*Math.sin(th)*L,p[1]+Math.cos(th)*L,p[2]+Math.sin(a)*Math.sin(th)*L]; wood(p,q,(0.26-0.012*s)*k,bark); p=q; }
       const hue=rnd(0.24,0.3);
       for(let j=0;j<8;j++){ const yaw=j/8*6.283+rnd(-0.25,0.25), pit=rnd(0.22,0.55), d=1.55*k;
@@ -40,11 +40,11 @@ function blobGeo(detail){
         leaf([p[0]+Math.sin(yaw)*Math.cos(pit)*d,p[1]-Math.sin(pit)*d+0.15*k,p[2]+Math.cos(yaw)*Math.cos(pit)*d],0.5*k,0.09*k,2.0*k,hsl(hue+rnd(-0.02,0.02),rnd(0.45,0.58),rnd(0.3,0.38)),q); }
       leaf([p[0],p[1]-0.15*k,p[2]],0.45*k,0.35*k,0.45*k,hsl(0.08,0.45,0.28));
       t.cx=p[0]; t.cz=p[2]; t.cy=p[1]; t.rx=2.6*k; t.ry=1.1*k; t.perch=[p[0],p[1]+0.25*k,p[2]]; t.tr=0.28*k;
-    } else if(o.sav&&Math.random()<0.1){
+    } else if(o.sav&&random()<0.1){
       // Toter Baum: kahle, graue Äste
       const k=rnd(0.8,1.25), h=rnd(4,6)*k, bark=hsl(0.08,0.07,rnd(0.46,0.56)), top=[rnd(-0.4,0.4)*k,h,rnd(-0.4,0.4)*k];
       wood([0,-0.2,0],top,0.28*k,bark);
-      const nb=3+Math.floor(Math.random()*2);
+      const nb=3+Math.floor(random()*2);
       for(let j=0;j<nb;j++){ const a=j/nb*6.283+rnd(-0.4,0.4), u=rnd(0.5,0.9), s=[top[0]*u,h*u,top[2]*u], L=rnd(1.4,2.4)*k, e=[s[0]+Math.cos(a)*L,s[1]+rnd(0.9,1.9)*k,s[2]+Math.sin(a)*L];
         wood(s,e,0.13*k,bark); const b=a+rnd(-0.9,0.9); wood(e,[e[0]+Math.cos(b)*0.9*k,e[1]+0.7*k,e[2]+Math.sin(b)*0.9*k],0.07*k,bark); }
       t.cx=top[0]*0.7; t.cz=top[2]*0.7; t.cy=h*0.75; t.rx=1.5*k; t.ry=h*0.3; t.perch=[top[0],h,top[2]]; t.tr=0.28*k;
@@ -52,35 +52,36 @@ function blobGeo(detail){
       // Schirmakazie: kurzer Stamm, gabelt sich, flache breite Laubschirme
       const k=rnd(0.85,1.3), h1=rnd(1.8,2.8)*k, bark=hsl(0.06,0.25,rnd(0.17,0.24)), ln=[rnd(-0.3,0.3)*k,h1,rnd(-0.3,0.3)*k], hue=rnd(0.19,0.25);
       wood([0,-0.2,0],ln,0.3*k,bark);
-      const nf=2+Math.floor(Math.random()*2); let top=0;
+      const nf=2+Math.floor(random()*2); let top=0;
       for(let j=0;j<nf;j++){ const a=j/nf*6.283+rnd(-0.5,0.5), L=rnd(1.6,2.6)*k, e=[ln[0]+Math.cos(a)*L,h1+rnd(1.8,2.8)*k,ln[2]+Math.sin(a)*L]; top=Math.max(top,e[1]);
         wood(ln,e,0.17*k,bark);
-        leaf([e[0],e[1]+0.3*k,e[2]],rnd(2,2.8)*k,rnd(0.42,0.6)*k,rnd(2,2.8)*k,hsl(hue+rnd(-0.015,0.015),rnd(0.34,0.44),rnd(0.31,0.4)),new THREE.Quaternion().setFromEuler(new THREE.Euler(rnd(-0.08,0.08),Math.random()*6.28,rnd(-0.08,0.08)))); }
-      leaf([ln[0],top+0.35*k,ln[2]],rnd(2.6,3.3)*k,0.55*k,rnd(2.6,3.3)*k,hsl(hue,rnd(0.36,0.44),rnd(0.36,0.43)),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,Math.random()*6.28,0)));
+        leaf([e[0],e[1]+0.3*k,e[2]],rnd(2,2.8)*k,rnd(0.42,0.6)*k,rnd(2,2.8)*k,hsl(hue+rnd(-0.015,0.015),rnd(0.34,0.44),rnd(0.31,0.4)),new THREE.Quaternion().setFromEuler(new THREE.Euler(rnd(-0.08,0.08),random()*6.28,rnd(-0.08,0.08)))); }
+      leaf([ln[0],top+0.35*k,ln[2]],rnd(2.6,3.3)*k,0.55*k,rnd(2.6,3.3)*k,hsl(hue,rnd(0.36,0.44),rnd(0.36,0.43)),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,random()*6.28,0)));
       t.cx=ln[0]; t.cz=ln[2]; t.cy=top+0.2*k; t.rx=4*k; t.ry=1.2*k; t.perch=[ln[0],top+0.35*k+0.47*k,ln[2]]; t.tr=0.3*k;
     } else {
       // Urwaldbaum (selten ein Riese): Brettwurzeln, Äste mit eigenen Laubballen, oben hellere Blätter
-      const big=Math.random()<0.1, k=rnd(0.8,1.4), kb=k*(big?1.45:1), h=(big?rnd(10,12.5):rnd(5.5,8))*k, r=(big?0.62:0.42)*k;
+      const big=random()<0.1, k=rnd(0.8,1.4), kb=k*(big?1.45:1), h=(big?rnd(10,12.5):rnd(5.5,8))*k, r=(big?0.62:0.42)*k;
       const bark=hsl(rnd(0.06,0.09),rnd(0.25,0.35),rnd(0.2,0.29)), top=[rnd(-0.5,0.5)*k,h,rnd(-0.5,0.5)*k], hue=rnd(0.27,0.36), sat=rnd(0.42,0.56), lit=rnd(0.19,0.27);
       wood([0,-0.3,0],top,r,bark);
-      const nr=3+Math.floor(Math.random()*2);
+      const nr=3+Math.floor(random()*2);
       for(let j=0;j<nr;j++){ const a=j/nr*6.283+rnd(-0.3,0.3); wood([Math.cos(a)*1.3*k*(big?1.4:1),-0.25,Math.sin(a)*1.3*k*(big?1.4:1)],[Math.cos(a)*0.15*k,(big?2.2:1.4)*k,Math.sin(a)*0.15*k],0.2*k,bark); }
-      const nb=3+Math.floor(Math.random()*2);
+      const nb=3+Math.floor(random()*2);
       for(let j=0;j<nb;j++){ const a=j/nb*6.283+rnd(-0.4,0.4), u=rnd(0.62,0.86), s=[top[0]*u,h*u,top[2]*u], L=rnd(2,3.2)*k*(big?1.4:1), e=[s[0]+Math.cos(a)*L,s[1]+rnd(1,2.2)*k,s[2]+Math.sin(a)*L];
         wood(s,e,0.17*k*(big?1.3:1),bark);
         leaf([e[0],e[1]+0.4*k,e[2]],rnd(1.7,2.3)*kb,rnd(1.1,1.5)*kb,rnd(1.7,2.3)*kb,hsl(hue+rnd(-0.02,0.02),sat,lit+rnd(0,0.03))); }
       leaf([top[0],h+0.7*k,top[2]],2.6*kb,1.7*kb,2.6*kb,hsl(hue,sat,lit+0.04));
-      const nx=1+Math.floor(Math.random()*2);
-      for(let j=0;j<nx;j++){ const a=Math.random()*6.283; leaf([top[0]+Math.cos(a)*1.4*kb,h+rnd(1,1.8)*k,top[2]+Math.sin(a)*1.4*kb],rnd(1.2,1.7)*kb,rnd(0.9,1.2)*kb,rnd(1.2,1.7)*kb,hsl(hue+rnd(-0.02,0.02),sat,lit+0.06)); }
+      const nx=1+Math.floor(random()*2);
+      for(let j=0;j<nx;j++){ const a=random()*6.283; leaf([top[0]+Math.cos(a)*1.4*kb,h+rnd(1,1.8)*k,top[2]+Math.sin(a)*1.4*kb],rnd(1.2,1.7)*kb,rnd(0.9,1.2)*kb,rnd(1.2,1.7)*kb,hsl(hue+rnd(-0.02,0.02),sat,lit+0.06)); }
       t.cx=top[0]; t.cz=top[2]; t.cy=h+0.6*k; t.rx=(big?6:4.5)*k; t.ry=2.4*kb; t.perch=[top[0],h+0.7*k+1.7*kb*0.85,top[2]]; t.tr=r+0.05;
     }
     return t;
   }
+(function(){
   for(let i=0;i<REG.trees;i++){
     let x,z,r; do{ r=Math.sqrt(Math.random())*WORLD; const a=Math.random()*6.283; x=Math.cos(a)*r; z=Math.sin(a)*r; }while(r<10||(r>110&&Math.random()<0.7)||pondAt(x,z,1.3));
-    trees.push(make({x,z,sav:r>REG.savFrom}));
+    trees.push(makeTree({x,z,sav:r>REG.savFrom}));
   }
-  PONDS.forEach(p=>{ const n=REG.palms[0]+Math.floor(Math.random()*(REG.palms[1]-REG.palms[0]+1)); for(let j=0;j<n;j++){ const a=Math.random()*6.283, d=p.r*rnd(1.12,1.45); trees.push(make({x:p.x+Math.cos(a)*d,z:p.z+Math.sin(a)*d,palm:true})); } });
+  PONDS.forEach(p=>{ const n=REG.palms[0]+Math.floor(Math.random()*(REG.palms[1]-REG.palms[0]+1)); for(let j=0;j<n;j++){ const a=Math.random()*6.283, d=p.r*rnd(1.12,1.45); trees.push(makeTree({x:p.x+Math.cos(a)*d,z:p.z+Math.sin(a)*d,palm:true})); } });
   const nW={}, nL={}; trees.forEach(t=>{ const k=tileOf(t.x,t.z); t.parts.forEach(p=>{ const N=p.leaf?nL:nW; p.k=k; p.i=N[k]=(N[k]||0); N[k]++; }); });
   const wg=new THREE.CylinderGeometry(0.7,1,1,7,1); wg.translate(0,0.5,0);
   const wm=new THREE.MeshLambertMaterial({color:0xffffff});
@@ -111,7 +112,7 @@ function updateTrees(dt,views){
   const L=views.map(({camera:c,p})=>{ const cx=c.position.x, cy=c.position.y, cz=c.position.z, sx=p.x-cx, sy=(p.camY+pScale(p.L)*0.6)-cy, sz=p.z-cz; return [cx,cy,cz,sx,sy,sz,sx*sx+sy*sy+sz*sz||1,p.tree]; });
   const stp=dt*5;
   for(let i=0;i<trees.length;i++){
-    const t=trees[i], kx=t.x+t.cx, ky=t.y+t.cy, kz=t.z+t.cz; const fv=t.fv||(t.fv=[]);
+    const t=trees[i]; if(!t) continue; const kx=t.x+t.cx, ky=t.y+t.cy, kz=t.z+t.cz; const fv=t.fv||(t.fv=[]);
     for(let j=0;j<L.length;j++){ const [cx,cy,cz,sx,sy,sz,len2,own]=L[j]; let target=1;
       if(i!==own){ let u=((kx-cx)*sx+(ky-cy)*sy+(kz-cz)*sz)/len2; u=Math.max(0,Math.min(1,u));
         const dx=(kx-(cx+sx*u))/t.rx, dy=(ky-(cy+sy*u))/t.ry, dz=(kz-(cz+sz*u))/t.rx; if(dx*dx+dy*dy+dz*dz<1) target=0.001; }
@@ -130,6 +131,12 @@ function applyTreeView(j){
 }
 
 /* Büsche, Felsen, Stämme, Blumen */
+const bushGeometry=new THREE.IcosahedronGeometry(1,0);
+const bushMaterial=new THREE.MeshLambertMaterial({color:0xffffff});
+function bushColor(sav,random=Math.random){
+  const range=(a,b)=>a+random()*(b-a);
+  return {h:sav?range(0.17,0.24):range(0.28,0.36),s:range(0.35,0.5),l:sav?range(0.33,0.42):range(0.24,0.34)};
+}
 (function(){
   const mat=new THREE.MeshLambertMaterial({color:0xffffff});
   const m=new THREE.Matrix4(), q=new THREE.Quaternion(), s=new THREE.Vector3(), v=new THREE.Vector3(), e=new THREE.Euler(), c=new THREE.Color();
@@ -141,9 +148,9 @@ function applyTreeView(j){
       mesh.castShadow=!!shadow; mesh.receiveShadow=true; scene.add(mesh); registerTile(mesh,+k,78); }
   }
   function spot(rmin,rmax){ let x,z,t=0; do{ const r=Math.sqrt(rnd(rmin*rmin,rmax*rmax)), a=Math.random()*6.283; x=Math.cos(a)*r; z=Math.sin(a)*r; }while(pondAt(x,z,1.05)&&++t<20); return {x,z,r:Math.hypot(x,z)}; }
-  scatter(320,new THREE.IcosahedronGeometry(1,0),()=>{ const p=spot(9,WORLD), sy=rnd(0.5,0.95), sav=p.r>115;
+  scatter(320,bushGeometry,()=>{ const p=spot(9,WORLD), sy=rnd(0.5,0.95), sav=p.r>115;
     const bsx=rnd(0.8,1.7), bsz=rnd(0.8,1.7); addSight(p.x,p.z,(bsx+bsz)*0.42,sy*0.9,0.8);   // Busch: verdeckt fast ganz
-    return {x:p.x,z:p.z,y:H(p.x,p.z)+sy*0.45,sx:bsx,sy,sz:bsz,ry:Math.random()*6,h:sav?rnd(0.17,0.24):rnd(0.28,0.36),s:rnd(0.35,0.5),l:sav?rnd(0.33,0.42):rnd(0.24,0.34)}; },true);
+    return {x:p.x,z:p.z,y:H(p.x,p.z)+sy*0.45,sx:bsx,sy,sz:bsz,ry:Math.random()*6,...bushColor(sav)}; },true);
   scatter(170,new THREE.DodecahedronGeometry(1,0),()=>{ const p=spot(12,WORLD), sy=rnd(0.3,1.2), sx=rnd(0.4,1.8), sz=rnd(0.4,1.8);
     if(sy>0.45&&sx+sz>1.4) addCol(p.x,p.z,(sx+sz)*0.4,true);   // kleine Steine bleiben begehbar
     if(sy>0.4) addSight(p.x,p.z,(sx+sz)*0.42,sy*0.95,1);   // Felsen verdecken ganz
@@ -211,29 +218,29 @@ const patches=[]; let tallGeo=null, tallMat=null, TALL_N=0;
     const rr=Math.sqrt(Math.random())*p.r, a=Math.random()*6.283, x=p.x+Math.cos(a)*rr, z=p.z+Math.sin(a)*rr;
     if(pondAt(x,z,0.8)) continue;
     if(Math.hypot(x-7,z-5)<2.8) continue;   // Nest am Bau frei lassen, damit man die Jungen sieht
-    list.push([x,H(x,z),z,Math.random()*6.283,rnd(0.75,1.2),Math.random()]);
+    list.push([x,H(x,z),z,Math.random()*6.283,rnd(0.75,1.2),Math.random(),dryness(x,z)]);
   }});
   for(let i=list.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)), t=list[i]; list[i]=list[j]; list[j]=t; }   // gemischt, damit "niedrig" gleichmäßig ausdünnt
   TALL_N=list.length; tallGeo=[];
   const posAttr=new THREE.BufferAttribute(pos,3), byT={};
   list.forEach(o=>{ const k=tileOf(o[0],o[2]); (byT[k]=byT[k]||[]).push(o); });
-  for(const k in byT){ const L=byT[k], n=L.length, iPos=new Float32Array(n*3), iRS=new Float32Array(n*2), iHue=new Float32Array(n);
-    L.forEach((o,i)=>{ iPos[i*3]=o[0]; iPos[i*3+1]=o[1]; iPos[i*3+2]=o[2]; iRS[i*2]=o[3]; iRS[i*2+1]=o[4]; iHue[i]=o[5]; });
+  for(const k in byT){ const L=byT[k], n=L.length, iPos=new Float32Array(n*3), iRS=new Float32Array(n*2), iHue=new Float32Array(n), iDry=new Float32Array(n);
+    L.forEach((o,i)=>{ iPos[i*3]=o[0]; iPos[i*3+1]=o[1]; iPos[i*3+2]=o[2]; iRS[i*2]=o[3]; iRS[i*2+1]=o[4]; iHue[i]=o[5]; iDry[i]=o[6]; });
     const g=new THREE.InstancedBufferGeometry();
     g.setAttribute('position',posAttr); g.setAttribute('iPos',new THREE.InstancedBufferAttribute(iPos,3));
-    g.setAttribute('iRS',new THREE.InstancedBufferAttribute(iRS,2)); g.setAttribute('iHue',new THREE.InstancedBufferAttribute(iHue,1));
+    g.setAttribute('iRS',new THREE.InstancedBufferAttribute(iRS,2)); g.setAttribute('iHue',new THREE.InstancedBufferAttribute(iHue,1)); g.setAttribute('iDry',new THREE.InstancedBufferAttribute(iDry,1));
     g.instanceCount=n; tallGeo.push({g,n,k:+k}); }
   tallMat=new THREE.ShaderMaterial({
     side:THREE.DoubleSide, fog:true,
     uniforms:THREE.UniformsUtils.merge([THREE.UniformsLib.fog,{uP:{value:new THREE.Vector2()},uR:{value:1.5},uTime:{value:0}}]),
-    vertexShader:'uniform vec2 uWind; attribute vec3 iPos; attribute vec2 iRS; attribute float iHue; uniform vec2 uP; uniform float uR; uniform float uTime; varying float vH; varying vec3 vCol;\n#include <fog_pars_vertex>\n'+
+    vertexShader:'uniform vec2 uWind; attribute vec3 iPos; attribute vec2 iRS; attribute float iHue; attribute float iDry; uniform vec2 uP; uniform float uR; uniform float uTime; varying float vH; varying float vDry; varying vec3 vCol;\n#include <fog_pars_vertex>\n'+
       'void main(){\n  float c=cos(iRS.x); float s=sin(iRS.x);\n  vec3 p=position; p.xz=vec2(c*p.x-s*p.z,s*p.x+c*p.z); p.y*=iRS.y;\n'+
       '  float hh=clamp(position.y/1.9,0.0,1.0); float k=hh*hh;\n  vec2 w=iPos.xz;\n'+
       '  float sway=sin(uTime*1.5+w.x*0.4+w.y*0.3)*0.26+sin(uTime*2.7+w.x*1.1-w.y*0.8)*0.08;\n  p.xz+=uWind*(sway+0.15)*k;\n'+
       '  vec2 d=w-uP; float dist=length(d); float push=1.0-smoothstep(0.2,uR,dist);\n  p.xz+=(d/max(dist,0.001))*push*k*1.3; p.y-=push*k*0.55;\n'+
-      '  vCol=mix(vec3(0.27,0.50,0.16),vec3(0.50,0.62,0.22),iHue);\n  vH=hh;\n'+
+      '  vCol=mix(vec3(0.27,0.50,0.16),vec3(0.50,0.62,0.22),iHue);\n  vDry=iDry; vH=hh;\n'+
       '  vec4 mvPosition=viewMatrix*vec4(w.x+p.x,iPos.y+p.y,w.y+p.z,1.0);\n  gl_Position=projectionMatrix*mvPosition;\n  #include <fog_vertex>\n}',
-    fragmentShader:'uniform vec3 uLight; varying float vH; varying vec3 vCol;\n#include <fog_pars_fragment>\nvoid main(){\n  vec3 col=mix(vCol*0.42,vCol,smoothstep(0.0,0.6,vH));\n  col=mix(col,vec3(0.86,0.82,0.46),smoothstep(0.7,1.0,vH)*0.55);\n  gl_FragColor=vec4(col*uLight,1.0);\n  #include <fog_fragment>\n}'
+    fragmentShader:'uniform vec3 uLight; varying float vH; varying float vDry; varying vec3 vCol;\n#include <fog_pars_fragment>\nvoid main(){\n  vec3 col=mix(vCol*0.42,vCol,smoothstep(0.0,0.6,vH));\n  vec3 tip=mix(vec3(0.38,0.64,0.25),vec3(0.86,0.82,0.46),vDry);\n  col=mix(col,tip,smoothstep(0.7,1.0,vH)*0.55);\n  gl_FragColor=vec4(col*uLight,1.0);\n  #include <fog_fragment>\n}'
   });
   tallMat.uniforms.uLight=grassLight; tallMat.uniforms.uWind=windU;
   tallGeo.forEach(t=>{ const mesh=new THREE.Mesh(t.g,tallMat); scene.add(mesh); registerTile(mesh,t.k,76); });
@@ -246,4 +253,4 @@ function inGrass(x,z){ for(let i=0;i<patches.length;i++){ const p=patches[i]; if
   [[-3,0,-3,2.2],[-0.5,0,-4.2,2.8],[2.2,0,-3.2,2]].forEach(r=>{ const m=new THREE.Mesh(new THREE.DodecahedronGeometry(r[3],0),mat); m.position.set(r[0],H(r[0],r[2])+r[3]*0.5,r[2]); m.rotation.set(Math.random(),Math.random(),0); m.castShadow=true; m.receiveShadow=true; scene.add(m); addSight(r[0],r[2],r[3]*0.9,r[3]*1.4,1); addCol(r[0],r[2],r[3]*0.9); });
 })();
 
-export { applyTreeView, _tm, _tv, inGrass, leafGeoHi, leafGeoLo, leafMeshes, leafTime, patches, tallGeo, tallMat, trees, updateTrees };
+export { bushGeometry, bushMaterial, bushColor, makeTree, woodMeshes, setTree, fadedTrees, applyTreeView, _tm, _tv, inGrass, leafGeoHi, leafGeoLo, leafMeshes, leafTime, patches, tallGeo, tallMat, trees, updateTrees };

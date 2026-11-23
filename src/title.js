@@ -46,7 +46,7 @@ function updateTitle(dt){
 let home=null;
 function freeSpot(x,z){
   if(inGrass(x,z)) return false;
-  for(const t of trees) if(Math.abs(t.x-x)<9&&Math.abs(t.z-z)<9&&Math.hypot(t.x-x,t.z-z)<7) return false;
+  for(const t of trees) if(t&&Math.abs(t.x-x)<9&&Math.abs(t.z-z)<9&&Math.hypot(t.x-x,t.z-z)<7) return false;
   for(const q of PONDS) if(Math.hypot(q.x-x,q.z-z)<q.r+4) return false;
   if(Math.hypot(CUB_HOME.x-x,CUB_HOME.z-z)<14) return false;
   const h=H(x,z); return Math.abs(H(x+3,z)-h)<0.6&&Math.abs(H(x,z+3)-h)<0.6&&Math.abs(H(x-3,z)-h)<0.6&&Math.abs(H(x,z-3)-h)<0.6;
@@ -54,7 +54,7 @@ function freeSpot(x,z){
 /** Zwischen Leopard und Kamera (über den ganzen Kamerabogen) kein hohes Gras und kein Baum */
 function viewClear(x,z,rot){
   for(const a of [-0.1,0.3,0.6,0.95]) for(const d of [1.5,3,4.5,6]){ const px=x+Math.sin(rot+a)*d, pz=z+Math.cos(rot+a)*d;
-    if(inGrass(px,pz)) return false; for(const t of trees) if(Math.abs(t.x-px)<4&&Math.abs(t.z-pz)<4) return false; }
+    if(inGrass(px,pz)) return false; for(const t of trees) if(t&&Math.abs(t.x-px)<4&&Math.abs(t.z-pz)<4) return false; }
   return true;
 }
 function toStage(){

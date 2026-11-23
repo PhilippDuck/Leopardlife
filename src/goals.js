@@ -73,8 +73,8 @@ function renderGoals(){
   const L=S.goals.list, dn=L.filter(g=>g.done).length, st=S.goalStreak||0, next=1+((st+1)%3===0?1:0);
   if(bump){ bumpT=performance.now(); goalHtml=''; }
   const glow=performance.now()-bumpT<1200;
-  const h='<div class="gh">Tagesziele '+dn+'/'+L.length+(st>0?' <span class="gs">🔥 '+st+'</span>':'')+'</div>'
-    +L.map(g=>'<div class="gl'+(g.done?' done':'')+(glow&&g===bump?' bump':'')+'"><span>'+(g.done?'✔':'○')+'</span><span>'+g.text+(g.done||g.need<2?'':' ('+Math.floor(g.have)+'/'+g.need+')')
+  const h='<div class="gh">Tagesziele '+dn+'/'+L.length+(st>0?' <span class="gs">Serie '+st+'</span>':'')+'</div>'
+    +L.map(g=>'<div class="gl'+(g.done?' done':'')+(glow&&g===bump?' bump':'')+'"><span>'+(g.done?'✓':'○')+'</span><span>'+g.text+(g.done||g.need<2?'':' ('+Math.floor(g.have)+'/'+g.need+')')
       +' <i class="gx">+'+(g.xp||goalXp())+' EP</i></span></div>').join('')
     +(dn<L.length?'<div class="gb">Alle '+L.length+': <b>+'+next+' Punkt'+(next>1?'e':'')+'</b>'+(st>0?' · Serie hält':'')+'</div>':'<div class="gb ok">Alle geschafft! Morgen geht die Serie weiter.</div>');
   bump=null; if(!glow&&goalHtml.indexOf(' bump')>=0) goalHtml='';
