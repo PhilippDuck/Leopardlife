@@ -4,7 +4,7 @@ import { worldPond, streamedPonds, waters, WATER_D, WORLD, H, pondAt, dryness, r
 import { scene } from './engine.js';
 import { animals, placeAnimal } from './animals.js';
 import { SPECIES } from './data.js';
-import { buildQuad, makeFur } from './models.js';
+import { buildCroc, buildQuad, makeFur } from './models.js';
 import { players, dropModel } from './player.js';
 import { S, save } from './save.js';
 import { endCarcass } from './carcass.js';
@@ -15,20 +15,35 @@ function fillWater(chunk){
   if(!pond||Math.floor(pond.x/CHUNK)!==chunk.cx||Math.floor(pond.z/CHUNK)!==chunk.cz) return;
   const geometry=new THREE.CircleGeometry(pond.r,48);
   geometry.rotateX(-Math.PI/2);
-  const material=new THREE.MeshPhongMaterial({color:0x4d9db3,transparent:true,opacity:0.74,shininess:120,specular:0xffffff});
+  const material=pond.murky?new THREE.MeshPhongMaterial({color:0x6e6a3c,transparent:true,opacity:0.96,shininess:40,specular:0x8a8a70})
+    :new THREE.MeshPhongMaterial({color:0x4d9db3,transparent:true,opacity:0.74,shininess:120,specular:0xffffff});
   const mesh=new THREE.Mesh(geometry,material);
   mesh.position.set(pond.x,pond.L-WATER_D,pond.z);
   mesh.userData.y=pond.L-WATER_D;
   mesh.receiveShadow=true;
   scene.add(mesh); waters.push(mesh); streamedPonds.push(pond);
   const cull=registerCull(mesh,pond.x,pond.z,pond.r);
+  const croc=spawnPondCroc(chunk,pond);
   chunk.content.push({drop(){
+    if(croc){ if(croc.carc) endCarcass(croc); dropModel(croc.g); const i=animals.indexOf(croc); if(i>=0) animals.splice(i,1); }
     unregisterCull(cull); scene.remove(mesh);
     waters.splice(waters.indexOf(mesh),1); streamedPonds.splice(streamedPonds.indexOf(pond),1);
     geometry.dispose(); material.dispose();
   }});
 }
 
+/** Krokodil im Tümpel eines gestreamten Abschnitts (in gut der Hälfte der Tümpel, fest je Tümpel). Wie im Startgebiet:
+    lauert abgetaucht, im trüben Wasser unsichtbar, greift Trinkende an. Verschwindet mit dem Abschnitt. */
+function spawnPondCroc(chunk,pond){
+  const random=chunkRng(chunk.cx-7919,chunk.cz+3571);
+  if(random()>0.6) return null;
+  const sp=SPECIES.find(s=>s.id==='croc'), fur=makeFur(), g=buildCroc(sp.m,fur); g.scale.setScalar(sp.size); scene.add(g);
+  const a={sp,g,fur,rad:sp.size*0.8+0.25,uid:worldAnimalId++,world:true};
+  placeAnimal(a);
+  const an=random()*6.283, rr=random()*pond.r*0.5;
+  a.pond=pond; a.x=pond.x+Math.cos(an)*rr; a.z=pond.z+Math.sin(an)*rr; a.tx=a.x; a.tz=a.z; a.state='lurk';
+  animals.push(a); return a;
+}
 const worldHerds=new Map();
 let worldAnimalId=100000, worldContentTimer=0;
 function spawnWorldHerd(chunk,now){

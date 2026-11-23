@@ -137,6 +137,32 @@ function bushColor(sav,random=Math.random){
   const range=(a,b)=>a+random()*(b-a);
   return {h:sav?range(0.17,0.24):range(0.28,0.36),s:range(0.35,0.5),l:sav?range(0.33,0.42):range(0.24,0.34)};
 }
+/* Vertrockneter Busch: ein Gewirr kahler Zweige, die vom Boden schräg nach oben und außen wachsen (Ursprung am Boden).
+   Man sieht teilweise hindurch – er versteckt weniger als ein grüner Busch. */
+const dryBushGeometry=(function(){
+  const pos=[], nor=[], mtx=new THREE.Matrix4(), qq=new THREE.Quaternion(), ee=new THREE.Euler(), one=new THREE.Vector3(1,1,1);
+  const add=(len,w,x,y,z,tiltX,tiltZ,yaw)=>{
+    const b=new THREE.BoxGeometry(w,len,w).toNonIndexed(); b.translate(0,len/2,0);
+    ee.set(tiltX,yaw,tiltZ,'YXZ'); qq.setFromEuler(ee); mtx.compose(new THREE.Vector3(x,y,z),qq,one); b.applyMatrix4(mtx);
+    pos.push(...b.attributes.position.array); nor.push(...b.attributes.normal.array); b.dispose();
+    return new THREE.Vector3(0,len,0).applyQuaternion(qq).add(new THREE.Vector3(x,y,z)); };
+  let s=7;  const r=()=>{ s=(s*16807)%2147483647; return (s-1)/2147483646; };
+  for(let i=0;i<9;i++){
+    const yaw=i/9*6.283+r()*0.5, tilt=0.35+r()*0.55, len=0.7+r()*0.6;
+    const tip=add(len,0.07,0,0,0,tilt,0,yaw);
+    const mid=new THREE.Vector3(tip.x*0.6,tip.y*0.6,tip.z*0.6);
+    add(0.25+r()*0.3,0.045,mid.x,mid.y,mid.z,tilt+0.5+r()*0.4,0,yaw+(r()-0.5)*1.4);   // Seitenzweig
+    add(0.2+r()*0.2,0.035,tip.x,tip.y,tip.z,tilt*0.6+0.3,0,yaw+(r()-0.5)*1.2);         // Spitze
+  }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3)); return g;
+})();
+const dryBushColor=(random=Math.random)=>({h:0.06+random()*0.04,s:0.18+random()*0.16,l:0.26+random()*0.12});
+/** Was an einem Buschplatz wächst – nach der Trockenheit d: im Grünen Büsche, im Trockenen kaum noch grüne,
+    dafür vertrocknete Büsche und Steine (oder gar nichts). */
+function shrubKind(d,random=Math.random){
+  if(d<0.4||random()<Math.max(0.08,1-(d-0.4)*2.2)) return 'green';
+  const r=random(); return r<0.5?'dry':r<0.8?'rock':null;
+}
 (function(){
   const mat=new THREE.MeshLambertMaterial({color:0xffffff});
   const m=new THREE.Matrix4(), q=new THREE.Quaternion(), s=new THREE.Vector3(), v=new THREE.Vector3(), e=new THREE.Euler(), c=new THREE.Color();
@@ -148,9 +174,20 @@ function bushColor(sav,random=Math.random){
       mesh.castShadow=!!shadow; mesh.receiveShadow=true; scene.add(mesh); registerTile(mesh,+k,78); }
   }
   function spot(rmin,rmax){ let x,z,t=0; do{ const r=Math.sqrt(rnd(rmin*rmin,rmax*rmax)), a=Math.random()*6.283; x=Math.cos(a)*r; z=Math.sin(a)*r; }while(pondAt(x,z,1.05)&&++t<20); return {x,z,r:Math.hypot(x,z)}; }
-  scatter(320,bushGeometry,()=>{ const p=spot(9,WORLD), sy=rnd(0.5,0.95), sav=p.r>115;
+  // Buschplätze: im Grünen grüne Büsche, im Trockenen vertrocknete Büsche und Steine (shrubKind)
+  const shrubs={green:[],dry:[],rock:[]};
+  for(let i=0;i<320;i++){ const p=spot(9,WORLD), k=shrubKind(dryness(p.x,p.z)); if(k) shrubs[k].push(p); }
+  let si=0;
+  scatter(shrubs.green.length,bushGeometry,()=>{ const p=shrubs.green[si++], sy=rnd(0.5,0.95), sav=p.r>115;
     const bsx=rnd(0.8,1.7), bsz=rnd(0.8,1.7); addSight(p.x,p.z,(bsx+bsz)*0.42,sy*0.9,0.8);   // Busch: verdeckt fast ganz
     return {x:p.x,z:p.z,y:H(p.x,p.z)+sy*0.45,sx:bsx,sy,sz:bsz,ry:Math.random()*6,...bushColor(sav)}; },true);
+  si=0; scatter(shrubs.dry.length,dryBushGeometry,()=>{ const p=shrubs.dry[si++], k=rnd(0.6,1.05), sy=rnd(0.6,1.0);
+    addSight(p.x,p.z,k*0.8,sy*0.9,0.35);   // vertrocknet: man sieht teilweise hindurch
+    return {x:p.x,z:p.z,y:H(p.x,p.z)-0.05,sx:k,sy,sz:k,ry:Math.random()*6,...dryBushColor()}; },true);
+  si=0; scatter(shrubs.rock.length,new THREE.DodecahedronGeometry(1,0),()=>{ const p=shrubs.rock[si++], sy=rnd(0.25,0.7), sx=rnd(0.4,1.2), sz=rnd(0.4,1.2);
+    if(sy>0.45&&sx+sz>1.4) addCol(p.x,p.z,(sx+sz)*0.4,true);
+    if(sy>0.4) addSight(p.x,p.z,(sx+sz)*0.42,sy*0.95,1);
+    return {x:p.x,z:p.z,y:H(p.x,p.z)+sy*0.25,sx,sy,sz,ry:Math.random()*6,h:rnd(0.07,0.11),s:rnd(0.06,0.14),l:rnd(0.45,0.6)}; },true);
   scatter(170,new THREE.DodecahedronGeometry(1,0),()=>{ const p=spot(12,WORLD), sy=rnd(0.3,1.2), sx=rnd(0.4,1.8), sz=rnd(0.4,1.8);
     if(sy>0.45&&sx+sz>1.4) addCol(p.x,p.z,(sx+sz)*0.4,true);   // kleine Steine bleiben begehbar
     if(sy>0.4) addSight(p.x,p.z,(sx+sz)*0.42,sy*0.95,1);   // Felsen verdecken ganz
@@ -253,4 +290,4 @@ function inGrass(x,z){ for(let i=0;i<patches.length;i++){ const p=patches[i]; if
   [[-3,0,-3,2.2],[-0.5,0,-4.2,2.8],[2.2,0,-3.2,2]].forEach(r=>{ const m=new THREE.Mesh(new THREE.DodecahedronGeometry(r[3],0),mat); m.position.set(r[0],H(r[0],r[2])+r[3]*0.5,r[2]); m.rotation.set(Math.random(),Math.random(),0); m.castShadow=true; m.receiveShadow=true; scene.add(m); addSight(r[0],r[2],r[3]*0.9,r[3]*1.4,1); addCol(r[0],r[2],r[3]*0.9); });
 })();
 
-export { bushGeometry, bushMaterial, bushColor, makeTree, woodMeshes, setTree, fadedTrees, applyTreeView, _tm, _tv, inGrass, leafGeoHi, leafGeoLo, leafMeshes, leafTime, patches, tallGeo, tallMat, trees, updateTrees };
+export { dryBushGeometry, dryBushColor, shrubKind, bushGeometry, bushMaterial, bushColor, makeTree, woodMeshes, setTree, fadedTrees, applyTreeView, _tm, _tv, inGrass, leafGeoHi, leafGeoLo, leafMeshes, leafTime, patches, tallGeo, tallMat, trees, updateTrees };

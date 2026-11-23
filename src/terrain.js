@@ -28,7 +28,8 @@ function dryness(x,z){
 function worldPond(x,z){
   const px=(Math.floor(x/256)+0.5)*256, pz=(Math.floor(z/256)+0.5)*256;
   if(Math.hypot(px,pz)<WORLD+50||moisture(px,pz)<0.62) return null;
-  return {x:px,z:pz,r:14+moisture(px,pz)*10,L:H0(px,pz)};
+  const h=Math.sin(px*12.9898+pz*78.233)*43758.5453;   // fest je Tümpel: gut die Hälfte ist trüb
+  return {x:px,z:pz,r:14+moisture(px,pz)*10,L:H0(px,pz),murky:h-Math.floor(h)<0.45};
 }
 const streamedPonds=[];
 function basin(h,x,z,p){
@@ -48,6 +49,8 @@ function H(x,z){
   const extra=worldPond(x,z);
   return extra?basin(h,x,z,extra):h;
 }
+/** Dasselbe Wasserloch? (gestreamte Tümpel werden bei jeder Abfrage neu als Objekt erzeugt) */
+const samePond=(a,b)=>!!a&&!!b&&a.x===b.x&&a.z===b.z;
 function pondAt(x,z,m){ for(let i=0;i<PONDS.length;i++){ const p=PONDS[i]; if(Math.hypot(x-p.x,z-p.z)<p.r*(m||1)) return p; } const extra=worldPond(x,z); return extra&&Math.hypot(x-extra.x,z-extra.z)<extra.r*(m||1)?extra:null; }
 /** Nächstes Wasserloch, auch in der gestreamten weiten Welt. */
 function nearestPond(x,z){
@@ -148,4 +151,4 @@ function collide(x,z,rad,skipLow){
   _col.x=x; _col.z=z; return _col;
 }
 
-export { GLSL_DRY, moisture, dryness, worldPond, streamedPonds, removeSight, addSight, sightAt, GLSL_H, GLSL_PONDMASK, H, H0, PONDS, WATER_D, WORLD, addCol, collide, cullTiles, hash2, inWater, nearestPond, onView, pondAt, registerCull, registerTile, removeCol, tileOf, unregisterCull, vnoise, waters };
+export { samePond, GLSL_DRY, moisture, dryness, worldPond, streamedPonds, removeSight, addSight, sightAt, GLSL_H, GLSL_PONDMASK, H, H0, PONDS, WATER_D, WORLD, addCol, collide, cullTiles, hash2, inWater, nearestPond, onView, pondAt, registerCull, registerTile, removeCol, tileOf, unregisterCull, vnoise, waters };
