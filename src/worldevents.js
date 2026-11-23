@@ -26,8 +26,8 @@ import { goalEvent } from './goals.js';
 import { dmg } from './save.js';
 import { hearR, visibility } from './vision.js';
 
-/** @type {{on:string|null,t:number,next:number,last:string,fireCooldown:number,dir:{x:number,z:number},s:number,herd:any[],rival:any,panic:number,burnT:number,regrow:number,lionT:number,kidT:number,home:{x:number,z:number}|null}} */
-const EV={on:null,t:0,next:rnd(150,240),last:'',fireCooldown:900,dir:{x:1,z:0},s:0,herd:[],rival:null,panic:0,burnT:0,regrow:0,lionT:0,kidT:0,home:null};
+/** @type {{on:string|null,t:number,next:number,last:string,fireCooldown:number,drawT:number,dir:{x:number,z:number},s:number,herd:any[],rival:any,panic:number,burnT:number,regrow:number,lionT:number,kidT:number,home:{x:number,z:number}|null}} */
+const EV={on:null,t:0,next:rnd(150,240),last:'',fireCooldown:900,drawT:0,dir:{x:1,z:0},s:0,herd:[],rival:null,panic:0,burnT:0,regrow:0,lionT:0,kidT:0,home:null};
 const spOf=id=>SPECIES.find(s=>s.id===id);
 const maxLvl=()=>Math.max(...players.map(p=>p.L.lvl));
 
@@ -50,7 +50,7 @@ function fireTex(){ try{ const c=document.createElement('canvas'); c.width=c.hei
   const inner=x.createLinearGradient(0,60,0,34); inner.addColorStop(0,'#ff9b23'); inner.addColorStop(1,'#fff4a0'); x.beginPath(); x.moveTo(32,59); x.bezierCurveTo(20,51,25,42,30,36); x.bezierCurveTo(33,45,39,44,41,37); x.bezierCurveTo(49,48,43,57,32,59); x.fillStyle=inner; x.fill(); return new THREE.CanvasTexture(c); }catch(e){ return null; } }
 function smokeTex(){ try{ const c=document.createElement('canvas'); c.width=c.height=64; const x=c.getContext('2d'), g=x.createRadialGradient(32,32,0,32,32,32);
   g.addColorStop(0,'rgba(255,255,255,0.65)'); g.addColorStop(0.5,'rgba(255,255,255,0.3)'); g.addColorStop(1,'rgba(255,255,255,0)'); x.fillStyle=g; x.fillRect(0,0,64,64); return new THREE.CanvasTexture(c); }catch(e){ return null; } }
-const FLAMES=260, SMOKE=110;
+const FLAMES=110, SMOKE=48;
 let flames=null, smoke=null;
 function fireFx(on){
   if(on&&!flames){
@@ -144,7 +144,7 @@ function startEvent(id){
   if(id==='fire'){
     EV.fireCooldown=900;
     // die Front kommt mit dem Wind
-    { const wx=windU.value.x||0, wz=windU.value.y||0, l=Math.hypot(wx,wz); if(l>0.1) EV.dir={x:wx/l,z:wz/l}; } EV.s=-(WORLD+5); EV.burnT=0; fireFx(true);
+    { const wx=windU.value.x||0, wz=windU.value.y||0, l=Math.hypot(wx,wz); if(l>0.1) EV.dir={x:wx/l,z:wz/l}; } EV.s=-(WORLD+5); EV.burnT=0; EV.drawT=0; fireFx(true);
   }
   if(id==='poach'){
     const sp=spOf('poacher'), q=players[Math.floor(Math.random()*players.length)], an=Math.random()*6.283, r=rnd(95,130), hx=q.x+Math.cos(an)*r, hz=q.z+Math.sin(an)*r, n=Math.random()<0.35?3:2;
@@ -222,7 +222,8 @@ function updateEvents(dt){
     if(EV.herd.every(a=>a.ev!=='poach')||EV.t>210) endEvent();
   }
   if(EV.on==='fire'){
-    EV.s+=dt*3.6; drawFire();
+    EV.s+=dt*3.6; EV.drawT-=dt;
+    if(EV.drawT<=0){ EV.drawT=1/15; drawFire(); }
     // Tiere vor der Front fliehen kopflos
     for(const a of animals){ if(a.dead||a.ev||a.sp.croc||a.sp.friend||a.held) continue; const d=along(a.x,a.z)-EV.s; if(d>0&&d<70){ a.ev='fire'; a.state='wander'; a.sus=0; } }
     // Flammen verbrennen, wer drinsteht
@@ -230,7 +231,7 @@ function updateEvents(dt){
       if(d<0.5&&d>-5){ p.fireT=(p.fireT||0)-dt; if(p.fireT<=0){ p.fireT=0.45; hurtPlayer(6,{sp:{id:'fire',n:'Feuer',dmg:6}},true,p); floatText('Feuer!',p.x,p.y+2,p.z,'#ff8a3a'); } }
     }
     // leises Knistern in der Nähe
-    EV.burnT-=dt; if(EV.burnT<=0){ EV.burnT=0.5; burnGrass(false); const p=players[0], q=frontPt(EV.s,across(p.x,p.z)); if(Math.abs(along(p.x,p.z)-EV.s)<80) snd3d(['gust'],q.x,q.z,0.7,120,0.6); }
+    EV.burnT-=dt; if(EV.burnT<=0){ EV.burnT=1.25; burnGrass(false); const p=players[0], q=frontPt(EV.s,across(p.x,p.z)); if(Math.abs(along(p.x,p.z)-EV.s)<80) snd3d(['gust'],q.x,q.z,0.7,120,0.6); }
     if(EV.s>WORLD+8){ players.forEach(p=>{ p.fireWarn=false; }); endEvent('Das Feuer ist erloschen. Das hohe Gras ist abgebrannt – kaum Deckung, bis es nachwächst.','#f2b84b'); }
   }
   if(EV.on==='rival'){
