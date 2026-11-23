@@ -135,7 +135,9 @@ function updateUI(p=P){
   const stEl=h('status');
   const nt=(p.L.b.climb>0&&p.tree==null)?nearestTree(p):-1;
   const sm=(!me||players.length>1||touchUI()||padUI()||window.innerWidth<=820||window.innerHeight<=520)&&!hudExp;
-  const setSt=(long,short,col)=>{ stEl.textContent='● '+(sm?short:long); stEl.style.color=col; };
+  // Statuszeile nur für Einsteiger (erste Generation, Jungtier): erfahrene Spieler brauchen sie nicht
+  const newbie=(S.gen||1)<=1&&p.L.lvl<4; stEl.style.display=newbie?'':'none';
+  const setSt=(long,short,col)=>{ if(!newbie) return; stEl.textContent='● '+(sm?short:long); stEl.style.color=col; };
   const ctx=me?context():mateContextInfo(p);
   if(ctx) setSt('F: '+ctx.label,ctx.label+' möglich','#ff9ad0');
   else if(p.tree!=null){ if(p.safe) setSt('Sicher auf dem Baum – E: runter · Leertaste: Sprung von oben','Sicher auf dem Baum','var(--green)'); else setSt('Klettert …','Klettert …','var(--green)'); }

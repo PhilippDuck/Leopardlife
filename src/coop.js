@@ -278,7 +278,7 @@ on('toast',(t,c)=>{ for(const p of players) if(p!==P&&p.hud) mateToast(p,t,c); }
 /** Anzeige der Mitspieler auffrischen: dieselbe Anzeige wie bei Spieler 1, mit ihren eigenen Werten. */
 function updateCoopHud(dt){
   hudTick++;
-  if(players.length===3){ const src=$('goalBox'), dst=$('sharedGoals'); if(src&&dst) dst.innerHTML=src.innerHTML; }
+  if(players.length===3){ const src=$('goalBox'), dst=$('sharedGoals'); if(src&&dst){ dst.innerHTML=src.innerHTML; dst.style.visibility=src.style.display==='none'||!src.innerHTML?'hidden':''; } }
   for(const v of players) updateMarks(v,dt);
   for(const p of players){
     if(!p.hud) continue; const h=p.hud;
