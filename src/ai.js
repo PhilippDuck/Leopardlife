@@ -116,9 +116,11 @@ function updateAnimal(a,dt){
   // Wahrnehmung: Reichweite (Art, Tarnung, Schwierigkeit, Nacht, Wind) × was das Tier wirklich sieht (vision.js) – Hören geht rundum
   const reach0=sp.sense*stealth*D().sense*(sp.pred?1+0.25*(1-dayF):1.1)*(d>0.1?windMulDir(-dx/d,-dz/d):1);
   const detect=d<reach0*1.35?Math.max(reach0*visibility(a,T,dt),hearR(T)):Math.max(reach0,hearR(T));
-  if(sp.croc){ const prey=animals.filter(o=>o!==a&&!o.dead&&o.state==='drink'&&samePond(o.drinkPond,a.pond)&&Math.hypot(o.x-a.pond.x,o.z-a.pond.z)<a.pond.r+8).sort((x,y)=>Math.hypot(x.x-a.x,x.z-a.z)-Math.hypot(y.x-a.x,y.z-a.z))[0];
+  if(sp.croc){ const prey=!(a.rest>0)&&animals.filter(o=>o!==a&&!o.dead&&o.state==='drink'&&samePond(o.drinkPond,a.pond)&&Math.hypot(o.x-a.pond.x,o.z-a.pond.z)<a.pond.r+8).sort((x,y)=>Math.hypot(x.x-a.x,x.z-a.z)-Math.hypot(y.x-a.x,y.z-a.z))[0];
     if(a.stun>0) a.stun-=dt; else crocStep(a,dt,d,dx,dz,stealth*D().sense,hostile,T,prey);
-    if(prey&&prey.crocKilled){ prey.crocKilled=false; prey.respawn=rnd(18,30); makeCarcass(prey,FOOD[prey.sp.id]||1); }
+    if(prey&&prey.crocKilled){ prey.crocKilled=false; prey.respawn=rnd(18,30); makeCarcass(prey,FOOD[prey.sp.id]||1);
+      // die anderen am Ufer erschrecken und fliehen; sie kommen erst später durstig wieder
+      for(const o of animals) if(o!==prey&&!o.dead&&o.state==='drink'&&samePond(o.drinkPond,a.pond)){ o.state='flee'; o.fleeT=0; o.drinkPond=null; o.thirst=Math.min(o.thirst,40); } }
     pounceHits(a);
     return; }
   if(a.stun>0){ a.stun-=dt; animLegs(a.g,a.ph,0.05); if(a.stun<=0) weakRecover(a); }

@@ -277,7 +277,7 @@ const patches=[]; let tallGeo=null, tallMat=null, TALL_N=0;
       '  vec2 d=w-uP; float dist=length(d); float push=1.0-smoothstep(0.2,uR,dist);\n  p.xz+=(d/max(dist,0.001))*push*k*1.3; p.y-=push*k*0.55;\n'+
       '  vCol=mix(vec3(0.27,0.50,0.16),vec3(0.50,0.62,0.22),iHue);\n  vDry=iDry; vH=hh;\n'+
       '  vec4 mvPosition=viewMatrix*vec4(w.x+p.x,iPos.y+p.y,w.y+p.z,1.0);\n  gl_Position=projectionMatrix*mvPosition;\n  #include <fog_vertex>\n}',
-    fragmentShader:'uniform vec3 uLight; varying float vH; varying float vDry; varying vec3 vCol;\n#include <fog_pars_fragment>\nvoid main(){\n  vec3 col=mix(vCol*0.42,vCol,smoothstep(0.0,0.6,vH));\n  vec3 tip=mix(vec3(0.38,0.64,0.25),vec3(0.86,0.82,0.46),vDry);\n  col=mix(col,tip,smoothstep(0.7,1.0,vH)*0.55);\n  gl_FragColor=vec4(col*uLight,1.0);\n  #include <fog_fragment>\n}'
+    fragmentShader:'uniform vec3 uLight; varying float vH; varying float vDry; varying vec3 vCol;\n#include <fog_pars_fragment>\nvoid main(){\n  vec3 base=mix(vCol,vec3(0.74,0.64,0.33)+0.10*(vCol-vec3(0.38,0.56,0.19)),smoothstep(0.15,0.75,vDry));\n  vec3 col=mix(base*0.42,base,smoothstep(0.0,0.6,vH));\n  vec3 tip=mix(vec3(0.38,0.64,0.25),vec3(0.86,0.82,0.46),vDry);\n  col=mix(col,tip,smoothstep(0.7,1.0,vH)*0.55);\n  gl_FragColor=vec4(col*uLight,1.0);\n  #include <fog_fragment>\n}'
   });
   tallMat.uniforms.uLight=grassLight; tallMat.uniforms.uWind=windU;
   tallGeo.forEach(t=>{ const mesh=new THREE.Mesh(t.g,tallMat); scene.add(mesh); registerTile(mesh,t.k,76); });
