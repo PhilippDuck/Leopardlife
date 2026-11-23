@@ -5,7 +5,8 @@ export const ATTR=[
   {k:'spd',n:'Tempo',d:'Schneller laufen und sprinten'},
   {k:'sta',n:'Ausdauer',d:'+15 Ausdauer, schnellere Erholung'},
   {k:'vit',n:'Vitalität',d:'+15 Leben pro Rang'},
-  {k:'cam',n:'Tarnung',d:'Tiere bemerken dich später'}
+  {k:'cam',n:'Tarnung',d:'Tiere bemerken dich später'},
+  {k:'sat',n:'Genügsamer Magen',d:'Länger satt: Hunger wächst pro Rang 5 % langsamer'}
 ];
 
 export const ABIL=[
@@ -22,10 +23,10 @@ export const DIFF={easy:{n:'Leicht',dmg:0.6,hunger:0.7,sense:0.85,xpLoss:0,raid:
   hard:{n:'Schwer',dmg:1.35,hunger:1.3,sense:1.15,xpLoss:0.6,raid:0.75,perma:true,d:'Mehr Schaden, schnellerer Hunger, wachsamere Tiere. Stirbst du ohne Nachwuchs, endet deine Blutlinie endgültig.'}};
 
 export const TRAITS={flink:['Flinke Läufe','+10 % Tempo'],zaeh:['Zähes Fell','+20 % Leben'],dunkel:['Dunkles Fell','Tiere bemerken dich später'],kiefer:['Starker Kiefer','+15 % Schaden'],
-  lunge:['Große Lunge','+25 % Ausdauer'],nase:['Feine Nase','Spürkarte reicht weiter'],genug:['Genügsam','Hunger wächst langsamer'],lang:['Langlebig','5 Minuten längeres Leben']};
+  lunge:['Große Lunge','+25 % Ausdauer'],nase:['Feine Nase','Spürkarte reicht weiter'],genug:['Genügsam','Hunger und Durst wachsen langsamer'],lang:['Langlebig','5 Minuten längeres Leben']};
 
 export const REGIONS={
-  savanne:{n:'Savanne',gen:1,d:'Offenes Grasland mit Wasserlöchern, Akazien und Herden.',boss:'Riesenantilope',
+  savanne:{n:'Savanne',gen:1,d:'Offenes Grasland mit Wasserlöchern, Akazien und Herden. In einigen Wasserlöchern lauern Krokodile.',boss:'Riesenantilope',
     ponds:[[-52,38,15],[92,-78,19],[-118,-128,23],[60,150,18]],trees:330,savFrom:115,palms:[3,5],patches:95,ground:[0x3c7a38,0xbfa95c],hor:0xcfe2d4,counts:null,
     winT:'König der Wildnis',winX:'Du hast die Riesenantilope erlegt. Aus dem kleinen Jungtier ist der gefürchtetste Jäger der Savanne geworden.'},
   sumpf:{n:'Sumpf',gen:3,d:'Viele Wasserlöcher, Schilf und Palmen. Krokodile lauern unsichtbar im Wasser – nur Luftblasen verraten sie.',boss:'Riesenkrokodil',
@@ -54,8 +55,8 @@ export const SPECIES=[
  {id:'jack',n:'Schakal',size:0.62,hp:40,spd:8.6,xp:55,sense:30,ring:[45,130],count:5,hunt:4,fight:1,dmg:6,pred:1,m:{col:0xb58a4f,col2:0x8d8a80,ears:0.3,tail:0.7,leg:0.6}},
  {id:'hyena',n:'Hyäne',size:0.95,hp:125,spd:10,xp:160,sense:34,ring:[105,190],count:5,hunt:8,fight:1,dmg:14,pred:1,m:{col:0x9c8a6a,col2:0x4a4036,ears:0.22,tail:0.4,leg:0.7,hgt:0.65,spots:1}},
  {id:'lion',n:'Löwe',size:1.35,hp:360,spd:11.5,xp:520,sense:38,ring:[150,225],count:3,hunt:12,fight:1,dmg:30,pred:1,m:{col:0xcfa35a,col2:0xbf9350,mane:0x6e4420,tail:1.0,tailTip:0x4a2c12,leg:0.7,hgt:0.7,wid:0.6,len:1.6}},
- {id:'croc',n:'Krokodil',size:1.1,hp:260,spd:4.5,xp:280,sense:9,ring:[0,230],count:0,hunt:14,fight:1,dmg:26,pred:1,croc:1,m:{col:0x4d5a34,col2:0x6b7547,len:2.6,hgt:0.32,wid:0.75,leg:0.22,head:0.42,ears:0.02,tail:1.8,tailTip:0x3c4628,snout:1}},
- {id:'bigcroc',n:'Riesenkrokodil',size:2.0,hp:950,spd:4,xp:1500,sense:11,ring:[0,230],count:0,hunt:99,fight:1,dmg:45,pred:1,croc:1,boss:1,m:{col:0x3f4a2c,col2:0x5e6740,len:2.6,hgt:0.32,wid:0.75,leg:0.22,head:0.42,ears:0.02,tail:1.8,tailTip:0x323a22,snout:1}},
+ {id:'croc',n:'Krokodil',size:1.1,hp:260,spd:4.5,xp:280,sense:9,ring:[0,230],count:3,hunt:14,fight:1,dmg:26,pred:1,croc:1,m:{col:0x4d5a34,col2:0x6b7547,len:2.6,hgt:0.32,wid:0.75,leg:0.22,head:0.42,ears:0.02,tail:1.8,tailTip:0x3c4628,belly:0xbab47e,snout:1}},
+ {id:'bigcroc',n:'Riesenkrokodil',size:2.0,hp:950,spd:4,xp:1500,sense:11,ring:[0,230],count:0,hunt:99,fight:1,dmg:45,pred:1,croc:1,boss:1,m:{col:0x3f4a2c,col2:0x5e6740,len:2.6,hgt:0.32,wid:0.75,leg:0.22,head:0.42,ears:0.02,tail:1.8,tailTip:0x323a22,belly:0xa39d6a,snout:1}},
  {id:'gnu',n:'Gnu',size:1.1,hp:170,spd:12.5,xp:180,sense:22,ring:[0,0],count:0,m:{col:0x5c5751,col2:0x3c3834,leg:1.0,neck:0.45,horns:0.55,stripe:0x2a2622,ears:0.2,tail:0.6}},
  {id:'rival',n:'Rivale',size:1.15,hp:320,spd:11,xp:600,sense:30,ring:[0,0],count:0,pred:1,fight:1,hunt:99,dmg:13,m:{col:0xb98a3a,col2:0xe2c08a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.46,ears:0.15,tail:1.1,tailTip:0x2a1c10,spots:1}},
  {id:'poacher',n:'Wilderer',size:1,hp:150,spd:5.5,xp:250,sense:40,ring:[0,0],count:0,human:1,dmg:22,m:null},
@@ -69,6 +70,7 @@ export const ICONS={
   sta:'<path d="M3 9h11a3 3 0 1 0-3-3M3 15h14a3 3 0 1 1-3 3M3 12h8"/>',
   vit:'<path d="M12 20s-7-4.5-8.5-9A4.5 4.5 0 0 1 12 6.5 4.5 4.5 0 0 1 20.5 11C19 15.5 12 20 12 20z"/>',
   cam:'<path d="M5 20Q7 13 4 6M10 20Q11 11 14 4M15 20Q15.5 14 20 8M2 20.5h20"/>',
+  sat:'<path d="M4 11h16a8 7 0 0 1-16 0z"/><path d="M12 3c2.5 2.6 2.5 4.4 0 6-2.5-1.6-2.5-3.4 0-6z"/>',
   // Fähigkeiten
   amb:'<circle cx="12" cy="12" r="6.5"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/>',
   jmp:'<path d="M3 19Q10 1 19 14"/><path d="M15.2 13.6l3.8.6.9-3.7"/><path d="M2 21h6"/>',

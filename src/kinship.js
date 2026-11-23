@@ -15,6 +15,7 @@ import { rnd } from './util.js';
 import { carcassContext, nearCarcass, recordAncestor, takeMeat } from './carcass.js';
 import { canSleepNow, sleepOnTree } from './daynight.js';
 import { applyLearned, canSwitch, canSwitchFor, cubFollowContext, denFull, dropFollower, followerOf, heirLevel, kidInfo, kidOf, kidsOf, markTaken, numOf } from './cubfollow.js';
+import { drinkContext } from './thirst.js';
 
 /** Neue Kennung für einen Leoparden */
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -74,7 +75,7 @@ function mateBecomeCub(p){
   // Erbanlagen vom Elternteil, der dieser Spieler war (sonst von Spieler 1), plus die des Wurfs – doppelte werden verstärkt.
   // Eigenschafts- und Fähigkeitspunkte werden nicht vererbt (dafür gibt es Erbe und Ahnenkraft).
   const ki=kidInfo(p), par=(ki.parents||[]).indexOf(L.id)>=0?L:S, kid={traits:(par.traits||[]).slice(),tlv:Object.assign({},par.tlv||{})}; inheritTrait(kid,ki.trait);
-  const nl={id:newId(),parents:(ki.parents||[]).slice(),lvl:heirLevel(p),xp:0,pts:0,a:fresh().a,b:fresh().b,traits:kid.traits,tlv:kid.tlv,fur:ki.fur?Object.assign({},ki.fur):makeFur(),hunger:80,age:0,kills:0,gen:ki.gen||((S.gen||1)+1)};
+  const nl={id:newId(),parents:(ki.parents||[]).slice(),lvl:heirLevel(p),xp:0,pts:0,a:fresh().a,b:fresh().b,traits:kid.traits,tlv:kid.tlv,fur:ki.fur?Object.assign({},ki.fur):makeFur(),hunger:80,thirst:80,age:0,kills:0,gen:ki.gen||((S.gen||1)+1)};
   const got=applyLearned(p,nl), fo=followerOf(p), fx=fo?fo.x:cub.x, fz=fo?fo.z:cub.z; if(fo) dropFollower(fo); if(c.learn) delete c.learn[p.num];
   recordAncestor('zog sein Junges groß und lebt als Elterntier weiter',L,nameOf(p));
   S.mates[p.num]=nl; p.L=nl; p.fur=nl.fur; rebuildPlayer(p);
@@ -101,6 +102,7 @@ function mateContextInfo(p){
   { const cf=cubFollowContext(p); if(cf) return {label:cf.label}; }
   if(playerSeeks(p)){ const m=nearestWild(p); if(m&&m.d<4.5) return {label:'Paaren · Erbe: '+offerText(m.a.trait,p.L)}; }
   if(S.cub&&S.cub.grow<1&&S.food>0&&denFull()<97&&nearCub(p)) return {label:'Füttern'};
+  { const dr=drinkContext(p); if(dr) return {label:dr.label}; }
   return null;
 }
 /** Aktionstaste eines Mitspielers (X antippen): paaren, Junges füttern. */
@@ -113,6 +115,7 @@ function mateContext(p){
   { const cf=cubFollowContext(p); if(cf){ cf.fn(); return; } }
   if(playerSeeks(p)){ const m=nearestWild(p); if(m&&m.d<4.5){ mateWild(p,m.a); return; } }
   if(S.cub&&S.cub.grow<1&&S.food>0&&denFull()<97&&nearCub(p)){ feedCub(); return; }
+  { const dr=drinkContext(p); if(dr) dr.fn(); }
 }
 
 ensureKin(S);

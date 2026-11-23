@@ -45,6 +45,7 @@ import { eventsVisual, updateEvents } from './worldevents.js';
 import { updateChunks } from './chunks.js';
 import { updateWatchers } from './vision.js';
 import { APP_VERSION } from './version.js';
+import { updateDrinking } from './thirst.js';
 document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent='Version '+APP_VERSION; });
 if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }); }
 if(typeof THREE==='undefined'){ $('err').textContent='Three.js konnte nicht geladen werden. Bitte Seite neu laden.'; $('btnPlay').disabled=true; throw new Error('three.js fehlt'); }
@@ -83,7 +84,7 @@ function frame(now){
 function step(dt){
   for(const p of players) readControls(p,dt);
   for(const p of players) if(!p.dead) stepPlayer(p,dt);
-  for(const p of players){ updateEating(p,dt); updateDrag(p,dt); }
+  for(const p of players){ updateEating(p,dt); updateDrinking(p,dt); updateDrag(p,dt); }
   updateBite(dt);
   updateTutorial(dt);
   updateCoop(dt);
@@ -103,7 +104,7 @@ function step(dt){
 }
 
 // Für Browsertests (tools/*.py mit ?test): Spielzustand zum Nachsehen
-if(typeof location!=='undefined'&&location.search.includes('test')) window['__leopard']={G,players,S};
+if(typeof location!=='undefined'&&location.search.includes('test')) window['__leopard']={G,players,S,animals};
 
 applyQuality();
 setInputMode(inputMode); setResLabel(); if(!S.goals) newGoals();

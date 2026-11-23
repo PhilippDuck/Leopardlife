@@ -125,7 +125,7 @@ function becomeCub(vol){
   { const ng=(S.gen||1)+1, nr=Object.values(REGIONS).find(r=>r.gen===ng&&!r.soon); if(nr) setTimeout(()=>toast('Deine Linie ist stark genug: '+nr.n+' ist jetzt erreichbar (Menü → Gebiete).','#9be07f'),2600); }
   const cg=ki.gen||((S.gen||1)+1);
   S.parents=(ki.parents||[S.id]).slice(); S.id=newId();   // neue Kennung: das Junge ist ein eigener Leopard, verwandt mit seinen Eltern und Geschwistern
-  S.lvl=hl; S.xp=0; S.gen=Math.max(S.gen||1,cg); takeFromLitter(P); S.preg=0; S.partnerPlayer=false; S.hunger=80; S.age=0; S.kills=0; if(G.raider&&!S.cub) endRaid(G.raider);
+  S.lvl=hl; S.xp=0; S.gen=Math.max(S.gen||1,cg); takeFromLitter(P); S.preg=0; S.partnerPlayer=false; S.hunger=80; S.thirst=80; S.age=0; S.kills=0; if(G.raider&&!S.cub) endRaid(G.raider);
   feedT=rnd(30,50); save(); rebuildPlayer();
   return got;
 }

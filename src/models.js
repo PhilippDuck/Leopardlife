@@ -77,6 +77,62 @@ function buildQuad(o,v){
   g.userData={legs,tail,head,inner,blob:sh};
   return g;
 }
-function animLegs(g,t,amp){ const l=g.userData.legs; const a=Math.sin(t)*amp; l[0].rotation.x=a; l[3].rotation.x=a; l[1].rotation.x=-a; l[2].rotation.x=-a; if(g.userData.tail) g.userData.tail.rotation.y=Math.sin(t*0.5)*0.3; }
 
-export { animLegs, buildQuad, furColor, furName, makeFur };
+/* Krokodil: flacher, gepanzerter Körper mit Rückenschuppen, langer Schnauze mit Zähnen und beweglichem Unterkiefer,
+   Augenhöckern oben auf dem Kopf (nur sie schauen beim Lauern aus dem Wasser), seitlich abstehenden Beinen und
+   einem Schwanz aus Gliedern, der sich beim Schwimmen schlängelt. Vorn ist +z wie bei den anderen Tieren. */
+const CROC_EYE=0.5;   // Höhe der Augenhöcker über dem Boden (Modellmaß): so tief taucht das Krokodil beim Lauern
+function buildCroc(o,v){
+  const f=k=>o[k]===undefined?undefined:(v?furColor(o[k],v):o[k]);
+  const col=f('col'), dark=f('tailTip')||col, light=f('col2')||col, belly=f('belly')||light;
+  const g=new THREE.Group(), inner=new THREE.Group(); g.add(inner);
+  const by=0.3;
+  // Rumpf: Brust, Mitte, Hüfte (leicht verjüngt), heller Bauch, zwei Reihen Rückenschuppen
+  box(0.6,0.24,0.55,col,0,by,0.5,inner); box(0.68,0.26,0.6,col,0,by+0.01,0,inner); box(0.56,0.23,0.5,col,0,by,-0.52,inner);
+  box(0.56,0.06,1.5,belly,0,by-0.13,0,inner);
+  box(0.44,0.04,1.55,light,0,by+0.14,0,inner);
+  for(let i=0;i<8;i++){ const z=0.68-i*0.19; [1,-1].forEach(s=>box(0.07,0.06,0.11,dark,s*0.12,by+0.16,z,inner)); box(0.06,0.05,0.09,dark,s0(i)*0.27,by+0.14,z,inner); }
+  // Kopf: Schädel mit Augenhöckern, lange flache Schnauze mit Zähnen, Unterkiefer als eigenes Gelenk
+  const head=new THREE.Group(); head.position.set(0,by+0.02,0.82); inner.add(head);
+  box(0.42,0.2,0.36,col,0,0,0.12,head);
+  box(0.3,0.12,0.72,light,0,-0.02,0.62,head); box(0.2,0.1,0.2,col,0,-0.02,1.02,head);
+  box(0.12,0.05,0.08,dark,0,0.05,1.05,head);                                       // Nasenhöcker
+  [1,-1].forEach(s=>{ box(0.12,0.1,0.13,col,s*0.13,0.13,0.08,head);                 // Augenhöcker
+    box(0.07,0.05,0.04,0xd9c23a,s*0.15,0.15,0.15,head); box(0.02,0.05,0.045,0x111111,s*0.15,0.15,0.155,head);
+    for(let i=0;i<6;i++) box(0.03,0.05,0.03,0xf1ead0,s*0.14,-0.1,0.38+i*0.12,head); });   // Zähne
+  const jaw=new THREE.Group(); jaw.position.set(0,-0.08,0.05); head.add(jaw);
+  box(0.36,0.07,0.34,belly,0,-0.02,0.08,jaw); box(0.27,0.06,0.82,belly,0,-0.02,0.62,jaw);
+  [1,-1].forEach(s=>{ for(let i=0;i<5;i++) box(0.03,0.05,0.03,0xf1ead0,s*0.12,0.03,0.44+i*0.13,jaw); });
+  // Beine: seitlich abgespreizt mit breiten Füßen
+  const legs=[];
+  [[1,1],[-1,1],[1,-1],[-1,-1]].forEach(p=>{ const pv=new THREE.Group(); pv.position.set(p[0]*0.3,0.24,p[1]*0.52); inner.add(pv);
+    const up=box(0.13,0.12,0.15,col,p[0]*0.1,0,0,pv); up.rotation.z=p[0]*0.35;
+    box(0.11,0.18,0.12,light,p[0]*0.2,-0.11,0,pv);
+    box(0.2,0.05,0.22,dark,p[0]*0.24,-0.2,0.04,pv); legs.push(pv); });
+  // Schwanz: fünf Glieder, je dünner, mit doppeltem Kamm, der zur Spitze hin zu einem wird
+  const segs=[]; let par=inner, z0=-0.78;
+  for(let i=0;i<5;i++){ const t=i/4, w=0.46-0.32*t, h=0.22-0.12*t, len=0.36;
+    const sg=new THREE.Group(); sg.position.set(0,i?0:by-0.01,i?-len:z0); par.add(sg);
+    box(w,h,len,col,0,0,-len/2,sg); box(w*0.8,0.04,len*0.95,belly,0,-h/2,-len/2,sg);
+    if(i<3) [1,-1].forEach(s=>box(0.05,0.08,0.1,dark,s*w*0.3,h/2+0.03,-len*0.4,sg)); else box(0.05,0.1-0.02*i,0.12,dark,0,h/2+0.04,-len*0.4,sg);
+    segs.push(sg); par=sg; }
+  const stop=new Set(legs.concat([segs[0],head]));
+  mergeRigid(inner,stop); mergeRigid(head,new Set([jaw])); mergeRigid(jaw,new Set()); legs.forEach(l=>mergeRigid(l,new Set()));
+  segs.forEach((sg,i)=>mergeRigid(sg,new Set(i<4?[segs[i+1]]:[])));
+  const sh=new THREE.Mesh(shadowGeo,shadowMat); sh.scale.set(0.75,1,2.2); sh.position.y=0.03; g.add(sh); blobs.push(sh);
+  g.userData={legs,tail:null,head,inner,blob:sh,jaw,segs,croc:true};
+  return g;
+}
+const s0=i=>i%2?1:-1;
+/** Krokodil bewegen: Beine paddeln, der Schwanz schlängelt (schwimmend stärker), der Kiefer öffnet sich um open (0…1; null: Kiefer bleibt) */
+function animCroc(g,t,amp,swim,open){
+  const u=g.userData, l=u.legs, a=Math.sin(t)*amp*(swim?0.3:1);
+  l[0].rotation.x=a; l[3].rotation.x=a; l[1].rotation.x=-a; l[2].rotation.x=-a;
+  const w=(swim?0.22:0.08)+amp*0.25;
+  u.segs.forEach((sg,i)=>{ sg.rotation.y=Math.sin(t*0.6-i*0.9)*w*(0.5+i*0.18); });
+  if(open!=null) u.jaw.rotation.x+=(open*0.75-u.jaw.rotation.x)*0.35;
+}
+
+function animLegs(g,t,amp){ if(g.userData.croc){ animCroc(g,t,amp*0.6,false,null); return; } const l=g.userData.legs; const a=Math.sin(t)*amp; l[0].rotation.x=a; l[3].rotation.x=a; l[1].rotation.x=-a; l[2].rotation.x=-a; if(g.userData.tail) g.userData.tail.rotation.y=Math.sin(t*0.5)*0.3; }
+
+export { CROC_EYE, animCroc, animLegs, buildCroc, buildQuad, furColor, furName, makeFur };
