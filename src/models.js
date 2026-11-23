@@ -134,5 +134,30 @@ function animCroc(g,t,amp,swim,open){
   if(open!=null) u.jaw.rotation.x+=(open*0.75-u.jaw.rotation.x)*0.35;
 }
 
+/* Schlange (Puffotter): Kopf vorn (+z), Körper aus Gliedern, die beim Kriechen seitlich schlängeln.
+   Die Rückenzeichnung aus hellen Winkeln tarnt sie im Gras. head.rotation.x hebt den Kopf zum Zustoßen. */
+function buildSnake(o,v){
+  const f=k=>o[k]===undefined?undefined:(v?furColor(o[k],v):o[k]);
+  const col=f('col'), light=f('col2')||col, dark=f('tailTip')||col, belly=f('belly')||light;
+  const g=new THREE.Group(), inner=new THREE.Group(); g.add(inner);
+  const y=0.09, N=10, segs=[]; let par=inner;
+  for(let i=0;i<N;i++){ const t=i/(N-1), w=0.2-0.05*Math.abs(t-0.35)*2-(t>0.8?0.08*(t-0.8)*5:0), len=0.24;
+    const sg=new THREE.Group(); sg.position.set(0,i?0:y,i?-len:0.05); par.add(sg);
+    box(w,0.12-0.03*t,len,i%2?col:dark,0,0,-len/2,sg); box(w*0.55,0.02,len*0.5,light,0,0.065,-len/2,sg); box(w*0.9,0.02,len,belly,0,-0.055,-len/2,sg);
+    segs.push(sg); par=sg; }
+  const head=new THREE.Group(); head.position.set(0,y,0.05); inner.add(head);
+  box(0.2,0.1,0.22,col,0,0,0.1,head); box(0.14,0.08,0.1,dark,0,-0.005,0.24,head);
+  [1,-1].forEach(s=>{ box(0.03,0.035,0.04,0xd8a23a,s*0.09,0.03,0.14,head); box(0.012,0.036,0.02,0x111111,s*0.1,0.03,0.145,head); });
+  const tongue=box(0.02,0.01,0.12,0xb83a4a,0,-0.02,0.33,head); tongue.visible=false;
+  mergeRigid(head,new Set([tongue])); segs.forEach((sg,i)=>mergeRigid(sg,new Set(i<N-1?[segs[i+1]]:[])));
+  const sh=new THREE.Mesh(shadowGeo,shadowMat); sh.scale.set(0.35,1,1.3); sh.position.y=0.02; g.add(sh); blobs.push(sh);
+  g.userData={legs:[],tail:null,head,inner,blob:sh,segs,tongue,snake:true,anim:(t,amp)=>animSnake(g,t,amp)};
+  return g;
+}
+/** Schlange bewegen: eine Welle läuft den Körper entlang (amp 0 = ruhig liegen, leicht eingerollt) */
+function animSnake(g,t,amp){
+  const u=g.userData, w=0.22+Math.min(1,amp)*0.45, cur=amp<0.05?0.5:0;
+  u.segs.forEach((sg,i)=>{ sg.rotation.y=i?Math.sin(t*0.9-i*0.8)*w+cur:Math.sin(t*0.9)*w*0.4; });
+}
 
-export { CROC_EYE, animCroc, animLegs, buildCroc, buildQuad, furColor, furName, makeFur };
+export { CROC_EYE, animCroc, animLegs, animSnake, buildSnake, buildCroc, buildQuad, furColor, furName, makeFur };

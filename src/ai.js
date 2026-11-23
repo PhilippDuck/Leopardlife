@@ -18,6 +18,8 @@ import { addTrack } from './tracks.js';
 import { floatText } from './ui.js';
 import { rnd } from './util.js';
 import { crocStep } from './crocodile.js';
+import { snakeStep } from './snake.js';
+import { tell } from './coop.js';
 import { syncOrbs } from './effects.js';
 import { growlAt } from './calls.js';
 import { weakRecover, woundSlow, woundTick, woundTrail } from './bite.js';
@@ -32,6 +34,7 @@ function recruitPack(a){ if(!PACK[a.sp.id]) return; const sm=SMART(); if(!sm) re
 /* ---------- KI ---------- */
 function moveAnimal(a,dx,dz,spd,dt){
   if(a.wound){ spd*=woundSlow(a); woundTrail(a,spd*dt); }
+  if(a.juv) spd*=0.85;
   const l=Math.hypot(dx,dz)||1; dx/=l; dz/=l;
   a.x+=dx*spd*dt; a.z+=dz*spd*dt;
   const r=Math.hypot(a.x,a.z); if(!a.world&&r>WORLD){ a.x*=WORLD/r; a.z*=WORLD/r; }
@@ -74,6 +77,19 @@ function animalWater(a,dt){
     if(a.thirst>=94){ a.thirst=100; a.drinkPond=null; a.state='wander'; a.timer=0; } }
   return true;
 }
+/** Wehrhafte Eltern: kommt Spieler T einem ihrer Jungen zu nahe, greifen sie an (true = Angriff begonnen). */
+function guardYoung(a,T){
+  if(!a.sp.guard||!a.kids||a.juv||a.gcd>0||T.safe||T.dead||T.tree!=null) return false;
+  for(const k of a.kids){ if(k.dead||Math.hypot(k.x-a.x,k.z-a.z)>22) continue;
+    const kd=Math.hypot(T.x-k.x,T.z-k.z);
+    if(kd<(T.sneak?5:8)){
+      a.state='chase'; a.tgt=T; a.aggro=4.5; a.lost=0; a.sus=0; a.gcd=14; snd.alert(); if(a.sp.pred) growlAt(a);
+      floatText('!',a.x,H(a.x,a.z)+a.sp.size*2.2,a.z,'#ff5a3c');
+      for(const o of a.kids) if(!o.dead) startFlee(o);
+      const now=performance.now(); if(now-(T.guardMsgAt||-1e9)>40000){ T.guardMsgAt=now; tell(T,'Vorsicht – ein Elterntier ('+a.sp.n+') verteidigt sein Junges!','#ff8a70'); }
+      return true; } }
+  return false;
+}
 /** Ein Bild Tierverhalten für Tier a. Das Tier reagiert auf den Spieler T aus targetOf (Tarnung T.stealth). */
 function updateAnimal(a,dt){
   const T=targetOf(a), stealth=T.stealth==null?1:T.stealth;
@@ -92,10 +108,11 @@ function updateAnimal(a,dt){
   }
   const dv=players.length>1?nearestDist(a):d;
   if(a.ev&&a.stun<=0&&eventStep(a,dt,moveAnimal)){ a.g.visible=dv<=VIEW_D&&!a.gone; a.g.position.set(a.x,H(a.x,a.z),a.z); pounceHits(a); return; }   // Ereignis steuert das Tier (auch außer Sicht)
-  if(!a.sp.croc&&!a.sp.friend&&!a.sp.human&&animalWater(a,dt)){ a.g.visible=dv<=VIEW_D; a.g.position.set(a.x,H(a.x,a.z),a.z); return; }
+  if(sp.snake){ a.g.visible=dv<=VIEW_D; if(dv>VIEW_D+20) return; snakeStep(a,dt,d,dx,dz,T); pounceHits(a); return; }
+  if(!a.sp.croc&&!a.sp.friend&&!a.sp.human&&!a.juv&&animalWater(a,dt)){ a.g.visible=dv<=VIEW_D; a.g.position.set(a.x,H(a.x,a.z),a.z); return; }
   if(dv>VIEW_D&&a!==G.raider){ a.g.visible=false; return; } a.g.visible=dv<=VIEW_D;
-  a.cd-=dt; if(a.scared>0) a.scared-=dt;
-  const hostile=sp.hunt&&T.L.lvl<sp.hunt&&!(a.scared>0);
+  a.cd-=dt; if(a.scared>0) a.scared-=dt; if(a.gcd>0) a.gcd-=dt;
+  const hostile=sp.hunt&&!a.juv&&T.L.lvl<sp.hunt&&!(a.scared>0);
   // Wahrnehmung: Reichweite (Art, Tarnung, Schwierigkeit, Nacht, Wind) × was das Tier wirklich sieht (vision.js) – Hören geht rundum
   const reach0=sp.sense*stealth*D().sense*(sp.pred?1+0.25*(1-dayF):1.1)*(d>0.1?windMulDir(-dx/d,-dz/d):1);
   const detect=d<reach0*1.35?Math.max(reach0*visibility(a,T,dt),hearR(T)):Math.max(reach0,hearR(T));
@@ -105,13 +122,17 @@ function updateAnimal(a,dt){
     pounceHits(a);
     return; }
   if(a.stun>0){ a.stun-=dt; animLegs(a.g,a.ph,0.05); if(a.stun<=0) weakRecover(a); }
+  else if(a.state==='wander'&&guardYoung(a,T)){ /* Elterntier geht auf den Spieler los */ }
   else if(a.state==='wander'){
     a.timer-=dt;
+    const mom=a.juv&&a.mom&&!a.mom.dead?a.mom:null;
+    if(mom&&mom.state==='flee') startFlee(a);
+    if(mom&&(a.timer<=0||Math.hypot(mom.x-a.x,mom.z-a.z)>5)&&Math.hypot(a.tx-mom.x,a.tz-mom.z)>3.5){ a.tx=mom.x+rnd(-2.5,2.5); a.tz=mom.z+rnd(-2.5,2.5); a.timer=rnd(1,2.5); a.idle=0; }
     if(a.timer<=0||Math.hypot(a.tx-a.x,a.tz-a.z)<1){ const an=Math.random()*6.283, r=rnd(4,16); a.tx=a.x+Math.cos(an)*r; a.tz=a.z+Math.sin(an)*r;
       const cr=Math.hypot(a.tx,a.tz); if(!a.world&&(cr<sp.ring[0]||cr>sp.ring[1])){ const k=(sp.ring[0]+sp.ring[1])/2/(cr||1); a.tx=a.x+(a.tx*k-a.x)*0.3; a.tz=a.z+(a.tz*k-a.z)*0.3; }
       a.timer=rnd(3,8); a.idle=Math.random()<0.4?rnd(1,3):0;
       if(a.herd){ const L=herdLead(a); if(L!==a){ a.tx=L.x+rnd(-7,7); a.tz=L.z+rnd(-7,7); a.timer=rnd(2,5); } } }
-    const farH=a.herd&&Math.hypot(herdLead(a).x-a.x,herdLead(a).z-a.z)>16;
+    const farH=mom?Math.hypot(mom.x-a.x,mom.z-a.z)>6:a.herd&&Math.hypot(herdLead(a).x-a.x,herdLead(a).z-a.z)>16;
     if(a.idle>0&&!farH){ a.idle-=dt; animLegs(a.g,a.ph,0.03); } else moveAnimal(a,a.tx-a.x,a.tz-a.z,sp.spd*(farH?0.6:0.28),dt);
     a.near=false;
     if(hostile){
@@ -123,7 +144,7 @@ function updateAnimal(a,dt){
       } else a.sus=Math.max(0,a.sus-dt*0.35);
     } else {
       a.sus=0;
-      if(d<detect&&(!sp.fight||(sp.pred&&T.L.lvl>=sp.hunt+2&&d<detect*0.5))) startFlee(a);
+      if(d<detect&&(!sp.fight||(a.juv&&d<detect*0.6)||(sp.pred&&T.L.lvl>=sp.hunt+2&&d<detect*0.5))) startFlee(a);
     }
   }
   else if(a.state==='raid'){ raidStep(a,dt); }
@@ -170,7 +191,7 @@ function updateAnimal(a,dt){
       if(all.length>1){ all.sort((p,q)=>p.uid-q.uid); const off=(all.indexOf(a)-(all.length-1)/2)*1.25*SMART();
         const ang=Math.atan2(a.x-T.x,a.z-T.z)+off*Math.min(1,(d-6)/10); tx=T.x+Math.sin(ang)*4-a.x; tz=T.z+Math.cos(ang)*4-a.z; } }
     if(d>reach*0.8) moveAnimal(a,tx,tz,sp.spd,dt); else animLegs(a.g,a.ph,0.05);
-    if(d<reach&&a.cd<=0){ a.cd=1.1; hurtPlayer(sp.dmg,a,false,T); a.g.userData.inner.position.z=0.3; }
+    if(d<reach&&a.cd<=0){ a.cd=1.1; hurtPlayer(sp.dmg||sp.gdmg||6,a,false,T); a.g.userData.inner.position.z=0.3; }
     if(a.aggro<=0){
       if(!hostile){ a.state='wander'; a.timer=0; }
       else { if(d>detect) a.lost+=dt; else a.lost=0; if(a.lost>3.5||d>75){ a.state='wander'; a.timer=0; if(d<50) snd.lost(); if(d<50) floatText('?',a.x,H(a.x,a.z)+sp.size*2.2,a.z,'#ddd'); } }
