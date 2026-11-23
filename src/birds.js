@@ -55,6 +55,11 @@ function updateVulture(v,dt){
   v.left.rotation.x=-Math.PI/2+flap;v.right.rotation.x=-Math.PI/2-flap;
   if(v.state==='feed') v.g.rotation.x=0.12; else v.g.rotation.x=0;
 }
-function updateBirds(dt){ for(const v of vultures) updateVulture(v,dt); }
+function updateBirds(dt){
+  // Fleisch an Land bleibt liegen, bis die Geier es erreichen und fressen;
+  // Kadaver im Baum bleiben geschützt und vergehen wie bisher.
+  for(const a of animals) if(a.dead&&a.carc&&a.carc.tree==null) a.carc.t=Math.max(a.carc.t,60);
+  for(const v of vultures) updateVulture(v,dt);
+}
 
 export { updateBirds };
