@@ -12,7 +12,8 @@ durch Savanne und Sumpf.
 - Tarnung im hohen Gras, Wind und Witterung, Fährten, Warnpfeile vor Raubtieren
 - Partner, Junges großziehen, Generationen mit Ahnenkraft und Ahnenbuch
 - Tag-Nacht-Wechsel, Regen und Gewitter, Tagesziele, drei Schwierigkeitsgrade
-- Gebiete: Savanne und Sumpf (mit Krokodilen); weitere geplant
+- Hunger und Durst: Beute fressen und an Wasserlöchern trinken – dort lauern Krokodile, die sich an Trinkende heranschleichen
+- Gebiete: Savanne (mit einzelnen Krokodilen) und Sumpf (mit vielen Krokodilen und dem Riesenkrokodil); weitere geplant
 - Steuerung mit Tastatur und Maus, Touch oder Xbox-Controller
 - Gemeinsames Spiel (Splitscreen) für bis zu 4 Spieler: Im Spiel drückt ein weiterer Controller Start und steigt ein –
   auf der Stufe von Spieler 1, mit den passenden Punkten zum Verteilen. Back: eigene Entwicklung · Back halten: aussteigen. Erfahrung wird geteilt, Eigenschaften und
@@ -42,7 +43,7 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 | `src/calls.js` | Tierrufe aus der Umgebung (Hyäne, Löwe, Schakal), Knurren und Alarmschnauben mit Richtung |
 | `src/controls.js` | Steuerquellen: übersetzen Tastatur, Maus, Touch oder Controller in den Steuerwunsch eines Spielers |
 | `src/coop.js` | Mitspieler am selben Gerät: Beitreten per Controller, geteiltes Bild, eigene Anzeige, am Boden und Wiederbeleben |
-| `src/crocodile.js` | Krokodile: lauern im Wasser und schnellen hervor |
+| `src/crocodile.js` | Krokodile: lauern abgetaucht im Wasser, schleichen sich an Trinkende heran, schnellen hervor und zerren Richtung Wasser |
 | `src/data.js` | Feste Spieldaten: Eigenschaften, Fähigkeiten, Erbanlagen, Schwierigkeitsgrade, Gebiete, |
 | `src/daynight.js` | Tag und Nacht: Sonne, Mond, Himmelsfarben, Nebel, Nachtsicht, Schlafen auf Bäumen |
 | `src/effects.js` | Partikel-Wolken (Staub, Blut, Blasen) |
@@ -56,10 +57,11 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 | `src/input.js` | Eingabe über Tastatur, Maus und Touch, Umschalten der Anzeige je nach zuletzt benutzter Eingabe |
 | `src/kin.js` | Partner und Elterntiere am Bau: verteidigen, Futter bringen, beschützen; Wechsel ins Junge |
 | `src/kinship.js` | Verwandtschaft und Familie im gemeinsamen Spiel: wer mit wem verwandt ist, Spieler als Paar, Wurf mit einem Jungen je Spieler |
-| `src/life.js` | Lebenslauf: Hunger, Altern, Fressen aus dem Vorrat |
+| `src/life.js` | Lebenslauf: Hunger, Durst, Altern, Fressen aus dem Vorrat |
+| `src/thirst.js` | Trinken am Ufer eines Wasserlochs (Aktionstaste) |
 | `src/main.js` | Einstieg: Hauptschleife (Bild für Bild: Spieler, Tiere, Kamera, Anzeige) und Spielstart |
 | `src/menu.js` | Pausenmenü, Einstellungen, Steuerungsliste, Neustart |
-| `src/models.js` | Tiermodelle aus Blöcken, Fellvarianten (inkl. Albino und Panther), Zusammenführen starrer Teile, Laufanimation |
+| `src/models.js` | Tiermodelle aus Blöcken, Fellvarianten (inkl. Albino und Panther), eigenes Krokodilmodell (Schuppen, Zähne, Kiefer, schlängelnder Schwanz), Zusammenführen starrer Teile, Laufanimation |
 | `src/move.js` | Bewegung eines Leoparden pro Bild: Laufen, Sprinten, Sprung, Klettern, Kollision, Tarnung |
 | `src/perf.js` | Leistung: Schattentakt, automatische Auflösung, Bildratenanzeige |
 | `src/player.js` | Der Leopard des Spielers: Zustand, Startposition und Modell |

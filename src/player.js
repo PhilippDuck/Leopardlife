@@ -49,6 +49,10 @@ const JAG={col:0xe0a23c,col2:0xf0c98a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.44
  * @property {number} pcd Abklingzeit Sprung
  * @property {number} rcd Abklingzeit Brüllen
  * @property {any} [eatC] Kadaver, von dem gerade gefressen wird
+ * @property {any} [drinking] Wasserloch, aus dem gerade getrunken wird
+ * @property {string} [drinkK] Lage des Wasserlochs, aus dem getrunken wird
+ * @property {number} [drinkT] Takt der Trinkgeräusche
+ * @property {number} [drinkHp] Leben beim letzten Trinkschluck (ein Treffer beendet das Trinken)
  * @property {any} [bite] Festbeißen läuft (bite.js)
  * @property {any} [tut] Einführung dieses Spielers (tutorial.js), null wenn keine läuft
  * @property {number} [noise] wie weit man ihn gerade hört (Meter, move.js)

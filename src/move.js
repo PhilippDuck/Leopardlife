@@ -29,7 +29,7 @@ function stepPlayer(p,dt){
   const sneak=p.sneak&&!sprint;   // beim Sprinten ruht das Schleichen
   let spd=baseSpeed(p.L)*(sprint?1.6:sneak?0.45:1); if(p.wet) spd*=0.65;
   if(p.drag){ sprint=false; spd*=0.45; }   // Beute ziehen: langsam, kein Sprint
-  if(sprint) p.st-=20*dt; else p.st=Math.min(maxSt(p.L),p.st+(12+2*at('sta',p.L))*(p.L.hunger<25?0.5:1)*(moving?0.7:1.3)*dt);
+  if(sprint) p.st-=20*dt; else p.st=Math.min(maxSt(p.L),p.st+(12+2*at('sta',p.L))*(p.L.hunger<25||(p.L.thirst??100)<25?0.5:1)*(moving?0.7:1.3)*dt);
   if(p===P&&p.st<=1&&G.tSprint){ G.tSprint=false; $('tbS').classList.remove('on'); }
   const sc=pScale(p.L);
   if(p.tree!=null){
@@ -57,7 +57,7 @@ function stepPlayer(p,dt){
   }
   if(p.tree==null){ const c=collide(p.x,p.z,0.3+0.4*sc,p.pounce>0); p.x=c.x; p.z=c.z; }
   p.pcd=Math.max(0,p.pcd-dt); p.rcd=Math.max(0,p.rcd-dt); p.combatT=Math.max(0,p.combatT-dt);
-  if(p.combatT<=0&&p.L.hunger>25) p.hp=Math.min(maxHp(p.L),p.hp+maxHp(p.L)*0.015*dt);
+  if(p.combatT<=0&&p.L.hunger>25&&(p.L.thirst??100)>25) p.hp=Math.min(maxHp(p.L),p.hp+maxHp(p.L)*0.015*dt);
   if(p.hurtT>0){ p.hurtT-=dt; if(p.hurtT<=0) hEl(p,'hurt').style.opacity='0'; }
   const jump=p.pounce>0?Math.sin(Math.PI*(1-p.pounce/p.pT))*1.1*sc:0;
   p.y=H(p.x,p.z);
@@ -68,8 +68,8 @@ function stepPlayer(p,dt){
   const climbing=p.tree!=null&&p.climbT<1;
   const g=p.g; g.scale.setScalar(sc); g.position.set(p.x,p.y+jump+up,p.z); g.rotation.y=p.rot;
   if(p.roarT>0){ p.roarT=Math.max(0,p.roarT-dt); g.rotation.x=-0.22*Math.sin(Math.PI*(1-p.roarT/0.9)); } else if(g.rotation.x) g.rotation.x=0;
-  g.userData.inner.position.y+=(((sneak&&p.pounce<=0)?-0.16:0)-g.userData.inner.position.y)*Math.min(1,dt*10);
-  g.userData.inner.rotation.x=climbing?-1.1:p.pounce>0?(p.leap?0.35:-0.3):0;
+  g.userData.inner.position.y+=(((sneak&&p.pounce<=0)?-0.16:p.drinking?-0.1:0)-g.userData.inner.position.y)*Math.min(1,dt*10);
+  g.userData.inner.rotation.x=climbing?-1.1:p.pounce>0?(p.leap?0.35:-0.3):p.drinking?0.3:0;   // trinkend: Kopf zum Wasser
   if(climbing) animLegs(g,p.walkT,0.7); else if(p.tree!=null&&p.treeWalk){ p.walkT+=dt*6; animLegs(g,p.walkT,0.3); } else if(moving||p.pounce>0){ p.walkT+=dt*(5+spd*1.4); animLegs(g,p.walkT,p.pounce>0?1.1:sprint?0.85:sneak?0.3:0.55); } else animLegs(g,p.walkT,0.02);
   if(moving&&p.pounce<=0){ p.stepT=(p.stepT||0)-dt*(sprint?1.7:sneak?0.55:1); if(p.stepT<=0){ p.stepT=0.3; if(p.wet) snd.splash(); else snd.step(sneak?0.04:sprint?0.2:0.12); } }
   // Tarnung

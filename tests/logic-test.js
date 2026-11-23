@@ -31,7 +31,7 @@ const doc={ querySelectorAll:()=>[], getElementById:el, addEventListener(){}, cr
 let raf=null;
 const g={ window:win, document:doc, navigator:{maxTouchPoints:0}, localStorage:{getItem:k=>(k in ls?ls[k]:null),setItem:(k,v)=>{ls[k]=String(v);}}, THREE:win.THREE,
   requestAnimationFrame:fn=>{ if(fn.name==='frame') raf=fn; else fn(); }, setTimeout:fn=>{ fn(); } };
-const body=code+'\n;globalThis.__trees=trees;globalThis.__T={assistBite,disconnectPlayer,pollCoop,leavePlayer,G,makeTree,fillPlants,chunkRng,sightAt,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,H,visibility,lineOfSight,addSight,hearR,startEvent,endEvent,EV,updateEvents,eventOn,inGrass,patches,updateAnimal,WORLD,kidOf,kidsOf,tickKids,updateLife,playerSeeks,canSwitchFor,markTaken,cubFollowContext,cubLearn,updateFollowers,followers,learnOf,canSwitch,woundTick,forgetWounds,resetMates,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping};';
+const body=code+'\n;globalThis.__trees=trees;globalThis.__T={assistBite,disconnectPlayer,pollCoop,leavePlayer,G,makeTree,fillPlants,chunkRng,sightAt,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,H,visibility,lineOfSight,addSight,hearR,startEvent,endEvent,EV,updateEvents,eventOn,inGrass,patches,updateAnimal,WORLD,kidOf,kidsOf,tickKids,updateLife,playerSeeks,canSwitchFor,markTaken,cubFollowContext,cubLearn,updateFollowers,followers,learnOf,canSwitch,woundTick,forgetWounds,resetMates,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping,PONDS,drinkContext,updateDrinking,hungerRate,crocStep};';
 new Function(...Object.keys(g), body)(...Object.values(g));
 const T=globalThis.__T; const rnd2=()=>Math.random()*8-4; const localStorageDump=()=>ls['jaguar-lines'];
 els.btnPlay.onclick();
@@ -467,6 +467,22 @@ console.log('audio nodes created',ACs&&ACs.count());
   a.x=k[0]; a.z=k[1]; a.g.rotation.y=k[2]; a.idle=k[3]; a.state=k[4]; P.x=k[5]; P.z=k[6]; P.sneak=k[7]; P.tree=k[8]; a.visT=0;
   if(!(front>0.9)||!(behind<0.35)||!(grazing<front*0.7)||rock!==0||!(hear>20)){ console.log('FEHLER: Sehen',front,behind,grazing,rock,hear); process.exit(1); }
   console.log('Sehen: vorne '+front.toFixed(2)+', von hinten '+behind.toFixed(2)+', grasend '+grazing.toFixed(2)+', hinter Fels '+rock+', Rennen hört man '+hear.toFixed(0)+' m weit'); }
+{ const P=T.P, S=T.S(), q=T.PONDS[0];
+  // Durst sinkt, am Ufer trinken füllt auf
+  P.dead=false; P.tree=null; P.safe=false; P.hp=T.maxHp(); S.thirst=60; T.updateLife(3); const fell=S.thirst<60;
+  for(const a of T.animals) if(a.sp.croc){ a.x=q.x+500; a.z=q.z; a.cd=99; }   // Krokodile weg
+  P.x=q.x+q.r*0.85; P.z=q.z; P.ctl.fw=P.ctl.rt=0; const ctx=T.drinkContext(P); if(ctx) ctx.fn();
+  for(let i=0;i<40;i++) T.updateDrinking(P,0.1); const drank=S.thirst>90;
+  P.x=0; P.z=0; const noCtx=!T.drinkContext(P);
+  // Genügsamer Magen: weniger Hunger je Rang
+  const h0=T.hungerRate(); S.a.sat=4; const h4=T.hungerRate(); S.a.sat=0;
+  // Krokodil greift einen trinkenden Leoparden am Ufer an – auch einen großen
+  const c=T.animals.find(a=>a.sp.croc); c.pond=q; c.x=q.x; c.z=q.z; c.state='lurk'; c.cd=0; c.scared=0; c.stun=0;
+  const lv=S.lvl; S.lvl=20; P.hp=9999; P.x=q.x+q.r*0.85; P.z=q.z; S.thirst=30; T.drinkContext(P).fn(); const hp0=P.hp; let states=new Set();
+  for(let i=0;i<200&&P.hp>=hp0;i++){ const dx=P.x-c.x, dz=P.z-c.z; c.cd-=0.05; T.crocStep(c,0.05,Math.hypot(dx,dz),dx,dz,1,false,P); states.add(c.state); }
+  const bitten=P.hp<hp0; S.lvl=lv; P.hp=T.maxHp(); P.drinking=null; P.x=0; P.z=0; c.x=q.x; c.z=q.z; c.state='lurk';
+  if(!fell||!ctx||!drank||!noCtx||!(h4<h0*0.85)||!bitten||!states.has('stalk')||!states.has('rise')){ console.log('FEHLER: Durst/Krokodil',fell,!!ctx,drank,noCtx,h0,h4,bitten,[...states]); process.exit(1); }
+  console.log('Durst: sinkt, am Ufer getrunken; Genügsamer Magen '+(h4/h0*100).toFixed(0)+' % Hunger; Krokodil schleicht heran und beißt ('+[...states].join(' → ')+')'); }
 // Ein besetzter Baum behält seinen Platz, während ein anderer Abschnitt entladen wird.
 {
   const assert=require('node:assert/strict');

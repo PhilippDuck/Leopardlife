@@ -28,6 +28,7 @@ function newGoals(){
   if(S.b.climb) pool.push({id:'treeMeat',text:'Zieh eine Beute auf einen Baum',need:1});
   if(S.b.climb) pool.push({id:'treeEat',text:'Friss oben in einem Baum',need:1});
   if(S.b.roar) pool.push({id:'roar',text:'Verjag ein Raubtier mit Brüllen',need:1});
+  if(animals.some(a=>a.sp.croc&&!a.dead)) pool.push({id:'crocDrink',text:'Trink dich satt an einem Wasserloch, in dem ein Krokodil lauert',need:1});
   pool.push({id:'stalk',text:'Pirsch dich 40 m schleichend an',need:40});
   if(S.cub&&S.cub.grow<1) pool.push({id:'denMeat',text:'Zieh eine Beute zum Bau für dein Junges',need:1});
   if(S.cub&&S.cub.grow<1) pool.push({id:'feed',text:'Deine Jungen fressen 6 Bissen am Bau',need:6});

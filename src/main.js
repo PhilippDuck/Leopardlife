@@ -48,6 +48,7 @@ import { fillWater, updateWorldContent } from './worldcontent.js';
 import { fillPlants } from './chunkplants.js';
 import { onChunkFill } from './chunks.js';
 import { APP_VERSION } from './version.js';
+import { updateDrinking } from './thirst.js';
 onChunkFill(fillWater);
 onChunkFill(fillPlants);
 document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent='Version '+APP_VERSION; });
@@ -88,7 +89,7 @@ function frame(now){
 function step(dt){
   for(const p of players) readControls(p,dt);
   for(const p of players) if(!p.dead) stepPlayer(p,dt);
-  for(const p of players){ updateEating(p,dt); updateDrag(p,dt); }
+  for(const p of players){ updateEating(p,dt); updateDrinking(p,dt); updateDrag(p,dt); }
   updateBite(dt);
   updateTutorial(dt);
   updateCoop(dt);
@@ -108,7 +109,7 @@ function step(dt){
 }
 
 // Für Browsertests (tools/*.py mit ?test): Spielzustand zum Nachsehen
-if(typeof location!=='undefined'&&location.search.includes('test')) window['__leopard']={G,players,S};
+if(typeof location!=='undefined'&&location.search.includes('test')) window['__leopard']={G,players,S,animals};
 
 applyQuality();
 setInputMode(inputMode); setResLabel(); if(!S.goals) newGoals();

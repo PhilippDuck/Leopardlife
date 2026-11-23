@@ -117,6 +117,7 @@ function updateUI(p=P){
   if(me) renderGoals(); else { h('goalBox').innerHTML=$('goalBox').innerHTML; h('goalBox').style.display=tutActive(p)?'none':'block'; }
   h('size').textContent=(W.rain>0.3?(W.storm?'Gewitter · ':'Regen · '):dayF>0.5?'Tag · ':'Nacht · ')+clockStr()+' · '+(p.L.lvl<4?'Jungtier':p.L.lvl<8?'Halbstark':oldF(p.L)>0?'Alt':p.L.lvl<12?'Ausgewachsen':'Alpha')+(p.L.lvl>=8?' · noch '+Math.max(1,Math.ceil((DIE_AT(p.L)-p.L.age)/60))+' min':'');
   h('bHu').style.width=p.L.hunger+'%'; h('bHu').classList.toggle('low',p.L.hunger<25); h('tHu').textContent=p.L.hunger<=0?'verhungert!':p.L.hunger<25?'hungrig':Math.round(p.L.hunger)+' %';
+  { const th=p.L.thirst??100; h('bTh').style.width=th+'%'; h('bTh').classList.toggle('low',th<25); h('tTh').textContent=p.drinking?'trinkt …':th<=0?'verdurstet!':th<25?'durstig':Math.round(th)+' %'; }
   const mh=maxHp(p.L), ms=maxSt(p.L), xn=xpNeed(p.L.lvl);
   h('bHp').style.width=Math.max(0,p.hp/mh*100)+'%'; h('tHp').textContent=Math.ceil(p.hp)+' / '+mh;
   h('bSt').style.width=Math.max(0,p.st/ms*100)+'%'; h('tSt').textContent=Math.floor(p.st)+' / '+ms;

@@ -127,10 +127,12 @@ function die(p,a){
     p.g.rotation.z=Math.PI/2; p.g.position.y=p.y+0.25*pScale();
     snd.death();
     const fem=(a.sp.id==='hyena'||a.sp.id==='giant');
-    G.lastCause=a.sp.id==='hunger'?'verhungert':a.sp.id==='age'?'an Altersschwäche gestorben':'von '+(DAT[a.sp.id]||'einem '+a.sp.n)+' getötet';
-    const cause=a.sp.id==='hunger'?'Du bist verhungert.':a.sp.id==='age'?'Du bist an Altersschwäche gestorben.':'Ein'+(fem?'e ':' ')+a.sp.n+' hat dich erwischt.';
+    G.lastCause=a.sp.id==='hunger'?'verhungert':a.sp.id==='thirst'?'verdurstet':a.sp.id==='age'?'an Altersschwäche gestorben':'von '+(DAT[a.sp.id]||'einem '+a.sp.n)+' getötet';
+    const cause=a.sp.id==='hunger'?'Du bist verhungert.':a.sp.id==='thirst'?'Du bist verdurstet.':a.sp.id==='age'?'Du bist an Altersschwäche gestorben.':'Ein'+(fem?'e ':' ')+a.sp.n+' hat dich erwischt.';
     $('deadTxt').textContent=cause+(lost>0?' Du verlierst '+lost+' Erfahrung.':'')+' Stufe, Eigenschaften und Fähigkeiten bleiben dir erhalten.';
-    $('deadTip').textContent=a.sp.hunt&&S.lvl<a.sp.hunt
+    $('deadTip').textContent=a.sp.croc
+      ? 'Tipp: Krokodile lauern abgetaucht im Wasserloch – nur Luftblasen verraten sie. Trink dort, wo keine aufsteigen, und spring zurück, sobald das Wasser aufschäumt.'
+      : a.sp.hunt&&S.lvl<a.sp.hunt
       ? 'Tipp: '+(a.sp.id==='jack'?'Schakale':a.sp.id==='hyena'?'Hyänen':'Löwen')+' jagen dich bis Stufe '+a.sp.hunt+'. Schleiche (C) ins hohe Gras, bis sie dich verlieren.'
       : 'Tipp: Dieses Tier wehrt sich. Greife aus dem Hinterhalt an und zieh dich zurück, wenn dein Leben knapp wird.';
     if(G.heirPending){
@@ -139,6 +141,7 @@ function die(p,a){
       $('deadTip').textContent='Je größer es ist und je mehr es bei dir gelernt hat, desto stärker startet es.';
       $('btnRespawn').textContent='Als Junges weiterleben';
     } else $('btnRespawn').textContent='Im Bau neu erwachen';
+    if(a.sp.id==='thirst'&&!G.heirPending) $('deadTip').textContent='Tipp: Trink regelmäßig an einem Wasserloch (Aktionstaste am Ufer) – aber nicht dort, wo Luftblasen aufsteigen.';
     if(a.sp.id==='hunger'&&!G.heirPending) $('deadTip').textContent='Tipp: Erlegte Beute bleibt liegen – friss mit der Aktionstaste davon, sobald du hungrig bist.';
     if(G.lineageEnd){
       $('deadTxt').textContent=(a.sp.id==='age'?'Du bist an Altersschwäche gestorben und hast keinen Nachwuchs.':cause+' Auf „Schwer" gibt es ohne Nachwuchs kein Zurück.')+' Deine Blutlinie endet in Generation '+(S.gen||1)+'.';
@@ -156,7 +159,7 @@ function respawn(p=P){
     toast('Generation '+S.gen+': Du bist jetzt dein Junges – mit den Erbanlagen deiner Linie und 10 % der Punkte.'+(S.p2?' Dein anderes Elterntier sorgt weiter für dich.':''),'#ff9ad0');
   }
   else if(G.lineageEnd){ recordAncestor(G.lastCause); archiveLine(); const df=S.diff; resetState(); S.diff=df; save(); if(REG_ID!=='savanne'){ reloadWorld(false); return; } rebuildPlayer(); rebuildCub(); animals.forEach(placeAnimal); G.raider=null; newLine=true; toast('Eine neue Blutlinie beginnt.','#f2b84b'); }
-  else S.hunger=Math.max(S.hunger,70);
+  else { S.hunger=Math.max(S.hunger,70); S.thirst=Math.max(S.thirst??100,70); }
   G.heirPending=false; G.lineageEnd=false; forgetWounds(p);
   p.tree=null; p.safe=false; p.dropY=0; p.upNow=0; p.x=sx; p.z=sz; p.rot=START_ROT; p.cam.yaw=START_YAW; p.hp=maxHp(); p.st=maxSt(); p.pounce=0; p.pcd=0; p.sneak=false; p.combatT=0; p.g.rotation.z=0;
   animals.forEach(o=>{ o.aggro=0; o.sus=0; o.near=false; if(o.state==='chase'){ o.state='wander'; o.timer=0; } });

@@ -57,7 +57,7 @@ function joinPlayer(i,gp){
   return p;
 }
 /** Werte eines neu einsteigenden Mitspielers: fremder Leopard auf der Stufe von Spieler 1 */
-function newMate(num){ const L=copyLeopard(S); Object.assign(L,{a:fresh().a,b:fresh().b,traits:[],xp:0,pts:2*(S.lvl-1),fur:FURS[num-1],hunger:100,age:0,kills:0,gen:S.gen||1}); return L; }
+function newMate(num){ const L=copyLeopard(S); Object.assign(L,{a:fresh().a,b:fresh().b,traits:[],xp:0,pts:2*(S.lvl-1),fur:FURS[num-1],hunger:100,thirst:100,age:0,kills:0,gen:S.gen||1}); return L; }
 /** Neustart / neue Blutlinie: alle Mitspieler fangen ebenfalls von vorn an (neue Werte im neuen Spielstand) und stehen bei Spieler 1 */
 function resetMates(){
   S.mates={};
@@ -222,7 +222,7 @@ function updateCoop(dt){
 }
 function wakeUp(p,x,z,hpF){
   p.dead=false; p.downT=null; p.revT=0; p.x=x; p.z=z; p.tree=null; p.safe=false; p.upNow=0; p.dropY=0;
-  p.hp=maxHp(p.L)*hpF; p.st=maxSt(p.L)*0.5; p.L.hunger=Math.max(p.L.hunger,40); /* nicht gleich wieder verhungern */ p.combatT=3; p.g.rotation.z=0; hEl(p,'hurt').style.opacity='0'; if(p===P){ $('crossMsg').style.opacity='0'; P.lastS=null; }
+  p.hp=maxHp(p.L)*hpF; p.st=maxSt(p.L)*0.5; p.L.hunger=Math.max(p.L.hunger,40); p.L.thirst=Math.max(p.L.thirst??100,40); /* nicht gleich wieder verhungern */ p.combatT=3; p.g.rotation.z=0; hEl(p,'hurt').style.opacity='0'; if(p===P){ $('crossMsg').style.opacity='0'; P.lastS=null; }
   snd.click();
 }
 // Wenn Spieler 1 nach dem Ende aller Spieler neu erwacht, wachen die Mitspieler neben ihm auf
