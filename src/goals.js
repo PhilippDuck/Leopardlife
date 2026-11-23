@@ -35,7 +35,7 @@ function newGoals(){
   if(S.cub&&S.cub.grow>=0.25&&S.cub.grow<1) pool.push({id:'cubhunt',text:'Erlege 2 Beuten, während dein Junges zusieht',need:2});
   for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)), t=pool[i]; pool[i]=pool[j]; pool[j]=t; }
   // Serie: gestern nicht alle geschafft → von vorn
-  if(S.goals&&S.goals.list&&!S.goals.list.every(g=>g.done)&&(S.goalStreak||0)>0){ S.goalStreak=0; setTimeout(()=>toast('Serie gerissen – heute neu anfangen!','#b9b7a6'),2200); }
+  if(S.goals&&S.goals.list&&!S.goals.list.every(g=>g.done)&&(S.goalStreak||0)>0){ S.goalStreak=0; }
   const xp=goalXp();
   S.goals={day:S.day||0,list:pool.slice(0,3).map(g=>Object.assign(g,{have:0,done:false,xp}))};
   goalHtml=''; save();
@@ -63,20 +63,21 @@ function goalEvent(type,n,extra){
 function allDone(){
   S.goalStreak=(S.goalStreak||0)+1; const pts=1+(S.goalStreak%3===0?1:0);
   for(const p of players){ p.L.pts+=pts; }
-  setTimeout(()=>{ snd.level(); toast('Alle Tagesziele! +'+pts+' Punkt'+(pts>1?'e':'')+' für Eigenschaften & Fähigkeiten'+(S.goalStreak>1?' · Serie: '+S.goalStreak+' Tage':''),'#f2b84b'); },1600);
+  setTimeout(()=>{ snd.level(); toast('Alle Tagesziele! +'+pts+' Punkt'+(pts>1?'e':'')+' für Eigenschaften & Fähigkeiten','#f2b84b'); },1600);
   save();
 }
 let goalHtml='', bump=null, bumpT=0;
 function renderGoals(){
   const el=$('goalBox'); if(!S.goals) newGoals();
   if(tutActive()){ el.style.display='none'; return; }   // während der Einführung nur eine Aufgabe auf einmal
-  const L=S.goals.list, dn=L.filter(g=>g.done).length, st=S.goalStreak||0, next=1+((st+1)%3===0?1:0);
+  const L=S.goals.list, dn=L.filter(g=>g.done).length;
   if(bump){ bumpT=performance.now(); goalHtml=''; }
   const glow=performance.now()-bumpT<1200;
-  const h='<div class="gh">Tagesziele '+dn+'/'+L.length+(st>0?' <span class="gs">Serie '+st+'</span>':'')+'</div>'
+  // alle geschafft: nach dem kurzen Aufleuchten verschwinden die Tagesziele bis zum nächsten Morgen
+  if(dn>=L.length&&!glow){ el.style.display='none'; if(goalHtml){ goalHtml=''; el.innerHTML=''; } return; }
+  const h='<div class="gh">Tagesziele '+dn+'/'+L.length+'</div>'
     +L.map(g=>'<div class="gl'+(g.done?' done':'')+(glow&&g===bump?' bump':'')+'"><span>'+(g.done?'✓':'○')+'</span><span>'+g.text+(g.done||g.need<2?'':' ('+Math.floor(g.have)+'/'+g.need+')')
-      +' <i class="gx">+'+(g.xp||goalXp())+' EP</i></span></div>').join('')
-    +(dn<L.length?'<div class="gb">Alle '+L.length+': <b>+'+next+' Punkt'+(next>1?'e':'')+'</b>'+(st>0?' · Serie hält':'')+'</div>':'<div class="gb ok">Alle geschafft! Morgen geht die Serie weiter.</div>');
+      +' <i class="gx">+'+(g.xp||goalXp())+' EP</i></span></div>').join('');
   bump=null; if(!glow&&goalHtml.indexOf(' bump')>=0) goalHtml='';
   if(h!==goalHtml){ goalHtml=h; el.innerHTML=h; } el.style.display='block';
 }
