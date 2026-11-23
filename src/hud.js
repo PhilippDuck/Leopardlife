@@ -171,7 +171,7 @@ function updateUI(p=P){
       :esc(rv.name)+' liegt am Boden – geh hin und halte '+key;
   } else { ch.style.display=ctx?'block':'none'; if(ctx) ch.innerHTML=(!me||padUI())?xb('Ⓧ')+' – '+esc(ctx.label):touchUI()?'Aktionsknopf: '+esc(ctx.label):'F – '+esc(ctx.label); }
   if(me) $('tapHelp').style.display=(touchUI()&&G.started&&!G.paused&&tapLearned<2)?'block':'none';
-  const pe=h('pts'); if(p.L.pts>0){ pe.style.display='block'; pe.textContent=p.L.pts+' Punkt'+(p.L.pts===1?'':'e')+(sm?' ▸':me?' zu vergeben – Tab':' zu vergeben – Back'); } else pe.style.display='none';
+  const pe=h('pts'); if(p.L.pts>0){ pe.style.display='block'; pe.textContent='+'+p.L.pts+(sm?' Pkt':' Punkt'+(p.L.pts===1?'':'e')+' · Tab'); } else pe.style.display='none';
   h('cdP').style.width=(1-p.pcd/1.3)*100+'%';
   h('cdRbox').style.opacity=p.L.b.roar?1:0.35; h('cdR').style.width=p.L.b.roar?(1-p.rcd/(22-3*p.L.b.roar))*100+'%':'0%';
   h('cdEbox').style.opacity=p.L.b.climb?1:0.35; h('cdE').style.width=(p.tree!=null?p.climbT*100:nt>=0?100:0)+'%';
