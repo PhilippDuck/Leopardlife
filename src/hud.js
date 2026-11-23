@@ -45,10 +45,10 @@ function warnArrows(p,ring,pool,R){
   let n=0, top=null, topV=-1, maxSus=0;
   if(!p.dead)
   for(const a of animals){
-    if(a.dead||!a.sp.fight) continue;
+    if(a.dead||(!a.sp.fight&&!(a.sp.guard&&a.state==='chase'))) continue;
     if(players.length>1&&a.tgt&&a.tgt!==p) continue;   // jedes Tier achtet auf einen Spieler (ai.js targetOf)
     const chase=a.state==='chase'||a.state==='lunge';
-    let v; if(chase) v=2; else if(a.state==='wander'&&a.sus>0) v=a.sus; else if(a.state==='wander'&&a.near) v=0; else if(a.state==='scav'&&a.sp.hunt&&p.L.lvl<a.sp.hunt&&Math.hypot(a.x-p.x,a.z-p.z)<90) v=0.3; else if(a.state==='lurk'&&a.near) v=0; else continue;
+    let v; if(chase) v=2; else if(a.state==='wander'&&a.sus>0) v=a.sus; else if(a.state==='wander'&&a.near) v=0; else if(a.state==='scav'&&a.sp.hunt&&p.L.lvl<a.sp.hunt&&Math.hypot(a.x-p.x,a.z-p.z)<90) v=0.3; else if(a.state==='lurk'&&a.near&&!a.hidden) v=0; else if(a.state==='warn') v=0.7; else continue;
     const dx=a.x-p.x, dz=a.z-p.z, d=Math.hypot(dx,dz); if(chase&&d>80) continue;
     const ang=Math.atan2(dx*c-dz*s,-(dx*s+dz*c));
     let el=pool[n]; if(!el){ el=document.createElement('div'); el.className='wa'; ring.appendChild(el); pool.push(el); } n++;
@@ -219,7 +219,7 @@ function drawRadar(p=P,cv=/** @type {HTMLCanvasElement} */(hEl(p,'rc')),ctx=p===
   } }
   for(let g=0;g<4;g++){
     rc.fillStyle=RADAR_COL[g]; rc.beginPath(); let any=false;
-    for(let i=0;i<animals.length;i++){ const a=animals[i]; if(a.dead||(a.sp.friend&&!a.g.visible)) continue; if(a.state==='lurk'&&Math.abs(a.x-p.x)+Math.abs(a.z-p.z)>18) continue;
+    for(let i=0;i<animals.length;i++){ const a=animals[i]; if(a.dead||a.hidden||(a.sp.friend&&!a.g.visible)) continue; if(a.state==='lurk'&&Math.abs(a.x-p.x)+Math.abs(a.z-p.z)>18) continue;
       const hostile=a.sp.hunt&&p.L.lvl<a.sp.hunt, grp=a.sp.friend?0:hostile?1:a.sp.fight?2:3; if(grp!==g) continue;
       const dx=a.x-p.x, dz=a.z-p.z; if(dx*dx+dz*dz>R*R) continue;
       const r=Math.max(4,a.sp.size*6)*sc; rc.moveTo(dx*k+r,dz*k); rc.arc(dx*k,dz*k,r,0,6.283); any=true; }

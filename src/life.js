@@ -1,5 +1,5 @@
 // LeopardLife – Lebenslauf: Hunger, Altern, Fressen aus dem Vorrat.
-import { hurtPlayer } from './actions.js';
+import { gainXp, hurtPlayer } from './actions.js';
 import { snd } from './audio.js';
 import { P, players, rebuildPlayer } from './player.js';
 import { DIE_AT, OLD_AT, S, fresh, hungerRate, maxHp, maxSt, pScale, save, thirstRate } from './save.js';
@@ -47,6 +47,7 @@ function thirstStep(p,dt){
 function updateLife(dt){
   // Mitspieler: eigener Hunger (satt werden sie durch eigene Beute); Altern und Erbe betreffen nur die Linie von Spieler 1
   for(const p of players){ if(p===P||p.dead) continue; const L=p.L;
+    if(canSwitchFor(p)) raisedXp(p);
     if(canSwitchFor(p)&&!p.cubReadyNotice){ p.cubReadyNotice=true; tell(p,'Dein Junges ist halbstark. Im Entwicklungsfenster kannst du jetzt als Junges weiterspielen. Wenn du erwachsen bleibst, wechselst du erst am Ende deiner Lebenszeit.','#ff9ad0'); }
     L.hunger=Math.max(0,L.hunger-dt*hungerRate(L)); thirstStep(p,dt);
     if(L.hunger<=0){ p.hp-=maxHp(L)*0.015*dt; if(p.hp<=0) hurtPlayer(1e9,{sp:{id:'hunger',n:'Hunger'}},true,p); }
@@ -57,6 +58,7 @@ function updateLife(dt){
       if(a0<Dm-90&&L.age>=Dm-90) tell(p,'Deine Kräfte schwinden. Dir bleibt nicht mehr viel Zeit.','#ff8a70');
       if(L.age>=Dm) mateDiesOfAge(p); } }
   if(P.dead) return;
+  if(canSwitchFor(P)) raisedXp(P);
   if(canSwitchFor(P)&&!P.cubReadyNotice){ P.cubReadyNotice=true; toast('Dein Junges ist halbstark. Im Menü kannst du jetzt als Junges weiterspielen. Wenn du erwachsen bleibst, wechselst du erst am Ende deiner Lebenszeit.','#ff9ad0'); }
   S.hunger=Math.max(0,S.hunger-dt*hungerRate()); thirstStep(P,dt);
   if(S.hunger<20&&S.food>0){ S.food--; S.hunger=Math.min(100,S.hunger+12); }   // Notration aus dem Vorrat
@@ -69,6 +71,9 @@ function updateLife(dt){
     if(S.age>=D){ if(players.length>1) p1DiesOfAge(); else hurtPlayer(1e9,{sp:{id:'age',n:'Alter'}},true); }   // im Splitscreen kein „Am Boden“: Alter lässt sich nicht wiederbeleben
   }
 }
+
+/** Junges bis halbstark großgezogen: einmalig Erfahrung (am gespeicherten Jungen vermerkt) */
+function raisedXp(p){ const k=kidOf(p); if(!k||k.raisedXp) return; k.raisedXp=true; floatText('Junges großgezogen! +150 EP',p.x,p.y+2*pScale(p.L),p.z,'#ff9ad0'); gainXp(150,p); }
 
 export { updateLife };
 export { eatFood };

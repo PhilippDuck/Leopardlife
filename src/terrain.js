@@ -13,7 +13,8 @@ const _rs=seeded(S.seed), NO=[0,1,2].map(()=>[(_rs()-0.5)*400,(_rs()-0.5)*400]);
 const Hn=(x,z)=>6.2*snoise(x*0.0062+NO[0][0],z*0.0062+NO[0][1])+2.0*snoise(x*0.021+NO[1][0],z*0.021+NO[1][1])+0.6*snoise(x*0.065+NO[2][0],z*0.065+NO[2][1]);
 const DEN_H=Hn(7,5);
 function H0(x,z){ const h=Hn(x,z), d=Math.hypot(x-7,z-5); if(d>=22) return h; let w=Math.min(1,(22-d)/12); w=w*w*(3-2*w); return h+(DEN_H-h)*w*0.85; }
-const PONDS=REG.ponds.map(p=>({x:p[0],z:p[1],r:p[2],L:H0(p[0],p[1])}));
+// Jedes zweite Wasserloch ist ein trüber Tümpel: braunes Wasser, in dem man ein abgetauchtes Krokodil nicht sieht.
+const PONDS=REG.ponds.map((p,i)=>({x:p[0],z:p[1],r:p[2],L:H0(p[0],p[1]),murky:i%2===1}));
 // Feuchte Landschaften kehren außerhalb des Startgebiets in großen zusammenhängenden Flächen wieder.
 function moisture(x,z){
   return Math.max(0,Math.min(1,0.5+1.3*snoise(x/420+NO[0][0],z/420+NO[0][1])));
@@ -101,7 +102,8 @@ const hash2=(x,z)=>{ const h=Math.sin(x*12.9898+z*78.233)*43758.5453; return h-M
 const waters=[];
 PONDS.forEach(p=>{
   const g=new THREE.CircleGeometry(p.r,48); g.rotateX(-Math.PI/2);
-  const m=new THREE.Mesh(g,new THREE.MeshPhongMaterial({color:0x4d9db3,transparent:true,opacity:0.74,shininess:120,specular:0xffffff}));
+  const m=new THREE.Mesh(g,p.murky?new THREE.MeshPhongMaterial({color:0x6e6a3c,transparent:true,opacity:0.96,shininess:40,specular:0x8a8a70})
+    :new THREE.MeshPhongMaterial({color:0x4d9db3,transparent:true,opacity:0.74,shininess:120,specular:0xffffff}));
   m.position.set(p.x,p.L-WATER_D,p.z); m.userData.y=p.L-WATER_D; m.receiveShadow=true; scene.add(m); waters.push(m);
 });
 

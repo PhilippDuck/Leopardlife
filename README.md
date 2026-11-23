@@ -14,6 +14,10 @@ durch Savanne und Sumpf.
 - Tag-Nacht-Wechsel, Regen und Gewitter, Tagesziele, drei Schwierigkeitsgrade
 - Hunger und Durst: Beute fressen und an Wasserlöchern trinken – dort lauern Krokodile, die sich an Trinkende heranschleichen
 - Wildtiere suchen regelmäßig Wasser und können an Krokodil-Wasserlöchern angegriffen werden; Geier kreisen über Kadavern, landen und fressen sie
+- Wasserschweine, Wildschweine, Hirsche, Antilopen, Hyänen und Löwen haben Junge; wehrhafte Eltern verteidigen sie
+- Puffottern liegen getarnt im Gras, zischen als Warnung und beißen mit nachwirkendem Gift
+- Trübe Tümpel verbergen Krokodile – nur feine Wellen und geducktes Lauschen am Ufer verraten sie
+- Erfahrung gibt es auch fürs Erkunden neuer Wasserlöcher, Ausweichen vor Krokodilen, Vertreiben von Wilderern und Räubern und fürs Großziehen eines Jungen
 - Gebiete: Savanne (mit einzelnen Krokodilen) und Sumpf (mit vielen Krokodilen und dem Riesenkrokodil); weitere geplant
 - Steuerung mit Tastatur und Maus, Touch oder Xbox-Controller
 - Gemeinsames Spiel (Splitscreen) für bis zu 4 Spieler: Im Spiel drückt ein weiterer Controller Start und steigt ein –
