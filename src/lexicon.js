@@ -35,7 +35,7 @@ const LEX={
   rival:'Ein fremder Leopard, der dein Revier will.',
   poacher:'Schießt auf alles, was sich bewegt. Vertreiben, nicht töten – Brüllen hilft.'
 };
-const LEX_XP=10, LEX_BOSS_XP=40;
+const LEX_XP=5;
 /* Vögel sind keine SPECIES: eigene Einträge, entdeckt, sobald einer sichtbar und nah genug ist (r: Abstand am Boden) */
 const LEX_BIRDS=[
   {id:'vulture',n:'Geier',r:35,spots:vultureSpots,tip:'Kreisen über jedem Kadaver, der am Boden liegt – und verraten ihn von Weitem. Wer sich nähert, verscheucht sie.'},
@@ -59,7 +59,7 @@ function discoverId(p,id,xp){
   tell(p,e.n+': '+e.tip,'#c9e7a0');
   gainXp(xp,p); renderLexBtn();
 }
-const discover=(p,a)=>discoverId(p,a.sp.id,a.sp.boss?LEX_BOSS_XP:LEX_XP);
+const discover=(p,a)=>discoverId(p,a.sp.id,LEX_XP);
 /** Vögel: sichtbar und nah genug? */
 function birdCheck(p){
   for(const b of LEX_BIRDS){ if(lex()[b.id]) continue;
