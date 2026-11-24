@@ -40,6 +40,20 @@ function makeTree(o,random=Math.random){
         leaf([p[0]+Math.sin(yaw)*Math.cos(pit)*d,p[1]-Math.sin(pit)*d+0.15*k,p[2]+Math.cos(yaw)*Math.cos(pit)*d],0.5*k,0.09*k,2.0*k,hsl(hue+rnd(-0.02,0.02),rnd(0.45,0.58),rnd(0.3,0.38)),q); }
       leaf([p[0],p[1]-0.15*k,p[2]],0.45*k,0.35*k,0.45*k,hsl(0.08,0.45,0.28));
       t.cx=p[0]; t.cz=p[2]; t.cy=p[1]; t.rx=2.6*k; t.ry=1.1*k; t.perch=[p[0],p[1]+0.25*k,p[2]]; t.tr=0.28*k;
+    } else if(o.baobab){
+      // Affenbrotbaum: riesiger flaschenförmiger Stamm, kurze dicke Äste, nur kleine Laubbüschel an den Enden
+      const k=rnd(1,1.25), h=rnd(7.5,8.5)*k, rb=1.8*k, h1=h*0.5, bark=hsl(rnd(0.05,0.08),rnd(0.12,0.18),rnd(0.46,0.54)), hue=rnd(0.21,0.26);
+      wood([0,-0.4,0],[0,h1,0],rb,bark);               // unten bauchig (Zylinder läuft oben auf 70 % zu)
+      wood([0,h1-0.2,0],[0,h,0],rb*0.7,bark);           // oben schlanker
+      const nr=4+Math.floor(random()*2);
+      for(let j=0;j<nr;j++){ const a=j/nr*6.283+rnd(-0.3,0.3); wood([Math.cos(a)*rb*1.15,-0.3,Math.sin(a)*rb*1.15],[Math.cos(a)*0.3*k,1.6*k,Math.sin(a)*0.3*k],0.5*k,bark); }
+      const nb=6+Math.floor(random()*3); let top=h;
+      for(let j=0;j<nb;j++){ const a=j/nb*6.283+rnd(-0.35,0.35), L=rnd(2.2,3.4)*k, s=[Math.cos(a)*0.45*k,h-0.4*k,Math.sin(a)*0.45*k], e=[Math.cos(a)*L,h+rnd(0.9,2)*k,Math.sin(a)*L];
+        wood(s,e,0.34*k,bark); top=Math.max(top,e[1]);
+        for(let m=0;m<2;m++){ const b=a+(m?1:-1)*rnd(0.3,0.8), tw=[e[0]+Math.cos(b)*rnd(0.7,1.2)*k,e[1]+rnd(0.4,0.9)*k,e[2]+Math.sin(b)*rnd(0.7,1.2)*k];
+          wood(e,tw,0.13*k,bark); top=Math.max(top,tw[1]);
+          leaf([tw[0],tw[1]+0.2*k,tw[2]],rnd(0.8,1.15)*k,rnd(0.4,0.55)*k,rnd(0.8,1.15)*k,hsl(hue+rnd(-0.015,0.015),rnd(0.35,0.45),rnd(0.3,0.38))); } }
+      t.baobab=true; t.cx=0; t.cz=0; t.cy=top; t.rx=4.2*k; t.ry=1.4*k; t.perch=[0,h+0.15*k,0]; t.tr=rb*0.95;
     } else if(o.sav&&random()<0.1){
       // Toter Baum: kahle, graue Äste
       const k=rnd(0.8,1.25), h=rnd(4,6)*k, bark=hsl(0.08,0.07,rnd(0.46,0.56)), top=[rnd(-0.4,0.4)*k,h,rnd(-0.4,0.4)*k];
@@ -81,6 +95,12 @@ function makeTree(o,random=Math.random){
     let x,z,r; do{ r=Math.sqrt(Math.random())*WORLD; const a=Math.random()*6.283; x=Math.cos(a)*r; z=Math.sin(a)*r; }while(r<10||(r>110&&Math.random()<0.7)||pondAt(x,z,1.3));
     trees.push(makeTree({x,z,sav:r>REG.savFrom}));
   }
+  // Affenbrotbäume: wenige Riesen in der Savanne, weit auseinander; andere Bäume machen ihnen Platz
+  const bao=[];
+  for(let i=0,t=0;i<(REG.baobabs||0)&&t<200;t++){ const r=rnd(Math.max(60,REG.savFrom),WORLD-14), a=Math.random()*6.283, x=Math.cos(a)*r, z=Math.sin(a)*r;
+    if(pondAt(x,z,1.6)||bao.some(b=>Math.hypot(b.x-x,b.z-z)<70)) continue; bao.push({x,z}); i++; }
+  for(let i=trees.length-1;i>=0;i--) if(bao.some(b=>Math.hypot(b.x-trees[i].x,b.z-trees[i].z)<8)) trees.splice(i,1);
+  bao.forEach(b=>trees.push(makeTree({x:b.x,z:b.z,baobab:true})));
   PONDS.forEach(p=>{ const n=REG.palms[0]+Math.floor(Math.random()*(REG.palms[1]-REG.palms[0]+1)); for(let j=0;j<n;j++){ const a=Math.random()*6.283, d=p.r*rnd(1.12,1.45); trees.push(makeTree({x:p.x+Math.cos(a)*d,z:p.z+Math.sin(a)*d,palm:true})); } });
   const nW={}, nL={}; trees.forEach(t=>{ const k=tileOf(t.x,t.z); t.parts.forEach(p=>{ const N=p.leaf?nL:nW; p.k=k; p.i=N[k]=(N[k]||0); N[k]++; }); });
   const wg=new THREE.CylinderGeometry(0.7,1,1,7,1); wg.translate(0,0.5,0);
@@ -99,7 +119,7 @@ function makeTree(o,random=Math.random){
   for(const k in nW){ const m=WM[k]=new THREE.InstancedMesh(wg,wm,nW[k]); woodMeshes.push(m); registerTile(m,+k,84); }
   for(const k in nL){ const m=LM[k]=new THREE.InstancedMesh(leafGeoHi,lm,nL[k]); leafMeshes.push(m); registerTile(m,+k,84); }
   const c=new THREE.Color();
-  trees.forEach((t,i)=>{ t.parts.forEach(p=>{ p.mesh=(p.leaf?LM:WM)[p.k]; p.mesh.setColorAt(p.i,c.setHex(p.c)); }); setTree(i); addCol(t.x,t.z,t.tr+0.1); addSight(t.x,t.z,t.tr+0.15,6,0.55); });   // Stamm verdeckt teilweise
+  trees.forEach((t,i)=>{ t.parts.forEach(p=>{ p.mesh=(p.leaf?LM:WM)[p.k]; p.mesh.setColorAt(p.i,c.setHex(p.c)); }); setTree(i); addCol(t.x,t.z,t.tr+0.1); addSight(t.x,t.z,t.tr+0.15,t.baobab?8:6,t.baobab?1:0.55); });   // Stamm verdeckt teilweise, der dicke Affenbrotbaum ganz
   woodMeshes.concat(leafMeshes).forEach(m=>{ m.castShadow=true; m.receiveShadow=true; scene.add(m); });
 })();
 /** Bäume, die gerade in mindestens einer Ansicht ausgeblendet sind oder es waren (nur diese müssen je Ansicht umgestellt werden) */

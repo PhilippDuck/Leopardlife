@@ -8,10 +8,22 @@ import { followers } from './cubfollow.js';
 import { animals } from './animals.js';
 import { QUAL } from './data.js';
 import { quality } from './quality.js';
+import { seeded } from './noise.js';
+import { S } from './save.js';
 
 const freeSlots=[];
 const rockGeometry=new THREE.DodecahedronGeometry(1,0);
 const vegetationBushes={geometry:bushGeometry,material:bushMaterial};
+/** Anteil der Abschnitte mit einem Affenbrotbaum (nur im Trockenen) */
+const BAOBAB_CHANCE=0.07;
+/** Eigener Zufall je Abschnitt für den Affenbrotbaum, damit die übrige Bepflanzung gleich bleibt */
+const baobabRng=(cx,cz)=>seeded((S.seed^Math.imul(cx,0x2c1b3c6d)^Math.imul(cz,0x297a2d39)^0x5bd1e995)>>>0);
+/** Platz für einen Affenbrotbaum in Abschnitt cx/cz oder null (deterministisch aus Weltsamen und Koordinaten) */
+function baobabSpot(cx,cz){
+  const r=baobabRng(cx,cz); if(r()>=BAOBAB_CHANCE) return null;
+  const x=cx*CHUNK+12+r()*(CHUNK-24), z=cz*CHUNK+12+r()*(CHUNK-24);
+  return Math.hypot(x,z)>WORLD+20&&dryness(x,z)>0.3&&!pondAt(x,z,1.8)?{x,z,baobab:true,rng:r}:null;   // r baut danach auch den Baum
+}
 
 function fillPlants(chunk){
   const rng=chunk.rng, slots=[], cleanup=[];
@@ -27,9 +39,11 @@ function fillPlants(chunk){
     const obstacle=addSight(x,z,r,h,opacity);
     cleanup.push(()=>removeSight(obstacle));
   }
-  const stems=Array.from({length:3},()=>place(4)).filter(outside);
-  if(stems.length){
+  const baobab=baobabSpot(chunk.cx,chunk.cz);
+  const stems=Array.from({length:3},()=>place(4)).filter(outside).filter(p=>!baobab||Math.hypot(p.x-baobab.x,p.z-baobab.z)>8);
+  if(stems.length||baobab){
     const generated=stems.map(({x,z})=>makeTree({x,z,sav:dryness(x,z)>0.45},rng));
+    if(baobab) generated.push(makeTree(baobab,baobab.rng));
     const parts=generated.flatMap(t=>t.parts);
     const trunks=new THREE.InstancedMesh(woodMeshes[0].geometry,woodMeshes[0].material,parts.filter(p=>!p.leaf).length);
     const crowns=new THREE.InstancedMesh(quality==='low'?leafGeoLo:leafGeoHi,leafMeshes[0].material,parts.filter(p=>p.leaf).length);
@@ -55,7 +69,7 @@ function fillPlants(chunk){
       setTree(slot);
       const collider=addCol(tree.x,tree.z,tree.tr+0.1,false);
       cleanup.push(()=>{ removeCol(collider); fadedTrees.delete(slot); delete trees[slot]; freeSlots.push(slot); });
-      sight(tree.x,tree.z,tree.tr+0.15,6,0.55);
+      sight(tree.x,tree.z,tree.tr+0.15,tree.baobab?8:6,tree.baobab?1:0.55);
     });
   }
   // Buschplätze je nach Trockenheit: grüne Büsche, vertrocknete Büsche oder Steine
@@ -128,4 +142,4 @@ function fillPlants(chunk){
     drop:()=>{ for(const fn of cleanup) fn(); }
   });
 }
-export { fillPlants };
+export { fillPlants, baobabSpot };
