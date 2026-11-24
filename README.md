@@ -120,3 +120,5 @@ Der Spielstand liegt im `localStorage` des jeweiligen Browsers.
 Die Aufnahmen in `audio/` sind mit ElevenLabs erzeugt. Neue Dateien kommen so ins Spiel: Ziel-Dateiname und Download-Adresse in
 `audio/sources.json` eintragen und pushen – die GitHub-Action „Audio holen“ (`.github/workflows/audio-fetch.yml`) lädt sie herunter
 und checkt sie im selben Zweig ein. Danach `git pull`. Fehlt eine Datei, spielt das Spiel einen synthetischen Ersatzton.
+
+Performance-Messungen mit isoliertem Browser: siehe [Messanleitung](docs/performance/README.md).
