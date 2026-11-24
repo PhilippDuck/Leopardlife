@@ -17,6 +17,7 @@ const LEX={
   maus:'Ein schneller Happen für Jungtiere – später kaum der Rede wert.',
   hase:'Schnell und schreckhaft. Aus dem hohen Gras heraus anspringen.',
   capy:'Lebt in Gruppen nahe am Wasser. Ihre Jungen sind leichte Beute, die Eltern wehren sich nicht.',
+  wart:'Flieht mit hochgestelltem Schwanz in seinen Bau und schläft dort nachts. Wer geduckt in der Nähe wartet, erwischt es beim Herauskommen.',
   boar:'Wehrt sich mit den Hauern. Bachen verteidigen ihre Frischlinge – halte Abstand zu den Kleinen.',
   deer:'Aufmerksam, mit gutem Gehör. Hirschkühe verteidigen ihre Kälber; Madenhacker auf dem Rücken warnen sie.',
   anti:'Sehr schnell und wachsam. Nur aus dem Hinterhalt zu erwischen.',

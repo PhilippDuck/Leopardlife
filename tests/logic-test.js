@@ -31,7 +31,7 @@ const doc={ querySelectorAll:()=>[], getElementById:el, addEventListener(){}, cr
 let raf=null;
 const g={ window:win, document:doc, navigator:{maxTouchPoints:0}, localStorage:{getItem:k=>(k in ls?ls[k]:null),setItem:(k,v)=>{ls[k]=String(v);}}, THREE:win.THREE,
   requestAnimationFrame:fn=>{ if(fn.name==='frame') raf=fn; else fn(); }, setTimeout:fn=>{ fn(); } };
-const body=code+'\n;globalThis.__trees=trees;globalThis.__T={assistBite,disconnectPlayer,pollCoop,leavePlayer,G,makeTree,fillPlants,chunkRng,sightAt,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,H,visibility,lineOfSight,addSight,hearR,startEvent,endEvent,EV,updateEvents,eventOn,inGrass,patches,updateAnimal,WORLD,kidOf,kidsOf,tickKids,updateLife,playerSeeks,canSwitchFor,markTaken,cubFollowContext,cubLearn,updateFollowers,followers,learnOf,canSwitch,woundTick,forgetWounds,resetMates,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping,PONDS,drinkContext,updateDrinking,hungerRate,crocStep};';
+const body=code+'\n;globalThis.__trees=trees;globalThis.__T={assistBite,disconnectPlayer,pollCoop,leavePlayer,G,makeTree,fillPlants,chunkRng,sightAt,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,H,visibility,lineOfSight,addSight,hearR,startEvent,endEvent,EV,updateEvents,eventOn,inGrass,patches,updateAnimal,WORLD,kidOf,kidsOf,tickKids,updateLife,playerSeeks,canSwitchFor,markTaken,cubFollowContext,cubLearn,updateFollowers,followers,learnOf,canSwitch,woundTick,forgetWounds,resetMates,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping,PONDS,drinkContext,updateDrinking,hungerRate,crocStep,BURROWS};';
 new Function(...Object.keys(g), body)(...Object.values(g));
 const T=globalThis.__T; const rnd2=()=>Math.random()*8-4; const localStorageDump=()=>ls['jaguar-lines'];
 els.btnPlay.onclick();
@@ -401,6 +401,19 @@ console.log('audio nodes created',ACs&&ACs.count());
     Object.assign(S,JSON.parse(keep)); S.cub=cub;
     if(!ok||!okQ){ console.log('FEHLER: Altersschwäche im Splitscreen',ok,okQ,S.lvl); process.exit(1); }
     console.log('Splitscreen: Tod durch Alter ohne Endlosschleife – neuer Leopard mit Punkten (Spieler 1 und 2)'); } }
+{ const P=T.P, keep=[P.x,P.z,P.sneak,P.dead,P.tree], b=T.BURROWS[0];
+  // Warzenschwein: flieht in den Bau, bleibt drin, solange ein Leopard nah ist, kommt danach wieder heraus
+  const w=T.animals.find(a=>a.sp.id==='wart'&&!a.juv&&!a.dead); P.dead=false; P.tree=null; P.sneak=false;
+  w.x=b.x+10; w.z=b.z; w.home=b; w.burrowed=null; P.x=b.x+30; P.z=b.z; T.startFlee(w);
+  for(let i=0;i<60&&!w.burrowed;i++) T.updateAnimal(w,0.1);
+  const inside=w.burrowed===b;
+  P.x=b.x+5; for(let i=0;i<500;i++) T.updateAnimal(w,0.1);
+  const stays=w.burrowed===b;
+  P.x=b.x+80; for(let i=0;i<10;i++) T.updateAnimal(w,0.1);
+  const out=T.dayF()<0.22||(!w.burrowed&&Math.hypot(w.x-b.x,w.z-b.z)<3);
+  [P.x,P.z,P.sneak,P.dead,P.tree]=keep;
+  if(!inside||!stays||!out){ console.log('FEHLER: Warzenschwein-Bau',inside,stays,out); process.exit(1); }
+  console.log('Warzenschwein: flieht in den Bau, wartet, bis die Luft rein ist, und kommt wieder heraus'); }
 { const P=T.P, n0=T.animals.length, keepP=[P.x,P.z,P.hp,P.dead,P.tree];
   // Gnu-Wanderung: Herde zieht los, Panik bei Nähe, verlässt am Ende die Welt
   T.startEvent('migr'); const herd=T.animals.filter(a=>a.ev==='migr'), h0=herd.length, a0=herd[0], f0=a0.x*T.EV.dir.x+a0.z*T.EV.dir.z;

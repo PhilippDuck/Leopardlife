@@ -24,6 +24,7 @@ import { syncOrbs } from './effects.js';
 import { growlAt } from './calls.js';
 import { weakRecover, woundSlow, woundTick, woundTrail } from './bite.js';
 import { eventStep } from './worldevents.js';
+import { burrowSeek, burrowWait } from './burrows.js';
 import { hearR, visibility } from './vision.js';
 
 /* Rudel: Hyänen und Schakale rufen ihre Artgenossen zur Jagd (je nach Schwierigkeit) */
@@ -100,6 +101,7 @@ function updateAnimal(a,dt){
     a.respawn-=dt; if(a.respawn<=0) placeAnimal(a); return; }
   if(a.held){ a.ph+=dt*14; animLegs(a.g,a.ph,0.5); return; }   // festgebissen: zappelt, bewegt sich nicht
   if(a.wound) woundTick(a,dt); if(a.dead) return;
+  if(a.sp.burrow&&burrowWait(a,dt)) return;   // Warzenschwein im Bau
   const sp=a.sp, dx=T.x-a.x, dz=T.z-a.z, d=Math.hypot(dx,dz);
   if(sp.friend){
     const fi=fam.indexOf(a);
@@ -111,6 +113,7 @@ function updateAnimal(a,dt){
   if(sp.snake){ a.g.visible=dv<=VIEW_D; if(dv>VIEW_D+20) return; snakeStep(a,dt,d,dx,dz,T); pounceHits(a); return; }
   if(!a.sp.croc&&!a.sp.friend&&!a.sp.human&&!a.juv&&animalWater(a,dt)){ a.g.visible=dv<=VIEW_D; a.g.position.set(a.x,H(a.x,a.z),a.z); return; }
   if(dv>VIEW_D&&a!==G.raider){ a.g.visible=false; return; } a.g.visible=dv<=VIEW_D;
+  if(a.sp.burrow&&!(a.stun>0)&&burrowSeek(a,dt)){ pounceHits(a); return; }   // läuft zum Bau
   a.cd-=dt; if(a.scared>0) a.scared-=dt; if(a.gcd>0) a.gcd-=dt;
   const hostile=sp.hunt&&!a.juv&&T.L.lvl<sp.hunt&&!(a.scared>0);
   // Wahrnehmung: Reichweite (Art, Tarnung, Schwierigkeit, Nacht, Wind) × was das Tier wirklich sieht (vision.js) – Hören geht rundum
