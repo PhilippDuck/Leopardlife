@@ -51,6 +51,7 @@ import { APP_VERSION } from './version.js';
 import { updateDrinking } from './thirst.js';
 import { updateBirds } from './birds.js';
 import { updateWildBirds } from './wildbirds.js';
+import { updateBaboons } from './baboons.js';
 import { updateInsects } from './insects.js';
 import { updateLexicon } from './lexicon.js';
 import { updateVenom } from './snake.js';
@@ -102,7 +103,7 @@ function step(dt){
   G.birdT-=dt; if(G.birdT<=0){ G.birdT=rnd(4,11); if(dayF>0.45&&W.rain<0.5&&!hasSample('birdA')) snd.bird(); }   // Synth-Vögel nur, solange die Vogel-Aufnahmen fehlen
   updateWeather(dt);
   for(let i=0;i<animals.length;i++) updateAnimal(animals[i],dt);
-  updateBirds(dt); updateWildBirds(dt); updateInsects(dt); updateLexicon(dt); updateVenom(dt); updateExplore(dt);
+  updateBirds(dt); updateWildBirds(dt); updateBaboons(dt); updateInsects(dt); updateLexicon(dt); updateVenom(dt); updateExplore(dt);
   updateEvents(dt); updateWatchers();
   setListeners(players.map(p=>({x:p.x,z:p.z,yaw:p.cam.yaw}))); updateCalls(dt);
   for(let i=puffs.length-1;i>=0;i--){ const p=puffs[i]; p.t-=dt; p.vy-=12*dt; p.m.position.x+=p.vx*dt; p.m.position.y+=p.vy*dt; p.m.position.z+=p.vz*dt; p.m.material.opacity=Math.max(0,p.t/0.7); if(p.t<=0){ scene.remove(p.m); p.m.material.dispose(); puffs.splice(i,1); } }

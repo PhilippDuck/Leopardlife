@@ -220,6 +220,8 @@ const snd={
   cackle(v){ if(v<=0.01) return; for(let i=0;i<9;i++){ const f=rnd(1100,1500); tone(f,0.05,'square',0.05*v,f*0.7,i*rnd(0.06,0.09)); noise(0.04,0.12*v,2600,1400,'bandpass',i*0.075); } },
   /** Madenhacker fliegen zischend auf */
   hiss(v){ if(v<=0.01) return; for(let i=0;i<4;i++) noise(0.12,0.16*v,5200,3600,'bandpass',i*0.1); tone(3400,0.06,'sine',0.03*v,2600,0.05); },
+  /** Paviane bellen Alarm: ein rauhes, zweisilbiges „Wa-hu“ (v: Lautstärke nach Entfernung) */
+  bark(v){ if(v<=0.01) return; for(let i=0;i<2;i++){ const o=i*rnd(0.34,0.46); tone(rnd(560,640),0.09,'sawtooth',0.12*v,420,o); tone(rnd(330,380),0.2,'sawtooth',0.14*v,230,o+0.1); noise(0.12,0.1*v,900,500,'bandpass',o); } },
   bird(){ const b=rnd(1800,3200); for(let i=0;i<3;i++) tone(b*rnd(0.9,1.15),0.09,'sine',0.035,b*rnd(1.1,1.4),i*0.13); }
 };
 

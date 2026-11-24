@@ -1,7 +1,7 @@
 // LeoLife – Alle Tiere der Welt: Anlegen pro Gebiet, Platzieren und Herden bilden.
 import { SPECIES, TRAITS } from './data.js';
 import { scene } from './engine.js';
-import { buildCroc, buildQuad, buildSnake, makeFur } from './models.js';
+import { buildBaboon, buildCroc, buildQuad, buildSnake, makeFur } from './models.js';
 import { P } from './player.js';
 import { REG } from './save.js';
 import { PONDS } from './terrain.js';
@@ -26,15 +26,17 @@ function placeAnimal(a){
   if(sp.friend){ const ks=Object.keys(TRAITS); a.trait=ks[Math.floor(Math.random()*ks.length)]; }   // Erbanlage, die dieser Leopard weitergeben würde
   a.g.visible=true;
 }
-SPECIES.forEach(sp=>{ const cnt=(REG.counts&&REG.counts[sp.id]!==undefined)?REG.counts[sp.id]:sp.count; for(let i=0;i<cnt;i++){ const fur=makeFur(), g=sp.croc?buildCroc(sp.m,fur):sp.snake?buildSnake(sp.m,fur):buildQuad(sp.m,fur); g.scale.setScalar(sp.size); scene.add(g); const a={sp,g,fur,rad:sp.size*0.8+0.25,uid:animals.length}; placeAnimal(a); animals.push(a); } });
-['capy','deer','anti'].forEach(id=>{ const L=animals.filter(a=>a.sp.id===id);
-  for(let i=0;i<L.length;){ const n=Math.min(L.length-i,3+Math.floor(Math.random()*2)), grp=L.slice(i,i+n);
+SPECIES.forEach(sp=>{ const cnt=(REG.counts&&REG.counts[sp.id]!==undefined)?REG.counts[sp.id]:sp.count; for(let i=0;i<cnt;i++){ const fur=makeFur(), g=sp.croc?buildCroc(sp.m,fur):sp.snake?buildSnake(sp.m,fur):sp.baboon?buildBaboon(sp.m,fur):buildQuad(sp.m,fur); g.scale.setScalar(sp.size); scene.add(g); const a={sp,g,fur,rad:sp.size*0.8+0.25,uid:animals.length}; placeAnimal(a); animals.push(a); } });
+// Herden; Arten mit sp.troop (Paviane) bilden größere Trupps
+SPECIES.filter(sp=>sp.troop||['capy','deer','anti'].includes(sp.id)).forEach(sp=>{ const L=animals.filter(a=>a.sp===sp), [lo,hi]=sp.troop||[3,4];
+  for(let i=0;i<L.length;){ let n=Math.min(L.length-i,lo+Math.floor(Math.random()*(hi-lo+1))); if(sp.troop&&L.length-i-n<lo) n=L.length-i; const grp=L.slice(i,i+n);
     grp.forEach((a,j)=>{ a.herd=grp; if(j>0){ a.x=grp[0].x+rnd(-6,6); a.z=grp[0].z+rnd(-6,6); a.tx=a.x; a.tz=a.z; } }); i+=n; } });
 
 /* Jungtiere: folgen ihrer Mutter. Wehrhafte Eltern (sp.guard) verteidigen sie – wer den Kleinen zu nahe kommt, wird angegriffen. */
 SPECIES.forEach(sp=>{ if(!sp.young) return; const moms=animals.filter(a=>a.sp===sp&&!a.juv); if(!moms.length) return;
   const n=Math.min(sp.young,moms.length+1);
-  for(let i=0;i<n;i++){ const mom=moms[i%moms.length], fur=makeFur(), g=buildQuad(sp.m,fur); g.scale.setScalar(sp.size*JUV); scene.add(g);
+  // Junge gleichmäßig über die Mütter (und so über alle Herden) verteilen
+  for(let i=0;i<n;i++){ const mom=moms[Math.floor(i*moms.length/n)%moms.length], fur=makeFur(), g=sp.baboon?buildBaboon(sp.m,fur):buildQuad(sp.m,fur); g.scale.setScalar(sp.size*JUV); scene.add(g);
     const a={sp,g,fur,rad:sp.size*JUV*0.8+0.25,uid:animals.length,juv:true,mom}; (mom.kids||(mom.kids=[])).push(a); placeAnimal(a); animals.push(a); } });
 
 export { animals, placeAnimal };

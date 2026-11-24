@@ -13,7 +13,7 @@ import { players } from './player.js';
 // Zu jedem Sonnenaufgang drei neue Aufgaben; jede bringt einen Teil der nächsten Stufe als Bonus-Erfahrung.
 // Alle drei an einem Tag: +1 Punkt für Eigenschaften und Fähigkeiten (für jeden Spieler). Wer das mehrere Tage
 // hintereinander schafft, baut eine Serie auf; jeder dritte Tag der Serie bringt einen weiteren Punkt.
-const PREY_BY_LVL=l=>{ const L=l<3?['hase','maus']:l<6?['capy','hase','wart']:l<9?['boar','deer','capy','wart']:l<12?['deer','anti','boar']:['anti','lion','hyena','croc']; const f=L.filter(id=>animals.some(a=>a.sp.id===id)); return f.length?f:['hase']; };
+const PREY_BY_LVL=l=>{ const L=l<3?['hase','maus']:l<6?['capy','hase','wart']:l<9?['boar','deer','capy','wart','baboon']:l<12?['deer','anti','boar']:['anti','lion','hyena','croc']; const f=L.filter(id=>animals.some(a=>a.sp.id===id)); return f.length?f:['hase']; };
 function spName(id){ const sp=SPECIES.find(x=>x.id===id); return sp?sp.n:id; }
 function newGoals(){
   const pool=[];
@@ -27,6 +27,7 @@ function newGoals(){
   if(S.b.climb) pool.push({id:'climb',text:'Klettere auf 3 Bäume',need:3});
   if(S.b.climb) pool.push({id:'treeMeat',text:'Zieh eine Beute auf einen Baum',need:1});
   if(S.b.climb) pool.push({id:'treeEat',text:'Friss oben in einem Baum',need:1});
+  if(S.b.climb&&animals.some(a=>a.sp.baboon&&!a.dead)) pool.push({id:'babTree',text:'Behaupte dich im Baum gegen drohende Paviane',need:1});
   if(S.b.roar) pool.push({id:'roar',text:'Verjag ein Raubtier mit Brüllen',need:1});
   if(animals.some(a=>a.sp.croc&&!a.dead)) pool.push({id:'crocDrink',text:'Trink dich satt an einem Wasserloch, in dem ein Krokodil lauert',need:1});
   pool.push({id:'stalk',text:'Pirsch dich 40 m schleichend an',need:40});
