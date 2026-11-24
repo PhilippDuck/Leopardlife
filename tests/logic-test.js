@@ -409,8 +409,11 @@ console.log('audio nodes created',ACs&&ACs.count());
   const inside=w.burrowed===b;
   P.x=b.x+5; for(let i=0;i<500;i++) T.updateAnimal(w,0.1);
   const stays=w.burrowed===b;
-  P.x=b.x+80; for(let i=0;i<10;i++) T.updateAnimal(w,0.1);
-  const out=T.dayF()<0.22||(!w.burrowed&&Math.hypot(w.x-b.x,w.z-b.z)<3);
+  P.x=b.x+80; const others=T.players.filter(q=>q!==P).map(q=>[q,q.x,q.z]); others.forEach(([q])=>{ q.x=P.x; q.z=P.z; });
+  for(const o of T.animals) if(o.sp.pred&&!o.sp.croc&&!o.sp.friend&&Math.hypot(o.x-b.x,o.z-b.z)<20){ o.x=b.x+120; o.z=b.z; }   // zufällige Raubtiere am Bau wegschaffen
+  for(let i=0;i<10;i++) T.updateAnimal(w,0.1);
+  others.forEach(([q,x,z])=>{ q.x=x; q.z=z; });
+  const out=T.dayF()<0.22||(!w.burrowed&&Math.hypot(w.x-b.x,w.z-b.z)<8);
   [P.x,P.z,P.sneak,P.dead,P.tree]=keep;
   if(!inside||!stays||!out){ console.log('FEHLER: Warzenschwein-Bau',inside,stays,out); process.exit(1); }
   console.log('Warzenschwein: flieht in den Bau, wartet, bis die Luft rein ist, und kommt wieder heraus'); }
