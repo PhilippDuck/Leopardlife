@@ -165,4 +165,7 @@ function updateBirds(dt){
   for(const v of vultures) if(v.on) updateVulture(v,dt);
 }
 
-export { updateBirds };
+/** Sichtbare Geier (für das Lexikon): Position und Flughöhe */
+const vultureSpots=()=>vultures.filter(v=>v.on&&v.m.g.visible).map(v=>({x:v.x,z:v.z,alt:v.alt}));
+
+export { updateBirds, vultureSpots };
