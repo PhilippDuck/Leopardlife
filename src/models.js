@@ -160,4 +160,49 @@ function animSnake(g,t,amp){
   u.segs.forEach((sg,i)=>{ sg.rotation.y=i?Math.sin(t*0.9-i*0.8)*w+cur:Math.sin(t*0.9)*w*0.4; });
 }
 
-export { CROC_EYE, animCroc, animLegs, animSnake, buildSnake, buildCroc, buildQuad, furColor, furName, makeFur };
+/* Pavian: kräftige Schultern, lange Hundeschnauze, langer, gebogener Schwanz. Steht er still, setzt er sich aufrecht hin
+   (Rumpf kippt um die Hüfte nach oben, Hinterbeine nach vorn, Arme hängen herab). Männchen tragen einen hellen Mantel
+   (userData.mane, erst sichtbar, wenn der Trupp sie als Männchen festlegt). Vorn ist +z. */
+function buildBaboon(o,v){
+  const f=k=>o[k]===undefined?undefined:(v?furColor(o[k],v):o[k]);
+  const col=f('col'), dark=f('col2')||col, mane=f('mane')||col, face=v&&v.albino?0xd9b0a8:0x3a2c28, rump=0xb07868;
+  const g=new THREE.Group(), inner=new THREE.Group(); g.add(inner);
+  const L=1.1, Hh=0.46, W=0.42, leg=0.5;
+  // Rumpf als eigenes Gelenk an der Hüfte: so kann er sich zum Sitzen aufrichten
+  const body=new THREE.Group(); body.position.set(0,leg,-L/2+0.1); inner.add(body);
+  box(W,Hh,L,col,0,Hh/2-0.08,L/2-0.1,body);
+  box(W*0.8,Hh*0.5,0.06,rump,0,Hh*0.15,-0.12,body);                                   // nackte Sitzschwielen
+  const head=new THREE.Group(); head.position.set(0,Hh*0.55,L-0.05); body.add(head);
+  box(0.34,0.32,0.3,col,0,0,0,head);
+  box(0.2,0.18,0.36,face,0,-0.06,0.3,head);                                           // lange Schnauze
+  box(0.12,0.06,0.06,0x1c1412,0,-0.03,0.49,head);
+  box(0.36,0.06,0.06,dark,0,0.1,0.15,head);                                            // Brauenwulst
+  [1,-1].forEach(s=>{ box(0.05,0.04,0.03,v&&v.albino?0xc8506a:0x111111,s*0.09,0.05,0.165,head); box(0.07,0.1,0.06,dark,s*0.17,0.12,-0.04,head); });
+  const maneG=new THREE.Group(); body.add(maneG);
+  box(W+0.12,Hh+0.14,0.5,mane,0,Hh/2-0.06,L-0.32,maneG); box(0.42,0.38,0.2,mane,0,Hh*0.6,L-0.12,maneG);
+  maneG.visible=false;
+  const legs=[];
+  // Vorderbeine (Arme) hängen am Rumpf, Hinterbeine an der Hüfte
+  [[1,1],[-1,1]].forEach(p=>{ const pv=new THREE.Group(); pv.position.set(p[0]*(W/2-0.06),0,L-0.32); body.add(pv); box(0.13,leg+0.04,0.13,dark,0,-(leg+0.04)/2,0,pv); legs.push(pv); });
+  [[1,-1],[-1,-1]].forEach(p=>{ const pv=new THREE.Group(); pv.position.set(p[0]*(W/2-0.06),leg,-L/2+0.14); inner.add(pv); box(0.15,leg,0.17,dark,0,-leg/2,0,pv); legs.push(pv); });
+  // Schwanz: steigt zuerst schräg nach oben und fällt dann in einem Bogen herab
+  const tail=new THREE.Group(); tail.position.set(0,Hh*0.3,-0.12); body.add(tail); tail.rotation.x=0.9;
+  box(0.08,0.08,0.4,col,0,0,-0.2,tail);
+  const tail2=new THREE.Group(); tail2.position.set(0,0,-0.4); tail.add(tail2); tail2.rotation.x=-1.9;
+  box(0.07,0.07,0.55,col,0,0,-0.27,tail2); box(0.09,0.09,0.12,dark,0,0,-0.56,tail2);
+  mergeRigid(body,new Set(legs.concat([tail,head,maneG]))); mergeRigid(head,new Set()); mergeRigid(maneG,new Set());
+  legs.forEach(l=>mergeRigid(l,new Set())); mergeRigid(tail,new Set([tail2])); mergeRigid(tail2,new Set());
+  const sh=new THREE.Mesh(shadowGeo,shadowMat); sh.scale.set(W*1.3,1,L*0.7); sh.position.y=0.03; g.add(sh); blobs.push(sh);
+  g.userData={legs,tail,head,inner,body,blob:sh,mane:maneG,sit:0,anim:(t,amp)=>animBaboon(g,t,amp)};
+  return g;
+}
+/** Pavian bewegen: laufen auf allen vieren; bei (fast) keiner Bewegung setzt er sich langsam aufrecht hin */
+function animBaboon(g,t,amp){
+  const u=g.userData, l=u.legs, s=u.sit+=((amp<0.06?1:0)-u.sit)*0.12, a=Math.sin(t)*amp*(1-s);
+  u.body.rotation.x=-1.05*s; u.body.position.y=0.5-0.32*s;
+  l[0].rotation.x=a+0.95*s; l[1].rotation.x=-a+0.95*s; l[2].rotation.x=-a-1.35*s; l[3].rotation.x=a-1.35*s;
+  l[2].position.y=l[3].position.y=0.5-0.32*s;
+  u.head.rotation.x=0.9*s; u.tail.rotation.y=Math.sin(t*0.5)*0.25*(1-s); u.tail.rotation.x=0.9+0.8*s;
+}
+
+export { CROC_EYE, buildBaboon, animCroc, animLegs, animSnake, buildSnake, buildCroc, buildQuad, furColor, furName, makeFur };

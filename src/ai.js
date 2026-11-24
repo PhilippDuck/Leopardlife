@@ -26,6 +26,7 @@ import { weakRecover, woundSlow, woundTick, woundTrail } from './bite.js';
 import { eventStep } from './worldevents.js';
 import { burrowSeek, burrowWait } from './burrows.js';
 import { hearR, visibility } from './vision.js';
+import { baboonStep } from './baboons.js';
 
 /* Rudel: Hyänen und Schakale rufen ihre Artgenossen zur Jagd (je nach Schwierigkeit) */
 const PACK={hyena:1,jack:1};
@@ -111,9 +112,10 @@ function updateAnimal(a,dt){
   const dv=players.length>1?nearestDist(a):d;
   if(a.ev&&a.stun<=0&&eventStep(a,dt,moveAnimal)){ a.g.visible=dv<=VIEW_D&&!a.gone; a.g.position.set(a.x,H(a.x,a.z),a.z); pounceHits(a); return; }   // Ereignis steuert das Tier (auch außer Sicht)
   if(sp.snake){ a.g.visible=dv<=VIEW_D; if(dv>VIEW_D+20) return; snakeStep(a,dt,d,dx,dz,T); pounceHits(a); return; }
-  if(!a.sp.croc&&!a.sp.friend&&!a.sp.human&&!a.juv&&animalWater(a,dt)){ a.g.visible=dv<=VIEW_D; a.g.position.set(a.x,H(a.x,a.z),a.z); return; }
+  if(!a.sp.croc&&!a.sp.friend&&!a.sp.human&&!a.juv&&!a.bab&&animalWater(a,dt)){ a.g.visible=dv<=VIEW_D; a.g.position.set(a.x,H(a.x,a.z),a.z); return; }
   if(dv>VIEW_D&&a!==G.raider){ a.g.visible=false; return; } a.g.visible=dv<=VIEW_D;
   if(a.sp.burrow&&!(a.stun>0)&&burrowSeek(a,dt)){ pounceHits(a); return; }   // läuft zum Bau
+  if(sp.baboon&&baboonStep(a,dt)){ if(!(a.up>0.3)) pounceHits(a); return; }   // Pavian: Baum, Alarm, Drohen
   a.cd-=dt; if(a.scared>0) a.scared-=dt; if(a.gcd>0) a.gcd-=dt;
   const hostile=sp.hunt&&!a.juv&&T.L.lvl<sp.hunt&&!(a.scared>0);
   // Wahrnehmung: Reichweite (Art, Tarnung, Schwierigkeit, Nacht, Wind) × was das Tier wirklich sieht (vision.js) – Hören geht rundum
