@@ -176,4 +176,8 @@ function updateWildBirds(dt){
   updateOxpeckers(dt);
 }
 
-export { updateWildBirds };
+/** Sichtbare Perlhühner und Madenhacker (für das Lexikon) */
+const fowlSpots=()=>fowl.flatMap(f=>f.birds.filter(b=>b.m.g.visible).map(b=>({x:b.x,z:b.z})));
+const oxpeckerSpots=()=>oxen.filter(o=>o.on&&o.m.g.visible).map(o=>({x:o.x,z:o.z}));
+
+export { updateWildBirds, fowlSpots, oxpeckerSpots };

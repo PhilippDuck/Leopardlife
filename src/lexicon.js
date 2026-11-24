@@ -2,6 +2,7 @@
 // eine Nacht ohne Verletzung, ein Junges vor einem Räuber retten.
 import { gainXp } from './actions.js';
 import { animals } from './animals.js';
+import { vultureSpots } from './birds.js';
 import { tell } from './coop.js';
 import { SPECIES } from './data.js';
 import { dayF } from './daynight.js';
@@ -11,6 +12,7 @@ import { S, pScale, save } from './save.js';
 import { H } from './terrain.js';
 import { floatText } from './ui.js';
 import { $ } from './util.js';
+import { fowlSpots, oxpeckerSpots } from './wildbirds.js';
 
 /* ---------- Tierlexikon ---------- */
 const LEX={
@@ -33,8 +35,15 @@ const LEX={
   poacher:'Schießt auf alles, was sich bewegt. Vertreiben, nicht töten – Brüllen hilft.'
 };
 const LEX_XP=10, LEX_BOSS_XP=40;
-const lexIds=SPECIES.filter(s=>LEX[s.id]).map(s=>s.id);
+/* Vögel sind keine SPECIES: eigene Einträge, entdeckt, sobald einer sichtbar und nah genug ist (r: Abstand am Boden) */
+const LEX_BIRDS=[
+  {id:'vulture',n:'Geier',r:35,spots:vultureSpots,tip:'Kreisen über jedem Kadaver, der am Boden liegt – und verraten ihn von Weitem. Wer sich nähert, verscheucht sie.'},
+  {id:'fowl',n:'Perlhühner',r:18,spots:fowlSpots,tip:'Picken in kleinen Trupps im Gras und schlagen laut Alarm, wenn ein Jäger kommt. Schleichend kommst du näher heran.'},
+  {id:'oxpecker',n:'Madenhacker',r:15,spots:oxpeckerSpots,tip:'Sitzen auf dem Rücken großer Huftiere und warnen sie zischend. Schleich dich langsam an.'}
+];
+const lexIds=SPECIES.filter(s=>LEX[s.id]).map(s=>s.id).concat(LEX_BIRDS.map(b=>b.id));
 const lex=()=>S.lex||(S.lex={});
+const lexEntry=id=>{ const b=LEX_BIRDS.find(o=>o.id===id); if(b) return {n:b.n,tip:b.tip}; const sp=SPECIES.find(o=>o.id===id); return {n:sp.n,tip:LEX[id]}; };
 /** Spieler p sieht Tier a deutlich genug, um es ins Lexikon aufzunehmen? */
 function seesClearly(p,a,d){
   if(a.hidden) return false;
@@ -42,18 +51,24 @@ function seesClearly(p,a,d){
   if(a.sp.snake&&a.state==='lurk'&&d>6) return false;
   return d<Math.max(22,a.sp.size*18);
 }
-function discover(p,a){
-  const id=a.sp.id, L=lex(); if(L[id]) return; L[id]=1; save();
-  const xp=a.sp.boss?LEX_BOSS_XP:LEX_XP;
-  floatText('Neu im Lexikon: '+a.sp.n+' +'+xp+' EP',p.x,p.y+2.2*pScale(p.L),p.z,'#c9e7a0');
-  tell(p,a.sp.n+': '+LEX[id],'#c9e7a0');
+function discoverId(p,id,xp){
+  const L=lex(); if(L[id]) return; L[id]=1; save();
+  const e=lexEntry(id);
+  floatText('Neu im Lexikon: '+e.n+' +'+xp+' EP',p.x,p.y+2.2*pScale(p.L),p.z,'#c9e7a0');
+  tell(p,e.n+': '+e.tip,'#c9e7a0');
   gainXp(xp,p); renderLexBtn();
+}
+const discover=(p,a)=>discoverId(p,a.sp.id,a.sp.boss?LEX_BOSS_XP:LEX_XP);
+/** Vögel: sichtbar und nah genug? */
+function birdCheck(p){
+  for(const b of LEX_BIRDS){ if(lex()[b.id]) continue;
+    if(b.spots().some(o=>Math.hypot(o.x-p.x,o.z-p.z)<b.r)) discoverId(p,b.id,LEX_XP); }
 }
 function renderLexBtn(){ const b=$('btnLex'); if(b) b.textContent='Tierlexikon ('+lexIds.filter(id=>lex()[id]).length+'/'+lexIds.length+')'; }
 function renderLex(){
   const L=lex();
-  $('lexList').innerHTML=lexIds.map(id=>{ const sp=SPECIES.find(s=>s.id===id);
-    return L[id]?'<div class="lx"><b>'+sp.n+'</b><span>'+LEX[id]+'</span></div>':'<div class="lx off"><b>???</b></div>'; }).join('');
+  $('lexList').innerHTML=lexIds.map(id=>{ if(!L[id]) return '<div class="lx off"><b>???</b></div>';
+    const e=lexEntry(id); return '<div class="lx"><b>'+e.n+'</b><span>'+e.tip+'</span></div>'; }).join('');
 }
 function openLex(){ renderLex(); $('menu').style.display='none'; $('lex').style.display='flex'; }
 function closeLex(){ $('lex').style.display='none'; $('menu').style.display='flex'; G.menuT=performance.now(); }
@@ -86,7 +101,7 @@ function updateLexicon(dt){
   lexTick-=dt; if(lexTick>0) return; lexTick=0.4;
   for(const p of players){
     if(p.dead) continue;
-    nightCheck(p); stalkCheck(p);
+    nightCheck(p); stalkCheck(p); birdCheck(p);
     for(const a of animals){ if(a.dead||!a.g.visible||!LEX[a.sp.id]||lex()[a.sp.id]) continue; const d=Math.hypot(a.x-p.x,a.z-p.z); if(seesClearly(p,a,d)) discover(p,a); }
   }
 }
