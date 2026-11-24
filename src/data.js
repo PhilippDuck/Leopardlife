@@ -27,7 +27,7 @@ export const TRAITS={flink:['Flinke Läufe','+10 % Tempo'],zaeh:['Zähes Fell','
 
 export const REGIONS={
   savanne:{n:'Savanne',gen:1,d:'Offenes Grasland mit Wasserlöchern, Akazien und Herden. In einigen Wasserlöchern lauern Krokodile.',boss:'Riesenantilope',
-    ponds:[[-52,38,15],[92,-78,19],[-118,-128,23],[60,150,18]],trees:330,savFrom:115,palms:[3,5],patches:95,ground:[0x3c7a38,0xbfa95c],hor:0xcfe2d4,counts:null,
+    ponds:[[-52,38,15],[92,-78,19],[-118,-128,23],[60,150,18]],trees:330,savFrom:115,baobabs:3,palms:[3,5],patches:95,ground:[0x3c7a38,0xbfa95c],hor:0xcfe2d4,counts:null,
     winT:'König der Wildnis',winX:'Du hast die Riesenantilope erlegt. Aus dem kleinen Jungtier ist der gefürchtetste Jäger der Savanne geworden.'},
   sumpf:{n:'Sumpf',gen:3,d:'Viele Wasserlöcher, Schilf und Palmen. Krokodile lauern unsichtbar im Wasser – nur Luftblasen verraten sie.',boss:'Riesenkrokodil',
     ponds:[[-60,30,18],[-20,-70,16],[55,-40,20],[80,60,22],[-110,-40,24],[20,110,19],[-90,120,21],[140,-10,23],[110,-130,20],[-40,-150,22],[-160,70,18],[170,110,17],[-150,-130,19]],

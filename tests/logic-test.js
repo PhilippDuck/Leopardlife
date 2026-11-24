@@ -31,7 +31,7 @@ const doc={ querySelectorAll:()=>[], getElementById:el, addEventListener(){}, cr
 let raf=null;
 const g={ window:win, document:doc, navigator:{maxTouchPoints:0}, localStorage:{getItem:k=>(k in ls?ls[k]:null),setItem:(k,v)=>{ls[k]=String(v);}}, THREE:win.THREE,
   requestAnimationFrame:fn=>{ if(fn.name==='frame') raf=fn; else fn(); }, setTimeout:fn=>{ fn(); } };
-const body=code+'\n;globalThis.__trees=trees;globalThis.__T={assistBite,disconnectPlayer,pollCoop,leavePlayer,G,makeTree,fillPlants,chunkRng,sightAt,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,H,visibility,lineOfSight,addSight,hearR,startEvent,endEvent,EV,updateEvents,eventOn,inGrass,patches,updateAnimal,WORLD,kidOf,kidsOf,tickKids,updateLife,playerSeeks,canSwitchFor,markTaken,cubFollowContext,cubLearn,updateFollowers,followers,learnOf,canSwitch,woundTick,forgetWounds,resetMates,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping,PONDS,drinkContext,updateDrinking,hungerRate,crocStep,BURROWS};';
+const body=code+'\n;globalThis.__trees=trees;globalThis.__T={assistBite,disconnectPlayer,pollCoop,leavePlayer,G,makeTree,fillPlants,baobabSpot,chunkRng,sightAt,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,H,visibility,lineOfSight,addSight,hearR,startEvent,endEvent,EV,updateEvents,eventOn,inGrass,patches,updateAnimal,WORLD,kidOf,kidsOf,tickKids,updateLife,playerSeeks,canSwitchFor,markTaken,cubFollowContext,cubLearn,updateFollowers,followers,learnOf,canSwitch,woundTick,forgetWounds,resetMates,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping,PONDS,drinkContext,updateDrinking,hungerRate,crocStep,BURROWS};';
 new Function(...Object.keys(g), body)(...Object.values(g));
 const T=globalThis.__T; const rnd2=()=>Math.random()*8-4; const localStorageDump=()=>ls['jaguar-lines'];
 els.btnPlay.onclick();
@@ -532,6 +532,26 @@ console.log('audio nodes created',ACs&&ACs.count());
   again.drop();
   assert.ok(!T.patches.some(p=>Math.floor(p.x/64)===41));
   console.log('Chunk-Pflanzen: Koop-Baum stabil, Deckung entladen, gleicher Standort bei Rückkehr');
+}
+// Affenbrotbäume: im Startgebiet und selten in der weiten Welt, dick, hoch und kletterbar.
+{
+  const assert=require('node:assert/strict');
+  const trees=globalThis.__trees, bao=trees.filter(t=>t&&t.baobab);
+  assert.ok(bao.length>=1,'kein Affenbrotbaum im Startgebiet');
+  const a=T.makeTree({x:500,z:500,baobab:true},T.chunkRng(3,4)), b=T.makeTree({x:500,z:500,baobab:true},T.chunkRng(3,4));
+  assert.deepEqual(a.perch,b.perch); assert.ok(a.baobab&&a.tr>1.5&&a.perch[1]>7,'Affenbrotbaum zu klein');
+  // Klettern wie bei anderen Bäumen
+  const S0=T.S(); S0.b.climb=1; if(T.dead()) T.respawn(); if(els.menu.style.display==='flex') els.btnResume.onclick();
+  const t=bao[0], ti=trees.indexOf(t); T.P.tree=null; T.P.drag=null; T.P.x=t.x+t.tr+0.9; T.P.z=t.z; T.P.st=T.P.st+100; run(2); key('KeyE'); run(90);
+  assert.equal(T.P.tree,ti,'Affenbrotbaum nicht erklettert'); assert.ok(T.P.safe&&T.P.camY-T.P.y>6,'oben nicht angekommen');
+  key('KeyE'); run(40); assert.equal(T.P.tree,null);
+  // Weite Welt: selten, aber vorhanden, an derselben Stelle beim Wiederladen
+  let found=null, n=0; for(let cx=10;cx<70;cx++) for(let cz=-40;cz<-20;cz++){ const s=T.baobabSpot(cx,cz); if(s){ n++; if(!found) found={cx,cz,s}; } }
+  assert.ok(found,'kein Affenbrotbaum in der weiten Welt'); assert.ok(n<120,'zu viele Affenbrotbäume: '+n);
+  const c={cx:found.cx,cz:found.cz,rng:T.chunkRng(found.cx,found.cz),content:[]}; T.fillPlants(c);
+  const w=trees.find(t=>t&&t.baobab&&t.x===found.s.x&&t.z===found.s.z); assert.ok(w,'Affenbrotbaum nicht gepflanzt');
+  c.content[0].drop(); assert.ok(!trees.includes(w));
+  console.log('Affenbrotbäume: '+bao.length+' im Startgebiet, '+n+' von 1200 Abschnitten, kletterbar (Höhe '+t.perch[1].toFixed(1)+' m)');
 }
 console.log('ALL OK');
 

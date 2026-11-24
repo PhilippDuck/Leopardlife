@@ -17,7 +17,7 @@ import { D, DIE_AT, S, baseSpeed, has, maxHp, maxSt, oldF, pScale, tf, xpNeed } 
 import { G } from './state.js';
 import { H, PONDS, streamedPonds } from './terrain.js';
 import { $ } from './util.js';
-import { patches } from './vegetation.js';
+import { patches, trees } from './vegetation.js';
 import { W } from './weather.js';
 import { hEl, nameOf, reviveHint, viewMin } from './coop.js';
 import { mateContextInfo } from './kinship.js';
@@ -223,6 +223,14 @@ function drawRadar(p=P,cv=/** @type {HTMLCanvasElement} */(hEl(p,'rc')),ctx=p===
     rc.fillStyle='rgba(20,16,10,.75)'; rc.beginPath(); rc.arc(0,0,u*1.55,0,6.283); rc.fill();
     rc.fillStyle='#f2b84b'; rc.beginPath(); rc.moveTo(-u,-0.1*u); rc.lineTo(0,-u); rc.lineTo(u,-0.1*u); rc.closePath(); rc.fill();
     rc.fillRect(-0.7*u,-0.1*u,1.4*u,0.95*u); rc.fillStyle='rgba(20,16,10,.9)'; rc.fillRect(-0.2*u,0.3*u,0.4*u,0.55*u); rc.restore(); }
+  // Affenbrotbäume als Orientierungspunkte: Baum-Zeichen, weiter entfernte (bis 3× Reichweite) klein am Rand
+  for(const t of trees){ if(!t||!t.baobab) continue;
+    let dx=t.x-p.x, dz=t.z-p.z; const d=Math.hypot(dx,dz); if(d>R*3) continue;
+    const rim=R*0.88, out=d>rim; if(out){ dx*=rim/d; dz*=rim/d; }
+    rc.save(); rc.translate(dx*k,dz*k); rc.rotate(-p.cam.yaw); const u=(out?6:8.5)*sc; rc.globalAlpha=out?0.6:1;
+    rc.fillStyle='rgba(20,16,10,.7)'; rc.beginPath(); rc.arc(0,0,u*1.45,0,6.283); rc.fill();
+    rc.fillStyle='#c9a27a'; rc.fillRect(-0.32*u,-0.2*u,0.64*u,1.1*u);
+    rc.fillStyle='#8fc46a'; rc.beginPath(); rc.ellipse(0,-0.45*u,u,0.4*u,0,0,6.283); rc.fill(); rc.restore(); }
   { const f=followerOf(p); if(f){ let dx=f.x-p.x, dz=f.z-p.z, d=Math.hypot(dx,dz), u=5.5*sc;
     if(d<=R){ rc.fillStyle='#ff7ab8'; rc.beginPath(); rc.arc(dx*k,dz*k,4.5*sc,0,6.283); rc.fill(); }
     else { const r=R*0.8; dx=dx/d*r; dz=dz/d*r; rc.save(); rc.translate(dx*k,dz*k); rc.rotate(Math.atan2(dz,dx));
