@@ -30,7 +30,7 @@ const LESSONS=[
   {k:'tree',n:'Klettern',need:1,give:'climb'},
   {k:'kill',n:'Beute',need:4,give:'pt'}
 ];
-/** @type {{p:any,c:any,x:number,z:number,rot:number,g:any,ph:number,wait:boolean,eatT:number,hitT:number,mewT:number,up:number,tree:number|null,waitTree:number|null}[]} */
+/** @type {{p:any,c:any,x:number,z:number,rot:number,g:any,ph:number,wait:boolean,eatT:number,hitT:number,mewT:number,up:number,tree:number|null,waitTree:number|null,kopT?:number,kopA?:number}[]} */
 const followers=[];
 const numOf=p=>p===P?1:(p.num||2);
 const canSwitch=()=>!!S.cub&&Object.values(kidsOf()).some(k=>k.grow>=SWITCH_AT);
@@ -191,11 +191,14 @@ function updateFollowers(dt){
     const crouch=(p.sneak||f.wait)&&f.up<=0;
     let sp=0;
     if(want!=null||f.up>0){
-      const ti=want!=null?want:f.tree, t=trees[ti], o=t.baobab?(t.tr+0.4)*0.71:0.5, bx=t.x+t.perch[0]*0.35+o, bz=t.z+t.perch[2]*0.35+o;   // am dicken Affenbrotbaum außen am Stamm
+      const ti=want!=null?want:f.tree, t=trees[ti], o=t.baobab?(t.tr+0.4)*0.71:0.5;
+      let bx=t.x+t.perch[0]*0.35+o, bz=t.z+t.perch[2]*0.35+o;   // am dicken Affenbrotbaum außen am Stamm
+      if(t.cave){ bx=t.x+t.out[0]*1.2; bz=t.z+t.out[1]*1.2; }   // vor der Höhle
+      else if(t.kopje){ if(f.kopT!==ti){ f.kopT=ti; f.kopA=Math.atan2(f.x-t.x,f.z-t.z); } bx=t.x+Math.sin(f.kopA)*(t.reach+0.8); bz=t.z+Math.cos(f.kopA)*(t.reach+0.8); }   // an der Felswand
       if(f.up<=0&&want!=null&&Math.hypot(bx-f.x,bz-f.z)>0.8){ const d=Math.hypot(bx-f.x,bz-f.z); sp=d>6?9:4.5; const v=Math.min(d,sp*dt)/d; f.x+=(bx-f.x)*v; f.z+=(bz-f.z)*v; f.rot=Math.atan2(bx-f.x,bz-f.z); }
       else { f.tree=ti; const was=f.up; f.up=want!=null?Math.min(1,f.up+dt/1.5):Math.max(0,f.up-dt/0.9); if(was<=0&&f.up>0) snd3d(['claws'],f.x,f.z,0.6,30,1.3);
         f.x=bx; f.z=bz; f.rot=Math.atan2(t.x-bx,t.z-bz);
-        if(t.baobab){ const e=f.up*f.up*(3-2*f.up), px=t.x+t.perch[0]+0.6, pz=t.z+t.perch[2]+0.6; f.x=bx+(px-bx)*e; f.z=bz+(pz-bz)*e; }   // oben auf den Stamm
+        if(t.baobab||t.kopje){ const e=f.up*f.up*(3-2*f.up), px=t.x+t.perch[0]+0.6, pz=t.z+t.perch[2]+0.6; f.x=bx+(px-bx)*e; f.z=bz+(pz-bz)*e; }   // oben auf den Stamm
         if(f.up<=0) f.tree=null; }
     }
     else if(!f.wait&&!p.dead){ const d=Math.hypot(tx-f.x,tz-f.z); sp=d>9?9.5:d>2.5?4.2:d>0.8?1.6:0; if(p.sneak) sp*=0.7;
@@ -204,7 +207,7 @@ function updateFollowers(dt){
     f.ph+=dt*(sp>0?sp*2.2:climbing?12:0.5); animLegs(f.g,f.ph,sp>0||climbing?0.45:0.03);
     f.g.userData.inner.rotation.x=climbing?-1.1:0;
     const sc=0.34+0.66*Math.min(1,kidOf(p).grow); f.g.scale.set(sc,sc*(crouch?0.75:1),sc);
-    let gy=H(f.x,f.z); if(f.tree!=null){ const t=trees[f.tree], e=f.up*f.up*(3-2*f.up); gy+=Math.max(0,t.y+t.perch[1]*(t.baobab?1:0.8)-gy)*e; }
+    let gy=H(f.x,f.z); if(f.tree!=null){ const t=trees[f.tree], e=f.up*f.up*(3-2*f.up); gy+=Math.max(0,t.y+t.perch[1]*(t.baobab||t.kopje?1:0.8)-gy)*e; }
     f.g.position.set(f.x,gy,f.z); f.g.rotation.y=f.rot; f.g.visible=true;
     const safe=f.up>=1;
     // ruft, wenn es den Anschluss verliert

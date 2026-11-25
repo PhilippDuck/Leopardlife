@@ -19,6 +19,7 @@ durch Savanne und Sumpf.
 - Puffottern liegen getarnt im Gras, zischen als Warnung und beißen mit nachwirkendem Gift
 - Elefantenherden mit Jungen ziehen durch die Savanne und treffen sich an den Wasserlöchern; wer zu nahe kommt, wird erst angedroht (Ohren gespreizt, Trompeten) und dann niedergetrampelt
 - Nilpferde dösen tagsüber in großen Wasserlöchern (nur Rücken, Augen und Ohren schauen heraus) und grasen nachts am Ufer; wer zwischen sie und das Wasser gerät oder ihnen zu nahe kommt, wird erst angedroht und dann angegriffen
+- Felsplateaus (Kopjes) aus großen Granitblöcken: hinaufklettern für Aussicht und Sicherheit, Beute mitnehmen, oben schlafen; die Höhle am Fuß ist ein Versteck und Schlafplatz und kann im Startgebiet zum Bau für die Jungen werden
 - Trübe Tümpel verbergen Krokodile – nur feine Wellen und geducktes Lauschen am Ufer verraten sie
 - Tierlexikon im Menü: jede neu entdeckte Art bringt Erfahrung und einen Tipp
 - Erfahrung auch für unbemerktes Anpirschen, Beute im Baum, eine Nacht ohne Verletzung und ein vor dem Räuber gerettetes Junges
@@ -68,6 +69,8 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 | `src/hud.js` | Anzeige: Entdeckungswarnung, Kamera, Fadenkreuz, Statusleisten, Ziel, Spürkarte |
 | `src/input.js` | Eingabe über Tastatur, Maus und Touch, Umschalten der Anzeige je nach zuletzt benutzter Eingabe |
 | `src/kin.js` | Partner und Elterntiere am Bau: verteidigen, Futter bringen, beschützen; Wechsel ins Junge |
+| `src/kopje.js` | Felsplateaus: Granitblöcke mit flacher Oberseite und Höhle, Klettern und Höhle über die Baumliste, nachgeladen in der weiten Welt |
+| `src/kopjesites.js` | Lage und Größe der Felsplateaus im Startgebiet und in der weiten Welt (Pflanzen weichen ihnen aus) |
 | `src/kinship.js` | Verwandtschaft und Familie im gemeinsamen Spiel: wer mit wem verwandt ist, Spieler als Paar, Wurf mit einem Jungen je Spieler |
 | `src/life.js` | Lebenslauf: Hunger, Durst, Altern, Fressen aus dem Vorrat |
 | `src/thirst.js` | Trinken am Ufer eines Wasserlochs (Aktionstaste) |

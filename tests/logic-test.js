@@ -31,7 +31,7 @@ const doc={ querySelectorAll:()=>[], getElementById:el, addEventListener(){}, cr
 let raf=null;
 const g={ window:win, document:doc, navigator:{maxTouchPoints:0}, localStorage:{getItem:k=>(k in ls?ls[k]:null),setItem:(k,v)=>{ls[k]=String(v);}}, THREE:win.THREE,
   requestAnimationFrame:fn=>{ if(fn.name==='frame') raf=fn; else fn(); }, setTimeout:fn=>{ fn(); } };
-const body=code+'\n;globalThis.__trees=trees;globalThis.__T={assistBite,disconnectPlayer,pollCoop,leavePlayer,G,makeTree,fillPlants,baobabSpot,chunkRng,sightAt,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,H,visibility,lineOfSight,addSight,hearR,startEvent,endEvent,EV,updateEvents,eventOn,inGrass,patches,updateAnimal,WORLD,kidOf,kidsOf,tickKids,updateLife,playerSeeks,canSwitchFor,markTaken,cubFollowContext,cubLearn,updateFollowers,followers,learnOf,canSwitch,woundTick,forgetWounds,resetMates,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping,PONDS,drinkContext,updateDrinking,hungerRate,crocStep,BURROWS,updateLexicon,lexIds,fowl,oxen,fowlSpots,oxpeckerSpots,vultureSpots,TROOPS,troopOf,updateBaboons,eleThreat,WATER_D,hippoThreat};';
+const body=code+'\n;globalThis.__trees=trees;globalThis.__T={assistBite,disconnectPlayer,pollCoop,leavePlayer,G,makeTree,fillPlants,baobabSpot,homeKopjes,worldKopje,fillKopje,kopjeNear,CUB_HOME,chunkRng,sightAt,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,H,visibility,lineOfSight,addSight,hearR,startEvent,endEvent,EV,updateEvents,eventOn,inGrass,patches,updateAnimal,WORLD,kidOf,kidsOf,tickKids,updateLife,playerSeeks,canSwitchFor,markTaken,cubFollowContext,cubLearn,updateFollowers,followers,learnOf,canSwitch,woundTick,forgetWounds,resetMates,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping,PONDS,drinkContext,updateDrinking,hungerRate,crocStep,BURROWS,updateLexicon,lexIds,fowl,oxen,fowlSpots,oxpeckerSpots,vultureSpots,TROOPS,troopOf,updateBaboons,eleThreat,WATER_D,hippoThreat};';
 new Function(...Object.keys(g), body)(...Object.values(g));
 const T=globalThis.__T; const rnd2=()=>Math.random()*8-4; const localStorageDump=()=>ls['jaguar-lines'];
 els.btnPlay.onclick();
@@ -644,6 +644,43 @@ console.log('audio nodes created',ACs&&ACs.count());
   const w=trees.find(t=>t&&t.baobab&&t.x===found.s.x&&t.z===found.s.z); assert.ok(w,'Affenbrotbaum nicht gepflanzt');
   c.content[0].drop(); assert.ok(!trees.includes(w));
   console.log('Affenbrotbäume: '+bao.length+' im Startgebiet, '+n+' von 1200 Abschnitten, kletterbar (Höhe '+t.perch[1].toFixed(1)+' m)');
+}
+// Felsplateaus (Kopjes): im Startgebiet und in der weiten Welt, kletterbar, Höhle zum Verstecken, Schlafen und als Bau.
+{
+  const assert=require('node:assert/strict');
+  const trees=globalThis.__trees, S0=T.S();
+  assert.ok(T.homeKopjes.length>=1,'kein Felsplateau im Startgebiet'); T.G.raider=null; T.G.raidT=1e9;
+  const k=T.homeKopjes[0], top=trees.findIndex(t=>t&&t.kopje===k&&!t.cave), cave=trees.findIndex(t=>t&&t.kopje===k&&t.cave);
+  assert.ok(top>=0&&cave>=0,'Felsplateau ohne Kletterplatz oder Höhle');
+  assert.ok(!trees.some(t=>t&&!t.kopje&&Math.hypot(t.x-k.x,t.z-k.z)<k.R),'Baum wächst im Felsen');
+  assert.ok(!T.patches.some(p=>Math.hypot(p.x-k.x,p.z-k.z)<k.R),'hohes Gras im Felsen');
+  // Kollision: man läuft nicht durch den Felsen
+  T.P.tree=null; T.P.drag=null; T.P.x=k.x+k.R+3; T.P.z=k.z; run(2);
+  for(let i=0;i<30;i++){ T.P.rot=0; T.P.x-=0.4; run(1); }
+  assert.ok(Math.hypot(T.P.x-k.x,T.P.z-k.z)>k.R*0.85,'durch den Felsen gelaufen');
+  // Hinaufklettern: oben sicher, auf Höhe der Fläche; von dort herunter landet man neben dem Felsen
+  S0.b.climb=1; if(T.dead()) T.respawn(); if(els.menu.style.display==='flex') els.btnResume.onclick();
+  const a=k.cave+Math.PI; T.P.x=k.x+Math.sin(a)*(k.R+1.2); T.P.z=k.z+Math.cos(a)*(k.R+1.2); T.P.st+=100; run(2); key('KeyE'); run(90);
+  assert.equal(T.P.tree,top,'Felsplateau nicht erklettert'); assert.ok(T.P.safe&&Math.abs(T.P.camY-T.P.y-k.top)<1.5,'oben nicht angekommen');
+  key('KeyE'); run(40); assert.equal(T.P.tree,null); assert.ok(Math.hypot(T.P.x-k.x,T.P.z-k.z)>k.R,'nach dem Abstieg im Felsen');
+  // Höhle: auch ohne Klettern; drinnen versteckt und sicher, nachts kann man dort schlafen
+  S0.b.climb=0; const ct=trees[cave]; T.P.x=ct.x+ct.out[0]*1.6; T.P.z=ct.z+ct.out[1]*1.6; run(2); key('KeyE'); run(60);
+  assert.equal(T.P.tree,cave,'nicht in die Höhle gegangen'); assert.ok(T.P.safe&&T.P.stealth===0,'in der Höhle nicht versteckt');
+  // Bau verlegen (die Jungen ziehen mit), dann schlafen
+  assert.equal(T.ctx()&&T.ctx().label,'Bau in diese Höhle verlegen'); key('KeyF'); run(2);
+  assert.ok(Math.hypot(T.CUB_HOME.x-ct.x,T.CUB_HOME.z-ct.z)<3,'Bau nicht verlegt'); assert.ok(S0.den,'Bau nicht gespeichert');
+  S0.tod=0.9; run(2); assert.equal(T.ctx()&&T.ctx().label,'Schlafen'); key('KeyF'); run(5); assert.ok(S0.tod>0.25&&S0.tod<0.3||T.P.wantSleep,'in der Höhle nicht geschlafen');   // im Koop wartet man auf die anderen
+  key('KeyE'); run(10); assert.equal(T.P.tree,null); assert.ok(Math.hypot(T.P.x-ct.x,T.P.z-ct.z)>1,'nicht aus der Höhle gekommen');
+  T.P.x=7; T.P.z=5; run(2); assert.equal(T.ctx()&&T.ctx().label,'Bau hierher zurückverlegen'); key('KeyF'); run(2);
+  assert.ok(!S0.den&&T.CUB_HOME.x===7&&T.CUB_HOME.z===5,'Bau nicht zurückverlegt');
+  // Weite Welt: selten, fest je Abschnitt, mit dem Abschnitt geladen und entfernt
+  let found=null, n=0; for(let cx=10;cx<70;cx++) for(let cz=-40;cz<-20;cz++){ const s=T.worldKopje(cx,cz); if(s){ n++; if(!found) found={cx,cz,s}; } }
+  assert.ok(found,'kein Felsplateau in der weiten Welt'); assert.ok(n<150,'zu viele Felsplateaus: '+n);
+  assert.equal(T.kopjeNear(found.s.x,found.s.z),found.s);
+  const before=trees.filter(Boolean).length, c={cx:found.cx,cz:found.cz,content:[]}; T.fillKopje(c);
+  assert.equal(trees.filter(t=>t&&t.kopje===found.s).length,2,'Felsplateau der weiten Welt nicht aufgebaut');
+  c.content.forEach(it=>it.drop()); assert.equal(trees.filter(Boolean).length,before,'Felsplateau nicht entfernt');
+  console.log('Felsplateaus: '+T.homeKopjes.length+' im Startgebiet, '+n+' von 1200 Abschnitten, kletterbar (Höhe '+k.top.toFixed(1)+' m), Höhle als Versteck, Schlafplatz und Bau');
 }
 console.log('ALL OK');
 

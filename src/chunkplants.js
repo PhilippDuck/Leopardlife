@@ -2,7 +2,8 @@
 import { CHUNK } from './chunks.js';
 import { scene } from './engine.js';
 import { H, WORLD, dryness, pondAt, addCol, addSight, removeCol, removeSight, registerCull, unregisterCull } from './terrain.js';
-import { dryBushGeometry, dryBushColor, shrubKind, bushGeometry, bushMaterial, bushColor, makeTree, woodMeshes, leafMeshes, leafGeoHi, leafGeoLo, trees, setTree, fadedTrees, patches, tallGeo, tallMat } from './vegetation.js';
+import { dryBushGeometry, dryBushColor, shrubKind, bushGeometry, bushMaterial, bushColor, makeTree, woodMeshes, leafMeshes, leafGeoHi, leafGeoLo, trees, setTree, patches, tallGeo, tallMat, treeSlot, releaseTree } from './vegetation.js';
+import { kopjeNear } from './kopjesites.js';
 import { players } from './player.js';
 import { followers } from './cubfollow.js';
 import { animals } from './animals.js';
@@ -11,7 +12,6 @@ import { quality } from './quality.js';
 import { seeded } from './noise.js';
 import { S } from './save.js';
 
-const freeSlots=[];
 const rockGeometry=new THREE.DodecahedronGeometry(1,0);
 const vegetationBushes={geometry:bushGeometry,material:bushMaterial};
 /** Anteil der Abschnitte mit einem Affenbrotbaum (nur im Trockenen) */
@@ -22,14 +22,14 @@ const baobabRng=(cx,cz)=>seeded((S.seed^Math.imul(cx,0x2c1b3c6d)^Math.imul(cz,0x
 function baobabSpot(cx,cz){
   const r=baobabRng(cx,cz); if(r()>=BAOBAB_CHANCE) return null;
   const x=cx*CHUNK+12+r()*(CHUNK-24), z=cz*CHUNK+12+r()*(CHUNK-24);
-  return Math.hypot(x,z)>WORLD+20&&dryness(x,z)>0.3&&!pondAt(x,z,1.8)?{x,z,baobab:true,rng:r}:null;   // r baut danach auch den Baum
+  return Math.hypot(x,z)>WORLD+20&&dryness(x,z)>0.3&&!pondAt(x,z,1.8)&&!kopjeNear(x,z,8)?{x,z,baobab:true,rng:r}:null;   // r baut danach auch den Baum
 }
 
 function fillPlants(chunk){
   const rng=chunk.rng, slots=[], cleanup=[];
   const ox=chunk.cx*CHUNK, oz=chunk.cz*CHUNK;
   const place=(margin)=>({x:ox+margin+rng()*(CHUNK-2*margin),z:oz+margin+rng()*(CHUNK-2*margin)});
-  const outside=p=>Math.hypot(p.x,p.z)>WORLD+5&&!pondAt(p.x,p.z,1.5);
+  const outside=p=>Math.hypot(p.x,p.z)>WORLD+5&&!pondAt(p.x,p.z,1.5)&&!kopjeNear(p.x,p.z,2);
   function show(mesh){
     scene.add(mesh);
     const cull=registerCull(mesh,ox+CHUNK/2,oz+CHUNK/2,55);
@@ -39,7 +39,7 @@ function fillPlants(chunk){
     const obstacle=addSight(x,z,r,h,opacity);
     cleanup.push(()=>removeSight(obstacle));
   }
-  const baobab=baobabSpot(chunk.cx,chunk.cz);
+  const baobab=baobabSpot(chunk.cx,chunk.cz);   // liegt nie auf einem Felsplateau (baobabSpot)
   const stems=Array.from({length:3},()=>place(4)).filter(outside).filter(p=>!baobab||Math.hypot(p.x-baobab.x,p.z-baobab.z)>8);
   if(stems.length||baobab){
     const generated=stems.map(({x,z})=>makeTree({x,z,sav:dryness(x,z)>0.45},rng));
@@ -63,12 +63,12 @@ function fillPlants(chunk){
         part.i=part.leaf?leafIndex++:woodIndex++;
         part.mesh.setColorAt(part.i,color.setHex(part.c));
       }
-      const slot=freeSlots.pop()??trees.length;
+      const slot=treeSlot();
       trees[slot]=tree;
       slots.push(slot);
       setTree(slot);
       const collider=addCol(tree.x,tree.z,tree.tr+0.1,false);
-      cleanup.push(()=>{ removeCol(collider); fadedTrees.delete(slot); delete trees[slot]; freeSlots.push(slot); });
+      cleanup.push(()=>{ removeCol(collider); releaseTree(slot); });
       sight(tree.x,tree.z,tree.tr+0.15,tree.baobab?8:6,tree.baobab?1:0.55);
     });
   }
@@ -119,7 +119,7 @@ function fillPlants(chunk){
     for(let j=0;j<patch.r*patch.r*4;j++){
       const angle=rng()*2*Math.PI, distance=Math.sqrt(rng())*patch.r;
       const x=center.x+Math.cos(angle)*distance, z=center.z+Math.sin(angle)*distance;
-      if(pondAt(x,z,1.05)) continue;
+      if(pondAt(x,z,1.05)||kopjeNear(x,z)) continue;
       pos.push(x,H(x,z),z); rotations.push(rng()*2*Math.PI,0.75+rng()*0.45); hues.push(rng());
     }
   }

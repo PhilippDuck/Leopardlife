@@ -133,15 +133,17 @@ function updateUI(p=P){
   gauge(h,'Th',th/100,p.drinking,p.drinking?'trinkt':Math.round(th)+' %');
   h('bXp').style.width=(p.L.xp/xn*100)+'%'; h('tXp').textContent=p.L.xp+' / '+xn+' EP';
   const stEl=h('status');
-  const nt=(p.L.b.climb>0&&p.tree==null)?nearestTree(p):-1;
+  let nt=p.tree==null?nearestTree(p):-1; if(nt>=0&&p.L.b.climb<1&&!trees[nt].cave) nt=-1;   // in eine Höhle geht man auch ohne Klettern
   const sm=(!me||players.length>1||touchUI()||padUI()||window.innerWidth<=820||window.innerHeight<=520)&&!hudExp;
   // Statuszeile nur für Einsteiger (erste Generation, Jungtier): erfahrene Spieler brauchen sie nicht
   const newbie=(S.gen||1)<=1&&p.L.lvl<4; stEl.style.display=newbie?'':'none';
   const setSt=(long,short,col)=>{ if(!newbie) return; stEl.textContent='● '+(sm?short:long); stEl.style.color=col; };
   const ctx=me?context():mateContextInfo(p);
   if(ctx) setSt('F: '+ctx.label,ctx.label+' möglich','#ff9ad0');
-  else if(p.tree!=null){ if(p.safe) setSt('Sicher auf dem Baum – E: runter · Leertaste: Sprung von oben','Sicher auf dem Baum','var(--green)'); else setSt('Klettert …','Klettert …','var(--green)'); }
-  else if(nt>=0) setSt('Baum in Reichweite – E zum Klettern','Baum: klettern','var(--green)');
+  else if(p.tree!=null){ const t=trees[p.tree];
+    if(t&&t.cave) setSt(p.safe?'Versteckt in der Höhle – E: hinaus':'Geht in die Höhle …',p.safe?'In der Höhle':'In die Höhle …','var(--green)');
+    else if(p.safe) setSt(t&&t.kopje?'Sicher auf dem Felsen – E: runter · Leertaste: Sprung von oben':'Sicher auf dem Baum – E: runter · Leertaste: Sprung von oben',t&&t.kopje?'Sicher auf dem Felsen':'Sicher auf dem Baum','var(--green)'); else setSt('Klettert …','Klettert …','var(--green)'); }
+  else if(nt>=0){ const t=trees[nt]; if(t.cave) setSt('Höhle – E zum Hineingehen','Höhle: hinein','var(--green)'); else if(t.kopje) setSt('Felsen in Reichweite – E zum Klettern','Felsen: klettern','var(--green)'); else setSt('Baum in Reichweite – E zum Klettern','Baum: klettern','var(--green)'); }
   else if(p.grass&&(p.sneak||p.L.lvl<4)) setSt(p.sneak?'Versteckt im hohen Gras':'Versteckt im hohen Gras – als Jungtier auch ohne Schleichen','Versteckt','var(--green)');
   else if(p.grass) setSt('Im Gras – schleiche (C), um dich zu verstecken','Im Gras – schleichen!','var(--mut)');
   else if(p.sneak) setSt('Schleicht','Schleicht','var(--gold)');

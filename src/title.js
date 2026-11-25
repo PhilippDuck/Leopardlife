@@ -11,6 +11,7 @@ import { $ } from './util.js';
 import { furName } from './models.js';
 import { inGrass, tallMat, trees } from './vegetation.js';
 import { CUB_HOME } from './family.js';
+import { kopjeNear } from './kopjesites.js';
 
 /** Läuft gerade der Startbildschirm? */
 const titleOn=()=>!G.started&&$('start').style.display!=='none';
@@ -48,7 +49,7 @@ function freeSpot(x,z){
   if(inGrass(x,z)) return false;
   for(const t of trees) if(t&&Math.abs(t.x-x)<9&&Math.abs(t.z-z)<9&&Math.hypot(t.x-x,t.z-z)<7) return false;
   for(const q of PONDS) if(Math.hypot(q.x-x,q.z-z)<q.r+4) return false;
-  if(Math.hypot(CUB_HOME.x-x,CUB_HOME.z-z)<14) return false;
+  if(Math.hypot(CUB_HOME.x-x,CUB_HOME.z-z)<14||kopjeNear(x,z,8)) return false;
   const h=H(x,z); return Math.abs(H(x+3,z)-h)<0.6&&Math.abs(H(x,z+3)-h)<0.6&&Math.abs(H(x-3,z)-h)<0.6&&Math.abs(H(x,z-3)-h)<0.6;
 }
 /** Zwischen Leopard und Kamera (über den ganzen Kamerabogen) kein hohes Gras und kein Baum */
