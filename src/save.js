@@ -25,7 +25,7 @@ function save(){ try{ localStorage.setItem(SAVE_KEY,JSON.stringify(S)); }catch(e
 // Weltsamen: bestimmt die Landschaft (Hügel, später auch Pflanzen und Wasser je Chunk). Alte Spielstände bekommen hier ihren.
 if(!S.seed){ S.seed=1+Math.floor(Math.random()*2147483000); save(); }
 
-const xpNeed=l=>Math.round(50*Math.pow(l,1.4));
+const xpNeed=l=>Math.round(32*Math.pow(l,1.4));
 // Erbanlagen: jedes Junge bekommt eine; bis zu drei werden über die Generationen weitergegeben
 /**
  * Werte eines einzelnen Leoparden. Spieler 1 nutzt dafür den Spielstand S selbst, Mitspieler eine eigene Kopie.
