@@ -31,7 +31,7 @@ const doc={ querySelectorAll:()=>[], getElementById:el, addEventListener(){}, cr
 let raf=null;
 const g={ window:win, document:doc, navigator:{maxTouchPoints:0}, localStorage:{getItem:k=>(k in ls?ls[k]:null),setItem:(k,v)=>{ls[k]=String(v);}}, THREE:win.THREE,
   requestAnimationFrame:fn=>{ if(fn.name==='frame') raf=fn; else fn(); }, setTimeout:fn=>{ fn(); } };
-const body=code+'\n;globalThis.__trees=trees;globalThis.__T={assistBite,disconnectPlayer,pollCoop,leavePlayer,G,makeTree,fillPlants,baobabSpot,chunkRng,sightAt,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,H,visibility,lineOfSight,addSight,hearR,startEvent,endEvent,EV,updateEvents,eventOn,inGrass,patches,updateAnimal,WORLD,kidOf,kidsOf,tickKids,updateLife,playerSeeks,canSwitchFor,markTaken,cubFollowContext,cubLearn,updateFollowers,followers,learnOf,canSwitch,woundTick,forgetWounds,resetMates,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping,PONDS,drinkContext,updateDrinking,hungerRate,crocStep,BURROWS,updateLexicon,lexIds,fowl,oxen,fowlSpots,oxpeckerSpots,vultureSpots,TROOPS,troopOf,updateBaboons};';
+const body=code+'\n;globalThis.__trees=trees;globalThis.__T={assistBite,disconnectPlayer,pollCoop,leavePlayer,G,makeTree,fillPlants,baobabSpot,chunkRng,sightAt,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,H,visibility,lineOfSight,addSight,hearR,startEvent,endEvent,EV,updateEvents,eventOn,inGrass,patches,updateAnimal,WORLD,kidOf,kidsOf,tickKids,updateLife,playerSeeks,canSwitchFor,markTaken,cubFollowContext,cubLearn,updateFollowers,followers,learnOf,canSwitch,woundTick,forgetWounds,resetMates,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping,PONDS,drinkContext,updateDrinking,hungerRate,crocStep,BURROWS,updateLexicon,lexIds,fowl,oxen,fowlSpots,oxpeckerSpots,vultureSpots,TROOPS,troopOf,updateBaboons,eleThreat};';
 new Function(...Object.keys(g), body)(...Object.values(g));
 const T=globalThis.__T; const rnd2=()=>Math.random()*8-4; const localStorageDump=()=>ls['jaguar-lines'];
 els.btnPlay.onclick();
@@ -450,6 +450,30 @@ console.log('audio nodes created',ACs&&ACs.count());
   for(const [o,x,z,tr0] of others){ o.x=x; o.z=z; o.tree=tr0; }
   [P.x,P.z,P.sneak,P.dead,P.tree,P.hp,P.climbT,P.safe]=keep;
   console.log('Paviane: Trupp von '+size+' mit '+males+' Männchen und '+kids+' Jungen, Warnruf lässt Wild fliehen, Männchen greifen im Baum an ('+Math.round(lost)+' Schaden), geben nach 25 s auf, Junge sind Beute'); }
+{ const P=T.P, keep=[P.x,P.z,P.sneak,P.dead,P.tree,P.hp,P.safe];
+  // Elefanten: Herde mit Jungen; zu nah – Drohen (Ohren, Trompeten), zurückweichen beruhigt, wer bleibt, wird niedergetrampelt
+  const herd=T.animals.filter(a=>a.sp.elephant&&!a.world&&!a.dead), adults=herd.filter(a=>!a.juv), kids=herd.filter(a=>a.juv);
+  if(adults.length<4||!kids.length||adults.some(a=>a.herd!==adults[0].herd)){ console.log('FEHLER: Elefantenherde',adults.length,kids.length); process.exit(1); }
+  const others=T.players.filter(o=>o!==P).map(o=>[o,o.x,o.z]); for(const [o] of others){ o.x=P.x+5000; o.z=P.z; }
+  const lead=adults[0], reset=()=>{ for(const a of herd){ a.state='wander'; a.calmT=0; a.cd=0; a.stun=0; a.x=lead.x+(a===lead?0:30+Math.random()*4); a.z=lead.z+(a===lead?0:30); a.g.userData.alarm=0; } };
+  P.dead=false; P.tree=null; P.safe=false; P.sneak=false; P.stealth=1;
+  const run=n=>{ let st=new Set(); for(let i=0;i<n;i++){ for(const a of herd) T.updateAnimal(a,0.1); st.add(lead.state); } return st; };
+  // 1) zu nah, dann zurückweichen: Drohen ohne Angriff
+  reset(); P.x=lead.x+17; P.z=lead.z; P.hp=T.maxHp(); run(5);
+  const threat=lead.state==='threat', ears=lead.g.userData.alarm>0.3, alert=herd.some(a=>a!==lead&&!a.juv&&a.state==='alert');
+  P.x=lead.x+45; const st1=run(40), hp1=P.hp;
+  if(!threat||!ears||!alert||st1.has('charge')||hp1<T.maxHp()){ console.log('FEHLER: Elefant droht',threat,ears,alert,[...st1],hp1); process.exit(1); }
+  // 2) näher kommen: Angriff und Trampeln
+  reset(); P.x=lead.x+17; P.z=lead.z; P.hp=T.maxHp(); run(15); P.x=lead.x+7; P.z=lead.z; let charged=false;
+  for(let i=0;i<60;i++){ P.hp=Math.max(P.hp,1); for(const a of herd) T.updateAnimal(a,0.1); charged=charged||lead.state==='charge'; }
+  const lost=T.maxHp()-P.hp;
+  if(!charged||lost<=0){ console.log('FEHLER: Elefant greift an',charged,lost); process.exit(1); }
+  // 3) schleichend mit Abstand: kein Drohen
+  reset(); P.sneak=true; P.x=lead.x+16; P.z=lead.z; if(T.eleThreat(lead,P,16)){ console.log('FEHLER: Elefant droht schleichendem Leoparden auf 16 m'); process.exit(1); }
+  reset(); P.sneak=false; P.hp=T.maxHp();
+  for(const [o,x,z] of others){ o.x=x; o.z=z; }
+  [P.x,P.z,P.sneak,P.dead,P.tree,P.hp,P.safe]=keep;
+  console.log('Elefanten: Herde von '+adults.length+' mit '+kids.length+' Jungen, Drohen (Ohren, Herde schaut), Zurückweichen beruhigt, Näherkommen wird niedergetrampelt ('+Math.round(lost)+' Schaden), schleichend mit Abstand unbemerkt'); }
 { const P=T.P, n0=T.animals.length, keepP=[P.x,P.z,P.hp,P.dead,P.tree];
   // Gnu-Wanderung: Herde zieht los, Panik bei Nähe, verlässt am Ende die Welt
   T.startEvent('migr'); const herd=T.animals.filter(a=>a.ev==='migr'), h0=herd.length, a0=herd[0], f0=a0.x*T.EV.dir.x+a0.z*T.EV.dir.z;

@@ -29,6 +29,7 @@ const LEX={
   hyena:'Kommt zu jedem Kadaver. Bring deine Beute auf einen Baum – dort kommt sie nicht heran.',
   lion:'Der gefährlichste Jäger der Savanne. Lange meiden; Löwinnen verteidigen ihre Jungen.',
   croc:'Lauert abgetaucht im Wasserloch. Luftblasen verraten es – im trüben Tümpel nur Wellen und Geduld.',
+  ele:'Zieht in Herden mit Jungen umher und trifft sich an den Wasserlöchern. Keine Beute. Kommst du zu nahe, droht ein Tier mit gespreizten Ohren und Trompeten – weich zurück, sonst trampelt es dich nieder.',
   bigcroc:'Herrscht über das größte Wasserloch. Ein Kampf für Alpha-Leoparden.',
   snake:'Liegt getarnt im Gras und zischt, bevor sie beißt. Ihr Gift wirkt nach.',
   gnu:'Zieht in großen Herden durch die Savanne. Achtung vor den trampelnden Hufen.',

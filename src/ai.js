@@ -27,6 +27,7 @@ import { eventStep } from './worldevents.js';
 import { burrowSeek, burrowWait } from './burrows.js';
 import { hearR, visibility } from './vision.js';
 import { baboonStep } from './baboons.js';
+import { elephantStep } from './elephants.js';
 
 /* Rudel: Hyänen und Schakale rufen ihre Artgenossen zur Jagd (je nach Schwierigkeit) */
 const PACK={hyena:1,jack:1};
@@ -112,6 +113,7 @@ function updateAnimal(a,dt){
   const dv=players.length>1?nearestDist(a):d;
   if(a.ev&&a.stun<=0&&eventStep(a,dt,moveAnimal)){ a.g.visible=dv<=VIEW_D&&!a.gone; a.g.position.set(a.x,H(a.x,a.z),a.z); pounceHits(a); return; }   // Ereignis steuert das Tier (auch außer Sicht)
   if(sp.snake){ a.g.visible=dv<=VIEW_D; if(dv>VIEW_D+20) return; snakeStep(a,dt,d,dx,dz,T); pounceHits(a); return; }
+  if(sp.elephant&&dv<=VIEW_D&&!(a.stun>0)&&elephantStep(a,dt,T,d,dx,dz)){ a.g.visible=true; pounceHits(a); return; }   // Elefant: Drohen und Angriff
   if(!a.sp.croc&&!a.sp.friend&&!a.sp.human&&!a.juv&&!a.bab&&animalWater(a,dt)){ a.g.visible=dv<=VIEW_D; a.g.position.set(a.x,H(a.x,a.z),a.z); return; }
   if(dv>VIEW_D&&a!==G.raider){ a.g.visible=false; return; } a.g.visible=dv<=VIEW_D;
   if(a.sp.burrow&&!(a.stun>0)&&burrowSeek(a,dt)){ pounceHits(a); return; }   // läuft zum Bau

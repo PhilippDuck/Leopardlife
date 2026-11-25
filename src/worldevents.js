@@ -96,7 +96,7 @@ function seesPlayer(w,p,dt=0.1){ if(p.dead) return false; const d=Math.hypot(p.x
 function fire(w,tx,tz){
   gunshot(w.x,w.z); const gy=H(w.x,w.z)+2.35, a=Math.atan2(tx-w.x,tz-w.z);
   puff(w.x+Math.sin(a)*1.75,gy,w.z+Math.cos(a)*1.75,0xffd27a,5,0.25); puff(w.x+Math.sin(a)*1.95,gy+0.1,w.z+Math.cos(a)*1.95,0x9a958a,4,0.45);
-  for(const o of animals){ if(o.dead||o.sp.friend||o.sp.human||o.sp.croc) continue; if(Math.hypot(o.x-w.x,o.z-w.z)<90&&o.state!=='chase'&&!o.ev){ o.state='flee'; o.fleeT=0; o.sus=0; } }   // der Knall scheucht alles auf
+  for(const o of animals){ if(o.dead||o.sp.friend||o.sp.human||o.sp.croc||o.sp.elephant) continue; if(Math.hypot(o.x-w.x,o.z-w.z)<90&&o.state!=='chase'&&!o.ev){ o.state='flee'; o.fleeT=0; o.sus=0; } }   // der Knall scheucht alles auf
 }
 /** Wilderer-Verhalten: streift umher, schießt auf Wild, zielt auf entdeckte Leoparden */
 function poachStep(a,dt,move){
@@ -112,7 +112,7 @@ function poachStep(a,dt,move){
     animLegs(a.g,a.ph,0.02); return true; }
   a.aimAt=null; a.aimT=0;
   // Wild in Reichweite? stehen bleiben, zielen, schießen
-  if(a.shotT<=0){ let prey=null, bd=70; for(const o of animals){ if(o.dead||o.sp.friend||o.sp.human||o.sp.croc||o.sp.snake||o.held) continue; const d=Math.hypot(o.x-a.x,o.z-a.z); if(d<bd){ bd=d; prey=o; } }
+  if(a.shotT<=0){ let prey=null, bd=70; for(const o of animals){ if(o.dead||o.sp.friend||o.sp.human||o.sp.croc||o.sp.elephant||o.sp.snake||o.held) continue; const d=Math.hypot(o.x-a.x,o.z-a.z); if(d<bd){ bd=d; prey=o; } }
     if(prey){ a.g.rotation.y=Math.atan2(prey.x-a.x,prey.z-a.z); a.prey=prey; a.preyT=(a.preyT||0)+dt; a.g.userData.aim=1; animLegs(a.g,a.ph,0.02);
       if(a.preyT>1.6){ a.preyT=0; a.shotT=rnd(12,22); fire(a,prey.x,prey.z);
         if(Math.random()<0.75&&!prey.dead){ prey.dead=true; prey.state='wander'; prey.respawn=rnd(60,120); prey.wound=null; makeCarcass(prey,FOOD[prey.sp.id]||3); } }
