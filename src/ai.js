@@ -13,7 +13,7 @@ import { P, players } from './player.js';
 import { VIEW_D } from './quality.js';
 import { D, S, pScale } from './save.js';
 import { G } from './state.js';
-import { H, PONDS, WORLD, collide, nearestPond, samePond } from './terrain.js';
+import { H, PONDS, RIV_FORD, RIV_SWIM, WORLD, collide, fordX, inWater, nearestPond, riverDepth, riverNear, samePond } from './terrain.js';
 import { addTrack } from './tracks.js';
 import { floatText } from './ui.js';
 import { rnd } from './util.js';
@@ -40,7 +40,14 @@ function moveAnimal(a,dx,dz,spd,dt){
   if(a.wound){ spd*=woundSlow(a); woundTrail(a,spd*dt); }
   if(a.juv) spd*=0.85;
   const l=Math.hypot(dx,dz)||1; dx/=l; dz/=l;
+  const ox=a.x, oz=a.z;
   a.x+=dx*spd*dt; a.z+=dz*spd*dt;
+  // Tiefer Fluss: Landtiere gehen nicht hinein, sondern am Ufer entlang zur nächsten Furt
+  if(!a.sp.croc&&!a.sp.hippo&&riverDepth(a.x,a.z)>RIV_SWIM&&riverDepth(ox,oz)<=RIV_SWIM){
+    const rv=riverNear(ox,oz), n=rv.n, zc=rv.zc, s=rv.s, k=rv.k, fx=fordX(n,Math.round((ox+n*2.3*RIV_FORD/6.2832)/RIV_FORD)), dir=fx>=ox?1:-1;
+    dx=dir/k; dz=dir*s/k; a.x=ox+dx*spd*dt; a.z=oz+dz*spd*dt+Math.sign(oz-zc)*0.3*spd*dt;
+    if(riverDepth(a.x,a.z)>RIV_SWIM){ a.x=ox; a.z=oz; }
+  }
   const r=Math.hypot(a.x,a.z); if(!a.world&&r>WORLD){ a.x*=WORLD/r; a.z*=WORLD/r; }
   const cc=collide(a.x,a.z,a.rad*0.55,false); a.x=cc.x; a.z=cc.z;
   if(!a.sp.friend){ a.trk=(a.trk||0)+spd*dt; if(a.trk>0.9+a.sp.size*1.2){ a.trk=0; if(players.some(p=>Math.abs(a.x-p.x)<70&&Math.abs(a.z-p.z)<70)){ a.tside=-(a.tside||1); addTrack(a,a.tside); } } }
@@ -125,7 +132,8 @@ function updateAnimal(a,dt){
   // Wahrnehmung: Reichweite (Art, Tarnung, Schwierigkeit, Nacht, Wind) × was das Tier wirklich sieht (vision.js) – Hören geht rundum
   const reach0=sp.sense*stealth*D().sense*(sp.pred?1+0.25*(1-dayF):1.1)*(d>0.1?windMulDir(-dx/d,-dz/d):1);
   const detect=d<reach0*1.35?Math.max(reach0*visibility(a,T,dt),hearR(T)):Math.max(reach0,hearR(T));
-  if(sp.croc){ const prey=!(a.rest>0)&&animals.filter(o=>o!==a&&!o.dead&&o.state==='drink'&&samePond(o.drinkPond,a.pond)&&Math.hypot(o.x-a.pond.x,o.z-a.pond.z)<a.pond.r+8).sort((x,y)=>Math.hypot(x.x-a.x,x.z-a.z)-Math.hypot(y.x-a.x,y.z-a.z))[0];
+  // Krokodil: Beute sind Tiere, die an seinem Wasser trinken, am Fluss auch wer durch die Furt watet
+  if(sp.croc){ const prey=!(a.rest>0)&&animals.filter(o=>o!==a&&!o.dead&&Math.hypot(o.x-a.pond.x,o.z-a.pond.z)<a.pond.r+8&&(o.state==='drink'&&samePond(o.drinkPond,a.pond)||a.pond.river&&!o.sp.croc&&!o.sp.hippo&&inWater(o.x,o.z))).sort((x,y)=>Math.hypot(x.x-a.x,x.z-a.z)-Math.hypot(y.x-a.x,y.z-a.z))[0];
     if(a.stun>0) a.stun-=dt; else crocStep(a,dt,d,dx,dz,stealth*D().sense,hostile,T,prey);
     if(prey&&prey.crocKilled){ prey.crocKilled=false; prey.respawn=rnd(18,30); makeCarcass(prey,FOOD[prey.sp.id]||1);
       // die anderen am Ufer erschrecken und fliehen; sie kommen erst später durstig wieder

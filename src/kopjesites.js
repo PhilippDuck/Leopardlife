@@ -2,7 +2,7 @@
 // damit Bäume, Büsche und hohes Gras ihnen schon beim Anlegen ausweichen können (Aufbau: kopje.js).
 import { seeded } from './noise.js';
 import { REG, S } from './save.js';
-import { PONDS, WORLD, dryness, pondAt } from './terrain.js';
+import { PONDS, WORLD, dryness, pondAt, riverNear } from './terrain.js';
 
 /** Feldgröße der weiten Welt (wie CHUNK in chunks.js; chunks.js lädt Pflanzen und darf hier nicht importiert werden) */
 const KOP_CELL=64;
@@ -10,6 +10,8 @@ const KOP_CELL=64;
 const KOP_CHANCE=0.06;
 /** Abstand zum Bau im Startgebiet */
 const KOP_DEN_GAP=45;
+/** Abstand des Felsrands zur Flussmitte */
+const KOP_RIVER_GAP=22;
 
 /**
  * Ein Felsplateau: Mitte, Radius R am Boden, Höhe top der Fläche oben, Richtung des Höhleneingangs (Bogenmaß),
@@ -26,7 +28,7 @@ const homeKopjes=(()=>{
   const r=seeded((S.seed^0x6b6f706a)>>>0), out=[], n=REG.kopjes??2;
   for(let t=0;t<400&&out.length<n;t++){
     const a=r()*6.283, d=70+r()*(WORLD-100), x=Math.cos(a)*d, z=Math.sin(a)*d;
-    if(Math.hypot(x-7,z-5)<KOP_DEN_GAP||PONDS.some(p=>Math.hypot(x-p.x,z-p.z)<p.r*1.5+14)||out.some(k=>Math.hypot(x-k.x,z-k.z)<90)) continue;
+    if(Math.hypot(x-7,z-5)<KOP_DEN_GAP||PONDS.some(p=>Math.hypot(x-p.x,z-p.z)<p.r*1.5+14)||out.some(k=>Math.hypot(x-k.x,z-k.z)<90)||riverNear(x,z).d<8+KOP_RIVER_GAP) continue;
     out.push(kopjeSite(x,z,r,true));
   }
   return out;
@@ -40,7 +42,7 @@ function worldKopje(cx,cz){
   let site=null;
   if(r()<KOP_CHANCE){
     const x=cx*KOP_CELL+18+r()*(KOP_CELL-36), z=cz*KOP_CELL+18+r()*(KOP_CELL-36), d=dryness(x,z);
-    if(Math.hypot(x,z)>WORLD+30&&(d>0.3||r()<0.35)&&!pondAt(x,z,2)) site=kopjeSite(x,z,r,false);
+    if(Math.hypot(x,z)>WORLD+30&&(d>0.3||r()<0.35)&&!pondAt(x,z,2)&&riverNear(x,z).d>=8+KOP_RIVER_GAP) site=kopjeSite(x,z,r,false);
   }
   worldKopjes.set(key,site); return site;
 }
