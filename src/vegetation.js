@@ -5,6 +5,7 @@ import { G } from './state.js';
 import { GLSL_DRY, GLSL_H, GLSL_PONDMASK, H, PONDS, WORLD, addCol, addSight, dryness, pondAt, registerTile, tileOf } from './terrain.js';
 import { rnd } from './util.js';
 import { P } from './player.js';
+import { kopjeNear } from './kopjesites.js';
 
 /* Bäume: aus mehreren Teilen (Stamm, Äste, Wurzeln, Laubballen). Arten: Urwaldbaum, Urwaldriese, Schirmakazie, toter Baum, Palme am Wasser.
    Werden ausgeblendet, wenn ihre Krone zwischen Kamera und Leopard steht. */
@@ -92,13 +93,13 @@ function makeTree(o,random=Math.random){
   }
 (function(){
   for(let i=0;i<REG.trees;i++){
-    let x,z,r; do{ r=Math.sqrt(Math.random())*WORLD; const a=Math.random()*6.283; x=Math.cos(a)*r; z=Math.sin(a)*r; }while(r<10||(r>110&&Math.random()<0.7)||pondAt(x,z,1.3));
+    let x,z,r; do{ r=Math.sqrt(Math.random())*WORLD; const a=Math.random()*6.283; x=Math.cos(a)*r; z=Math.sin(a)*r; }while(r<10||(r>110&&Math.random()<0.7)||pondAt(x,z,1.3)||kopjeNear(x,z,3));
     trees.push(makeTree({x,z,sav:r>REG.savFrom}));
   }
   // Affenbrotbäume: wenige Riesen in der Savanne, weit auseinander; andere Bäume machen ihnen Platz
   const bao=[];
   for(let i=0,t=0;i<(REG.baobabs||0)&&t<200;t++){ const r=rnd(Math.max(60,REG.savFrom),WORLD-14), a=Math.random()*6.283, x=Math.cos(a)*r, z=Math.sin(a)*r;
-    if(pondAt(x,z,1.6)||bao.some(b=>Math.hypot(b.x-x,b.z-z)<70)) continue; bao.push({x,z}); i++; }
+    if(pondAt(x,z,1.6)||kopjeNear(x,z,8)||bao.some(b=>Math.hypot(b.x-x,b.z-z)<70)) continue; bao.push({x,z}); i++; }
   for(let i=trees.length-1;i>=0;i--) if(bao.some(b=>Math.hypot(b.x-trees[i].x,b.z-trees[i].z)<8)) trees.splice(i,1);
   bao.forEach(b=>trees.push(makeTree({x:b.x,z:b.z,baobab:true})));
   PONDS.forEach(p=>{ const n=REG.palms[0]+Math.floor(Math.random()*(REG.palms[1]-REG.palms[0]+1)); for(let j=0;j<n;j++){ const a=Math.random()*6.283, d=p.r*rnd(1.12,1.45); trees.push(makeTree({x:p.x+Math.cos(a)*d,z:p.z+Math.sin(a)*d,palm:true})); } });
@@ -124,6 +125,12 @@ function makeTree(o,random=Math.random){
 })();
 /** Bäume, die gerade in mindestens einer Ansicht ausgeblendet sind oder es waren (nur diese müssen je Ansicht umgestellt werden) */
 const fadedTrees=new Set();
+/** Freie Plätze in der Baumliste (Bäume und Felsplateaus der weiten Welt kommen und gehen mit den Abschnitten) */
+const freeTreeSlots=[];
+/** Platz für einen neuen Baum-Eintrag */
+const treeSlot=()=>freeTreeSlots.pop()??trees.length;
+/** Baum-Eintrag i entfernen und den Platz freigeben */
+function releaseTree(i){ fadedTrees.delete(i); delete trees[i]; freeTreeSlots.push(i); }
 /**
  * Merkt sich je Ansicht, welche Baumkronen auf der Sichtlinie Kamera → Leopard liegen, und blendet sie dort sanft aus.
  * views: [{camera, p}] je Spieler. Gezeichnet wird mit applyTreeView(j) vor dem Ausschnitt j.
@@ -193,7 +200,7 @@ function shrubKind(d,random=Math.random){
       L.forEach((o,i)=>{ e.set(o.rx||0,o.ry||0,o.rz||0); q.setFromEuler(e); m.compose(v.set(o.x,o.y,o.z),q,s.set(o.sx,o.sy,o.sz)); mesh.setMatrixAt(i,m); mesh.setColorAt(i,c.setHSL(o.h,o.s,o.l)); });
       mesh.castShadow=!!shadow; mesh.receiveShadow=true; scene.add(mesh); registerTile(mesh,+k,78); }
   }
-  function spot(rmin,rmax){ let x,z,t=0; do{ const r=Math.sqrt(rnd(rmin*rmin,rmax*rmax)), a=Math.random()*6.283; x=Math.cos(a)*r; z=Math.sin(a)*r; }while(pondAt(x,z,1.05)&&++t<20); return {x,z,r:Math.hypot(x,z)}; }
+  function spot(rmin,rmax){ let x,z,t=0; do{ const r=Math.sqrt(rnd(rmin*rmin,rmax*rmax)), a=Math.random()*6.283; x=Math.cos(a)*r; z=Math.sin(a)*r; }while((pondAt(x,z,1.05)||kopjeNear(x,z,1))&&++t<20); return {x,z,r:Math.hypot(x,z)}; }
   // Buschplätze: im Grünen grüne Büsche, im Trockenen vertrocknete Büsche und Steine (shrubKind)
   const shrubs={green:[],dry:[],rock:[]};
   for(let i=0;i<320;i++){ const p=spot(9,WORLD), k=shrubKind(dryness(p.x,p.z)); if(k) shrubs[k].push(p); }
@@ -258,7 +265,7 @@ const GRASS_N=30000;
 const patches=[]; let tallGeo=null, tallMat=null, TALL_N=0;
 (function(){
   for(let i=0;i<REG.patches;i++){
-    let x,z,t=0; do{ const r=(i<45?rnd(8,90):rnd(60,WORLD-10)), a=Math.random()*6.283; x=Math.cos(a)*r; z=Math.sin(a)*r; }while(pondAt(x,z,1.5)&&++t<20);
+    let x,z,t=0; do{ const r=(i<45?rnd(8,90):rnd(60,WORLD-10)), a=Math.random()*6.283; x=Math.cos(a)*r; z=Math.sin(a)*r; }while((pondAt(x,z,1.5)||kopjeNear(x,z,8))&&++t<20);
     patches.push({x,z,r:rnd(4,8.5)});
   }
   patches.push({x:7,z:5,r:6});
@@ -310,4 +317,4 @@ function inGrass(x,z){ for(let i=0;i<patches.length;i++){ const p=patches[i]; if
   [[-3,0,-3,2.2],[-0.5,0,-4.2,2.8],[2.2,0,-3.2,2]].forEach(r=>{ const m=new THREE.Mesh(new THREE.DodecahedronGeometry(r[3],0),mat); m.position.set(r[0],H(r[0],r[2])+r[3]*0.5,r[2]); m.rotation.set(Math.random(),Math.random(),0); m.castShadow=true; m.receiveShadow=true; scene.add(m); addSight(r[0],r[2],r[3]*0.9,r[3]*1.4,1); addCol(r[0],r[2],r[3]*0.9); });
 })();
 
-export { dryBushGeometry, dryBushColor, shrubKind, bushGeometry, bushMaterial, bushColor, makeTree, woodMeshes, setTree, fadedTrees, applyTreeView, _tm, _tv, inGrass, leafGeoHi, leafGeoLo, leafMeshes, leafTime, patches, tallGeo, tallMat, trees, updateTrees };
+export { releaseTree, treeSlot, dryBushGeometry, dryBushColor, shrubKind, bushGeometry, bushMaterial, bushColor, makeTree, woodMeshes, setTree, fadedTrees, applyTreeView, _tm, _tv, inGrass, leafGeoHi, leafGeoLo, leafMeshes, leafTime, patches, tallGeo, tallMat, trees, updateTrees };

@@ -24,10 +24,29 @@ import { gainXp } from './actions.js';
 import { canPair, ensureKin, litterLeaves, litterSize, newId, pairCandidate, pairPlayers, related } from './kinship.js';
 import { DEN_CAP, SWITCH_AT, cubFollowContext, denCount, denFull, denKids, followerOf, hasOwnCub, kidDies, kidOf, kidsOf, numOf, syncLitter, tickKids } from './cubfollow.js';
 import { drinkContext } from './thirst.js';
+import { trees } from './vegetation.js';
 
 /* ---------- Familie: Partner, Junges, Futter, Überfälle ---------- */
-const FOOD_MAX=20, CUB_HOME={x:7,z:5};
-const cub={x:7,z:5,tx:7,tz:5,t:0,ph:0,mewT:6,saveT:10,away:false};
+const FOOD_MAX=20, OLD_DEN={x:7,z:5};
+/** Bau der Jungen: der alte Bau im Startgebiet oder eine Höhle in einem Felsplateau (S.den) */
+const CUB_HOME={ get x(){ return S.den?S.den.x:OLD_DEN.x; }, get z(){ return S.den?S.den.z:OLD_DEN.z; } };
+const cub={x:CUB_HOME.x,z:CUB_HOME.z,tx:CUB_HOME.x,tz:CUB_HOME.z,t:0,ph:0,mewT:6,saveT:10,away:false};
+/** Platz vor der Höhle t (Baum-Eintrag einer Felsplateau-Höhle), an dem die Jungen spielen */
+const caveDen=t=>({x:t.x+t.out[0]*2.2,z:t.z+t.out[1]*2.2});
+/** Bau verlegen: in die Höhle t oder (null) zurück an den alten Platz. Die Jungen ziehen sofort mit. */
+function moveDen(t){
+  if(t) S.den=caveDen(t); else delete S.den;
+  cub.x=cub.tx=CUB_HOME.x; cub.z=cub.tz=CUB_HOME.z; cub.t=0; save(); snd.mew();
+  toast(t?'Die Höhle ist jetzt euer Bau – hier kommen die Jungen zur Welt und warten auf Beute.':'Der Bau ist wieder am alten Platz.','#ff9ad0');
+}
+/** Kontextaktion Bau verlegen für P (in einer Höhle im Startgebiet bzw. am alten Bau), sonst null */
+function denContext(){
+  if(G.raider) return null;
+  const t=P.tree!=null?trees[P.tree]:null;
+  if(t&&t.cave&&t.kopje.home&&P.safe&&P.climbT>=1){ const d=caveDen(t); if(Math.hypot(d.x-CUB_HOME.x,d.z-CUB_HOME.z)>1) return {label:'Bau in diese Höhle verlegen',fn:()=>moveDen(t)}; }
+  if(S.den&&P.tree==null&&Math.hypot(P.x-OLD_DEN.x,P.z-OLD_DEN.z)<5) return {label:'Bau hierher zurückverlegen',fn:()=>moveDen(null)};
+  return null;
+}
 let cubG=null;
 const CUBSPEC={col:0xe0a23c,col2:0xf0c98a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.5,ears:0.17,tail:1.0,tailTip:0x2a1c10,spots:1};
 const sibG=[];   // Geschwister im Bau: je Junges im Wurf ein eigenes Modell (das erste ist cubG)
@@ -65,6 +84,7 @@ function nearestMate(){ let b=null, bd=1e9; for(const a of (S.partner?[fam[0]]:f
 function context(){
   if(P.dead||G.paused) return null;
   { const cx=carcassContext(P); if(cx) return cx; }
+  { const dc=denContext(); if(dc) return dc; }
   if(P.tree!=null) return (P.safe&&P.climbT>=1&&canSleepNow())?{label:P.wantSleep?'Wartet auf die anderen …':players.some(o=>o!==P&&o.wantSleep)?'Schlafen (die anderen warten)':'Schlafen',fn:()=>sleepOnTree(P)}:null;
   { const cf=cubFollowContext(P); if(cf) return cf; }
   if(S.cub&&!cubGrown()&&S.food>0&&denFull()<97&&nearCub(P)) return {label:'Füttern (Rest im Vorrat)',fn:feedCub};   // alte Spielstände: übrig gebliebener Vorrat

@@ -30,7 +30,8 @@ import { humanHit } from './worldevents.js';
 /* ---------- Aktionen ---------- */
 /** Index des nächsten erreichbaren Baums für Spieler p, sonst -1. */
 function nearestTree(p=P){
-  let bi=-1, bd=1e9; for(let i=0;i<trees.length;i++){ const t=trees[i]; if(!t) continue; const d=Math.hypot(t.x-p.x,t.z-p.z); if(d<bd){ bd=d; bi=i; } }
+  // Felsplateau und Höhle: reach = wie weit der Fels um den Punkt reicht (man steht an der Wand, nicht in der Mitte)
+  let bi=-1, bd=1e9; for(let i=0;i<trees.length;i++){ const t=trees[i]; if(!t) continue; const d=Math.hypot(t.x-p.x,t.z-p.z)-(t.reach||0); if(d<bd){ bd=d; bi=i; } }
   return bd<3.4+pScale(p.L)*0.8?bi:-1;
 }
 function leaveTree(p,rate){ p.tOff=null; climbStop(); p.dropY=p.upNow; p.dropRate=rate; p.tree=null; p.safe=false; p.upNow=0; }
@@ -38,12 +39,18 @@ function leaveTree(p,rate){ p.tOff=null; climbStop(); p.dropY=p.upNow; p.dropRat
 function doClimb(p=P){
   if(p.dead) return;
   if(G.paused||p.pounce>0) return;
-  if(p.tree!=null){ leaveTree(p,24); p.x+=Math.sin(p.rot)*1.6; p.z+=Math.cos(p.rot)*1.6; snd.step(0.25); return; }
-  if(p.L.b.climb<1){ tell(p,'Klettern ist noch nicht gelernt (Tab)','#b9b7a6'); return; }
-  const i=nearestTree(p); if(i<0){ tell(p,'Kein Baum in Reichweite','#b9b7a6'); return; }
-  const cost=45-5*(p.L.b.climb-1)+(p.drag?20:0); if(p.st<cost){ noStamina(p); return; } p.st-=cost;
-  if(p.drag) carcassToTree(p,i);   // die Beute kommt mit hinauf
-  goalEvent('climb',1); cubLearn(p,'tree'); p.tree=i; p.climbT=0; p.fromX=p.x; p.fromZ=p.z; p.sneak=false; p.dropY=0; snd.climb();
+  if(p.tree!=null){ const t=trees[p.tree]; leaveTree(p,24);
+    if(t&&t.cave){ p.dropY=0; p.x=t.x+t.out[0]*1.5; p.z=t.z+t.out[1]*1.5; p.rot=Math.atan2(t.out[0],t.out[1]); }   // aus der Höhle hinaus
+    else if(t&&t.kopje){ const a=Math.atan2(p.x-t.x,p.z-t.z), r=t.reach+1.2; p.x=t.x+Math.sin(a)*r; p.z=t.z+Math.cos(a)*r; p.rot=a; }   // vom Felsen an der Wand hinunter
+    else { p.x+=Math.sin(p.rot)*1.6; p.z+=Math.cos(p.rot)*1.6; }
+    snd.step(0.25); return; }
+  const i=nearestTree(p), t=i>=0?trees[i]:null;
+  if(p.L.b.climb<1&&!(t&&t.cave)){ tell(p,'Klettern ist noch nicht gelernt (Tab)','#b9b7a6'); return; }
+  if(!t){ tell(p,'Kein Baum in Reichweite','#b9b7a6'); return; }
+  const cost=t.cave?5:45-5*(p.L.b.climb-1)+(p.drag?20:0); if(p.st<cost){ noStamina(p); return; } p.st-=cost;   // in die Höhle: kaum Ausdauer
+  if(p.drag) carcassToTree(p,i);   // die Beute kommt mit hinauf (bzw. in die Höhle)
+  if(!t.cave){ goalEvent('climb',1); cubLearn(p,'tree'); }
+  p.tree=i; p.climbT=0; p.fromX=p.x; p.fromZ=p.z; p.sneak=false; p.dropY=0; if(t.cave) snd.step(0.15); else snd.climb();
 }
 G.noStT=0;
 /** Ausdauerring blinkt und der Hinweis 'Zu wenig Ausdauer' erscheint bei Spieler p */

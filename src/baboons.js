@@ -50,7 +50,7 @@ function homeTree(tr){
   tr.home=null; tr.homeI=-1;
   if(tr.homeT>0) return null;   // ohne Baum in der Nähe erst in zwei Sekunden wieder suchen
   tr.homeT=2; let bi=-1, bd=60;
-  for(let i=0;i<trees.length;i++){ const t=trees[i]; if(!t||!t.perch) continue; const d=Math.hypot(t.x-tr.cx,t.z-tr.cz); if(d<bd){ bd=d; bi=i; } }
+  for(let i=0;i<trees.length;i++){ const t=trees[i]; if(!t||!t.perch||t.kopje) continue; const d=Math.hypot(t.x-tr.cx,t.z-tr.cz); if(d<bd){ bd=d; bi=i; } }
   tr.homeI=bi; tr.home=bi>=0?trees[bi]:null; return tr.home;
 }
 const leopardIn=i=>players.some(p=>!p.dead&&p.tree===i&&p.climbT>0.3);

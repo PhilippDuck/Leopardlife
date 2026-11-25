@@ -46,6 +46,7 @@ import { updateChunks } from './chunks.js';
 import { updateWatchers } from './vision.js';
 import { fillWater, updateWorldContent } from './worldcontent.js';
 import { fillPlants } from './chunkplants.js';
+import { fillKopje } from './kopje.js';
 import { onChunkFill } from './chunks.js';
 import { APP_VERSION } from './version.js';
 import { updateDrinking } from './thirst.js';
@@ -58,6 +59,7 @@ import { updateVenom } from './snake.js';
 import { updateExplore } from './explore.js';
 onChunkFill(fillWater);
 onChunkFill(fillPlants);
+onChunkFill(fillKopje);
 document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent='Version '+APP_VERSION; });
 if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }); }
 if(typeof THREE==='undefined'){ $('err').textContent='Three.js konnte nicht geladen werden. Bitte Seite neu laden.'; $('btnPlay').disabled=true; throw new Error('three.js fehlt'); }

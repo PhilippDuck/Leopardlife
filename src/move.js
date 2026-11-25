@@ -40,7 +40,7 @@ function stepPlayer(p,dt){
     else {
       if(!p.tOff){ p.tOff={x:0,z:0}; climbStop(); }
       // oben: ein Stück auf dem Ast bzw. in der Krone herumgehen (langsam, nur in einem kleinen Umkreis)
-      if(il>0.1){ const R=Math.min(1.6,Math.max(0.6,t.rx*0.35)), v=1.3*dt; p.tOff.x+=mx*v; p.tOff.z+=mz*v;
+      if(il>0.1){ const R=t.walkR||Math.min(1.6,Math.max(0.6,t.rx*0.35)), v=1.3*dt; p.tOff.x+=mx*v; p.tOff.z+=mz*v;
         const r=Math.hypot(p.tOff.x,p.tOff.z); if(r>R){ p.tOff.x*=R/r; p.tOff.z*=R/r; }
         let tr=Math.atan2(mx,mz), df=tr-p.rot; while(df>Math.PI) df-=6.283; while(df<-Math.PI) df+=6.283; p.rot+=df*Math.min(1,dt*8); p.treeWalk=true; }
       else p.treeWalk=false;
@@ -65,7 +65,7 @@ function stepPlayer(p,dt){
   if(p.tree!=null){ const t=trees[p.tree], e=p.climbT*p.climbT*(3-2*p.climbT); up=(t.y+t.perch[1]-p.y)*e; p.upNow=up; }
   else if(p.dropY>0){ p.dropY=Math.max(0,p.dropY-p.dropRate*dt); up=p.dropY; }
   p.camY=p.y+up;
-  const climbing=p.tree!=null&&p.climbT<1;
+  const climbing=p.tree!=null&&p.climbT<1&&!trees[p.tree]?.cave;   // in die Höhle geht er, er klettert nicht
   const g=p.g; g.scale.setScalar(sc); g.position.set(p.x,p.y+jump+up,p.z); g.rotation.y=p.rot;
   if(p.roarT>0){ p.roarT=Math.max(0,p.roarT-dt); g.rotation.x=-0.22*Math.sin(Math.PI*(1-p.roarT/0.9)); } else if(g.rotation.x) g.rotation.x=0;
   g.userData.inner.position.y+=(((sneak&&p.pounce<=0)?-0.16:p.drinking?-0.1:0)-g.userData.inner.position.y)*Math.min(1,dt*10);
