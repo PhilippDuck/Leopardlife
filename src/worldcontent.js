@@ -44,11 +44,11 @@ function spawnPondCroc(chunk,pond){
   a.pond=pond; a.x=pond.x+Math.cos(an)*rr; a.z=pond.z+Math.sin(an)*rr; a.tx=a.x; a.tz=a.z; a.state='lurk';
   animals.push(a); return a;
 }
-/** Nilpferde in großen Tümpeln der weiten Welt (in gut einem Drittel, fest je Tümpel): zwei bis vier, oft mit einem Jungen.
+/** Nilpferde in großen Tümpeln der weiten Welt (in gut einem Drittel, fest je Tümpel; Seen: chance): zwei bis vier, oft mit einem Jungen.
     Tagsüber im Wasser, nachts grasen sie am Ufer. Verschwinden mit dem Abschnitt. */
-function spawnPondHippos(chunk,pond){
+function spawnPondHippos(chunk,pond,chance=0.38){
   const random=chunkRng(chunk.cx+6113,chunk.cz-2203);
-  if(pond.r<HIPPO_POND_R||random()>0.38) return [];
+  if(pond.r<HIPPO_POND_R||random()>chance) return [];
   const sp=SPECIES.find(s=>s.id==='hippo'), n=2+Math.floor(random()*3), pod=[];
   const add=mom=>{ const k=mom?W_JUV:1, fur=makeFur(), g=buildHippo(sp.m,fur); g.scale.setScalar(sp.size*k); scene.add(g);
     const a={sp,g,fur,rad:sp.size*k*0.8+0.25,uid:worldAnimalId++,world:true,pond};
@@ -131,4 +131,4 @@ function updateWorldContent(dt){
   if(changed) save();
   for(const chunk of chunks.values()) spawnWorldHerd(chunk,now);
 }
-export { fillWater, updateWorldContent };
+export { fillWater, spawnPondHippos, updateWorldContent };

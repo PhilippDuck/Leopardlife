@@ -31,7 +31,7 @@ const doc={ querySelectorAll:()=>[], getElementById:el, addEventListener(){}, cr
 let raf=null;
 const g={ window:win, document:doc, navigator:{maxTouchPoints:0}, localStorage:{getItem:k=>(k in ls?ls[k]:null),setItem:(k,v)=>{ls[k]=String(v);}}, THREE:win.THREE,
   requestAnimationFrame:fn=>{ if(fn.name==='frame') raf=fn; else fn(); }, setTimeout:fn=>{ fn(); } };
-const body=code+'\n;globalThis.__trees=trees;globalThis.__T={assistBite,disconnectPlayer,pollCoop,leavePlayer,G,makeTree,fillPlants,baobabSpot,riverNear,riverDepth,fordX,fillRiver,RIV_SWIM,pondAt,worldPond,moveAnimal,samePond,waterDepth,homeKopjes,worldKopje,fillKopje,kopjeNear,CUB_HOME,chunkRng,sightAt,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,H,visibility,lineOfSight,addSight,hearR,startEvent,endEvent,EV,updateEvents,eventOn,inGrass,patches,updateAnimal,WORLD,kidOf,kidsOf,tickKids,updateLife,playerSeeks,canSwitchFor,markTaken,cubFollowContext,cubLearn,updateFollowers,followers,learnOf,canSwitch,woundTick,forgetWounds,resetMates,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping,PONDS,drinkContext,updateDrinking,hungerRate,crocStep,BURROWS,updateLexicon,lexIds,fowl,oxen,fowlSpots,oxpeckerSpots,vultureSpots,TROOPS,troopOf,updateBaboons,eleThreat,WATER_D,hippoThreat};';
+const body=code+'\n;globalThis.__trees=trees;globalThis.__T={assistBite,disconnectPlayer,pollCoop,leavePlayer,G,makeTree,fillPlants,baobabSpot,riverNear,riverDepth,riverEdge,lakePond,RIV_LAKE,RIV_HEAD,fordX,fillRiver,RIV_SWIM,pondAt,worldPond,moveAnimal,samePond,waterDepth,homeKopjes,worldKopje,fillKopje,kopjeNear,CUB_HOME,chunkRng,sightAt,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,H,visibility,lineOfSight,addSight,hearR,startEvent,endEvent,EV,updateEvents,eventOn,inGrass,patches,updateAnimal,WORLD,kidOf,kidsOf,tickKids,updateLife,playerSeeks,canSwitchFor,markTaken,cubFollowContext,cubLearn,updateFollowers,followers,learnOf,canSwitch,woundTick,forgetWounds,resetMates,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping,PONDS,drinkContext,updateDrinking,hungerRate,crocStep,BURROWS,updateLexicon,lexIds,fowl,oxen,fowlSpots,oxpeckerSpots,vultureSpots,TROOPS,troopOf,updateBaboons,eleThreat,WATER_D,hippoThreat};';
 new Function(...Object.keys(g), body)(...Object.values(g));
 const T=globalThis.__T; const rnd2=()=>Math.random()*8-4; const localStorageDump=()=>ls['jaguar-lines'];
 els.btnPlay.onclick();
@@ -683,19 +683,36 @@ console.log('audio nodes created',ACs&&ACs.count());
   console.log('Felsplateaus: '+T.homeKopjes.length+' im Startgebiet, '+n+' von 1200 Abschnitten, kletterbar (Höhe '+k.top.toFixed(1)+' m), Höhle als Versteck, Schlafplatz und Bau');
 }
 // Fluss mit Furten: durchs Startgebiet und die weite Welt; tief (schwimmen, Herden bleiben draußen), an den Furten flach.
+// Er fließt nur bergab: von einer Quelle bis in einen großen See ohne Abfluss; dahinter bis zur nächsten Quelle kein Fluss.
 {
   const assert=require('node:assert/strict');
   const S0=T.S(); if(T.dead()) T.respawn(); if(els.menu.style.display==='flex') els.btnResume.onclick();
   const r0={...T.riverNear(0,0)}, n=r0.n, zc=x=>T.riverNear(x,r0.zc).zc;
-  assert.ok(Math.abs(r0.zc)<200,'kein Fluss im Startgebiet'); assert.ok(T.riverNear(7,5).d>50,'Fluss zu nah am Bau');
-  for(const p of T.PONDS) assert.ok(T.riverNear(p.x,p.z).d>p.r*1.5+12,'Fluss läuft durch ein Wasserloch');
-  for(const k of T.homeKopjes) assert.ok(T.riverNear(k.x,k.z).d>k.R+15,'Felsplateau im Fluss');
-  for(let i=-40;i<40;i++) for(let j=-40;j<40;j++){ const k=T.worldKopje(i,j); if(k) assert.ok(T.riverNear(k.x,k.z).d>k.R+15,'Felsplateau im Fluss'); }
-  for(let i=-30;i<30;i++) for(let j=-30;j<30;j++){ const q=T.worldPond(i*256+128,j*256+128); if(q) assert.ok(T.riverNear(q.x,q.z).d>q.r*1.5+12,'Fluss läuft durch einen Tümpel'); }
-  // Tiefe: zwischen den Furten schwimmen, in der Furt waten
+  assert.ok(Math.abs(r0.zc)<200,'kein Fluss im Startgebiet'); assert.ok(r0.w>4,'Fluss im Startgebiet zu schmal'); assert.ok(T.riverEdge(7,5)>40,'Fluss zu nah am Bau');
+  for(const p of T.PONDS) assert.ok(T.riverEdge(p.x,p.z)>p.r*1.5+6,'Fluss läuft durch ein Wasserloch');
+  for(const k of T.homeKopjes) assert.ok(T.riverEdge(k.x,k.z)>k.R+10,'Felsplateau im Fluss');
+  for(let i=-40;i<40;i++) for(let j=-40;j<40;j++){ const k=T.worldKopje(i,j); if(k) assert.ok(T.riverEdge(k.x,k.z)>k.R+10,'Felsplateau im Fluss'); }
+  for(let i=-30;i<30;i++) for(let j=-30;j<30;j++){ const q=T.worldPond(i*256+128,j*256+128); if(q) assert.ok(T.riverEdge(q.x,q.z)>q.r*1.5+12,'Fluss läuft durch einen Tümpel'); }
+  // Gefälle: der Pegel steigt in Fließrichtung (West → Ost) nie, von der Quelle bis zum See; das Gelände springt nirgends
+  let segs=0, drop=0;
+  for(let nn=-3;nn<=3;nn++){ const z=r0.zc+(nn-n)*1100;
+    for(let m=-2;m<=2;m++){ const s0={...T.riverNear(m*2000+1000,z)}, xs=s0.seg.xs; let last=Infinity;
+      for(let x=xs-300;x<xs+2000;x+=1){ const r=T.riverNear(x,z); if(r.m===s0.seg.m&&r.u<=T.RIV_LAKE){ assert.ok(r.L<=last+1e-9,'Fluss fließt bergauf bei x '+(x-xs)+' (m '+r.m+'/'+s0.seg.m+', u '+r.u+')'); last=r.L; } }
+      // Stetigkeit: an Quelle, Seemitte und Abschnittsgrenze ändert sich das Gelände auf 5 cm um höchstens wenige Zentimeter
+      for(const x of [xs,xs+T.RIV_HEAD,s0.seg.xe,s0.seg.xl,xs+2000]) for(let dz=-200;dz<=200;dz+=2.5){ const zz=s0.seg.zl+dz;
+        assert.ok(Math.abs(T.H(x-0.025,zz)-T.H(x+0.025,zz))<0.08,'Gelände springt bei x '+(x-xs)+', dz '+dz+': '+(T.H(x-0.025,zz)-T.H(x+0.025,zz)).toFixed(2)); }
+      const sg=s0.seg; assert.ok(sg.Ls-sg.Ll>=3.49,'zu wenig Gefälle'); drop+=sg.Ls-sg.Ll; segs++;
+      // See: groß und tief, Wasser für Durst; dahinter bis zur nächsten Quelle trockenes Land
+      const lake=T.lakePond(sg.xl,sg.zl,1); assert.ok(lake&&lake.lake&&lake.r>=60,'kein See am Flussende');
+      assert.ok(T.riverDepth(sg.xl,sg.zl)>2.5,'See nicht tief'); assert.equal(T.pondAt(sg.xl,sg.zl,1),lake);
+      for(let x=sg.xl+sg.R+5;x<xs+2000;x+=10) for(const dz of [-30,0,30]) assert.equal(T.riverDepth(x,sg.zl+dz),0,'Fluss hinter dem See');
+      // Aue: neben dem Fluss liegt das Ufer knapp über dem Wasser, nicht in einer Schlucht und nicht auf einem Damm
+      for(let x=xs+400;x<sg.xl-sg.R-50;x+=37){ const r={...T.riverNear(x,z)}, bank=T.H(x,r.zc+r.w*r.k*2+3); assert.ok(bank>r.L-0.2&&bank<r.L+2.2,'Ufer bei '+(x-xs)+': '+(bank-r.L).toFixed(2)); }
+    } }
+  // Tiefe: zwischen den Furten (Gumpe: breit und tief) schwimmen, in der Furt waten
   const fx=T.fordX(n,0), deepX=fx+105;
   assert.ok(T.riverDepth(fx,zc(fx))>0.05&&T.riverDepth(fx,zc(fx))<T.RIV_SWIM,'Furt nicht flach: '+T.riverDepth(fx,zc(fx)).toFixed(2));
-  assert.ok(T.riverDepth(deepX,zc(deepX))>1.2,'Fluss nicht tief genug');
+  assert.ok(T.riverDepth(deepX,zc(deepX))>1.8,'Gumpe nicht tief genug'); assert.ok(T.riverNear(deepX,r0.zc).w>T.riverNear(fx,r0.zc).w+2,'Gumpe nicht breiter als die Furt');
   const q=T.pondAt(deepX,zc(deepX),1); assert.ok(q&&q.river,'Fluss ist kein Wasser'); assert.ok(T.samePond(q,T.pondAt(deepX+5,zc(deepX+5),1)));
   // Leopard: schwimmt im Tiefen (langsam, Kopf über Wasser), trinkt am Ufer
   T.P.tree=null; T.P.drag=null; T.P.x=deepX; T.P.z=zc(deepX); run(3);
@@ -708,14 +725,25 @@ console.log('audio nodes created',ACs&&ACs.count());
   for(let i=0;i<1200&&deer.z<zc(deer.x)+side.w;i++){ T.moveAnimal(deer,0,far-deer.z,4,0.05); maxD=Math.max(maxD,T.riverDepth(deer.x,deer.z)); }
   assert.ok(maxD<=T.RIV_SWIM+0.01,'Herdentier im tiefen Wasser: '+maxD.toFixed(2));
   assert.ok(deer.z>zc(deer.x)&&Math.abs(deer.x-fx)<20,'nicht an der Furt hinüber: x '+(deer.x-fx).toFixed(1));
-  // Abschnitt mit Furt: Wasserfläche, Krokodile lauern neben der Furt, alles verschwindet mit dem Abschnitt
-  let crocs=0, built=0;
-  for(let k=1;k<40;k++){ const x=T.fordX(n,k), cx=Math.floor(x/64), cz=Math.floor(zc(x)/64), before=T.animals.length, c={cx,cz,content:[]};
-    T.fillRiver(c); if(c.content.length) built++; const cr=T.animals.slice(before).filter(a=>a.sp.croc);
-    for(const a of cr){ crocs++; assert.ok(a.pond.river&&T.riverDepth(a.x,a.z)>0.6,'Krokodil nicht im tiefen Wasser neben der Furt'); }
+  // Abschnitte mit Furt: Wasserfläche (wo Flussbett ist), Krokodile lauern an Furten und in Gumpen, alles verschwindet mit dem Abschnitt
+  let crocs=0, built=0, inBed=0;
+  for(let k=1;k<40;k++){ const x=T.fordX(n,k), r={...T.riverNear(x,r0.zc)}, bed=r.u>=T.RIV_HEAD&&r.u<=T.RIV_LAKE-1.3*r.lr, dry=r.cd>1e8;
+    const cx=Math.floor(x/64), cz=Math.floor(zc(x)/64), before=T.animals.length, c={cx,cz,content:[]};
+    if(bed) inBed++; T.fillRiver(c); if(c.content.length&&bed) built++; if(dry&&r.ld>r.lr*1.6&&r.u<2000-70) assert.equal(c.content.length,0,'Fluss in der Lücke hinter dem See: u '+r.u.toFixed(0)+' ld '+r.ld.toFixed(0)+' R '+r.lr.toFixed(0)+' cx '+cx+' lake '+(r.lx/64).toFixed(1));
+    const cr=T.animals.slice(before).filter(a=>a.sp.croc);
+    for(const a of cr){ crocs++; assert.ok((a.pond.river||a.pond.lake)&&T.riverDepth(a.x,a.z)>0.6,'Krokodil nicht im tiefen Wasser'); }
     c.content.forEach(it=>it.drop()); assert.equal(T.animals.length,before); }
-  assert.ok(built>=35&&crocs>5&&crocs<35,'Furten: '+built+' Abschnitte, '+crocs+' Krokodile');
-  console.log('Fluss: Furten alle 210 m (Tiefe '+T.riverDepth(fx,zc(fx)).toFixed(2)+' m, sonst '+T.riverDepth(deepX,zc(deepX)).toFixed(1)+' m), schwimmen, trinken, Herde quert an der Furt, '+crocs+' Krokodile an 39 Furten');
+  assert.ok(inBed>=20&&built===inBed&&crocs>5,'Furten: '+built+'/'+inBed+' Abschnitte, '+crocs+' Krokodile');
+  // See-Abschnitt: Wasserfläche, mehrere Krokodile im See, oft Nilpferde; Herdentiere laufen am Ufer entlang statt hinein
+  { const sg=T.riverNear(0,r0.zc).seg, c={cx:Math.floor(sg.xl/64),cz:Math.floor(sg.zl/64),content:[]}, before=T.animals.length;
+    T.fillRiver(c); const added=T.animals.slice(before), lc=added.filter(a=>a.sp.croc&&a.pond.lake);
+    assert.ok(lc.length>=2&&lc.every(a=>T.riverDepth(a.x,a.z)>0.8),'keine Krokodile im See'); assert.ok(added.filter(a=>a.sp.hippo).every(a=>a.pond.lake));
+    const deer=T.animals.find(a=>a.sp.id==='deer'&&!a.dead); deer.x=sg.xl-sg.R-1; deer.z=sg.zl; let maxD=0;
+    for(let i=0;i<400;i++){ T.moveAnimal(deer,1,0,4,0.05); maxD=Math.max(maxD,T.riverDepth(deer.x,deer.z)); }
+    assert.ok(maxD<=T.RIV_SWIM+0.01,'Herdentier schwimmt in den See: '+maxD.toFixed(2));
+    c.content.forEach(it=>it.drop()); assert.equal(T.animals.length,before);
+    console.log('See: Radius '+sg.R.toFixed(0)+' m, '+lc.length+' Krokodile, '+added.filter(a=>a.sp.hippo).length+' Nilpferde; Gefälle im Mittel '+(drop/segs).toFixed(1)+' m je Abschnitt'); }
+  console.log('Fluss: Furten alle 210 m (Tiefe '+T.riverDepth(fx,zc(fx)).toFixed(2)+' m, Gumpe '+T.riverDepth(deepX,zc(deepX)).toFixed(1)+' m), schwimmen, trinken, Herde quert an der Furt, '+crocs+' Krokodile an Furten und Gumpen');
 }
 console.log('ALL OK');
 

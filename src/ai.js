@@ -42,10 +42,13 @@ function moveAnimal(a,dx,dz,spd,dt){
   const l=Math.hypot(dx,dz)||1; dx/=l; dz/=l;
   const ox=a.x, oz=a.z;
   a.x+=dx*spd*dt; a.z+=dz*spd*dt;
-  // Tiefer Fluss: Landtiere gehen nicht hinein, sondern am Ufer entlang zur nächsten Furt
+  // Tiefer Fluss: Landtiere gehen nicht hinein, sondern am Ufer entlang zur nächsten Furt; am See am Ufer entlang um ihn herum
   if(!a.sp.croc&&!a.sp.hippo&&riverDepth(a.x,a.z)>RIV_SWIM&&riverDepth(ox,oz)<=RIV_SWIM){
-    const rv=riverNear(ox,oz), n=rv.n, zc=rv.zc, s=rv.s, k=rv.k, fx=fordX(n,Math.round((ox+n*2.3*RIV_FORD/6.2832)/RIV_FORD)), dir=fx>=ox?1:-1;
-    dx=dir/k; dz=dir*s/k; a.x=ox+dx*spd*dt; a.z=oz+dz*spd*dt+Math.sign(oz-zc)*0.3*spd*dt;
+    const rv=riverNear(ox,oz), n=rv.n, zc=rv.zc, s=rv.s, k=rv.k;
+    if(rv.ld<rv.lr*1.2){ const rx=(ox-rv.lx)/(rv.ld||1), rz=(oz-rv.lz)/(rv.ld||1), dir=-rz*dx+rx*dz>=0?1:-1;
+      a.x=ox+(-rz*dir+0.3*rx)*spd*dt; a.z=oz+(rx*dir+0.3*rz)*spd*dt; }
+    else { const fx=fordX(n,Math.round((ox+n*2.3*RIV_FORD/6.2832)/RIV_FORD)), dir=fx>=ox?1:-1;
+      dx=dir/k; dz=dir*s/k; a.x=ox+dx*spd*dt; a.z=oz+dz*spd*dt+Math.sign(oz-zc)*0.3*spd*dt; }
     if(riverDepth(a.x,a.z)>RIV_SWIM){ a.x=ox; a.z=oz; }
   }
   const r=Math.hypot(a.x,a.z); if(!a.world&&r>WORLD){ a.x*=WORLD/r; a.z*=WORLD/r; }
