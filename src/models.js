@@ -251,4 +251,41 @@ function animElephant(g,t,amp){
   u.head.rotation.x=-al*0.25;
 }
 
-export { CROC_EYE, buildBaboon, buildElephant, animCroc, animLegs, animSnake, buildSnake, buildCroc, buildQuad, furColor, furName, makeFur };
+/* Nilpferd: massiger, tonnenförmiger Rumpf auf kurzen Beinen, breites Maul mit Hauern und weit aufklappbarem Unterkiefer
+   (userData.jaw). Augen, Ohren und Nasenlöcher sitzen oben auf dem Kopf – im Wasser schauen nur sie und der Rücken heraus.
+   Vorn ist +z. HIPPO_EYE: Höhe der Augen über dem Boden (Modellmaß). */
+const HIPPO_EYE=1.0;
+function buildHippo(o,v){
+  const f=k=>o[k]===undefined?undefined:(v?furColor(o[k],v):o[k]);
+  const col=f('col'), dark=f('col2')||col, pink=f('belly')||col, eyeC=v&&v.albino?0xc8506a:0x111111;
+  const g=new THREE.Group(), inner=new THREE.Group(); g.add(inner);
+  const L=1.65, Hh=0.62, W=0.8, leg=0.3, by=leg+Hh/2;
+  // Rumpf: Tonne aus drei Lagen (Bauch, Mitte, Rücken), Schultern etwas höher als die Hüfte
+  box(W,Hh,L,col,0,by,0,inner); box(W*0.86,Hh*0.3,L*0.92,col,0,by+Hh*0.5,0.02,inner); box(W*0.9,0.14,L*0.85,pink,0,by-Hh*0.5,0,inner);
+  box(W*1.04,Hh*0.75,L*0.5,col,0,by+0.02,0.25,inner);
+  box(W*0.6,0.06,L*0.7,dark,0,by+Hh*0.66,0,inner);
+  // Kopf: Schädel, breites Maul, Augen, Ohren und Nasenlöcher oben
+  const head=new THREE.Group(); head.position.set(0,by+0.16,L/2+0.02); inner.add(head);
+  box(0.5,0.36,0.42,col,0,0.02,0.12,head);
+  box(0.64,0.3,0.42,col,0,0,0.5,head);
+  box(0.6,0.08,0.38,pink,0,-0.14,0.52,head);                                                   // Oberlippe
+  [1,-1].forEach(s=>{ box(0.12,0.1,0.12,col,s*0.17,0.24,0.08,head);                            // Augenhöcker
+    box(0.05,0.05,0.03,eyeC,s*0.19,0.26,0.145,head);
+    box(0.07,0.09,0.04,dark,s*0.2,0.3,-0.06,head);                                              // kleine Ohren
+    box(0.08,0.04,0.06,0x2a2022,s*0.12,0.15,0.66,head); });                                     // Nasenlöcher
+  // Unterkiefer mit Hauern: klappt beim Drohen weit auf
+  const jaw=new THREE.Group(); jaw.position.set(0,-0.15,0.2); head.add(jaw);
+  box(0.58,0.12,0.58,col,0,-0.05,0.28,jaw); box(0.5,0.03,0.52,0xb85a64,0,0.02,0.28,jaw);
+  [1,-1].forEach(s=>{ box(0.06,0.18,0.06,0xf1ead0,s*0.22,0.08,0.5,jaw); box(0.04,0.08,0.04,0xf1ead0,s*0.1,0.05,0.53,jaw); });
+  const legs=[];
+  [[1,1],[-1,1],[1,-1],[-1,-1]].forEach(p=>{ const pv=new THREE.Group(); pv.position.set(p[0]*(W/2-0.12),leg+0.05,p[1]*(L/2-0.28)); inner.add(pv);
+    box(0.24,leg+0.05,0.26,col,0,-(leg+0.05)/2,0,pv); box(0.26,0.05,0.28,dark,0,-leg-0.02,0.01,pv); legs.push(pv); });
+  const tail=new THREE.Group(); tail.position.set(0,by+0.12,-L/2); inner.add(tail); box(0.08,0.06,0.22,dark,0,0,-0.11,tail); tail.rotation.x=0.9;
+  mergeRigid(inner,new Set(legs.concat([tail,head]))); mergeRigid(head,new Set([jaw])); mergeRigid(jaw,new Set());
+  legs.forEach(l=>mergeRigid(l,new Set())); mergeRigid(tail,new Set());
+  const sh=new THREE.Mesh(shadowGeo,shadowMat); sh.scale.set(W*1.1,1,L*0.7); sh.position.y=0.03; g.add(sh); blobs.push(sh);
+  g.userData={legs,tail,head,inner,blob:sh,jaw,hippo:true};
+  return g;
+}
+
+export { CROC_EYE, HIPPO_EYE, buildHippo, buildBaboon, buildElephant, animCroc, animLegs, animSnake, buildSnake, buildCroc, buildQuad, furColor, furName, makeFur };

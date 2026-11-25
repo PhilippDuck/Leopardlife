@@ -2,9 +2,9 @@
 import { chunks, CHUNK, chunkRng } from './chunks.js';
 import { worldPond, streamedPonds, waters, WATER_D, WORLD, H, pondAt, dryness, registerCull, unregisterCull } from './terrain.js';
 import { scene } from './engine.js';
-import { animals, placeAnimal } from './animals.js';
+import { HIPPO_POND_R, animals, placeAnimal } from './animals.js';
 import { SPECIES } from './data.js';
-import { buildBaboon, buildCroc, buildElephant, buildQuad, buildSnake, makeFur } from './models.js';
+import { buildBaboon, buildCroc, buildElephant, buildHippo, buildQuad, buildSnake, makeFur } from './models.js';
 import { players, dropModel } from './player.js';
 import { S, save } from './save.js';
 import { endCarcass } from './carcass.js';
@@ -23,9 +23,9 @@ function fillWater(chunk){
   mesh.receiveShadow=true;
   scene.add(mesh); waters.push(mesh); streamedPonds.push(pond);
   const cull=registerCull(mesh,pond.x,pond.z,pond.r);
-  const croc=spawnPondCroc(chunk,pond);
+  const croc=spawnPondCroc(chunk,pond), pod=spawnPondHippos(chunk,pond);
   chunk.content.push({drop(){
-    if(croc){ if(croc.carc) endCarcass(croc); dropModel(croc.g); const i=animals.indexOf(croc); if(i>=0) animals.splice(i,1); }
+    for(const a of croc?[croc,...pod]:pod){ if(a.carc) endCarcass(a); dropModel(a.g); const i=animals.indexOf(a); if(i>=0) animals.splice(i,1); }
     unregisterCull(cull); scene.remove(mesh);
     waters.splice(waters.indexOf(mesh),1); streamedPonds.splice(streamedPonds.indexOf(pond),1);
     geometry.dispose(); material.dispose();
@@ -43,6 +43,20 @@ function spawnPondCroc(chunk,pond){
   const an=random()*6.283, rr=random()*pond.r*0.5;
   a.pond=pond; a.x=pond.x+Math.cos(an)*rr; a.z=pond.z+Math.sin(an)*rr; a.tx=a.x; a.tz=a.z; a.state='lurk';
   animals.push(a); return a;
+}
+/** Nilpferde in großen Tümpeln der weiten Welt (in gut einem Drittel, fest je Tümpel): zwei bis vier, oft mit einem Jungen.
+    Tagsüber im Wasser, nachts grasen sie am Ufer. Verschwinden mit dem Abschnitt. */
+function spawnPondHippos(chunk,pond){
+  const random=chunkRng(chunk.cx+6113,chunk.cz-2203);
+  if(pond.r<HIPPO_POND_R||random()>0.38) return [];
+  const sp=SPECIES.find(s=>s.id==='hippo'), n=2+Math.floor(random()*3), pod=[];
+  const add=mom=>{ const k=mom?W_JUV:1, fur=makeFur(), g=buildHippo(sp.m,fur); g.scale.setScalar(sp.size*k); scene.add(g);
+    const a={sp,g,fur,rad:sp.size*k*0.8+0.25,uid:worldAnimalId++,world:true,pond};
+    if(mom){ a.juv=true; a.mom=mom; (mom.kids||(mom.kids=[])).push(a); }
+    placeAnimal(a); animals.push(a); pod.push(a); };
+  for(let i=0;i<n;i++) add(null);
+  if(random()<0.6) add(pod[0]);
+  return pod;
 }
 const worldHerds=new Map();
 let worldAnimalId=100000, worldContentTimer=0;

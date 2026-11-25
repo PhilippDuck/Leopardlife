@@ -31,7 +31,7 @@ const doc={ querySelectorAll:()=>[], getElementById:el, addEventListener(){}, cr
 let raf=null;
 const g={ window:win, document:doc, navigator:{maxTouchPoints:0}, localStorage:{getItem:k=>(k in ls?ls[k]:null),setItem:(k,v)=>{ls[k]=String(v);}}, THREE:win.THREE,
   requestAnimationFrame:fn=>{ if(fn.name==='frame') raf=fn; else fn(); }, setTimeout:fn=>{ fn(); } };
-const body=code+'\n;globalThis.__trees=trees;globalThis.__T={assistBite,disconnectPlayer,pollCoop,leavePlayer,G,makeTree,fillPlants,baobabSpot,chunkRng,sightAt,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,H,visibility,lineOfSight,addSight,hearR,startEvent,endEvent,EV,updateEvents,eventOn,inGrass,patches,updateAnimal,WORLD,kidOf,kidsOf,tickKids,updateLife,playerSeeks,canSwitchFor,markTaken,cubFollowContext,cubLearn,updateFollowers,followers,learnOf,canSwitch,woundTick,forgetWounds,resetMates,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping,PONDS,drinkContext,updateDrinking,hungerRate,crocStep,BURROWS,updateLexicon,lexIds,fowl,oxen,fowlSpots,oxpeckerSpots,vultureSpots,TROOPS,troopOf,updateBaboons,eleThreat};';
+const body=code+'\n;globalThis.__trees=trees;globalThis.__T={assistBite,disconnectPlayer,pollCoop,leavePlayer,G,makeTree,fillPlants,baobabSpot,chunkRng,sightAt,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,H,visibility,lineOfSight,addSight,hearR,startEvent,endEvent,EV,updateEvents,eventOn,inGrass,patches,updateAnimal,WORLD,kidOf,kidsOf,tickKids,updateLife,playerSeeks,canSwitchFor,markTaken,cubFollowContext,cubLearn,updateFollowers,followers,learnOf,canSwitch,woundTick,forgetWounds,resetMates,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping,PONDS,drinkContext,updateDrinking,hungerRate,crocStep,BURROWS,updateLexicon,lexIds,fowl,oxen,fowlSpots,oxpeckerSpots,vultureSpots,TROOPS,troopOf,updateBaboons,eleThreat,WATER_D,hippoThreat};';
 new Function(...Object.keys(g), body)(...Object.values(g));
 const T=globalThis.__T; const rnd2=()=>Math.random()*8-4; const localStorageDump=()=>ls['jaguar-lines'];
 els.btnPlay.onclick();
@@ -474,6 +474,38 @@ console.log('audio nodes created',ACs&&ACs.count());
   for(const [o,x,z] of others){ o.x=x; o.z=z; }
   [P.x,P.z,P.sneak,P.dead,P.tree,P.hp,P.safe]=keep;
   console.log('Elefanten: Herde von '+adults.length+' mit '+kids.length+' Jungen, Drohen (Ohren, Herde schaut), Zurückweichen beruhigt, Näherkommen wird niedergetrampelt ('+Math.round(lost)+' Schaden), schleichend mit Abstand unbemerkt'); }
+{ const P=T.P, S=T.S(), keep=[P.x,P.z,P.sneak,P.dead,P.tree,P.hp,P.safe,S.tod];
+  // Nilpferde: nur in großen Wasserlöchern; tagsüber abgetaucht im Wasser, nachts grasend am Ufer; Angriff auf wer zwischen ihnen und dem Wasser steht
+  const hs=T.animals.filter(a=>a.sp.hippo&&!a.world&&!a.dead), calf=hs.find(a=>a.juv), h=hs.find(a=>!a.juv), p=h.pond, wl=p.L-T.WATER_D;
+  if(hs.length<3||!calf||hs.some(a=>!a.pond||a.pond.r<18)){ console.log('FEHLER: Nilpferde im Wasserloch',hs.length,!!calf); process.exit(1); }
+  const others=T.players.filter(o=>o!==P).map(o=>[o,o.x,o.z]); for(const [o] of others){ o.x=P.x+5000; o.z=P.z; }
+  P.dead=false; P.tree=null; P.safe=false; P.sneak=false; P.stealth=1; P.hp=T.maxHp();
+  const away=()=>{ P.x=p.x+p.r+60; P.z=p.z; };
+  const run=(n,a=h)=>{ for(let i=0;i<n;i++){ P.hp=Math.max(P.hp,1); T.updateAnimal(a,0.1); } };
+  // Tag: im Wasser, nur Augen und Rücken über der Wasserlinie
+  S.tod=0.5; away(); h.state='wade'; h.x=p.x; h.z=p.z; h.sy=null; h.calmT=0; run(80);
+  const inW=Math.hypot(h.x-p.x,h.z-p.z)<p.r, low=h.sy<wl-0.6;
+  if(h.state!=='wade'||!inW||!low){ console.log('FEHLER: Nilpferd tagsüber',h.state,inW,h.sy,wl); process.exit(1); }
+  // Nacht: steigt ans Ufer und grast
+  S.tod=0.95; let land=0; for(let i=0;i<900;i++){ away(); run(1); if(Math.hypot(h.x-p.x,h.z-p.z)>p.r+1) land++; }
+  if(h.state!=='graze'||land<100){ console.log('FEHLER: Nilpferd nachts',h.state,land); process.exit(1); }
+  // Zwischen Nilpferd und Wasser: droht, stürmt los und beißt
+  const ux=(p.x-h.x)/Math.hypot(p.x-h.x,p.z-h.z), uz=(p.z-h.z)/Math.hypot(p.x-h.x,p.z-h.z);
+  P.x=h.x+ux*9; P.z=h.z+uz*9; P.hp=T.maxHp(); h.calmT=0; h.cd=0; const hp0=P.hp; let gaped=false, charged=false;
+  for(let i=0;i<60;i++){ T.updateAnimal(h,0.1); gaped=gaped||h.state==='gape'; charged=charged||h.state==='charge'; }
+  const lost=hp0-P.hp;
+  if(!gaped||!charged||lost<=0){ console.log('FEHLER: Nilpferd-Angriff',gaped,charged,lost); process.exit(1); }
+  // Seitlich mit Abstand vorbei: kein Angriff
+  P.hp=T.maxHp(); h.state='graze'; h.calmT=0; const sx=-uz, sz=ux; P.x=h.x+sx*11; P.z=h.z+sz*11;
+  const why=T.hippoThreat(h,P,p,Math.hypot(P.x-h.x,P.z-h.z));
+  if(why){ console.log('FEHLER: Nilpferd greift seitlich an',why); process.exit(1); }
+  // Keine normale Beute: ein Biss löst keinen Festbiss aus, das Nilpferd wehrt sich
+  h.state='graze'; P.x=h.x+2; P.z=h.z; P.hp=T.maxHp(); h.cd=0; T.hitAnimal(h); const fights=h.state==='chase'&&!h.dead&&!h.held; T.updateAnimal(h,0.1);
+  if(!fights||!(h.state==='charge'||P.hp<T.maxHp())){ console.log('FEHLER: Nilpferd wehrt sich nicht',h.state); process.exit(1); }
+  h.state='wade'; h.hp=h.sp.hp; h.calmT=0; P.hp=T.maxHp();
+  for(const [o,x,z] of others){ o.x=x; o.z=z; }
+  [P.x,P.z,P.sneak,P.dead,P.tree,P.hp,P.safe,S.tod]=keep;
+  console.log('Nilpferde: '+hs.length+' in großen Wasserlöchern (mit Jungem), tagsüber abgetaucht, nachts '+Math.round(land/9)+' % der Zeit am Ufer, Angriff zwischen Tier und Wasser ('+Math.round(lost)+' Schaden), seitlich vorbei sicher, wehrt sich gegen Bisse'); }
 { const P=T.P, n0=T.animals.length, keepP=[P.x,P.z,P.hp,P.dead,P.tree];
   // Gnu-Wanderung: Herde zieht los, Panik bei Nähe, verlässt am Ende die Welt
   T.startEvent('migr'); const herd=T.animals.filter(a=>a.ev==='migr'), h0=herd.length, a0=herd[0], f0=a0.x*T.EV.dir.x+a0.z*T.EV.dir.z;

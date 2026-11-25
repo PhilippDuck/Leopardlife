@@ -18,6 +18,7 @@ durch Savanne und Sumpf.
 - Perlhühner schlagen Alarm, Madenhacker warnen ihre Wirte; Fliegen über Kadavern verraten Aas, nachts leuchten Glühwürmchen
 - Puffottern liegen getarnt im Gras, zischen als Warnung und beißen mit nachwirkendem Gift
 - Elefantenherden mit Jungen ziehen durch die Savanne und treffen sich an den Wasserlöchern; wer zu nahe kommt, wird erst angedroht (Ohren gespreizt, Trompeten) und dann niedergetrampelt
+- Nilpferde dösen tagsüber in großen Wasserlöchern (nur Rücken, Augen und Ohren schauen heraus) und grasen nachts am Ufer; wer zwischen sie und das Wasser gerät oder ihnen zu nahe kommt, wird erst angedroht und dann angegriffen
 - Trübe Tümpel verbergen Krokodile – nur feine Wellen und geducktes Lauschen am Ufer verraten sie
 - Tierlexikon im Menü: jede neu entdeckte Art bringt Erfahrung und einen Tipp
 - Erfahrung auch für unbemerktes Anpirschen, Beute im Baum, eine Nacht ohne Verletzung und ein vor dem Räuber gerettetes Junges
@@ -53,6 +54,7 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 | `src/controls.js` | Steuerquellen: übersetzen Tastatur, Maus, Touch oder Controller in den Steuerwunsch eines Spielers |
 | `src/coop.js` | Mitspieler am selben Gerät: Beitreten per Controller, geteiltes Bild, eigene Anzeige, am Boden und Wiederbeleben |
 | `src/crocodile.js` | Krokodile: lauern abgetaucht im Wasser, schleichen sich an Trinkende heran, schnellen hervor und zerren Richtung Wasser |
+| `src/hippo.js` | Nilpferde: tagsüber abgetaucht im Wasserloch, nachts grasend am Ufer; drohen mit offenem Maul und greifen an, wer ihnen den Weg zum Wasser versperrt |
 | `src/elephants.js` | Elefanten: Herden, Drohen mit Ohren und Trompeten, Angriff auf Leoparden, die nicht zurückweichen |
 | `src/data.js` | Feste Spieldaten: Eigenschaften, Fähigkeiten, Erbanlagen, Schwierigkeitsgrade, Gebiete, |
 | `src/daynight.js` | Tag und Nacht: Sonne, Mond, Himmelsfarben, Nebel, Nachtsicht, Schlafen auf Bäumen |

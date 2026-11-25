@@ -28,6 +28,7 @@ import { burrowSeek, burrowWait } from './burrows.js';
 import { hearR, visibility } from './vision.js';
 import { baboonStep } from './baboons.js';
 import { elephantStep } from './elephants.js';
+import { hippoStep } from './hippo.js';
 
 /* Rudel: Hyänen und Schakale rufen ihre Artgenossen zur Jagd (je nach Schwierigkeit) */
 const PACK={hyena:1,jack:1};
@@ -114,8 +115,9 @@ function updateAnimal(a,dt){
   if(a.ev&&a.stun<=0&&eventStep(a,dt,moveAnimal)){ a.g.visible=dv<=VIEW_D&&!a.gone; a.g.position.set(a.x,H(a.x,a.z),a.z); pounceHits(a); return; }   // Ereignis steuert das Tier (auch außer Sicht)
   if(sp.snake){ a.g.visible=dv<=VIEW_D; if(dv>VIEW_D+20) return; snakeStep(a,dt,d,dx,dz,T); pounceHits(a); return; }
   if(sp.elephant&&dv<=VIEW_D&&!(a.stun>0)&&elephantStep(a,dt,T,d,dx,dz)){ a.g.visible=true; pounceHits(a); return; }   // Elefant: Drohen und Angriff
-  if(!a.sp.croc&&!a.sp.friend&&!a.sp.human&&!a.juv&&!a.bab&&animalWater(a,dt)){ a.g.visible=dv<=VIEW_D; a.g.position.set(a.x,H(a.x,a.z),a.z); return; }
+  if(!a.sp.croc&&!a.sp.hippo&&!a.sp.friend&&!a.sp.human&&!a.juv&&!a.bab&&animalWater(a,dt)){ a.g.visible=dv<=VIEW_D; a.g.position.set(a.x,H(a.x,a.z),a.z); return; }
   if(dv>VIEW_D&&a!==G.raider){ a.g.visible=false; return; } a.g.visible=dv<=VIEW_D;
+  if(sp.hippo){ a.cd-=dt; if(a.stun>0){ a.stun-=dt; animLegs(a.g,a.ph,0.05); } else hippoStep(a,dt,T,d,dx,dz); pounceHits(a); return; }   // Nilpferd: Wasser, Weide, Drohen
   if(a.sp.burrow&&!(a.stun>0)&&burrowSeek(a,dt)){ pounceHits(a); return; }   // läuft zum Bau
   if(sp.baboon&&baboonStep(a,dt)){ if(!(a.up>0.3)) pounceHits(a); return; }   // Pavian: Baum, Alarm, Drohen
   a.cd-=dt; if(a.scared>0) a.scared-=dt; if(a.gcd>0) a.gcd-=dt;

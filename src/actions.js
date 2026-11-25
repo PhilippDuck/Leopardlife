@@ -133,6 +133,8 @@ function die(p,a){
     $('deadTxt').textContent=cause+(lost>0?' Du verlierst '+lost+' Erfahrung.':'')+' Stufe, Eigenschaften und Fähigkeiten bleiben dir erhalten.';
     $('deadTip').textContent=a.sp.snake
       ? 'Tipp: Puffottern liegen still im Gras und zischen, bevor sie beißen. Hörst du das Zischen, geh langsam zurück – schleichend bemerkst du sie früher.'
+      : a.sp.hippo
+      ? 'Tipp: Nilpferde greifen an, wer zwischen sie und ihr Wasser gerät oder ihnen zu nahe kommt. Nachts grasen sie am Ufer – mach einen Bogen um sie, und weich zur Seite aus, wenn eines das Maul aufreißt.'
       : a.sp.elephant
       ? 'Tipp: Elefanten drohen, bevor sie angreifen – gespreizte Ohren und Trompeten heißen: langsam zurück. Wer näher kommt oder stehen bleibt, wird niedergetrampelt. Ein Baum rettet dich.'
       : a.sp.guard&&!(a.sp.hunt&&S.lvl<a.sp.hunt)
