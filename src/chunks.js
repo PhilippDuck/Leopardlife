@@ -100,10 +100,10 @@ farMat.onBeforeCompile=sh=>{
   Object.assign(sh.uniforms,farUni);
   sh.vertexShader='uniform vec2 uPl[4]; uniform int uN; uniform float uHole;\n'+GLSL_H+sh.vertexShader
     .replace('#include <beginnormal_vertex>',`vec4 fwp=modelMatrix*vec4(position,1.0);
-  float fhL=H0(fwp.xz-vec2(4.0,0.0)), fhR=H0(fwp.xz+vec2(4.0,0.0)), fhD=H0(fwp.xz-vec2(0.0,4.0)), fhU=H0(fwp.xz+vec2(0.0,4.0));
+  float fhL=Hv(fwp.xz-vec2(4.0,0.0)), fhR=Hv(fwp.xz+vec2(4.0,0.0)), fhD=Hv(fwp.xz-vec2(0.0,4.0)), fhU=Hv(fwp.xz+vec2(0.0,4.0));
   vec3 objectNormal=normalize(vec3(fhL-fhR,8.0,fhD-fhU));`)
     .replace('#include <begin_vertex>',`vec3 transformed=vec3(position);
-  float fh=H0(fwp.xz)-0.35; float hole=0.0;
+  float fh=Hv(fwp.xz)-0.35; float hole=0.0;
   for(int i=0;i<4;i++){ if(i<uN&&distance(fwp.xz,uPl[i])<uHole) hole=1.0; }
   transformed.y=hole>0.5?-80.0:fh;`);
 };

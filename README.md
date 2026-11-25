@@ -20,7 +20,7 @@ durch Savanne und Sumpf.
 - Elefantenherden mit Jungen ziehen durch die Savanne und treffen sich an den Wasserlöchern; wer zu nahe kommt, wird erst angedroht (Ohren gespreizt, Trompeten) und dann niedergetrampelt
 - Nilpferde dösen tagsüber in großen Wasserlöchern (nur Rücken, Augen und Ohren schauen heraus) und grasen nachts am Ufer; wer zwischen sie und das Wasser gerät oder ihnen zu nahe kommt, wird erst angedroht und dann angegriffen
 - Felsplateaus (Kopjes) aus großen Granitblöcken: hinaufklettern für Aussicht und Sicherheit, Beute mitnehmen, oben schlafen; die Höhle am Fuß ist ein Versteck und Schlafplatz und kann im Startgebiet zum Bau für die Jungen werden
-- Ein Fluss schlängelt sich durch die Savanne und die weite Welt: im Tiefen muss man langsam schwimmen, Herden kommen nur an den flachen Furten hinüber – und dort lauern Krokodile; am Ufer kann man trinken
+- Ein Fluss schlängelt sich durch die Savanne und die weite Welt. Er entspringt an einer Quelle, fließt durch eine flache Aue stetig bergab und mündet in einen großen See ohne Abfluss. Dahinter beginnt der nächste Flussabschnitt an einer neuen Quelle. Im Tiefen muss man langsam schwimmen, und Herden kommen nur an den flachen Furten (Stromschnellen) hinüber. Krokodile lauern dort und vor allem in den breiten, tiefen Gumpen; im See leben Krokodile und Nilpferde. Am Ufer kann man trinken.
 - Trübe Tümpel verbergen Krokodile – nur feine Wellen und geducktes Lauschen am Ufer verraten sie
 - Tierlexikon im Menü: jede neu entdeckte Art bringt Erfahrung und einen Tipp
 - Erfahrung auch für unbemerktes Anpirschen, Beute im Baum, eine Nacht ohne Verletzung und ein vor dem Räuber gerettetes Junges
@@ -82,13 +82,13 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 | `src/perf.js` | Leistung: Schattentakt, automatische Auflösung, Bildratenanzeige |
 | `src/player.js` | Der Leopard des Spielers: Zustand, Startposition und Modell |
 | `src/quality.js` | Grafikstufen (niedrig/hoch/ultra) anwenden: Auflösung, Schatten, Gras, Nebel, Sichtweite |
-| `src/river.js` | Fluss: Wasserfläche je Abschnitt und Krokodile neben den Furten (Verlauf, Tiefe und Ufer in `terrain.js`) |
+| `src/river.js` | Fluss und See: Wasserflächen je Abschnitt, Krokodile an Furten und in Gumpen, Krokodile und Nilpferde im See (Verlauf, Gefälle, Tiefe und Aue in `terrain.js`) |
 | `src/regions.js` | Gebiete-Fenster und Wandern zwischen Gebieten |
 | `src/save.js` | Spielstand: Laden/Speichern, Gebiet, Schwierigkeit und daraus abgeleitete Werte (Leben, Ausdauer, Schaden, Tempo …) |
 | `src/skills.js` | Entwicklungsfenster: Eigenschaften, Fähigkeiten, Erbanlagen, Ahnenkraft |
 | `src/sky.js` | Himmel: Farbverlauf mit Sonne, Wolken und Sterne |
 | `src/state.js` | Gemeinsamer veränderlicher Zustand, den mehrere Teile des Spiels lesen und schreiben |
-| `src/terrain.js` | Gelände: Höhenformel, Wasserlöcher und Flüsse mit Furten, Kacheln mit Sichtbarkeitsprüfung, Boden, fernes Umland, Wasser und Hindernisse (Kollision) |
+| `src/terrain.js` | Gelände: Höhenformel, Wasserlöcher, Flüsse mit Gefälle, Furten, Aue und See, Kacheln mit Sichtbarkeitsprüfung, Boden, fernes Umland, Wasser und Hindernisse (Kollision) |
 | `src/tracks.js` | Spuren und Fährten der Tiere |
 | `src/ui.js` | Meldungen (mit Warteschlange) und schwebende Texte |
 | `src/util.js` | Kleine Hilfsfunktionen ohne Spielzustand |
