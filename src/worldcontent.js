@@ -4,7 +4,7 @@ import { worldPond, streamedPonds, waters, WATER_D, WORLD, H, pondAt, dryness, r
 import { scene } from './engine.js';
 import { animals, placeAnimal } from './animals.js';
 import { SPECIES } from './data.js';
-import { buildBaboon, buildCroc, buildQuad, buildSnake, makeFur } from './models.js';
+import { buildBaboon, buildCroc, buildElephant, buildQuad, buildSnake, makeFur } from './models.js';
 import { players, dropModel } from './player.js';
 import { S, save } from './save.js';
 import { endCarcass } from './carcass.js';
@@ -48,8 +48,8 @@ const worldHerds=new Map();
 let worldAnimalId=100000, worldContentTimer=0;
 /* Was in der weiten Welt lebt: je nach Trockenheit eine andere Mischung (Gewicht, Gruppengröße von–bis).
    Große Räuber und Riesenantilopen nur weit draußen und selten. */
-const WILD_WET=[['deer',3,3,5],['boar',2,2,3],['capy',2,3,5],['hase',2,1,2],['gnu',1,5,8],['baboon',1,5,7],['hyena',1,2,3],['jack',0.7,2,3],['snake',0.7,1,1]];
-const WILD_DRY=[['anti',3,3,5],['gnu',2,5,8],['hase',1.5,1,2],['wart',1.5,2,4],['baboon',0.7,5,7],['jack',1,2,3],['hyena',1.2,2,3],['snake',1,1,1],['giant',0.25,1,1],['lion',0.3,1,2]];
+const WILD_WET=[['deer',3,3,5],['boar',2,2,3],['capy',2,3,5],['hase',2,1,2],['gnu',1,5,8],['baboon',1,5,7],['ele',0.4,3,6],['hyena',1,2,3],['jack',0.7,2,3],['snake',0.7,1,1]];
+const WILD_DRY=[['anti',3,3,5],['gnu',2,5,8],['hase',1.5,1,2],['wart',1.5,2,4],['baboon',0.7,5,7],['ele',0.6,3,6],['jack',1,2,3],['hyena',1.2,2,3],['snake',1,1,1],['giant',0.25,1,1],['lion',0.3,1,2]];
 const FAR_ONLY={giant:600,lion:520};   // Mindestabstand zur Weltmitte
 const W_JUV=0.55;   // wie JUV in animals.js
 function pickWild(random,x,z){
@@ -59,7 +59,7 @@ function pickWild(random,x,z){
   return list[0];
 }
 function makeWorldAnimal(sp,x,z,mom){
-  const fur=makeFur(), g=sp.snake?buildSnake(sp.m,fur):sp.baboon?buildBaboon(sp.m,fur):buildQuad(sp.m,fur), k=mom?W_JUV:1;
+  const fur=makeFur(), g=sp.snake?buildSnake(sp.m,fur):sp.baboon?buildBaboon(sp.m,fur):sp.elephant?buildElephant(sp.m,fur):buildQuad(sp.m,fur), k=mom?W_JUV:1;
   g.scale.setScalar(sp.size*k); scene.add(g);
   const a={sp,g,fur,rad:sp.size*k*0.8+0.25,uid:worldAnimalId++,world:true};
   if(mom){ a.juv=true; a.mom=mom; (mom.kids||(mom.kids=[])).push(a); }

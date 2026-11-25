@@ -83,7 +83,7 @@ function doRoar(p=P){
   tell(p,'ROAAAR!','#f2b84b'); snd.roar();
   animals.forEach(a=>{ if(a.dead) return; const d=Math.hypot(a.x-p.x,a.z-p.z); if(d>R) return;
     if(a.sp.pred){ if(!a.sp.hunt||p.L.lvl+2*p.L.b.roar>=a.sp.hunt-3){ a.state='flee'; a.fleeT=0; a.aggro=0; a.scared=5; goalEvent('roar',1); } }
-    else if(!a.sp.boss&&!a.sp.friend){ a.stun=1.2+0.5*p.L.b.roar; } });
+    else if(!a.sp.boss&&!a.sp.friend&&!a.sp.elephant){ a.stun=1.2+0.5*p.L.b.roar; } });
 }
 /**
  * Spieler p bekommt n Erfahrung; Stufenaufstieg gibt 2 Punkte für die Entwicklung.
@@ -133,6 +133,8 @@ function die(p,a){
     $('deadTxt').textContent=cause+(lost>0?' Du verlierst '+lost+' Erfahrung.':'')+' Stufe, Eigenschaften und Fähigkeiten bleiben dir erhalten.';
     $('deadTip').textContent=a.sp.snake
       ? 'Tipp: Puffottern liegen still im Gras und zischen, bevor sie beißen. Hörst du das Zischen, geh langsam zurück – schleichend bemerkst du sie früher.'
+      : a.sp.elephant
+      ? 'Tipp: Elefanten drohen, bevor sie angreifen – gespreizte Ohren und Trompeten heißen: langsam zurück. Wer näher kommt oder stehen bleibt, wird niedergetrampelt. Ein Baum rettet dich.'
       : a.sp.guard&&!(a.sp.hunt&&S.lvl<a.sp.hunt)
       ? 'Tipp: Elterntiere verteidigen ihre Jungen. Halte Abstand zu den Kleinen oder lock die Mutter erst weg.'
       : a.sp.croc

@@ -205,4 +205,50 @@ function animBaboon(g,t,amp){
   u.head.rotation.x=0.9*s; u.tail.rotation.y=Math.sin(t*0.5)*0.25*(1-s); u.tail.rotation.x=0.9+0.8*s;
 }
 
-export { CROC_EYE, buildBaboon, animCroc, animLegs, animSnake, buildSnake, buildCroc, buildQuad, furColor, furName, makeFur };
+/* Elefant: mächtiger Rumpf auf Säulenbeinen, großer Kopf mit Stoßzähnen, Ohren und einem Rüssel aus Gliedern.
+   userData.alarm (0…1) spreizt die Ohren und hebt den Rüssel zum Trompeten; sonst fächeln die Ohren und der Rüssel pendelt.
+   Vorn ist +z. */
+function buildElephant(o,v){
+  const f=k=>o[k]===undefined?undefined:(v?furColor(o[k],v):o[k]);
+  const col=f('col'), dark=f('col2')||col, eyeC=v&&v.albino?0xc8506a:0x111111, ivory=0xeee6cf;
+  const g=new THREE.Group(), inner=new THREE.Group(); g.add(inner);
+  const L=1.5, Hh=0.75, W=0.85, leg=0.7, by=leg+Hh/2;
+  // Rumpf: hoher Rücken über den Schultern, zur Hüfte abfallend, Bauch etwas dunkler
+  box(W,Hh,L,col,0,by,0,inner); box(W*0.9,0.16,L*0.55,col,0,by+Hh/2+0.06,0.22,inner); box(W*0.85,0.12,L*0.4,col,0,by+Hh/2+0.02,-0.4,inner);
+  box(W*0.92,0.12,L*0.85,dark,0,by-Hh/2+0.02,0,inner);
+  // Kopf: Schädel mit Stirnwulst, Augen, Stoßzähne
+  const head=new THREE.Group(); head.position.set(0,by+0.22,L/2+0.08); inner.add(head);
+  box(0.62,0.66,0.5,col,0,0,0.14,head); box(0.5,0.18,0.3,col,0,0.36,0.1,head);
+  box(0.4,0.3,0.22,col,0,-0.28,0.32,head);                                                     // Ansatz des Rüssels
+  [1,-1].forEach(s=>{ box(0.04,0.06,0.06,eyeC,s*0.31,0.06,0.3,head);
+    const t=box(0.07,0.07,0.5,ivory,s*0.15,-0.42,0.52,head); t.rotation.x=-0.45; });            // Stoßzähne, nach vorn geschwungen
+  // Ohren: große Lappen, die am Kopf hängen und sich zum Drohen abspreizen
+  const ears=[1,-1].map(s=>{ const e=new THREE.Group(); e.position.set(s*0.31,0.08,0.06); head.add(e);
+    box(0.05,0.72,0.56,dark,s*0.03,-0.08,-0.28,e); box(0.04,0.5,0.4,0x9a7f7a,s*0.06,-0.08,-0.24,e); return e; });
+  // Rüssel: sechs Glieder, von oben nach unten dünner
+  const trunk=[]; let par=head;
+  for(let i=0;i<6;i++){ const w=0.24-0.025*i, len=0.14; const sg=new THREE.Group(); sg.position.set(0,i?-len:-0.4,i?0:0.38); par.add(sg);
+    box(w,len,w,col,0,-len/2,0,sg); if(i===5) box(w*1.1,0.05,w*1.1,dark,0,-len,0,sg); trunk.push(sg); par=sg; }
+  const legs=[];
+  [[1,1],[-1,1],[1,-1],[-1,-1]].forEach(p=>{ const pv=new THREE.Group(); pv.position.set(p[0]*(W/2-0.16),leg,p[1]*(L/2-0.2)); inner.add(pv);
+    box(0.28,leg,0.3,col,0,-leg/2,0,pv); box(0.32,0.06,0.34,dark,0,-leg+0.03,0.01,pv); legs.push(pv); });
+  const tail=new THREE.Group(); tail.position.set(0,by+Hh*0.3,-L/2); inner.add(tail); box(0.05,0.05,0.5,dark,0,0,-0.25,tail); box(0.08,0.08,0.1,0x2a2420,0,0,-0.52,tail); tail.rotation.x=1.15;
+  mergeRigid(inner,new Set(legs.concat([tail,head]))); mergeRigid(head,new Set(ears.concat([trunk[0]])));
+  ears.forEach(e=>mergeRigid(e,new Set())); trunk.forEach((sg,i)=>mergeRigid(sg,new Set(i<5?[trunk[i+1]]:[])));
+  legs.forEach(l=>mergeRigid(l,new Set())); mergeRigid(tail,new Set());
+  const sh=new THREE.Mesh(shadowGeo,shadowMat); sh.scale.set(W*1.2,1,L*0.75); sh.position.y=0.03; g.add(sh); blobs.push(sh);
+  g.userData={legs,tail,head,inner,blob:sh,ears,trunk,alarm:0,elephant:true,anim:(t,amp)=>animElephant(g,t,amp)};
+  return g;
+}
+/** Elefant bewegen: Beine, Schwanz, Ohren fächeln, Rüssel pendelt; mit userData.alarm Ohren gespreizt und Rüssel erhoben */
+function animElephant(g,t,amp){
+  const u=g.userData, l=u.legs, a=Math.sin(t)*amp*0.8, al=u.alarm||0;
+  l[0].rotation.x=a; l[3].rotation.x=a; l[1].rotation.x=-a; l[2].rotation.x=-a;
+  u.tail.rotation.y=Math.sin(t*0.5)*0.3;
+  const fan=(1-al)*(0.12+0.1*Math.sin(t*0.35))+al*1.15;
+  u.ears[0].rotation.y=-fan; u.ears[1].rotation.y=fan;
+  u.trunk.forEach((sg,i)=>{ sg.rotation.x=-al*(i?0.5:0.9); sg.rotation.z=(1-al)*Math.sin(t*0.3-i*0.6)*0.08; });
+  u.head.rotation.x=-al*0.25;
+}
+
+export { CROC_EYE, buildBaboon, buildElephant, animCroc, animLegs, animSnake, buildSnake, buildCroc, buildQuad, furColor, furName, makeFur };
