@@ -15,7 +15,7 @@ import { hudExp, xb } from './menu.js';
 import { P, players } from './player.js';
 import { D, DIE_AT, S, baseSpeed, has, maxHp, maxSt, oldF, pScale, tf, xpNeed } from './save.js';
 import { G } from './state.js';
-import { H, PONDS, streamedPonds } from './terrain.js';
+import { H, PONDS, riverMarks, streamedPonds } from './terrain.js';
 import { $ } from './util.js';
 import { patches, trees } from './vegetation.js';
 import { W } from './weather.js';
@@ -218,7 +218,7 @@ function drawRadar(p=P,cv=/** @type {HTMLCanvasElement} */(hEl(p,'rc')),ctx=p===
     rc.fill();
   }
   drawAreas(patches,'rgba(120,190,90,.35)');
-  drawAreas([...PONDS,...streamedPonds],'rgba(90,160,200,.55)');
+  drawAreas([...PONDS,...streamedPonds,...riverMarks(p.x,p.z,R)],'rgba(90,160,200,.55)');
   // Zuhause: Haus-Zeichen am Bau, außerhalb der Reichweite am Rand der Spürkarte
   { let dx=CUB_HOME.x-p.x, dz=CUB_HOME.z-p.z; const d=Math.hypot(dx,dz), rim=R*0.8; if(d>rim){ dx*=rim/d; dz*=rim/d; }
     rc.save(); rc.translate(dx*k,dz*k); rc.rotate(-p.cam.yaw); const u=11*sc;

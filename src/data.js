@@ -31,7 +31,7 @@ export const REGIONS={
     winT:'König der Wildnis',winX:'Du hast die Riesenantilope erlegt. Aus dem kleinen Jungtier ist der gefürchtetste Jäger der Savanne geworden.'},
   sumpf:{n:'Sumpf',gen:3,d:'Viele Wasserlöcher, Schilf und Palmen. Krokodile lauern unsichtbar im Wasser – nur Luftblasen verraten sie.',boss:'Riesenkrokodil',
     ponds:[[-60,30,18],[-20,-70,16],[55,-40,20],[80,60,22],[-110,-40,24],[20,110,19],[-90,120,21],[140,-10,23],[110,-130,20],[-40,-150,22],[-160,70,18],[170,110,17],[-150,-130,19]],
-    trees:300,savFrom:999,palms:[4,7],patches:120,kopjes:1,ground:[0x335a2a,0x5d6a36],hor:0xbfd3c2,
+    trees:300,savFrom:999,palms:[4,7],patches:120,kopjes:1,riverZ:330,ground:[0x335a2a,0x5d6a36],hor:0xbfd3c2,
     counts:{maus:14,hase:8,capy:18,boar:9,deer:8,anti:0,giant:0,jack:3,hyena:4,lion:2,croc:10,bigcroc:1},
     winT:'Herr des Sumpfes',winX:'Du hast das Riesenkrokodil bezwungen. Kein Wasserloch ist vor deiner Linie mehr sicher.'},
   dschungel:{n:'Dschungel',gen:5,soon:true,d:'Paviane, Giftschlangen und Affen in den Bäumen.'},

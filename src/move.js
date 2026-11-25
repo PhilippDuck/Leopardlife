@@ -8,7 +8,7 @@ import { setHide } from './hide.js';
 import { animLegs } from './models.js';
 import { S, at, baseSpeed, has, maxHp, maxSt, pScale, tf } from './save.js';
 import { G } from './state.js';
-import { H, WORLD, collide, inWater } from './terrain.js';
+import { H, RIV_SWIM, WORLD, collide, inWater, riverDepth } from './terrain.js';
 import { inGrass, trees } from './vegetation.js';
 import { W } from './weather.js';
 import { $ } from './util.js';
@@ -27,7 +27,7 @@ function stepPlayer(p,dt){
   const wantSprint=p.ctl.sprint&&moving;
   let sprint=wantSprint&&p.st>1;
   const sneak=p.sneak&&!sprint;   // beim Sprinten ruht das Schleichen
-  let spd=baseSpeed(p.L)*(sprint?1.6:sneak?0.45:1); if(p.wet) spd*=0.65;
+  let spd=baseSpeed(p.L)*(sprint?1.6:sneak?0.45:1); if(p.wet) spd*=p.swim?0.45:0.65;   // waten bzw. schwimmen
   if(p.drag){ sprint=false; spd*=0.45; }   // Beute ziehen: langsam, kein Sprint
   if(sprint) p.st-=20*dt; else p.st=Math.min(maxSt(p.L),p.st+(12+2*at('sta',p.L))*(p.L.hunger<25||(p.L.thirst??100)<25?0.5:1)*(moving?0.7:1.3)*dt);
   if(p===P&&p.st<=1&&G.tSprint){ G.tSprint=false; $('tbS').classList.remove('on'); }
@@ -61,6 +61,7 @@ function stepPlayer(p,dt){
   if(p.hurtT>0){ p.hurtT-=dt; if(p.hurtT<=0) hEl(p,'hurt').style.opacity='0'; }
   const jump=p.pounce>0?Math.sin(Math.PI*(1-p.pounce/p.pT))*1.1*sc:0;
   p.y=H(p.x,p.z);
+  { const wd=p.tree==null?riverDepth(p.x,p.z):0, fl=0.5*sc; p.swim=wd>RIV_SWIM; if(wd>fl) p.y+=wd-fl; }   // im tiefen Fluss schwimmt er (Kopf über Wasser)
   let up=0;
   if(p.tree!=null){ const t=trees[p.tree], e=p.climbT*p.climbT*(3-2*p.climbT); up=(t.y+t.perch[1]-p.y)*e; p.upNow=up; }
   else if(p.dropY>0){ p.dropY=Math.max(0,p.dropY-p.dropRate*dt); up=p.dropY; }
