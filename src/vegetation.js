@@ -1,6 +1,7 @@
 // LeoLife – Pflanzen: Bäume (mit Ausblenden vor der Kamera), Büsche, Felsen, Stämme, Blumen, Bodengras, hohes Gras als Versteck und die Felsen am Bau.
 import { camera, grassLight, scene, windU } from './engine.js';
-import { REG, pScale } from './save.js';
+import { REG, WORLD_SEED, pScale } from './save.js';
+import { seeded } from './noise.js';
 import { G } from './state.js';
 import { GLSL_DRY, GLSL_H, GLSL_PONDMASK, H, PONDS, WORLD, addCol, addSight, dryness, pondAt, registerTile, tileOf } from './terrain.js';
 import { rnd } from './util.js';
@@ -22,6 +23,9 @@ function blobGeo(detail){
   for(let i=0;i<p.count;i++){ const x=p.getX(i), y=p.getY(i), z=p.getZ(i), n=1+0.14*Math.sin(x*12.9+y*7.3)*Math.cos(z*9.1-x*3.7)+0.07*Math.sin(y*21.0+z*13.0); p.setXYZ(i,x*n,y*n,z*n); }
   g.computeVertexNormals(); return g;
 }
+/** Zufall aus dem Weltsamen für die Landschaft des Startgebiets: Alle Geräte im Online-Spiel bekommen dieselben Bäume, Büsche und Verstecke.
+    Je Teil ein eigener Strom, damit eine Änderung an einem Teil die anderen nicht verschiebt. */
+function vegRng(k){ const r=seeded((WORLD_SEED^k)>>>0); return {r,rr:(a,b)=>a+r()*(b-a)}; }
 const hsl=(h,s,l)=>new THREE.Color().setHSL(h,s,l).getHex();
 function makeTree(o,random=Math.random){
     const rnd=(min,max)=>min+random()*(max-min);
@@ -92,17 +96,18 @@ function makeTree(o,random=Math.random){
     return t;
   }
 (function(){
+  const {r:wr,rr:wrnd}=vegRng(0x74726565);
   for(let i=0;i<REG.trees;i++){
-    let x,z,r; do{ r=Math.sqrt(Math.random())*WORLD; const a=Math.random()*6.283; x=Math.cos(a)*r; z=Math.sin(a)*r; }while(r<10||(r>110&&Math.random()<0.7)||pondAt(x,z,1.3)||kopjeNear(x,z,3));
-    trees.push(makeTree({x,z,sav:r>REG.savFrom}));
+    let x,z,r; do{ r=Math.sqrt(wr())*WORLD; const a=wr()*6.283; x=Math.cos(a)*r; z=Math.sin(a)*r; }while(r<10||(r>110&&wr()<0.7)||pondAt(x,z,1.3)||kopjeNear(x,z,3));
+    trees.push(makeTree({x,z,sav:r>REG.savFrom},wr));
   }
   // Affenbrotbäume: wenige Riesen in der Savanne, weit auseinander; andere Bäume machen ihnen Platz
   const bao=[];
-  for(let i=0,t=0;i<(REG.baobabs||0)&&t<200;t++){ const r=rnd(Math.max(60,REG.savFrom),WORLD-14), a=Math.random()*6.283, x=Math.cos(a)*r, z=Math.sin(a)*r;
+  for(let i=0,t=0;i<(REG.baobabs||0)&&t<200;t++){ const r=wrnd(Math.max(60,REG.savFrom),WORLD-14), a=wr()*6.283, x=Math.cos(a)*r, z=Math.sin(a)*r;
     if(pondAt(x,z,1.6)||kopjeNear(x,z,8)||bao.some(b=>Math.hypot(b.x-x,b.z-z)<70)) continue; bao.push({x,z}); i++; }
   for(let i=trees.length-1;i>=0;i--) if(bao.some(b=>Math.hypot(b.x-trees[i].x,b.z-trees[i].z)<8)) trees.splice(i,1);
-  bao.forEach(b=>trees.push(makeTree({x:b.x,z:b.z,baobab:true})));
-  PONDS.forEach(p=>{ const n=REG.palms[0]+Math.floor(Math.random()*(REG.palms[1]-REG.palms[0]+1)); for(let j=0;j<n;j++){ const a=Math.random()*6.283, d=p.r*rnd(1.12,1.45); trees.push(makeTree({x:p.x+Math.cos(a)*d,z:p.z+Math.sin(a)*d,palm:true})); } });
+  bao.forEach(b=>trees.push(makeTree({x:b.x,z:b.z,baobab:true},wr)));
+  PONDS.forEach(p=>{ const n=REG.palms[0]+Math.floor(wr()*(REG.palms[1]-REG.palms[0]+1)); for(let j=0;j<n;j++){ const a=wr()*6.283, d=p.r*wrnd(1.12,1.45); trees.push(makeTree({x:p.x+Math.cos(a)*d,z:p.z+Math.sin(a)*d,palm:true},wr)); } });
   const nW={}, nL={}; trees.forEach(t=>{ const k=tileOf(t.x,t.z); t.parts.forEach(p=>{ const N=p.leaf?nL:nW; p.k=k; p.i=N[k]=(N[k]||0); N[k]++; }); });
   const wg=new THREE.CylinderGeometry(0.7,1,1,7,1); wg.translate(0,0.5,0);
   const wm=new THREE.MeshLambertMaterial({color:0xffffff});
@@ -191,6 +196,7 @@ function shrubKind(d,random=Math.random){
   const r=random(); return r<0.5?'dry':r<0.8?'rock':null;
 }
 (function(){
+  const {r:wr,rr:wrnd}=vegRng(0x62757368);
   const mat=new THREE.MeshLambertMaterial({color:0xffffff});
   const m=new THREE.Matrix4(), q=new THREE.Quaternion(), s=new THREE.Vector3(), v=new THREE.Vector3(), e=new THREE.Euler(), c=new THREE.Color();
   function scatter(n,geo,fn,shadow){
@@ -200,33 +206,33 @@ function shrubKind(d,random=Math.random){
       L.forEach((o,i)=>{ e.set(o.rx||0,o.ry||0,o.rz||0); q.setFromEuler(e); m.compose(v.set(o.x,o.y,o.z),q,s.set(o.sx,o.sy,o.sz)); mesh.setMatrixAt(i,m); mesh.setColorAt(i,c.setHSL(o.h,o.s,o.l)); });
       mesh.castShadow=!!shadow; mesh.receiveShadow=true; scene.add(mesh); registerTile(mesh,+k,78); }
   }
-  function spot(rmin,rmax){ let x,z,t=0; do{ const r=Math.sqrt(rnd(rmin*rmin,rmax*rmax)), a=Math.random()*6.283; x=Math.cos(a)*r; z=Math.sin(a)*r; }while((pondAt(x,z,1.05)||kopjeNear(x,z,1))&&++t<20); return {x,z,r:Math.hypot(x,z)}; }
+  function spot(rmin,rmax){ let x,z,t=0; do{ const r=Math.sqrt(wrnd(rmin*rmin,rmax*rmax)), a=wr()*6.283; x=Math.cos(a)*r; z=Math.sin(a)*r; }while((pondAt(x,z,1.05)||kopjeNear(x,z,1))&&++t<20); return {x,z,r:Math.hypot(x,z)}; }
   // Buschplätze: im Grünen grüne Büsche, im Trockenen vertrocknete Büsche und Steine (shrubKind)
   const shrubs={green:[],dry:[],rock:[]};
-  for(let i=0;i<320;i++){ const p=spot(9,WORLD), k=shrubKind(dryness(p.x,p.z)); if(k) shrubs[k].push(p); }
+  for(let i=0;i<320;i++){ const p=spot(9,WORLD), k=shrubKind(dryness(p.x,p.z),wr); if(k) shrubs[k].push(p); }
   let si=0;
-  scatter(shrubs.green.length,bushGeometry,()=>{ const p=shrubs.green[si++], sy=rnd(0.5,0.95), sav=p.r>115;
-    const bsx=rnd(0.8,1.7), bsz=rnd(0.8,1.7); addSight(p.x,p.z,(bsx+bsz)*0.42,sy*0.9,0.8);   // Busch: verdeckt fast ganz
-    return {x:p.x,z:p.z,y:H(p.x,p.z)+sy*0.45,sx:bsx,sy,sz:bsz,ry:Math.random()*6,...bushColor(sav)}; },true);
-  si=0; scatter(shrubs.dry.length,dryBushGeometry,()=>{ const p=shrubs.dry[si++], k=rnd(0.6,1.05), sy=rnd(0.6,1.0);
+  scatter(shrubs.green.length,bushGeometry,()=>{ const p=shrubs.green[si++], sy=wrnd(0.5,0.95), sav=p.r>115;
+    const bsx=wrnd(0.8,1.7), bsz=wrnd(0.8,1.7); addSight(p.x,p.z,(bsx+bsz)*0.42,sy*0.9,0.8);   // Busch: verdeckt fast ganz
+    return {x:p.x,z:p.z,y:H(p.x,p.z)+sy*0.45,sx:bsx,sy,sz:bsz,ry:wr()*6,...bushColor(sav,wr)}; },true);
+  si=0; scatter(shrubs.dry.length,dryBushGeometry,()=>{ const p=shrubs.dry[si++], k=wrnd(0.6,1.05), sy=wrnd(0.6,1.0);
     addSight(p.x,p.z,k*0.8,sy*0.9,0.35);   // vertrocknet: man sieht teilweise hindurch
-    return {x:p.x,z:p.z,y:H(p.x,p.z)-0.05,sx:k,sy,sz:k,ry:Math.random()*6,...dryBushColor()}; },true);
-  si=0; scatter(shrubs.rock.length,new THREE.DodecahedronGeometry(1,0),()=>{ const p=shrubs.rock[si++], sy=rnd(0.25,0.7), sx=rnd(0.4,1.2), sz=rnd(0.4,1.2);
+    return {x:p.x,z:p.z,y:H(p.x,p.z)-0.05,sx:k,sy,sz:k,ry:wr()*6,...dryBushColor(wr)}; },true);
+  si=0; scatter(shrubs.rock.length,new THREE.DodecahedronGeometry(1,0),()=>{ const p=shrubs.rock[si++], sy=wrnd(0.25,0.7), sx=wrnd(0.4,1.2), sz=wrnd(0.4,1.2);
     if(sy>0.45&&sx+sz>1.4) addCol(p.x,p.z,(sx+sz)*0.4,true);
     if(sy>0.4) addSight(p.x,p.z,(sx+sz)*0.42,sy*0.95,1);
-    return {x:p.x,z:p.z,y:H(p.x,p.z)+sy*0.25,sx,sy,sz,ry:Math.random()*6,h:rnd(0.07,0.11),s:rnd(0.06,0.14),l:rnd(0.45,0.6)}; },true);
-  scatter(170,new THREE.DodecahedronGeometry(1,0),()=>{ const p=spot(12,WORLD), sy=rnd(0.3,1.2), sx=rnd(0.4,1.8), sz=rnd(0.4,1.8);
+    return {x:p.x,z:p.z,y:H(p.x,p.z)+sy*0.25,sx,sy,sz,ry:wr()*6,h:wrnd(0.07,0.11),s:wrnd(0.06,0.14),l:wrnd(0.45,0.6)}; },true);
+  scatter(170,new THREE.DodecahedronGeometry(1,0),()=>{ const p=spot(12,WORLD), sy=wrnd(0.3,1.2), sx=wrnd(0.4,1.8), sz=wrnd(0.4,1.8);
     if(sy>0.45&&sx+sz>1.4) addCol(p.x,p.z,(sx+sz)*0.4,true);   // kleine Steine bleiben begehbar
     if(sy>0.4) addSight(p.x,p.z,(sx+sz)*0.42,sy*0.95,1);   // Felsen verdecken ganz
-    return {x:p.x,z:p.z,y:H(p.x,p.z)+sy*0.25,sx,sy,sz,ry:Math.random()*6,h:rnd(0.07,0.12),s:rnd(0.04,0.12),l:rnd(0.42,0.6)}; },true);
-  scatter(34,new THREE.CylinderGeometry(0.34,0.4,1,7),()=>{ const p=spot(15,170), len=rnd(2.5,5.5), ry=Math.random()*6, n=Math.ceil(len/0.7);
+    return {x:p.x,z:p.z,y:H(p.x,p.z)+sy*0.25,sx,sy,sz,ry:wr()*6,h:wrnd(0.07,0.12),s:wrnd(0.04,0.12),l:wrnd(0.42,0.6)}; },true);
+  scatter(34,new THREE.CylinderGeometry(0.34,0.4,1,7),()=>{ const p=spot(15,170), len=wrnd(2.5,5.5), ry=wr()*6, n=Math.ceil(len/0.7);
     for(let j=0;j<=n;j++){ const u=(j/n-0.5)*len; addCol(p.x+Math.cos(ry)*u,p.z-Math.sin(ry)*u,0.42,true); addSight(p.x+Math.cos(ry)*u,p.z-Math.sin(ry)*u,0.4,0.62,0.7); }
-    return {x:p.x,z:p.z,y:H(p.x,p.z)+0.28,sx:rnd(0.8,1.3),sy:len,sz:rnd(0.8,1.3),rz:Math.PI/2,ry,h:rnd(0.06,0.09),s:rnd(0.3,0.45),l:rnd(0.2,0.3)}; },true);
+    return {x:p.x,z:p.z,y:H(p.x,p.z)+0.28,sx:wrnd(0.8,1.3),sy:len,sz:wrnd(0.8,1.3),rz:Math.PI/2,ry,h:wrnd(0.06,0.09),s:wrnd(0.3,0.45),l:wrnd(0.2,0.3)}; },true);
   // Blumen in kleinen Gruppen, vor allem im grünen Zentrum
   const fl=[[0.14,0.9,0.6],[0.92,0.7,0.68],[0.0,0.0,0.95],[0.06,0.9,0.58],[0.75,0.5,0.7]]; let cl=null, cc=null;
-  scatter(1100,new THREE.OctahedronGeometry(0.13,0),i=>{ if(i%14===0){ cl=spot(8,150); cc=fl[Math.floor(Math.random()*fl.length)]; }
-    const x=cl.x+rnd(-2.5,2.5), z=cl.z+rnd(-2.5,2.5), k=rnd(0.7,1.4);
-    return {x,z,y:H(x,z)+rnd(0.22,0.4),sx:k,sy:k*0.7,sz:k,ry:Math.random()*6,h:cc[0],s:cc[1],l:cc[2]}; },false);
+  scatter(1100,new THREE.OctahedronGeometry(0.13,0),i=>{ if(i%14===0){ cl=spot(8,150); cc=fl[Math.floor(wr()*fl.length)]; }
+    const x=cl.x+wrnd(-2.5,2.5), z=cl.z+wrnd(-2.5,2.5), k=wrnd(0.7,1.4);
+    return {x,z,y:H(x,z)+wrnd(0.22,0.4),sx:k,sy:k*0.7,sz:k,ry:wr()*6,h:cc[0],s:cc[1],l:cc[2]}; },false);
 })();
 
 G.grassGeo=null; G.grassMat=null;   // werden unten beim Anlegen des Bodengrases gesetzt
@@ -264,27 +270,28 @@ const GRASS_N=30000;
 /* Hohes Gras (Verstecke), auch als Schilf an den Wasserlöchern */
 const patches=[]; let tallGeo=null, tallMat=null, TALL_N=0;
 (function(){
+  const {r:wr,rr:wrnd}=vegRng(0x67726173);
   for(let i=0;i<REG.patches;i++){
-    let x,z,t=0; do{ const r=(i<45?rnd(8,90):rnd(60,WORLD-10)), a=Math.random()*6.283; x=Math.cos(a)*r; z=Math.sin(a)*r; }while((pondAt(x,z,1.5)||kopjeNear(x,z,8))&&++t<20);
-    patches.push({x,z,r:rnd(4,8.5)});
+    let x,z,t=0; do{ const r=(i<45?wrnd(8,90):wrnd(60,WORLD-10)), a=wr()*6.283; x=Math.cos(a)*r; z=Math.sin(a)*r; }while((pondAt(x,z,1.5)||kopjeNear(x,z,8))&&++t<20);
+    patches.push({x,z,r:wrnd(4,8.5)});
   }
   patches.push({x:7,z:5,r:6});
-  PONDS.forEach(p=>{ for(let i=0;i<3;i++){ const a=Math.random()*6.283, d=p.r*1.2; patches.push({x:p.x+Math.cos(a)*d,z:p.z+Math.sin(a)*d,r:rnd(3.5,5)}); } });
+  PONDS.forEach(p=>{ for(let i=0;i<3;i++){ const a=wr()*6.283, d=p.r*1.2; patches.push({x:p.x+Math.cos(a)*d,z:p.z+Math.sin(a)*d,r:wrnd(3.5,5)}); } });
   // Flache Halme statt Kegel: Büschel aus 5 Halmen, im Shader mit Wind und Ausweichen vor dem Leoparden
   const B=5, pos=new Float32Array(B*27);
   for(let b=0;b<B;b++){
-    const bx=rnd(-0.32,0.32), bz=rnd(-0.32,0.32), a=Math.random()*3.14, ca=Math.cos(a), sa=Math.sin(a), h=rnd(1.15,1.9), lx=rnd(-0.3,0.3), lz=rnd(-0.3,0.3), w0=0.075, w1=0.05, hm=h*0.55;
+    const bx=wrnd(-0.32,0.32), bz=wrnd(-0.32,0.32), a=wr()*3.14, ca=Math.cos(a), sa=Math.sin(a), h=wrnd(1.15,1.9), lx=wrnd(-0.3,0.3), lz=wrnd(-0.3,0.3), w0=0.075, w1=0.05, hm=h*0.55;
     const L0=[bx-ca*w0,0,bz-sa*w0], R0=[bx+ca*w0,0,bz+sa*w0], L1=[bx+lx*0.3-ca*w1,hm,bz+lz*0.3-sa*w1], R1=[bx+lx*0.3+ca*w1,hm,bz+lz*0.3+sa*w1], T=[bx+lx,h,bz+lz];
     [L0,R0,R1, L0,R1,L1, L1,R1,T].forEach((v,i)=>pos.set(v,b*27+i*3));
   }
   const list=[];
   patches.forEach(p=>{ const n=Math.floor(p.r*p.r*4.2); for(let i=0;i<n;i++){
-    const rr=Math.sqrt(Math.random())*p.r, a=Math.random()*6.283, x=p.x+Math.cos(a)*rr, z=p.z+Math.sin(a)*rr;
+    const rr=Math.sqrt(wr())*p.r, a=wr()*6.283, x=p.x+Math.cos(a)*rr, z=p.z+Math.sin(a)*rr;
     if(pondAt(x,z,0.8)) continue;
     if(Math.hypot(x-7,z-5)<2.8) continue;   // Nest am Bau frei lassen, damit man die Jungen sieht
-    list.push([x,H(x,z),z,Math.random()*6.283,rnd(0.75,1.2),Math.random(),dryness(x,z)]);
+    list.push([x,H(x,z),z,wr()*6.283,wrnd(0.75,1.2),wr(),dryness(x,z)]);
   }});
-  for(let i=list.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)), t=list[i]; list[i]=list[j]; list[j]=t; }   // gemischt, damit "niedrig" gleichmäßig ausdünnt
+  for(let i=list.length-1;i>0;i--){ const j=Math.floor(wr()*(i+1)), t=list[i]; list[i]=list[j]; list[j]=t; }   // gemischt, damit "niedrig" gleichmäßig ausdünnt
   TALL_N=list.length; tallGeo=[];
   const posAttr=new THREE.BufferAttribute(pos,3), byT={};
   list.forEach(o=>{ const k=tileOf(o[0],o[2]); (byT[k]=byT[k]||[]).push(o); });

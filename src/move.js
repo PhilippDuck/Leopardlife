@@ -71,7 +71,9 @@ function stepPlayer(p,dt){
   if(p.roarT>0){ p.roarT=Math.max(0,p.roarT-dt); g.rotation.x=-0.22*Math.sin(Math.PI*(1-p.roarT/0.9)); } else if(g.rotation.x) g.rotation.x=0;
   g.userData.inner.position.y+=(((sneak&&p.pounce<=0)?-0.16:p.drinking?-0.1:0)-g.userData.inner.position.y)*Math.min(1,dt*10);
   g.userData.inner.rotation.x=climbing?-1.1:p.pounce>0?(p.leap?0.35:-0.3):p.drinking?0.3:0;   // trinkend: Kopf zum Wasser
-  if(climbing) animLegs(g,p.walkT,0.7); else if(p.tree!=null&&p.treeWalk){ p.walkT+=dt*6; animLegs(g,p.walkT,0.3); } else if(moving||p.pounce>0){ p.walkT+=dt*(5+spd*1.4); animLegs(g,p.walkT,p.pounce>0?1.1:sprint?0.85:sneak?0.3:0.55); } else animLegs(g,p.walkT,0.02);
+  // Ausschlag der Beine merken: net.js zeigt den Leoparden damit auch auf den anderen Geräten im Online-Spiel
+  if(climbing) p.legA=0.7; else if(p.tree!=null&&p.treeWalk){ p.walkT+=dt*6; p.legA=0.3; } else if(moving||p.pounce>0){ p.walkT+=dt*(5+spd*1.4); p.legA=p.pounce>0?1.1:sprint?0.85:sneak?0.3:0.55; } else p.legA=0.02;
+  animLegs(g,p.walkT,p.legA);
   if(moving&&p.pounce<=0){ p.stepT=(p.stepT||0)-dt*(sprint?1.7:sneak?0.55:1); if(p.stepT<=0){ p.stepT=0.3; if(p.wet) snd.splash(); else snd.step(sneak?0.04:sprint?0.2:0.12); } }
   // Tarnung
   const grass=inGrass(p.x,p.z); p.wet=p.tree==null&&inWater(p.x,p.z);

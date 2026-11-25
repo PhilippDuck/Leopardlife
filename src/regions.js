@@ -5,6 +5,7 @@ import { REG_ID, S, beaten, save } from './save.js';
 import { G } from './state.js';
 import { toast } from './ui.js';
 import { $ } from './util.js';
+import { onlineActive } from './net.js';
 
 /* Gebiete wechseln (lädt die Seite mit der neuen Karte neu) */
 function reloadWorld(showDiffAfter){
@@ -19,6 +20,7 @@ function renderRegions(){
       (open&&!here?'<button data-r="'+id+'">'+(travelArm===id?'Wirklich wandern?':'Hinwandern')+'</button>':'<span></span>')+'</div>'; }).join('');
 }
 $('regList').addEventListener('click',e=>{ const b=e.target.closest('button[data-r]'); if(!b) return; const id=b.dataset.r;
+  if(onlineActive()){ toast('Im Online-Spiel bleibt ihr im Gebiet des Gastgebers. Verlasse zuerst den Raum.','#f2b84b'); return; }
   if(travelArm!==id){ travelArm=id; renderRegions(); return; }
   S.region=id; reloadWorld(false); });
 function openRegions(){ travelArm=null; renderRegions(); $('menu').style.display='none'; $('regions').style.display='flex'; }

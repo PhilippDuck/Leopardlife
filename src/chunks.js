@@ -8,7 +8,7 @@ import { G } from './state.js';
 import { dryness, GLSL_H, H, hash2, onView, pondAt, registerCull, unregisterCull, vnoise } from './terrain.js';
 import { rnd } from './util.js';
 import { seeded } from './noise.js';
-import { REG, S } from './save.js';
+import { REG, WORLD_SEED } from './save.js';
 
 const CHUNK=64, SEG=26;
 /** @typedef {{cx:number,cz:number,key:string,mesh:any,cull:any,used:number,rng:()=>number,content:any[]}} Chunk */
@@ -56,7 +56,7 @@ function loadChunk(cx,cz){
   chunks.set(key,c); for(const fn of fillers) fn(c);
 }
 /** Zufall je Chunk aus Weltsamen + Koordinaten: kommt man zurück, entsteht derselbe Inhalt */
-function chunkRng(cx,cz){ return seeded((S.seed^Math.imul(cx,73856093)^Math.imul(cz,19349663))>>>0); }
+function chunkRng(cx,cz){ return seeded((WORLD_SEED^Math.imul(cx,73856093)^Math.imul(cz,19349663))>>>0); }
 /**
  * Inhalt für Chunks anmelden (Pflanzen, Wasser, Tiere, besondere Funde …): fn(chunk) füllt chunk.content,
  * ein Eintrag mit drop() wird beim Entladen aufgeräumt.

@@ -24,6 +24,15 @@ loadSave();
 function save(){ try{ localStorage.setItem(SAVE_KEY,JSON.stringify(S)); }catch(e){} }
 // Weltsamen: bestimmt die Landschaft (Hügel, später auch Pflanzen und Wasser je Chunk). Alte Spielstände bekommen hier ihren.
 if(!S.seed){ S.seed=1+Math.floor(Math.random()*2147483000); save(); }
+/* Online-Spiel (net.js): Wer einem Raum beitritt, spielt in der Welt des Gastgebers. Samen und Gebiet kommen dann aus der
+   Sitzung des Browser-Tabs (sessionStorage) und werden nicht in den eigenen Spielstand übernommen. */
+const NET_KEY='leolife-net';
+/** @type {{world?:{seed:number,region:string}}|null} */
+const netSession=(()=>{ try{ return JSON.parse(sessionStorage.getItem(NET_KEY)||'null'); }catch(e){ return null; } })();
+/** Welt des Gastgebers, wenn dieses Gerät einem Raum beigetreten ist, sonst null */
+const NET_WORLD=netSession&&netSession.world&&netSession.world.seed>0?netSession.world:null;
+/** Weltsamen, aus dem die Landschaft gebaut wird (eigener oder der des Gastgebers) */
+const WORLD_SEED=NET_WORLD?NET_WORLD.seed:S.seed;
 
 const xpNeed=l=>Math.round(32*Math.pow(l,1.4));
 // Erbanlagen: jedes Junge bekommt eine; bis zu drei werden über die Generationen weitergegeben
@@ -75,7 +84,8 @@ const OLD_AT=18*60, DIE_AT=/** @type {(L?:Leopard)=>number} */((L=S)=>25*60+300*
 /** @type {(L?:Leopard)=>number} */
 const oldF=(L=S)=>L.lvl>=8?Math.max(0,Math.min(1,(L.age-OLD_AT)/(DIE_AT(L)-OLD_AT))):0;
 /* ---------- Gebiete: jede zweite Generation öffnet ein neues. Jedes Gebiet ist eine eigene Karte; beim Wandern wird sie neu aufgebaut. ---------- */
-const REG_ID=(S.region&&REGIONS[S.region]&&!REGIONS[S.region].soon)?S.region:'savanne', REG=REGIONS[REG_ID];
+const regWant=NET_WORLD?NET_WORLD.region:S.region;
+const REG_ID=(regWant&&REGIONS[regWant]&&!REGIONS[regWant].soon)?regWant:'savanne', REG=REGIONS[REG_ID];
 const beaten=id=>id==='savanne'?!!(S.won||(S.beat||{}).savanne):!!(S.beat||{})[id];
 // Ahnenkraft: jede erreichte Generation macht die Linie etwas stärker (höchstens +20 %)
 const ancF=()=>1+Math.min(0.2,0.02*((S.gen||1)-1));
@@ -102,4 +112,4 @@ const LEOPARD_KEYS=['lvl','xp','pts','a','b','traits','tlv','fur','hunger','thir
 const copyLeopard=(L=S)=>{ const o=/** @type {any} */({}); for(const k of LEOPARD_KEYS) o[k]=JSON.parse(JSON.stringify(L[k]===undefined?null:L[k])); return o; };
 
 export { inheritTrait, tf, tlvOf, traitName, hungerRate, thirstRate };
-export { LINES_KEY, LEOPARD_KEYS, copyLeopard, D, DIE_AT, OLD_AT, REG, REG_ID, S, ancF, at, attrCap, baseSpeed, beaten, dmg, fresh, has, maxHp, maxSt, oldF, pScale, resetState, save, xpNeed };
+export { NET_KEY, NET_WORLD, WORLD_SEED, LINES_KEY, LEOPARD_KEYS, copyLeopard, D, DIE_AT, OLD_AT, REG, REG_ID, S, ancF, at, attrCap, baseSpeed, beaten, dmg, fresh, has, maxHp, maxSt, oldF, pScale, resetState, save, xpNeed };

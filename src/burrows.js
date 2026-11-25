@@ -7,20 +7,24 @@ import { scene } from './engine.js';
 import { players } from './player.js';
 import { H, PONDS, pondAt } from './terrain.js';
 import { rnd } from './util.js';
+import { seeded } from './noise.js';
+import { WORLD_SEED } from './save.js';
 
 const BURROW_N=7, FLEE_R=45, ENTER_R=1.1;
 const BURROWS=[];
 const moundMat=new THREE.MeshLambertMaterial({color:0x8a6a48}), holeMat=new THREE.MeshBasicMaterial({color:0x1a120c});
 const moundGeo=new THREE.SphereGeometry(1,10,6,0,Math.PI*2,0,Math.PI/2), holeGeo=new THREE.CircleGeometry(0.42,12);
+/** Lage der Baue aus dem Weltsamen (im Online-Spiel auf allen Geräten gleich) */
+const burrowR=seeded((WORLD_SEED^0x62757272)>>>0);
 function addBurrow(x,z){
-  const y=H(x,z), ry=Math.random()*6.283, g=new THREE.Group();
+  const y=H(x,z), ry=burrowR()*6.283, g=new THREE.Group();
   const m=new THREE.Mesh(moundGeo,moundMat); m.scale.set(1.5,0.32,1.2); m.receiveShadow=true; g.add(m);
   const hole=new THREE.Mesh(holeGeo,holeMat); hole.position.set(0,0.14,1.05); hole.rotation.x=-0.35; g.add(hole);   // Eingang an der Vorderseite
   g.position.set(x,y-0.05,z); g.rotation.y=ry; scene.add(g);
   BURROWS.push({x:x+Math.sin(ry)*1.3,z:z+Math.cos(ry)*1.3,g});   // Eingangspunkt
 }
 for(let i=0,t=0;BURROWS.length<BURROW_N&&t<200;t++){
-  const r=rnd(55,195), an=Math.random()*6.283, x=Math.cos(an)*r, z=Math.sin(an)*r;
+  const r=55+burrowR()*140, an=burrowR()*6.283, x=Math.cos(an)*r, z=Math.sin(an)*r;
   if(pondAt(x,z,1.8)||Math.hypot(x-7,z-5)<25||BURROWS.some(b=>Math.hypot(b.x-x,b.z-z)<30)) continue;
   addBurrow(x,z); i++;
 }

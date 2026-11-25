@@ -27,6 +27,7 @@ durch Savanne und Sumpf.
 - Erfahrung gibt es auch fürs Erkunden neuer Wasserlöcher, Ausweichen vor Krokodilen, Vertreiben von Wilderern und Räubern und fürs Großziehen eines Jungen
 - Gebiete: Savanne (mit einzelnen Krokodilen) und Sumpf (mit vielen Krokodilen und dem Riesenkrokodil); weitere geplant
 - Steuerung mit Tastatur und Maus, Touch oder Xbox-Controller
+- Online spielen über mehrere Geräte (im Aufbau): Ein Gerät öffnet im Pause-Menü einen Raum, die anderen treten mit dem Raumcode bei und spielen in derselben Welt. Dafür braucht es einen eigenen kleinen Server, Einrichtung siehe [`server/README.md`](server/README.md). Bisher sieht man sich gegenseitig; Tiere, Wetter und Tageszeit laufen noch auf jedem Gerät für sich.
 - Gemeinsames Spiel (Splitscreen) für bis zu 4 Spieler: Im Spiel drückt ein weiterer Controller Start und steigt ein –
   auf der Stufe von Spieler 1, mit den passenden Punkten zum Verteilen. Back: eigene Entwicklung · Back halten: aussteigen. Erfahrung wird geteilt, Eigenschaften und
   Fähigkeiten verteilt jeder selbst.

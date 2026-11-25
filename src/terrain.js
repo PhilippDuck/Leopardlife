@@ -1,6 +1,6 @@
 // LeoLife – Gelände: Höhenformel und Wasserlöcher, Kacheln mit Sichtbarkeitsprüfung, Boden, fernes Umland, Wasser und Hindernisse (Kollision).
 import { camera, scene } from './engine.js';
-import { REG, S } from './save.js';
+import { REG, WORLD_SEED } from './save.js';
 import { GLSL_SNOISE, seeded, snoise } from './noise.js';
 import { G } from './state.js';
 import { rnd } from './util.js';
@@ -9,7 +9,7 @@ import { rnd } from './util.js';
 const WORLD=235;
 /* Gelände: Hügel aus Simplex-Rauschen (drei Lagen, verschoben durch den Weltsamen) + flache Wasserlöcher.
    Dieselbe Formel steht als GLSL im Gras-Shader. Um den Bau herum wird das Gelände sanft eingeebnet. */
-const _rs=seeded(S.seed), NO=[0,1,2].map(()=>[(_rs()-0.5)*400,(_rs()-0.5)*400]);
+const _rs=seeded(WORLD_SEED), NO=[0,1,2].map(()=>[(_rs()-0.5)*400,(_rs()-0.5)*400]);
 const Hn=(x,z)=>6.2*snoise(x*0.0062+NO[0][0],z*0.0062+NO[0][1])+2.0*snoise(x*0.021+NO[1][0],z*0.021+NO[1][1])+0.6*snoise(x*0.065+NO[2][0],z*0.065+NO[2][1]);
 const DEN_H=Hn(7,5);
 function H0(x,z){ const h=Hn(x,z), d=Math.hypot(x-7,z-5); if(d>=22) return h; let w=Math.min(1,(22-d)/12); w=w*w*(3-2*w); return h+(DEN_H-h)*w*0.85; }

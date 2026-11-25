@@ -1,7 +1,7 @@
 // LeoLife – Felsplateaus (Kopjes): wo sie liegen und wie groß sie sind. Nur die Lage, ohne Grafik,
 // damit Bäume, Büsche und hohes Gras ihnen schon beim Anlegen ausweichen können (Aufbau: kopje.js).
 import { seeded } from './noise.js';
-import { REG, S } from './save.js';
+import { REG, WORLD_SEED } from './save.js';
 import { PONDS, WORLD, dryness, pondAt, riverEdge } from './terrain.js';
 
 /** Feldgröße der weiten Welt (wie CHUNK in chunks.js; chunks.js lädt Pflanzen und darf hier nicht importiert werden) */
@@ -25,7 +25,7 @@ function kopjeSite(x,z,r,home){
 }
 /** Felsplateaus im Startgebiet: fest je Weltsamen, mit Abstand zum Bau, zu den Wasserlöchern und zueinander */
 const homeKopjes=(()=>{
-  const r=seeded((S.seed^0x6b6f706a)>>>0), out=[], n=REG.kopjes??2;
+  const r=seeded((WORLD_SEED^0x6b6f706a)>>>0), out=[], n=REG.kopjes??2;
   for(let t=0;t<400&&out.length<n;t++){
     const a=r()*6.283, d=70+r()*(WORLD-100), x=Math.cos(a)*d, z=Math.sin(a)*d;
     if(Math.hypot(x-7,z-5)<KOP_DEN_GAP||PONDS.some(p=>Math.hypot(x-p.x,z-p.z)<p.r*1.5+14)||out.some(k=>Math.hypot(x-k.x,z-k.z)<90)||riverEdge(x,z)<KOP_RIVER_GAP) continue;
@@ -38,7 +38,7 @@ const worldKopjes=new Map();
 /** Felsplateau im Feld (cx,cz) der weiten Welt oder null (fest aus Weltsamen und Lage) */
 function worldKopje(cx,cz){
   const key=cx+','+cz; if(worldKopjes.has(key)) return worldKopjes.get(key)??null;
-  const r=seeded((S.seed^Math.imul(cx,0x1f3a5c7)^Math.imul(cz,0x6e2b9d1)^0x4b4f504a)>>>0);
+  const r=seeded((WORLD_SEED^Math.imul(cx,0x1f3a5c7)^Math.imul(cz,0x6e2b9d1)^0x4b4f504a)>>>0);
   let site=null;
   if(r()<KOP_CHANCE){
     const x=cx*KOP_CELL+18+r()*(KOP_CELL-36), z=cz*KOP_CELL+18+r()*(KOP_CELL-36), d=dryness(x,z);

@@ -7,6 +7,7 @@ import { $ } from './util.js';
 import { toggleSkills } from './skills.js';
 import { closeCtrl, closeGuide, closeSettings, ctrlOpen, guideOpen, menuOpen, renderKeys, settingsOpen, toggleMenu } from './menu.js';
 import { closeRegions, regionsOpen } from './regions.js';
+import { closeOnline, onlineOpen } from './net.js';
 import { doClimb, doPounce, doRoar } from './actions.js';
 import { doContext } from './family.js';
 import { bookOpen, closeBook } from './carcass.js';
@@ -19,11 +20,12 @@ import { pingMates } from './coop.js';
 const keys={}; G.paused=true; G.started=false;
 G.joyX=0; G.joyY=0; G.tSprint=false;
 window.addEventListener('keydown',e=>{
+  if(/** @type {HTMLElement} */(e.target)?.tagName==='INPUT'&&e.code!=='Escape') return;   // Tippen in ein Eingabefeld (Online spielen) steuert nicht das Spiel
   if(P.skOpen&&e.code!=='Tab'&&e.code!=='KeyK'){ if(e.code==='Escape') toggleSkills(P); return; }   // eigene Entwicklung offen (gemeinsames Spiel)
   if(e.code==='Tab'){ e.preventDefault(); if(G.started) toggleSkills(); return; }
   if(e.code==='Escape'&&ctrlOpen()){ closeCtrl(); return; }
   if(e.code==='Escape'&&guideOpen()){ closeGuide(); return; }
-  if(e.code==='Escape'){ if(!G.started) return; if(bookOpen()){ closeBook(); return; } if(lexOpen()){ closeLex(); return; } if(settingsOpen()){ closeSettings(); return; } if(regionsOpen()){ closeRegions(); return; } if($('skills').style.display!=='none'){ toggleSkills(); return; } if(menuOpen()&&performance.now()-G.menuT<350) return; toggleMenu(); return; }
+  if(e.code==='Escape'){ if(!G.started) return; if(bookOpen()){ closeBook(); return; } if(lexOpen()){ closeLex(); return; } if(settingsOpen()){ closeSettings(); return; } if(regionsOpen()){ closeRegions(); return; } if(onlineOpen()){ closeOnline(); return; } if($('skills').style.display!=='none'){ toggleSkills(); return; } if(menuOpen()&&performance.now()-G.menuT<350) return; toggleMenu(); return; }
   if(!G.started) return;
   if(e.code==='KeyK'){ toggleSkills(); return; }
   if(G.paused) return;
