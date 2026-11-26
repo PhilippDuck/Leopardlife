@@ -19,6 +19,6 @@ function updateEnvSound(dt){
     if(EV.on==='fire'){ const d=Math.abs((p.x*EV.dir.x+p.z*EV.dir.z)-EV.s); fire=Math.max(fire,near(d,140)); }
   }
   const night=Math.max(0,Math.min(1,(0.55-dayF)/0.35));
-  setEnvLoops({river:0.5*river*river,frogs:0.32*water*night,fire:0.9*fire*fire});
+  setEnvLoops({river:0.28*river*river,frogs:0.16*water*night,fire:0.55*fire*fire});
 }
 export { updateEnvSound };

@@ -91,7 +91,7 @@ function gunBus(){
   const k=new Float32Array(1024); for(let i=0;i<1024;i++){ const x=i/511.5-1; k[i]=Math.tanh(x*2.2)/Math.tanh(2.2); } gunShape=k;
 }
 function gunshot(x,z){
-  if(bufs.gunshot&&snd3d(['gunshot'],x,z,1.6,600,rnd(0.94,1.04))) return;   // Aufnahme (Echo ist schon drin), sonst der gebaute Knall
+  if(bufs.gunshot&&snd3d(['gunshot'],x,z,1.1,600,rnd(0.94,1.04))) return;   // Aufnahme (Echo ist schon drin), sonst der gebaute Knall
   if(!AC||!LIS.length) return; let L=LIS[0], d=1e9; for(const l of LIS){ const e=Math.hypot(x-l.x,z-l.z); if(e<d){ d=e; L=l; } }
   if(d>700) return; gunBus();
   const near=Math.pow(1-d/700,1.4), t=AC.currentTime+0.01+Math.min(0.8,d/340);   // Schall braucht etwas
@@ -215,7 +215,7 @@ const snd={
   mew(){ if(sample('mew',1.0,rnd(0.92,1.15))) return; tone(950,0.22,'sine',0.11,620); tone(1200,0.1,'sine',0.05,900); },
   eat(){ if(bufs.eat){ if(AC.currentTime>eatUntil){ eatUntil=AC.currentTime+bufs.eat.duration*0.85; sample('eat',1.4,rnd(0.92,1.08)); } return; } for(let i=0;i<3;i++) noise(0.08,0.25,1600,800,'bandpass',i*0.13); },
   rustle(){ for(let i=0;i<3;i++) noise(0.09,0.14,3200,1500,'bandpass',i*0.07); },
-  croc(){ if(sample('croc',0.75,rnd(0.92,1.06))) return; noise(0.55,0.5,2200,300,'bandpass'); noise(0.4,0.4,900,250,'lowpass',0.05); tone(70,0.6,'sawtooth',0.2,40); },
+  croc(){ if(sample('croc',0.45,rnd(0.92,1.06))) return; noise(0.55,0.5,2200,300,'bandpass'); noise(0.4,0.4,900,250,'lowpass',0.05); tone(70,0.6,'sawtooth',0.2,40); },
   snap(){ noise(0.05,0.55,2600,900,'bandpass'); tone(95,0.14,'square',0.22,45); },
   lap(){ noise(0.06,0.07,1500,700,'bandpass'); noise(0.05,0.05,1900,900,'bandpass',0.11); },
   lost(){ tone(500,0.18,'sine',0.1,330); },
@@ -226,15 +226,15 @@ const snd={
   splash(){ noise(0.16,0.16,1800,700,'bandpass'); },
   step(v){ noise(0.06,v,260,120,'lowpass'); },
   /** Perlhühner schlagen Alarm: schnelles, metallisches Gackern (v: Lautstärke nach Entfernung) */
-  cackle(v){ if(v<=0.01) return; if(sample('guinea',Math.min(1,0.8*v),rnd(0.94,1.08))) return; for(let i=0;i<9;i++){ const f=rnd(1100,1500); tone(f,0.05,'square',0.05*v,f*0.7,i*rnd(0.06,0.09)); noise(0.04,0.12*v,2600,1400,'bandpass',i*0.075); } },
+  cackle(v){ if(v<=0.01) return; if(sample('guinea',Math.min(1,0.45*v),rnd(0.94,1.08))) return; for(let i=0;i<9;i++){ const f=rnd(1100,1500); tone(f,0.05,'square',0.05*v,f*0.7,i*rnd(0.06,0.09)); noise(0.04,0.12*v,2600,1400,'bandpass',i*0.075); } },
   /** Madenhacker fliegen zischend auf */
   hiss(v){ if(v<=0.01) return; for(let i=0;i<4;i++) noise(0.12,0.16*v,5200,3600,'bandpass',i*0.1); tone(3400,0.06,'sine',0.03*v,2600,0.05); },
   /** Paviane bellen Alarm: ein rauhes, zweisilbiges „Wa-hu“ (v: Lautstärke nach Entfernung) */
-  bark(v){ if(v<=0.01) return; if(sample(Math.random()<0.25?'babScreech':'babBark',Math.min(1,0.85*v),rnd(0.94,1.08))) return; for(let i=0;i<2;i++){ const o=i*rnd(0.34,0.46); tone(rnd(560,640),0.09,'sawtooth',0.12*v,420,o); tone(rnd(330,380),0.2,'sawtooth',0.14*v,230,o+0.1); noise(0.12,0.1*v,900,500,'bandpass',o); } },
+  bark(v){ if(v<=0.01) return; if(sample(Math.random()<0.2?'babScreech':'babBark',Math.min(1,0.5*v),rnd(0.94,1.08))) return; for(let i=0;i<2;i++){ const o=i*rnd(0.34,0.46); tone(rnd(560,640),0.09,'sawtooth',0.12*v,420,o); tone(rnd(330,380),0.2,'sawtooth',0.14*v,230,o+0.1); noise(0.12,0.1*v,900,500,'bandpass',o); } },
   /** Elefant trompetet: lautes, schmetterndes Blasen, das ansteigt und rau abbricht */
-  trumpet(v){ if(v<=0.01) return; if(sample('eleTrumpet',Math.min(1.2,v),rnd(0.94,1.05))) return; tone(rnd(420,480),0.7,'sawtooth',0.16*v,rnd(700,780),0); tone(rnd(840,920),0.6,'square',0.05*v,1300,0.05); noise(0.6,0.12*v,1500,900,'bandpass',0.05); tone(160,0.3,'sawtooth',0.1*v,90,0.62); },
+  trumpet(v){ if(v<=0.01) return; if(sample('eleTrumpet',Math.min(0.8,0.65*v),rnd(0.94,1.05))) return; tone(rnd(420,480),0.7,'sawtooth',0.16*v,rnd(700,780),0); tone(rnd(840,920),0.6,'square',0.05*v,1300,0.05); noise(0.6,0.12*v,1500,900,'bandpass',0.05); tone(160,0.3,'sawtooth',0.1*v,90,0.62); },
   /** Nilpferd droht: tiefes, prustendes Grunzen in Stößen („Wuh-hu-hu-hu“) */
-  hippo(v){ if(v<=0.01) return; if(sample('hippo',Math.min(1,0.9*v),rnd(0.92,1.05))) return; for(let i=0;i<5;i++){ const o=i*rnd(0.16,0.2); tone(rnd(95,125)*(i?0.9:1.2),0.16,'sawtooth',0.2*v,60,o); noise(0.12,0.16*v,500,180,'lowpass',o); } },
+  hippo(v){ if(v<=0.01) return; if(sample('hippo',Math.min(1,0.55*v),rnd(0.92,1.05))) return; for(let i=0;i<5;i++){ const o=i*rnd(0.16,0.2); tone(rnd(95,125)*(i?0.9:1.2),0.16,'sawtooth',0.2*v,60,o); noise(0.12,0.16*v,500,180,'lowpass',o); } },
   bird(){ const b=rnd(1800,3200); for(let i=0;i<3;i++) tone(b*rnd(0.9,1.15),0.09,'sine',0.035,b*rnd(1.1,1.4),i*0.13); }
 };
 

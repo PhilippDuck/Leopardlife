@@ -11,12 +11,12 @@ const CALLS={
   hyena:{ks:['hyenaA','hyenaB'],vol:0.45,maxD:170,gap:[14,40],when:n=>0.5+n},
   lion:{ks:['lion'],vol:0.55,maxD:320,gap:[40,110],when:n=>0.25+1.2*n},
   jack:{ks:['jackalA','jackalB'],vol:0.8,maxD:220,gap:[25,60],when:n=>n>0.4?n:0},
-  gnu:{ks:['gnu'],vol:0.6,maxD:180,gap:[8,24],when:n=>1-0.6*n},
-  boar:{ks:['boarGrunt'],vol:0.55,maxD:60,gap:[10,25],when:()=>1},
-  wart:{ks:['boarGrunt'],vol:0.5,maxD:55,gap:[10,25],when:n=>1-0.7*n},
-  ele:{ks:['eleRumble'],vol:0.8,maxD:170,gap:[14,35],when:()=>1},
-  hippo:{ks:['hippo'],vol:0.65,maxD:240,gap:[30,80],when:n=>0.5+n},
-  rival:{ks:['leoSaw'],vol:0.85,maxD:280,gap:[18,40],when:n=>0.6+n}
+  gnu:{ks:['gnu'],vol:0.3,maxD:150,gap:[25,60],when:n=>1-0.6*n},
+  boar:{ks:['boarGrunt'],vol:0.28,maxD:45,gap:[25,60],when:()=>1},
+  wart:{ks:['boarGrunt'],vol:0.25,maxD:40,gap:[25,60],when:n=>1-0.7*n},
+  ele:{ks:['eleRumble'],vol:0.4,maxD:140,gap:[35,80],when:()=>1},
+  hippo:{ks:['hippo'],vol:0.32,maxD:200,gap:[60,150],when:n=>0.5+n},
+  rival:{ks:['leoSaw'],vol:0.45,maxD:240,gap:[40,90],when:n=>0.6+n}
 };
 /** Jedes Bild: Rufe der Tiere zu zufälligen Zeiten (nicht im Starkregen) */
 function updateCalls(dt){
@@ -33,7 +33,7 @@ function updateCalls(dt){
 /** Ein Raubtier beginnt die Jagd auf einen Spieler: Knurren aus seiner Richtung */
 function growlAt(a){ snd3d(['growlA','growlB'],a.x,a.z,1.2,90,a.sp.size>1.2?rnd(0.8,0.9):rnd(0.95,1.15)); }
 /** Beute hat einen Leoparden entdeckt: Alarmschnauben (nicht bei Mäusen und Hasen) */
-function alarmAt(a){ if(a.sp.size<0.5||a.sp.pred) return; snd3d('alarm',a.x,a.z,0.9,120,a.sp.size>1.5?0.8:rnd(0.95,1.12)); }
+function alarmAt(a){ /* bewusst still: das Schnauben beim Entdecken war zu aufdringlich */ }
 /** Hyänen haben einen Kadaver gewittert: bald kichern sie */
 function callSoon(a){ a.callT=rnd(0.5,2.5); }
 
