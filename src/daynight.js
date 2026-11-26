@@ -15,7 +15,7 @@ import { W } from './weather.js';
 import { newGoals } from './goals.js';
 import { padUI } from './gamepad.js';
 import { updateUI } from './hud.js';
-import { nameOf, tell } from './coop.js';
+import { anyMates, nameOf, netMates, tell } from './coop.js';
 import { kidsOf } from './cubfollow.js';
 
 /* ---------- Tag und Nacht ---------- */
@@ -79,24 +79,29 @@ function updateDayNight(dt){
  */
 function sleepOnTree(p=P){
   if(sleeping) return;
-  if(NET_GUEST){ tell(p,'Im Online-Spiel bestimmt der Gastgeber die Tageszeit – schlafen kann nur er.','#9fb4ff'); return; }
-  if(players.length>1){
+  if(anyMates()){
     p.wantSleep=true;
-    const waiting=players.filter(o=>!o.dead&&!o.wantSleep);
+    // online zählen die Leoparden der anderen Geräte mit (sie sehen den Wunsch über netcoop.js)
+    const waiting=players.filter(o=>!o.dead&&!o.wantSleep).concat(netMates.list().filter(o=>!o.dead&&!o.wantSleep));
     if(waiting.length){
       tell(p,'Du willst schlafen – warte auf '+waiting.map(nameOf).join(' und ')+'.','#9fb4ff');
-      for(const o of waiting) tell(o,nameOf(p)+' will schlafen: klettere auf einen Baum und wähle Schlafen.','#9fb4ff');
+      for(const o of waiting) if(!o.remote) tell(o,nameOf(p)+' will schlafen: klettere auf einen Baum und wähle Schlafen.','#9fb4ff');
       return;
     }
   }
+  if(NET_GUEST){ tell(p,'Alle wollen schlafen – der Gastgeber lässt die Nacht vergehen …','#9fb4ff'); return; }   // die Tageszeit gehört dem Gastgeber
   doSleep();
 }
 /** Wer im gemeinsamen Spiel schlafen will, aber vom Baum steigt oder wenn es Tag wird, nimmt den Wunsch zurück. */
 function sleepVotes(){
   for(const p of players) if(p.wantSleep&&(p.dead||p.tree==null||!p.safe||!canSleepNow())) p.wantSleep=false;
+  // Gastgeber im Online-Spiel: Wollen alle schlafen (auch der letzte Gast), vergeht die Nacht für alle
+  if(!NET_GUEST&&!sleeping&&netMates.list().length&&canSleepNow()){ const all=players.concat(netMates.list()).filter(o=>!o.dead); if(all.length&&all.every(o=>o.wantSleep)) doSleep(); }
 }
 /** Schlaf bis zum Sonnenaufgang (alle Spieler): voll ausgeruht, aber hungrig. */
 function doSleep(){
+  if(sleeping) return;
+  if(G.netSleep) G.netSleep();   // Gastgeber: die Gäste schlafen mit
   sleeping=true; G.paused=true; for(const k in keys) keys[k]=false; G.joyX=G.joyY=0;
   const fx=$('sleepFx'); fx.style.display='flex'; requestAnimationFrame(()=>{ fx.style.opacity=1; });
   setTimeout(()=>{
@@ -118,8 +123,14 @@ function doSleep(){
   },1700);
 }
 
+/** Gast im Online-Spiel: Tageszeit vom Gastgeber. Überschreitet sie den Morgen (auch nach seinem Schlaf), beginnt ein neuer Tag. */
+function todFromHost(t){
+  if(sleeping) return;   // schläft gerade mit: doSleep setzt Morgen und neuen Tag selbst
+  const t0=S.tod; S.tod=t;
+  if(G.started&&t>=0.25&&((t0<0.25&&t-t0<0.5)||(t0>0.5&&t<0.5))){ S.day=(S.day||0)+1; newGoals(); toast('Ein neuer Tag – neue Tagesziele.','#9be07f'); }
+}
 // Nach jedem Wechsel der Grafikstufe Nebel und Licht neu setzen
 on('quality',()=>updateDayNight(0));
 
 export { clockStr, dayF, updateDayNight };
-export { canSleepNow, sleepOnTree, sleepVotes, sleeping };
+export { canSleepNow, doSleep, sleepOnTree, sleepVotes, sleeping, todFromHost };

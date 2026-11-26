@@ -10,7 +10,9 @@ import { hitAnimal, hitFx, hurtPlayer, killAnimal, killRewards, gainXp, roarAt }
 import { breakFree, startBite } from './bite.js';
 import { endCarcass, placeInTree } from './carcass.js';
 import { tell } from './coop.js';
-import { bloodDrop, meatOrbs, syncOrbs } from './effects.js';
+import { bloodDrop, meatOrbs, roarFx, syncOrbs } from './effects.js';
+import { snd3d } from './audio.js';
+import { todFromHost } from './daynight.js';
 import { dmg, pScale } from './save.js';
 import { H } from './terrain.js';
 import { trees } from './vegetation.js';
@@ -19,7 +21,7 @@ import { SPECIES } from './data.js';
 import { scene } from './engine.js';
 import { buildHuman } from './human.js';
 import { animLegs, buildBaboon, buildCroc, buildElephant, buildHippo, buildQuad, buildSnake, makeFur } from './models.js';
-import { joinHooks, net, netSend, onNet } from './net.js';
+import { joinHooks, net, netSend, onNet, remotes } from './net.js';
 import { dropModel, ghosts, players } from './player.js';
 import { NET_GUEST, S } from './save.js';
 import { envenom } from './snake.js';
@@ -120,9 +122,14 @@ onNet('bend',m=>{
   a.held=null;
   if(m.k) killAnimal(a,/** @type {any} */(gh)); else breakFree(a,gh,Math.max(0,Math.min(1,+m.avg||0)));
 });
+/** Brüllen eines anderen Geräts: alle hören und sehen es an seinem Leoparden; die Tiere vertreibt der Gastgeber */
 onNet('roar',m=>{
-  if(NET_GUEST||net.role!=='host'||![m.x,m.z,m.R,m.lvl,m.rl].every(isNum)) return;
-  roarAt(m.x,m.z,Math.min(60,m.R),m.lvl,m.rl);
+  if(![m.x,m.z,m.R,m.lvl,m.rl].every(isNum)) return;
+  const R=Math.min(60,m.R);
+  if(!NET_GUEST&&net.role==='host') roarAt(m.x,m.z,R,m.lvl,m.rl);
+  const r=remotes.get(m.from+':'+m.pn), g=r&&r.g, sc=g?g.scale.x:1, x=g?g.position.x:m.x, z=g?g.position.z:m.z;
+  roarFx(x,(g?g.position.y:H(x,z))+0.6*sc,z,g?g.rotation.y:0,sc,R);
+  snd3d(['roar'],x,z,1.1,140);
 });
 /** Kadaver: Bissen gefressen, gepackt, gezogen, losgelassen, in einen Baum gebracht */
 onNet('eat',m=>{ if(!hostHas(m)) return; const a=sentAnimals.get(m.n); if(a&&a.carc&&a.carc.meat>0) a.carc.meat--; });
@@ -184,7 +191,7 @@ onNet('wd',m=>{
     const b=a.nb||(a.nb=[]); b.push({t:now,s}); if(b.length>8) b.shift(); a.nseen=now;
   }
   if(Array.isArray(m.e)&&m.e.length>=9){ const e=m.e;
-    if(isNum(e[0])) S.tod=((e[0]%1)+1)%1;
+    if(isNum(e[0])) todFromHost(((e[0]%1)+1)%1);   // überschreitet sie den Morgen: neuer Tag mit neuen Tageszielen
     setWeather(+e[1]||0,+e[2]||0,!!e[3]);
     if(isNum(e[4])){ G.windTarget=e[4]; G.windT=1e9; }
     applyEvent(typeof e[5]==='string'?e[5]:'',+e[6]||0,+e[7]||1,+e[8]||0);
@@ -218,9 +225,10 @@ onNet('xp',m=>{
   gainXp(m.xp,p);
 });
 const toHostMsg=o=>netSend(Object.assign({to:net.host},o));
+/** Eigenes Brüllen an alle (Gastgeber und Gäste): Ton und Wellen am eigenen Leoparden, beim Gastgeber fliehen die Tiere */
+G.netRoar=(p,R)=>netSend({t:'roar',pn:p.num||1,x:rd2(p.x),z:rd2(p.z),R,lvl:p.L.lvl,rl:p.L.b.roar});
 if(NET_GUEST){
   G.netBiteEnd=(p,a,kill,avg)=>toHostMsg({t:'bend',n:a.nid,pn:p.num||1,k:kill?1:0,avg:rd2(avg)});
-  G.netRoar=(p,R)=>toHostMsg({t:'roar',x:rd2(p.x),z:rd2(p.z),R,lvl:p.L.lvl,rl:p.L.b.roar});
   G.carcNet=(kind,c,i)=>{
     const p=players.find(o=>o.drag===c||o.eatC===c)||players[0];
     if(kind==='eat') c.carc.lockT=performance.now()+800;   // eigener Bissen zählt sofort; der Gastgeber bestätigt

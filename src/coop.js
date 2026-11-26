@@ -25,6 +25,14 @@ import { sleepVotes } from './daynight.js';
 import { startTutorial } from './tutorial.js';
 import { renderPlayers, titleOn } from './title.js';
 
+/**
+ * Leoparden der anderen Geräte im Online-Spiel (netcoop.js trägt sie ein): für Markieren, Wiederbeleben und Schlafen.
+ * Jeder Eintrag: {remote:true, key, name, num, x, y, z, L:{lvl}, dead, downT (am Boden: Zahl, sonst null), revT, helping, wantSleep, pingT}
+ * @type {{list:()=>any[], myName:()=>string|null, onPing:((p:any)=>void)|null}}
+ */
+const netMates={list:()=>[],myName:()=>null,onPing:null};
+/** Gibt es andere Leoparden, lokal oder online? */
+const anyMates=()=>players.length>1||netMates.list().length>0;
 /** Höchstens so viele Spieler teilen sich den Bildschirm */
 const MAX_PLAYERS=4;
 /** Sekunden am Boden, bevor ein Spieler von selbst im Bau erwacht, und Haltezeit fürs Wiederbeleben */
@@ -208,14 +216,18 @@ function downPlayer(p,a){
 }
 /** Pro Bild: Wiederbeleben durch einen Mitspieler in der Nähe, sonst nach Ablauf im Bau erwachen. */
 function updateCoop(dt){
-  if(players.length<2) return;
+  const net=netMates.list();
+  if(players.length<2&&!net.length) return;
   sleepVotes();
-  // Wer steht nah bei einem Mitspieler am Boden? (für den Hinweis mit Fortschritt in seiner Anzeige)
-  for(const o of players){ o.reviveNear=null; if(o.dead) continue; let bd=REVIVE_DIST*2.5;
-    for(const p of players){ if(p===o||!p.dead||p.downT==null) continue; const d=Math.hypot(o.x-p.x,o.z-p.z); if(d<bd){ bd=d; o.reviveNear=p; } } }
+  // Wer steht nah bei einem Mitspieler am Boden? (für den Hinweis mit Fortschritt in seiner Anzeige; online auch bei anderen Geräten)
+  for(const o of players){ o.reviveNear=null; o.helping=false; if(o.dead) continue; let bd=REVIVE_DIST*2.5;
+    for(const p of players.concat(net)){ if(p===o||!p.dead||p.downT==null) continue; const d=Math.hypot(o.x-p.x,o.z-p.z); if(d<bd){ bd=d; o.reviveNear=p; } }
+    // hält X/F neben einem Leoparden eines anderen Geräts: das zählt dort (net.js schickt es mit)
+    if(o.reviveNear&&o.reviveNear.remote&&o.ctl.act&&bd<REVIVE_DIST) o.helping=true; }
   for(const p of players){
     if(!p.dead||p.downT==null) continue;
-    const helper=players.find(o=>o!==p&&!o.dead&&o.ctl.act&&Math.hypot(o.x-p.x,o.z-p.z)<REVIVE_DIST);
+    const helper=players.find(o=>o!==p&&!o.dead&&o.ctl.act&&Math.hypot(o.x-p.x,o.z-p.z)<REVIVE_DIST)
+      ||net.find(o=>!o.dead&&o.helping&&Math.hypot(o.x-p.x,o.z-p.z)<REVIVE_DIST+1);   // Abstand etwas großzügiger: der Stand des anderen ist kurz verzögert
     if(helper){ p.revT+=dt; if(p.revT>=REVIVE_TIME){ wakeUp(p,p.x,p.z,0.35); toast(nameOf(helper)+' hat '+nameOf(p)+' wiederbelebt.','#9be07f'); continue; } }
     else p.revT=Math.max(0,p.revT-dt*0.5);
     p.downT-=dt; if(p.downT<=0){ wakeUp(p,2,2,1); toast(nameOf(p)+' erwacht im Bau.','#f2b84b'); }
@@ -229,8 +241,9 @@ function wakeUp(p,x,z,hpF){
 // Wenn Spieler 1 nach dem Ende aller Spieler neu erwacht, wachen die Mitspieler neben ihm auf
 on('respawn',()=>{ for(const p of players) if(p!==P){ const ang=P.rot+Math.PI/2*(p.num%2?1:-1); wakeUp(p,P.x+Math.sin(ang)*2.5,P.z+Math.cos(ang)*2.5,1); } });
 /** Stehen außer p noch andere Spieler? */
-const othersAlive=p=>players.some(o=>o!==p&&!o.dead);
-const nameOf=p=>p===P?NAMES[0]:NAMES[(p.num||2)-1];
+const othersAlive=p=>players.some(o=>o!==p&&!o.dead)||netMates.list().some(o=>!o.dead);
+/** Name für Meldungen: online der eigene Name bzw. der des anderen Geräts, sonst Spieler 1–4 */
+const nameOf=p=>p.remote?p.name:p===P?(netMates.myName()||NAMES[0]):NAMES[(p.num||2)-1];
 
 /* ---------- Anzeige je Mitspieler: vollständige Kopie der Anzeige von Spieler 1 ---------- */
 /** @returns {HTMLElement} */
@@ -291,13 +304,13 @@ function updateCoopHud(dt){
     if(p.noStT>0){ p.noStT-=dt; if(p.noStT<=0) hEl(p,'crossMsg').style.opacity='0'; }
   }
   // Spieler 1 am Boden (nur im Koop): Hinweis in der großen Anzeige
-  if(players.length>1&&P.dead&&P.downT!=null){ const s=Math.ceil(P.downT); if(s!==P.lastS){ P.lastS=s; $('crossMsg').textContent='Am Boden – Mitspieler: X halten · Bau in '+s+' s'; $('crossMsg').style.opacity='1'; } }
+  if(anyMates()&&P.dead&&P.downT!=null){ const s=Math.ceil(P.downT); if(s!==P.lastS){ P.lastS=s; $('crossMsg').textContent='Am Boden – Mitspieler: X halten · Bau in '+s+' s'; $('crossMsg').style.opacity='1'; } }
   else if(P.lastS!=null){ P.lastS=null; $('crossMsg').style.opacity='0'; }   // wieder auf den Beinen (auch nach dem gemeinsamen Tod)
 }
 
 /* ---------- Mitspieler markieren ---------- */
 /** Spieler p will die anderen sehen: für einige Sekunden Markierungen mit Name und Entfernung */
-function pingMates(p){ if(players.length<2) return; p.pingT=6; snd.click(); }
+function pingMates(p){ if(!anyMates()) return; p.pingT=6; snd.click(); if(netMates.onPing) netMates.onPing(p); }
 const _mv=new THREE.Vector3();
 /**
  * Markierungen in der Anzeige von Spieler v: über dem Kopf eines Mitspielers, wenn er im Bild ist, sonst Pfeil am Rand.
@@ -307,10 +320,10 @@ function updateMarks(v,dt){
   if(v.pingT>0) v.pingT-=dt;
   const frame=v===P?$('ph0'):v.hud; if(!frame) return;
   const pool=v.marks||(v.marks=[]); let n=0;
-  if(players.length>1&&!v.dead) for(const q of players){
-    if(q===v||!(v.pingT>0||(q.dead&&q.downT!=null))) continue;
+  if(anyMates()&&!v.dead) for(const q of players.concat(netMates.list())){
+    if(q===v||!(v.pingT>0||q.pingT>0||(q.dead&&q.downT!=null))) continue;   // q.pingT: ein anderes Gerät ruft
     let el=pool[n]; if(!el){ el=document.createElement('div'); el.className='mk'; frame.appendChild(el); pool.push(el); } n++;
-    const W=frame.clientWidth, Hh=frame.clientHeight, d=Math.round(Math.hypot(q.x-v.x,q.z-v.z)), col=PCOL[(q.num||1)-1];
+    const W=frame.clientWidth, Hh=frame.clientHeight, d=Math.round(Math.hypot(q.x-v.x,q.z-v.z)), col=q.remote?'#ffd27a':PCOL[(q.num||1)-1];
     _mv.set(q.x,q.y+1.4*pScale(q.L)+0.6,q.z).project(v.camera);
     const label=(q.dead?'Am Boden · ':'')+nameOf(q)+' · '+d+' m';
     el.style.display='block'; el.style.color=col;
@@ -327,4 +340,4 @@ function updateMarks(v,dt){
 }
 /** Hinweis zum Wiederbeleben für Spieler o (oder null): wen, wie weit, Fortschritt 0…1 */
 function reviveHint(o){ const p=o.reviveNear; if(!p) return null; const d=Math.hypot(o.x-p.x,o.z-p.z); return {name:nameOf(p),close:d<REVIVE_DIST,progress:p.revT/REVIVE_TIME,left:Math.max(0,REVIVE_TIME-p.revT)}; }
-export { disconnectPlayer, newMate, resetMates, panelNav, cloneWithClasses, pingMates, updateMarks, reviveHint, hEl, mateToast, viewMin, tell, MAX_PLAYERS, joinPlayer, leavePlayer, renderAll, pollCoop, padTaken, downPlayer, updateCoop, updateCoopHud, othersAlive, nameOf };
+export { anyMates, netMates, disconnectPlayer, newMate, resetMates, panelNav, cloneWithClasses, pingMates, updateMarks, reviveHint, hEl, mateToast, viewMin, tell, MAX_PLAYERS, joinPlayer, leavePlayer, renderAll, pollCoop, padTaken, downPlayer, updateCoop, updateCoopHud, othersAlive, nameOf };
