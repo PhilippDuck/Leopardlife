@@ -66,6 +66,7 @@
   .ctrlCard{max-width:min(900px,96vw)!important;width:min(900px,96vw);max-height:96vh;overflow:auto} .ctrlCard svg{max-width:100%!important;max-height:calc(94vh - 120px)}
   /* Startbildschirm (title.js): 3D-Szene im Hintergrund, Karte links, Leopard rechts im Bild */
   body.title #start{background:linear-gradient(90deg,rgba(6,9,5,.82) 0%,rgba(6,9,5,.55) 38%,rgba(6,9,5,0) 62%);justify-content:flex-start;padding-left:max(16px,4vw)}
+  #start.under>.card{visibility:hidden}
   body.title #start>.card{background:transparent;border:none;box-shadow:none;max-width:440px;backdrop-filter:none}
   body.title .ph, body.title #touch, body.title .tb, body.title #tapHelp, body.title #fps, body.title #tut{display:none!important}
   #start .ttl{font-size:clamp(34px,5.4vw,58px);margin:0;letter-spacing:.5px;text-shadow:0 2px 18px rgba(242,184,75,.35),0 2px 3px rgba(0,0,0,.6)}
@@ -321,8 +322,9 @@ body.quad .ph{--rad:92px}
     </div>
     <p id="diffTxt" style="font-size:12.5px;color:var(--mut);margin-top:6px"></p>
   </div>
-  <div style="display:flex;gap:10px;align-items:center;margin-top:14px">
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px">
     <button id="btnPlay">Spielen</button>
+    <button id="btnStartOnline" class="sec">Online spielen</button>
     <button id="btnReset" class="sec" style="display:none">Neu anfangen</button>
   </div>
   <small class="app-version" data-app-version></small>
@@ -456,6 +458,7 @@ body.quad .ph{--rad:92px}
     <p id="onRole" style="font-size:12.5px;color:var(--mut);margin:0 0 6px;text-align:center"></p>
     <p id="onPeers" style="font-size:13px;margin:0 0 4px;text-align:center"></p>
     <p id="onTraffic" style="font-size:11.5px;color:var(--mut);margin:0 0 10px;text-align:center"></p>
+    <button id="btnOnPlay" style="width:100%;margin-bottom:8px;display:none">Spielen</button>
     <button id="btnOnLeave" class="sec" style="width:100%">Raum verlassen</button>
   </div>
   <p id="onStatus" style="font-size:12.5px;color:#f2b84b;min-height:1em;margin:10px 0 0"></p>

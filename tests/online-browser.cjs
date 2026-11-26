@@ -69,6 +69,8 @@ const browsers=[]; let relay; const errors=[];
 
   // B tritt bei: lädt neu in die Welt von A und verbindet sich von selbst wieder
   await openOnline(B);
+  await B.fill('#onName','Bennie'); await B.fill('#onName','Ben');   // Name wird beim Tippen gemerkt
+  assert.equal(await B.evaluate(()=>JSON.parse(localStorage.getItem('leolife-online')).name),'Ben');
   await B.fill('#onCode',room.toLowerCase()); await press(B,'btnOnJoin');
   await until(B,()=>window.__leopard&&window.__leopard.net.state==='online'&&sessionStorage.getItem('leolife-net')!==null);
   assert.equal(await seedOf(B),1111,'B spielt mit dem Weltsamen von A');
@@ -77,7 +79,10 @@ const browsers=[]; let relay; const errors=[];
   // Eigener Spielstand von B bleibt unverändert
   assert.equal(await B.evaluate(()=>JSON.parse(localStorage.getItem('jaguar-save-v1')).seed),2222);
 
-  await B.click('#btnPlay').catch(()=>{});
+  // Nach dem Neuladen steht B auf dem Startbildschirm im Online-Fenster: Raumcode und „Spielen“
+  assert.ok(await B.evaluate(()=>document.getElementById('online').style.display==='flex'&&document.getElementById('btnOnPlay').style.display!=='none'),'Online-Fenster mit „Spielen“ nach dem Beitritt');
+  await press(B,'btnOnPlay');
+  assert.ok(await B.evaluate(()=>window.__leopard&&document.getElementById('online').style.display==='none'&&document.getElementById('start').style.display==='none'),'B ist im Spiel');
   // A läuft ein Stück, B sieht ihn dort
   await A.evaluate(()=>{ window.__leopard.players[0].g.position.set(20,3,14); });
   await wait(1200);

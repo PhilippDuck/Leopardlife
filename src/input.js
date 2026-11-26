@@ -25,7 +25,7 @@ window.addEventListener('keydown',e=>{
   if(e.code==='Tab'){ e.preventDefault(); if(G.started) toggleSkills(); return; }
   if(e.code==='Escape'&&ctrlOpen()){ closeCtrl(); return; }
   if(e.code==='Escape'&&guideOpen()){ closeGuide(); return; }
-  if(e.code==='Escape'){ if(!G.started) return; if(bookOpen()){ closeBook(); return; } if(lexOpen()){ closeLex(); return; } if(settingsOpen()){ closeSettings(); return; } if(regionsOpen()){ closeRegions(); return; } if(onlineOpen()){ closeOnline(); return; } if($('skills').style.display!=='none'){ toggleSkills(); return; } if(menuOpen()&&performance.now()-G.menuT<350) return; toggleMenu(); return; }
+  if(e.code==='Escape'){ if(!G.started){ if(onlineOpen()) closeOnline(); return; } if(bookOpen()){ closeBook(); return; } if(lexOpen()){ closeLex(); return; } if(settingsOpen()){ closeSettings(); return; } if(regionsOpen()){ closeRegions(); return; } if(onlineOpen()){ closeOnline(); return; } if($('skills').style.display!=='none'){ toggleSkills(); return; } if(menuOpen()&&performance.now()-G.menuT<350) return; toggleMenu(); return; }
   if(!G.started) return;
   if(e.code==='KeyK'){ toggleSkills(); return; }
   if(G.paused) return;

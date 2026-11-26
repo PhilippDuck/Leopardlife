@@ -37,7 +37,7 @@ Voraussetzungen: Die Domain (oder DynDNS-Adresse) zeigt auf deinen Anschluss, un
 
 ## Im Spiel
 
-Pause-Menü → **Online spielen**:
+Startbildschirm oder Pause-Menü → **Online spielen**:
 
 - Das Spiel verbindet sich von selbst mit `wss://leolife.duck-box.de`. Einen anderen Server (und ggf. Schlüssel) trägt man unter **Eigener Server** ein.
 - **Raum öffnen** zeigt einen Code aus 4 Buchstaben. Die anderen tragen ihn ein und tippen auf **Beitreten**.
