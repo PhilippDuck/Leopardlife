@@ -47,6 +47,8 @@ const joinHooks=[];
 const traffic={up:0,down:0,upRate:0,downRate:0,t:0};
 
 /* ---------- Einstellungen (Server, Schlüssel, Name) ---------- */
+/** Standard-Server; unter „Eigener Server“ lässt sich ein anderer eintragen (gespeichert wird nur eine Abweichung) */
+const DEFAULT_RELAY='wss://leolife.duck-box.de';
 function onlineCfg(){ try{ return Object.assign({url:'',key:'',name:''},JSON.parse(localStorage.getItem(ONLINE_CFG)||'{}')); }catch(e){ return {url:'',key:'',name:''}; } }
 function storeCfg(c){ try{ localStorage.setItem(ONLINE_CFG,JSON.stringify(c)); }catch(e){} }
 /** Server-Adresse vereinheitlichen: ohne Schema wss://, http(s):// wird zu ws(s):// */
@@ -57,10 +59,12 @@ function wsUrl(u){
   return u;
 }
 function readForm(){
-  const c={url:wsUrl(/** @type {HTMLInputElement} */($('onUrl')).value),key:/** @type {HTMLInputElement} */($('onKey')).value,
+  const own=wsUrl(/** @type {HTMLInputElement} */($('onUrl')).value);
+  const c={url:own===DEFAULT_RELAY?'':own,key:/** @type {HTMLInputElement} */($('onKey')).value,
     name:/** @type {HTMLInputElement} */($('onName')).value.trim().slice(0,24)};
-  storeCfg(c); return c;
+  storeCfg(c); return withDefault(c);
 }
+const withDefault=c=>Object.assign({},c,{url:c.url||DEFAULT_RELAY});
 
 /* ---------- Sitzung: Welt des Gastgebers über ein Neuladen hinweg ---------- */
 /** @returns {{world?:{seed:number,region:string}, room?:string, rejoin?:boolean}|null} */
@@ -81,7 +85,6 @@ const onlineActive=()=>net.state!=='off';
  * @param {{url:string,key:string,name:string}} [c] Server, Schlüssel, Name (Standard: aus dem Fenster)
  */
 function connect(want,c=readForm()){
-  if(!c.url){ status('Bitte die Server-Adresse eintragen.'); return; }
   if(location.protocol==='https:'&&c.url.startsWith('ws://')){ status('Diese Seite läuft über https – der Server braucht eine wss://-Adresse.'); return; }
   if(!want.create&&!/^[A-Za-z]{4}$/.test(want.room||'')){ status('Der Raumcode hat 4 Buchstaben.'); return; }
   closeSocket();
@@ -105,7 +108,7 @@ function netSend(o){ const ws=net.ws; if(ws&&ws.readyState===1&&net.state==='onl
 function dropped(){
   const was=net.state, want=net.want, role=want&&!want.create?'guest':'host';
   reset();
-  if(was==='connecting'&&!net.retry){ status('Keine Verbindung zum Server. Stimmen Adresse und Schlüssel?'); if(session()?.rejoin) backToOwnWorld('Der Raum ist nicht erreichbar.'); renderOnline(); return; }
+  if(was==='connecting'&&!net.retry){ status('Keine Verbindung zum Server. Bitte später noch einmal versuchen'+($('onAdv').hasAttribute('open')||onlineCfg().url?' oder die Server-Adresse prüfen.':'.')); if(session()?.rejoin) backToOwnWorld('Der Raum ist nicht erreichbar.'); renderOnline(); return; }
   // Gast: einmal still neu verbinden (kurzer Aussetzer im WLAN)
   if(was==='online'&&role==='guest'&&!net.retry){ net.retry=true; status('Verbindung verloren – verbinde neu …'); setTimeout(()=>connect(want,onlineCfg()),1500); renderOnline(); return; }
   net.retry=false;
@@ -273,6 +276,8 @@ function renderOnline(){
 function openOnline(){
   const c=onlineCfg();
   /** @type {HTMLInputElement} */($('onUrl')).value=c.url; /** @type {HTMLInputElement} */($('onKey')).value=c.key;
+  /** @type {HTMLInputElement} */($('onUrl')).placeholder=DEFAULT_RELAY;
+  if(c.url||c.key) $('onAdv').setAttribute('open','');
   /** @type {HTMLInputElement} */($('onName')).value=c.name;
   renderOnline(); $('menu').style.display='none'; $('online').style.display='flex';
 }
@@ -285,6 +290,6 @@ $('btnOnLeave').onclick=leaveRoom;
 $('btnOnCancel').onclick=()=>{ reset(); status(''); renderOnline(); };
 
 // Nach dem Neuladen in die Welt des Gastgebers: selbst wieder beitreten
-{ const ses=session(); if(ses&&ses.rejoin&&ses.room) setTimeout(()=>connect({room:ses.room},onlineCfg()),300); }
+{ const ses=session(); if(ses&&ses.rejoin&&ses.room) setTimeout(()=>connect({room:ses.room},withDefault(onlineCfg())),300); }
 
 export { closeOnline, joinHooks, netSend, onNet, onlineActive, onlineOpen, remotes, net, traffic, updateNet, wsUrl };

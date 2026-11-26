@@ -5,11 +5,11 @@ Kleiner WebSocket-Server, über den mehrere Geräte gemeinsam LeoLife spielen. E
 ## Auf dem NAS starten (Docker)
 
 1. Den Ordner `server/` auf das NAS kopieren (oder das Repo dort klonen).
-2. `.env.example` nach `.env` kopieren und einen langen, geheimen Schlüssel eintragen:
+2. `.env.example` nach `.env` kopieren. Wichtig ist nur die Herkunft des Spiels:
    ```
-   RELAY_KEY=ein-langes-geheimes-wort
    ALLOWED_ORIGINS=https://philippduck.github.io
    ```
+   Einen Schlüssel braucht es nicht: Das Spiel ist öffentlicher Code, ein Schlüssel darin wäre für jeden lesbar. Den Server schützen die erlaubte Herkunft, die Raumcodes und die Grenzen unten.
 3. Starten:
    ```
    docker compose up -d --build
@@ -39,8 +39,7 @@ Voraussetzungen: Die Domain (oder DynDNS-Adresse) zeigt auf deinen Anschluss, un
 
 Pause-Menü → **Online spielen**:
 
-- **Server:** `wss://leolife.deinedomain.de` (ohne `wss://` wird es ergänzt)
-- **Schlüssel:** derselbe wie `RELAY_KEY`
+- Das Spiel verbindet sich von selbst mit `wss://leolife.duck-box.de`. Einen anderen Server (und ggf. Schlüssel) trägt man unter **Eigener Server** ein.
 - **Raum öffnen** zeigt einen Code aus 4 Buchstaben. Die anderen tragen ihn ein und tippen auf **Beitreten**.
 
 Wer beitritt, spielt in der Welt des Gastgebers: Das Spiel lädt einmal neu und verbindet sich von selbst wieder. Der eigene Spielstand bleibt auf dem eigenen Gerät. Beim Verlassen des Raums lädt das Spiel wieder die eigene Welt.
@@ -49,22 +48,22 @@ Wer beitritt, spielt in der Welt des Gastgebers: Das Spiel lädt einmal neu und 
 
 | Variable | Standard | Bedeutung |
 |---|---|---|
-| `RELAY_KEY` | – (Pflicht) | gemeinsamer geheimer Schlüssel |
-| `ALLOWED_ORIGINS` | alle | erlaubte Webseiten, Komma-getrennt (z. B. `https://philippduck.github.io`) |
+| `ALLOWED_ORIGINS` | – (Pflicht ohne Schlüssel) | erlaubte Webseiten, Komma-getrennt (z. B. `https://philippduck.github.io`) |
+| `RELAY_KEY` | – | freiwilliger Schlüssel; alle Spieler müssen ihn dann eintragen |
 | `MAX_PEERS` | 8 | Geräte je Raum |
 | `MAX_ROOMS` | 50 | gleichzeitige Räume |
 | `MAX_MSG_BYTES` | 32768 | größte Nachricht |
 | `MAX_MSG_PER_SEC` | 60 | Nachrichten je Sekunde und Gerät |
 | `RELAY_PORT` | 8090 | Port auf dem NAS (nur `docker-compose.yml`) |
 | `PORT` | 8080 | Port im Container |
-| `RELAY_OPEN` | – | `1` erlaubt den Start ohne Schlüssel (nur zum Ausprobieren im Heimnetz) |
+| `RELAY_OPEN` | – | `1` erlaubt den Start ohne Schlüssel und ohne `ALLOWED_ORIGINS` (nur zum Ausprobieren im Heimnetz) |
 
 ## Entwickeln und testen
 
 ```
 cd server && npm install
 node test.js                      # Relay-Test
-RELAY_KEY=test node relay.js      # lokal starten (ws://localhost:8080)
+RELAY_OPEN=1 node relay.js       # lokal starten (ws://localhost:8080)
 ```
 
-Zum Ausprobieren ohne HTTPS das Spiel lokal ausliefern (z. B. `python3 -m http.server 8000` im Repo) und `ws://localhost:8080` als Server eintragen. Für den Test mit zwei Browsern: `node tests/online-browser.cjs` (braucht Playwright).
+Zum Ausprobieren ohne HTTPS das Spiel lokal ausliefern (z. B. `python3 -m http.server 8000` im Repo) und unter **Eigener Server** `ws://localhost:8080` eintragen. Für den Test mit zwei Browsern: `node tests/online-browser.cjs` (braucht Playwright).

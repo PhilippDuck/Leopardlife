@@ -1,5 +1,5 @@
 # LeoLife-Relay auf dem NAS. Start: docker compose up -d --build
-# Den Schlüssel in einer Datei .env neben dieser Datei setzen:  RELAY_KEY=ein-langes-geheimes-wort
+# Einstellungen in einer Datei .env neben dieser Datei (siehe .env.example). Ein Schlüssel ist nicht nötig.
 # Ist Port 8090 auf dem NAS belegt, in .env einen anderen wählen:  RELAY_PORT=8091
 services:
   leolife-relay:
@@ -7,8 +7,9 @@ services:
     container_name: leolife-relay
     restart: unless-stopped
     environment:
-      RELAY_KEY: ${RELAY_KEY:?RELAY_KEY in .env setzen}
-      # Nur Verbindungen von diesen Seiten annehmen (Komma-getrennt). Leer = alle.
+      # Freiwillig: Dann müssen alle Spieler ihn im Spiel unter „Eigener Server“ eintragen.
+      RELAY_KEY: ${RELAY_KEY:-}
+      # Nur Verbindungen von diesen Seiten annehmen (Komma-getrennt). Schützt den Server, wenn kein Schlüssel gesetzt ist.
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://philippduck.github.io}
       MAX_PEERS: ${MAX_PEERS:-8}
       MAX_ROOMS: ${MAX_ROOMS:-20}
