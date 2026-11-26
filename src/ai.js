@@ -36,27 +36,37 @@ function recruitPack(a){ if(!PACK[a.sp.id]) return; const sm=SMART(); if(!sm) re
   for(const o of animals){ if(o!==a&&!o.dead&&o.sp===a.sp&&o.state==='wander'&&Math.hypot(o.x-a.x,o.z-a.z)<45&&Math.random()<sm){ o.state='chase'; o.lost=0; o.sus=0; o.aggro=2; } } }
 
 /* ---------- KI ---------- */
+/** Schwimmt das Landtier a gerade (tiefes Wasser im Fluss oder See)? */
+const swims=a=>!a.sp.croc&&!a.sp.hippo&&riverDepth(a.x,a.z)>RIV_SWIM;
+/** Höhe des Tiermodells: auf dem Boden, schwimmend mit dem Körper im Wasser (Kopf und Rücken schauen heraus) */
+function animalY(a){ const g=H(a.x,a.z); if(!swims(a)) return g; return Math.max(g,g+riverDepth(a.x,a.z)-a.sp.size*1.15); }
 function moveAnimal(a,dx,dz,spd,dt){
   if(a.wound){ spd*=woundSlow(a); woundTrail(a,spd*dt); }
   if(a.juv) spd*=0.85;
   const l=Math.hypot(dx,dz)||1; dx/=l; dz/=l;
-  const ox=a.x, oz=a.z;
+  const ox=a.x, oz=a.z, swimming=swims(a);
+  if(swimming) spd*=0.5;   // schwimmen ist langsam
   a.x+=dx*spd*dt; a.z+=dz*spd*dt;
-  // Tiefer Fluss: Landtiere gehen nicht hinein, sondern am Ufer entlang zur nächsten Furt; am See am Ufer entlang um ihn herum
-  if(!a.sp.croc&&!a.sp.hippo&&riverDepth(a.x,a.z)>RIV_SWIM&&riverDepth(ox,oz)<=RIV_SWIM){
+  // Tiefer Fluss: Wer flieht, jagt oder mit der Herde zieht, schwimmt hindurch. Sonst am Ufer entlang zur nächsten Furt
+  // (am See um ihn herum); hängt ein Tier dort fest (kommt nicht vom Fleck), schwimmt es nach kurzer Zeit doch.
+  const hurry=a.state==='flee'||a.state==='chase'||a.state==='lunge'||a.ev==='migr'||a.ev==='fire';
+  if(!a.sp.croc&&!a.sp.hippo&&!swimming&&!hurry&&!(a.stuckT>2)&&riverDepth(a.x,a.z)>RIV_SWIM){
     const rv=riverNear(ox,oz), n=rv.n, zc=rv.zc, s=rv.s, k=rv.k;
     if(rv.ld<rv.lr*1.2){ const rx=(ox-rv.lx)/(rv.ld||1), rz=(oz-rv.lz)/(rv.ld||1), dir=-rz*dx+rx*dz>=0?1:-1;
       a.x=ox+(-rz*dir+0.3*rx)*spd*dt; a.z=oz+(rx*dir+0.3*rz)*spd*dt; }
     else { const fx=fordX(n,Math.round((ox+n*2.3*RIV_FORD/6.2832)/RIV_FORD)), dir=fx>=ox?1:-1;
-      dx=dir/k; dz=dir*s/k; a.x=ox+dx*spd*dt; a.z=oz+dz*spd*dt+Math.sign(oz-zc)*0.3*spd*dt; }
-    if(riverDepth(a.x,a.z)>RIV_SWIM){ a.x=ox; a.z=oz; }
-  }
+      a.x=ox+dir/k*spd*dt; a.z=oz+dir*s/k*spd*dt+Math.sign(oz-zc)*0.3*spd*dt; }
+    if(riverDepth(a.x,a.z)>RIV_SWIM){ a.x=ox; a.z=oz; a.stuckT=(a.stuckT||0)+dt; } else a.stuckT=0;
+  } else if(!swimming) a.stuckT=0;
   const r=Math.hypot(a.x,a.z); if(!a.world&&r>WORLD){ a.x*=WORLD/r; a.z*=WORLD/r; }
   const cc=collide(a.x,a.z,a.rad*0.55,false); a.x=cc.x; a.z=cc.z;
-  if(!a.sp.friend){ a.trk=(a.trk||0)+spd*dt; if(a.trk>0.9+a.sp.size*1.2){ a.trk=0; if(players.some(p=>Math.abs(a.x-p.x)<70&&Math.abs(a.z-p.z)<70)){ a.tside=-(a.tside||1); addTrack(a,a.tside); } } }
-  let tr=Math.atan2(dx,dz), df=tr-a.g.rotation.y; while(df>Math.PI) df-=6.283; while(df<-Math.PI) df+=6.283;
-  a.g.rotation.y+=df*Math.min(1,dt*8);
-  a.ph+=dt*(6+spd*1.3); animLegs(a.g,a.ph,Math.min(0.9,0.25+spd*0.05));
+  if(!a.sp.friend&&!swimming){ a.trk=(a.trk||0)+spd*dt; if(a.trk>0.9+a.sp.size*1.2){ a.trk=0; if(players.some(p=>Math.abs(a.x-p.x)<70&&Math.abs(a.z-p.z)<70)){ a.tside=-(a.tside||1); addTrack(a,a.tside); } } }
+  // Blickrichtung nach der echten Bewegung (am Ufer umgelenkt oder aufgehalten), nicht nach dem Ziel – sonst dreht es sich hin und her
+  const mx=a.x-ox, mz=a.z-oz, moved=Math.hypot(mx,mz);
+  if(moved>spd*dt*0.2){ let tr=Math.atan2(mx,mz), df=tr-a.g.rotation.y; while(df>Math.PI) df-=6.283; while(df<-Math.PI) df+=6.283;
+    a.g.rotation.y+=df*Math.min(1,dt*8); }
+  const v=dt>0?moved/dt:spd;
+  a.ph+=dt*(6+v*1.3); animLegs(a.g,a.ph,swimming?0.5:v>0.2?Math.min(0.9,0.25+v*0.05):0.03);
 }
 /** Sprungtreffer: trifft irgendein Spieler mit seinem Sprung das Tier a? */
 function pounceHits(a){
@@ -123,10 +133,10 @@ function updateAnimal(a,dt){
     if(!seeking()){ a.g.visible=false; return; }
   }
   const dv=actors().length>1?nearestDist(a):d, me=!T.ghost;   // me: Geräusche nur für die eigenen Spieler
-  if(a.ev&&a.stun<=0&&eventStep(a,dt,moveAnimal)){ a.g.visible=dv<=VIEW_D&&!a.gone; a.g.position.set(a.x,H(a.x,a.z),a.z); pounceHits(a); return; }   // Ereignis steuert das Tier (auch außer Sicht)
+  if(a.ev&&a.stun<=0&&eventStep(a,dt,moveAnimal)){ a.g.visible=dv<=VIEW_D&&!a.gone; a.g.position.set(a.x,animalY(a),a.z); pounceHits(a); return; }   // Ereignis steuert das Tier (auch außer Sicht)
   if(sp.snake){ a.g.visible=dv<=VIEW_D; if(dv>VIEW_D+20) return; snakeStep(a,dt,d,dx,dz,T); pounceHits(a); return; }
   if(sp.elephant&&dv<=VIEW_D&&!(a.stun>0)&&elephantStep(a,dt,T,d,dx,dz)){ a.g.visible=true; pounceHits(a); return; }   // Elefant: Drohen und Angriff
-  if(!a.sp.croc&&!a.sp.hippo&&!a.sp.friend&&!a.sp.human&&!a.juv&&!a.bab&&animalWater(a,dt)){ a.g.visible=dv<=VIEW_D; a.g.position.set(a.x,H(a.x,a.z),a.z); return; }
+  if(!a.sp.croc&&!a.sp.hippo&&!a.sp.friend&&!a.sp.human&&!a.juv&&!a.bab&&animalWater(a,dt)){ a.g.visible=dv<=VIEW_D; a.g.position.set(a.x,animalY(a),a.z); return; }
   if(dv>VIEW_D&&a!==G.raider){ a.g.visible=false; return; } a.g.visible=dv<=VIEW_D;
   if(sp.hippo){ a.cd-=dt; if(a.stun>0){ a.stun-=dt; animLegs(a.g,a.ph,0.05); } else hippoStep(a,dt,T,d,dx,dz); pounceHits(a); return; }   // Nilpferd: Wasser, Weide, Drohen
   if(a.sp.burrow&&!(a.stun>0)&&burrowSeek(a,dt)){ pounceHits(a); return; }   // läuft zum Bau
@@ -204,7 +214,7 @@ function updateAnimal(a,dt){
       a.aggro=0; a.lost+=dt;
       if(d>a.rad+3.5) moveAnimal(a,dx,dz,sp.spd*0.6,dt); else animLegs(a.g,a.ph,0.05);
       if(a.lost>({easy:2.5,normal:6,hard:12})[S.diff]){ a.state='wander'; a.timer=0; a.sus=0; a.scared=6; if(me) snd.lost(); floatText('?',a.x,H(a.x,a.z)+sp.size*2.2,a.z,'#ddd'); }
-      a.g.position.set(a.x,H(a.x,a.z),a.z); return;
+      a.g.position.set(a.x,animalY(a),a.z); return;
     }
     if(a.aggro>0) a.aggro-=dt;
     const reach=a.rad+0.5+pScale(T.L)*0.7;
@@ -221,7 +231,7 @@ function updateAnimal(a,dt){
     }
   }
   const inn=a.g.userData.inner; inn.position.z*=0.85;
-  a.g.position.set(a.x,H(a.x,a.z),a.z);
+  a.g.position.set(a.x,animalY(a),a.z);
   // Sprungtreffer
   if(!sp.friend) pounceHits(a);
 }
