@@ -734,6 +734,13 @@ console.log('audio nodes created',ACs&&ACs.count());
   for(let i=0;i<1200&&deer.z<zc(deer.x)+side.w;i++){ T.moveAnimal(deer,0,far-deer.z,4,0.05); maxD=Math.max(maxD,T.riverDepth(deer.x,deer.z)); }
   assert.ok(maxD<=T.RIV_SWIM+0.01,'Herdentier im tiefen Wasser: '+maxD.toFixed(2));
   assert.ok(deer.z>zc(deer.x)&&Math.abs(deer.x-fx)<20,'nicht an der Furt hinüber: x '+(deer.x-fx).toFixed(1));
+  // Auf der Flucht schwimmt es dagegen direkt hinüber (langsamer), statt am Ufer hängen zu bleiben; der Blick geht in die Laufrichtung
+  { deer.x=deepX; deer.z=bank(); deer.state='flee'; const z0=deer.z; let deep=0, n2=0;
+    for(;n2<1200&&deer.z<zc(deer.x)+side.w*side.k+1;n2++){ T.moveAnimal(deer,0,far-deer.z,4,0.05); deep=Math.max(deep,T.riverDepth(deer.x,deer.z)); }
+    assert.ok(deep>T.RIV_SWIM,'Fliehendes Tier schwimmt nicht durchs Tiefe: '+deep.toFixed(2));
+    assert.ok(Math.abs(deer.x-deepX)<5&&deer.z>zc(deer.x),'nicht direkt hinübergeschwommen');
+    assert.ok(Math.abs(Math.sin(deer.g.rotation.y))<0.3&&Math.cos(deer.g.rotation.y)>0.9,'Blick nicht in Laufrichtung');
+    deer.state='wander'; }
   // Abschnitte mit Furt: Wasserfläche (wo Flussbett ist), Krokodile lauern an Furten und in Gumpen, alles verschwindet mit dem Abschnitt
   let crocs=0, built=0, inBed=0;
   for(let k=1;k<40;k++){ const x=T.fordX(n,k), r={...T.riverNear(x,r0.zc)}, bed=r.u>=T.RIV_HEAD&&r.u<=T.RIV_LAKE-1.3*r.lr, dry=r.cd>1e8;
