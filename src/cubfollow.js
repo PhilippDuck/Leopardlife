@@ -198,7 +198,8 @@ function updateFollowers(dt){
       if(f.up<=0&&want!=null&&Math.hypot(bx-f.x,bz-f.z)>0.8){ const d=Math.hypot(bx-f.x,bz-f.z); sp=d>6?9:4.5; const v=Math.min(d,sp*dt)/d; f.x+=(bx-f.x)*v; f.z+=(bz-f.z)*v; f.rot=Math.atan2(bx-f.x,bz-f.z); }
       else { f.tree=ti; const was=f.up; f.up=want!=null?Math.min(1,f.up+dt/1.5):Math.max(0,f.up-dt/0.9); if(was<=0&&f.up>0) snd3d(['claws'],f.x,f.z,0.6,30,1.3);
         f.x=bx; f.z=bz; f.rot=Math.atan2(t.x-bx,t.z-bz);
-        if(t.baobab||t.kopje){ const e=f.up*f.up*(3-2*f.up), px=t.x+t.perch[0]+0.6, pz=t.z+t.perch[2]+0.6; f.x=bx+(px-bx)*e; f.z=bz+(pz-bz)*e; }   // oben auf den Stamm
+        if(t.room){ if(f.up>=0.5){ f.x=t.room.x+0.9; f.z=t.room.z+0.9; } }   // mit in den Höhlenraum
+        else if(t.baobab||t.kopje){ const e=f.up*f.up*(3-2*f.up), px=t.x+t.perch[0]+0.6, pz=t.z+t.perch[2]+0.6; f.x=bx+(px-bx)*e; f.z=bz+(pz-bz)*e; }   // oben auf den Stamm
         if(f.up<=0) f.tree=null; }
     }
     else if(!f.wait&&!p.dead){ const d=Math.hypot(tx-f.x,tz-f.z); sp=d>9?9.5:d>2.5?4.2:d>0.8?1.6:0; if(p.sneak) sp*=0.7;
@@ -207,7 +208,7 @@ function updateFollowers(dt){
     f.ph+=dt*(sp>0?sp*2.2:climbing?12:0.5); animLegs(f.g,f.ph,sp>0||climbing?0.45:0.03);
     f.g.userData.inner.rotation.x=climbing?-1.1:0;
     const sc=0.34+0.66*Math.min(1,kidOf(p).grow); f.g.scale.set(sc,sc*(crouch?0.75:1),sc);
-    let gy=H(f.x,f.z); if(f.tree!=null){ const t=trees[f.tree], e=f.up*f.up*(3-2*f.up); gy+=Math.max(0,t.y+t.perch[1]*(t.baobab||t.kopje?1:0.8)-gy)*e; }
+    let gy=H(f.x,f.z); if(f.tree!=null){ const t=trees[f.tree], e=f.up*f.up*(3-2*f.up); if(t.room){ if(f.up>=0.5) gy=t.room.y; } else gy+=Math.max(0,t.y+t.perch[1]*(t.baobab||t.kopje?1:0.8)-gy)*e; }
     f.g.position.set(f.x,gy,f.z); f.g.rotation.y=f.rot; f.g.visible=true;
     const safe=f.up>=1;
     // ruft, wenn es den Anschluss verliert

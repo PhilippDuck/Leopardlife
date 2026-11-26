@@ -19,7 +19,7 @@ durch Savanne und Sumpf.
 - Puffottern liegen getarnt im Gras, zischen als Warnung und beißen mit nachwirkendem Gift
 - Elefantenherden mit Jungen ziehen durch die Savanne und treffen sich an den Wasserlöchern; wer zu nahe kommt, wird erst angedroht (Ohren gespreizt, Trompeten) und dann niedergetrampelt
 - Nilpferde dösen tagsüber in großen Wasserlöchern (nur Rücken, Augen und Ohren schauen heraus) und grasen nachts am Ufer; wer zwischen sie und das Wasser gerät oder ihnen zu nahe kommt, wird erst angedroht und dann angegriffen
-- Felsplateaus (Kopjes) aus großen Granitblöcken: hinaufklettern für Aussicht und Sicherheit, Beute mitnehmen, oben schlafen; die Höhle am Fuß ist ein Versteck und Schlafplatz und kann im Startgebiet zum Bau für die Jungen werden. Dazwischen liegen kleine Felsgruppen, auf die man auch ohne Klettern-Fähigkeit hinaufspringt
+- Felsplateaus (Kopjes) aus großen Granitblöcken: hinaufklettern für Aussicht und Sicherheit, Beute mitnehmen, oben schlafen; die Höhle am Fuß ist ein Versteck und Schlafplatz und kann im Startgebiet zum Bau für die Jungen werden. Der Bau selbst ist ein Felsplateau, dessen Höhle in einen Raum unter dem Felsen führt: Dort spielen die Jungen (tagsüber auch vor dem Eingang, nachts und bei Gefahr drinnen), dort bringt man die Beute hinein (am Eingang E), und dort kann man schlafen. Dazwischen liegen kleine Felsgruppen, auf die man auch ohne Klettern-Fähigkeit hinaufspringt
 - Ein Fluss schlängelt sich durch die Savanne und die weite Welt. Er entspringt an einer Quelle, fließt durch eine flache Aue stetig bergab und mündet in einen großen See ohne Abfluss. Dahinter beginnt der nächste Flussabschnitt an einer neuen Quelle. Im Tiefen muss man langsam schwimmen. Grasende Herden ziehen am Ufer entlang zu den flachen Furten (Stromschnellen); wer flieht, jagt oder wandert, schwimmt einfach hinüber. Krokodile lauern dort und vor allem in den breiten, tiefen Gumpen; im See leben Krokodile und Nilpferde. Am Ufer kann man trinken.
 - Trübe Tümpel verbergen Krokodile – nur feine Wellen und geducktes Lauschen am Ufer verraten sie
 - Tierlexikon im Menü: jede neu entdeckte Art bringt Erfahrung und einen Tipp
@@ -71,7 +71,7 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 | `src/hud.js` | Anzeige: Entdeckungswarnung, Kamera, Fadenkreuz, Statusleisten, Ziel, Spürkarte |
 | `src/input.js` | Eingabe über Tastatur, Maus und Touch, Umschalten der Anzeige je nach zuletzt benutzter Eingabe |
 | `src/kin.js` | Partner und Elterntiere am Bau: verteidigen, Futter bringen, beschützen; Wechsel ins Junge |
-| `src/kopje.js` | Felsplateaus und kleine Felsgruppen: Granitblöcke mit flacher Oberseite (Plateaus mit Höhle), Klettern und Höhle über die Baumliste, nachgeladen in der weiten Welt |
+| `src/kopje.js` | Felsplateaus und kleine Felsgruppen: Granitblöcke mit flacher Oberseite (Plateaus mit Höhle, im Startgebiet mit Höhlenraum darunter), Klettern und Höhle über die Baumliste, nachgeladen in der weiten Welt |
 | `src/kopjesites.js` | Lage und Größe der Felsplateaus und Felsgruppen im Startgebiet und in der weiten Welt (Pflanzen weichen ihnen aus) |
 | `src/kinship.js` | Verwandtschaft und Familie im gemeinsamen Spiel: wer mit wem verwandt ist, Spieler als Paar, Wurf mit einem Jungen je Spieler |
 | `src/life.js` | Lebenslauf: Hunger, Durst, Altern, Fressen aus dem Vorrat |

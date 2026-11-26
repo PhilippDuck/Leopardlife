@@ -31,7 +31,7 @@ const doc={ querySelectorAll:()=>[], getElementById:el, addEventListener(){}, cr
 let raf=null;
 const g={ window:win, document:doc, navigator:{maxTouchPoints:0}, localStorage:{getItem:k=>(k in ls?ls[k]:null),setItem:(k,v)=>{ls[k]=String(v);}}, THREE:win.THREE,
   requestAnimationFrame:fn=>{ if(fn.name==='frame') raf=fn; else fn(); }, setTimeout:fn=>{ fn(); } };
-const body=code+'\n;globalThis.__trees=trees;globalThis.__T={assistBite,disconnectPlayer,pollCoop,leavePlayer,G,makeTree,fillPlants,baobabSpot,riverNear,riverDepth,riverEdge,lakePond,RIV_LAKE,RIV_HEAD,fordX,fillRiver,RIV_SWIM,pondAt,worldPond,moveAnimal,samePond,waterDepth,homeKopjes,worldKopje,fillKopje,kopjeNear,CUB_HOME,chunkRng,sightAt,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,H,visibility,lineOfSight,addSight,hearR,startEvent,endEvent,EV,updateEvents,eventOn,inGrass,patches,updateAnimal,WORLD,kidOf,kidsOf,tickKids,updateLife,playerSeeks,canSwitchFor,markTaken,cubFollowContext,cubLearn,updateFollowers,followers,learnOf,canSwitch,woundTick,forgetWounds,resetMates,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping,PONDS,drinkContext,updateDrinking,hungerRate,crocStep,BURROWS,updateLexicon,lexIds,fowl,oxen,fowlSpots,oxpeckerSpots,vultureSpots,TROOPS,troopOf,updateBaboons,eleThreat,WATER_D,hippoThreat};';
+const body=code+'\n;globalThis.__trees=trees;globalThis.__T={assistBite,disconnectPlayer,pollCoop,leavePlayer,G,makeTree,fillPlants,baobabSpot,riverNear,riverDepth,riverEdge,lakePond,RIV_LAKE,RIV_HEAD,fordX,fillRiver,RIV_SWIM,pondAt,worldPond,moveAnimal,samePond,waterDepth,homeKopjes,worldKopje,fillKopje,denCave,cubState:()=>cub,kopjeNear,CUB_HOME,chunkRng,sightAt,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,H,visibility,lineOfSight,addSight,hearR,startEvent,endEvent,EV,updateEvents,eventOn,inGrass,patches,updateAnimal,WORLD,kidOf,kidsOf,tickKids,updateLife,playerSeeks,canSwitchFor,markTaken,cubFollowContext,cubLearn,updateFollowers,followers,learnOf,canSwitch,woundTick,forgetWounds,resetMates,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping,PONDS,drinkContext,updateDrinking,hungerRate,crocStep,BURROWS,updateLexicon,lexIds,fowl,oxen,fowlSpots,oxpeckerSpots,vultureSpots,TROOPS,troopOf,updateBaboons,eleThreat,WATER_D,hippoThreat};';
 new Function(...Object.keys(g), body)(...Object.values(g));
 const T=globalThis.__T; const rnd2=()=>Math.random()*8-4; const localStorageDump=()=>ls['jaguar-lines'];
 els.btnPlay.onclick();
@@ -44,7 +44,7 @@ console.log('start ok, lvl',T.S().lvl,'animals',T.animals.length);
 // Stufe 8 erreichen -> Partner sichtbar
 T.gainXp(5000); run(10);
 console.log('lvl',T.S().lvl,'mates visible',T.animals.filter(a=>a.sp.friend&&a.g.visible===true).length,'of',T.animals.filter(a=>a.sp.friend).length);
-const m=T.animals.find(a=>a.sp.friend&&a.g.visible===true); T.P.x=m.x+1; T.P.z=m.z+1; run(3); key('KeyF'); run(3);
+const m=T.animals.find(a=>a.sp.friend&&a.g.visible===true); T.P.tree=null; T.P.safe=false; T.P.x=m.x+1; T.P.z=m.z+1; run(3); key('KeyF'); run(3);   // (am Start kann er schon in die Bau-Höhle gegangen sein)
 console.log('preg',T.S().preg.toFixed(1));
 run(900);
 console.log('birth dialog',els.birth.style.display,'partner',T.S().partner);
@@ -369,12 +369,15 @@ console.log('audio nodes created',ACs&&ACs.count());
   console.log('Lehrzeit: Junges mitnehmen, folgt ('+Math.hypot(f.x-P.x,f.z-P.z).toFixed(1)+' m), lernt Hinterhalt 3/3, wächst auf '+Math.round(g*100)+' %'); }
 { const S=T.S(), P=T.P, keep=[S.cub,S.food]; const a=T.animals.find(o=>o.sp.id==='deer'&&!o.dead), k2=[a.x,a.z];
   S.cub={full:50,grow:0.2,hp:1,trait:'flink',n:1,gen:2,parents:[S.id,'wild']}; S.food=0;
-  P.dead=false; P.tree=null; P.st=100; P.hurtT=0; P.x=8; P.z=7; a.dead=true; a.x=8; a.z=8; T.makeCarcass(a,8); P.drag=a; P.ctl.fw=0; P.ctl.rt=0;
-  T.updateDrag(P,0.1); const freed=!P.drag, stays=!!a.carc&&a.carc.meat===8, f0=S.cub.full;
-  P.x=60; P.z=60; for(let i=0;i<120;i++) T.updateCub(0.1); const ate=a.carc?8-a.carc.meat:8, f1=S.cub.full;
-  S.cub=keep[0]; S.food=keep[1]; if(a.carc) T.endCarcass(a); a.dead=false; a.x=k2[0]; a.z=k2[1]; a.g.visible=true; P.drag=null;
-  if(!freed||!stays||!(ate>=2)){ console.log('FEHLER: Beute zum Bau',freed,stays,ate,f0,f1); process.exit(1); }
-  console.log('Beute zum Bau gezogen: bleibt liegen, die Jungen fressen selbst ('+ate+' Bissen in 12 s)'); }
+  // Neben dem Bau abgelegt zählt nicht – erst in der Höhle (am Eingang E): dort fressen die Jungen selbst
+  const dc=T.denCave(), di=globalThis.__trees.indexOf(dc);
+  P.dead=false; P.tree=null; P.st=100; P.hurtT=0; P.x=dc.x+dc.out[0]*1.5; P.z=dc.z+dc.out[1]*1.5; a.dead=true; a.x=P.x+dc.out[0]; a.z=P.z+dc.out[1]; T.makeCarcass(a,8); P.drag=a; P.ctl.fw=0; P.ctl.rt=0;
+  T.updateDrag(P,0.1); const outsideNo=!a.carc.den&&P.drag===a;
+  P.L.b.climb=0; T.doClimb(P); const inDen=P.tree===di&&!P.drag&&!!a.carc.den&&a.carc.tree===di, f0=S.cub.full;
+  P.tree=null; P.x=60; P.z=60; for(let i=0;i<160;i++) T.updateCub(0.1); const ate=a.carc?8-a.carc.meat:8, f1=S.cub.full, cin=T.cubState().inside;
+  S.cub=keep[0]; S.food=keep[1]; if(a.carc) T.endCarcass(a); a.dead=false; a.x=k2[0]; a.z=k2[1]; a.g.visible=true; P.drag=null; P.L.b.climb=1;
+  if(!outsideNo||!inDen||!(ate>=2)){ console.log('FEHLER: Beute in den Bau',outsideNo,inDen,ate,f0,f1,cin); process.exit(1); }
+  console.log('Beute in die Bau-Höhle gebracht: liegt im Raum, die Jungen gehen hinein und fressen selbst ('+ate+' Bissen in 16 s)'); }
 { const S=T.S(), P=T.P, keep=S.cub; const Q={num:2};
   S.cub={full:90,grow:0.6,hp:1,trait:'flink',n:2,gen:2,parents:[S.id,'wild']};
   const a1=T.canSwitchFor(P)&&T.canSwitchFor(Q); T.markTaken(P); S.cub.n=1; const a2=!T.canSwitchFor(P)&&T.canSwitchFor(Q);

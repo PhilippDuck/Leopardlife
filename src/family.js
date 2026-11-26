@@ -15,7 +15,7 @@ import { floatText, toast } from './ui.js';
 import { $, rnd } from './util.js';
 import { canMate, fam, famPlace, famRole, renderBirthChoices } from './kin.js';
 import { eatFood } from './life.js';
-import { canSleepNow, sleepOnTree } from './daynight.js';
+import { canSleepNow, dayF, sleepOnTree } from './daynight.js';
 import { carcassContext, endCarcass, nearCarcass, recordPartner, takeMeat } from './carcass.js';
 import { goalEvent } from './goals.js';
 import { moveAnimal } from './ai.js';
@@ -31,12 +31,19 @@ const FOOD_MAX=20, OLD_DEN={x:7,z:5};
 /** Bau der Jungen: der alte Bau im Startgebiet oder eine Höhle in einem Felsplateau (S.den) */
 const CUB_HOME={ get x(){ return S.den?S.den.x:OLD_DEN.x; }, get z(){ return S.den?S.den.z:OLD_DEN.z; } };
 const cub={x:CUB_HOME.x,z:CUB_HOME.z,tx:CUB_HOME.x,tz:CUB_HOME.z,t:0,ph:0,mewT:6,saveT:10,away:false};
+/** Höhle des Baus (Baum-Eintrag mit Raum, deren Vorplatz der Bauplatz ist), sonst null */
+let denIdx=-1;
+function denCave(){
+  const ok=t=>t&&t.cave&&t.room&&Math.hypot(t.x+t.out[0]*2.2-CUB_HOME.x,t.z+t.out[1]*2.2-CUB_HOME.z)<1.5;
+  if(ok(trees[denIdx])) return trees[denIdx];
+  denIdx=trees.findIndex(ok); return denIdx>=0?trees[denIdx]:null;
+}
 /** Platz vor der Höhle t (Baum-Eintrag einer Felsplateau-Höhle), an dem die Jungen spielen */
 const caveDen=t=>({x:t.x+t.out[0]*2.2,z:t.z+t.out[1]*2.2});
 /** Bau verlegen: in die Höhle t oder (null) zurück an den alten Platz. Die Jungen ziehen sofort mit. */
 function moveDen(t){
   if(t) S.den=caveDen(t); else delete S.den;
-  cub.x=cub.tx=CUB_HOME.x; cub.z=cub.tz=CUB_HOME.z; cub.t=0; save(); snd.mew();
+  cub.x=cub.tx=CUB_HOME.x; cub.z=cub.tz=CUB_HOME.z; cub.t=0; cub.inside=false; save(); snd.mew();
   toast(t?'Die Höhle ist jetzt euer Bau – hier kommen die Jungen zur Welt und warten auf Beute.':'Der Bau ist wieder am alten Platz.','#ff9ad0');
 }
 /** Kontextaktion Bau verlegen für P (in einer Höhle im Startgebiet bzw. am alten Bau), sonst null */
@@ -58,7 +65,7 @@ function updateSibs(c,dt){
   const dk=c?denKids():[], n=dk.length;
   sibG.forEach((g,i)=>{ const on=i+1<n; g.visible=on; if(!on) return;
     const an=i*2.1+0.6+Math.sin(performance.now()/4000+i)*0.3, x=cub.x+Math.sin(an)*1.1, z=cub.z+Math.cos(an)*1.1;
-    g.scale.setScalar(0.34+0.66*Math.min(1,dk[i+1][1].grow)); g.position.set(x,H(x,z),z); g.rotation.y=an+Math.PI+Math.sin(performance.now()/1500+i)*0.4;
+    g.scale.setScalar(0.34+0.66*Math.min(1,dk[i+1][1].grow)); g.position.set(x,cub.inside?cubY():H(x,z),z); g.rotation.y=an+Math.PI+Math.sin(performance.now()/1500+i)*0.4;
     animLegs(g,performance.now()/700+i,0.04); });
 }
 rebuildCub();
@@ -126,13 +133,15 @@ function mateWith(a){
   toast('Ihr habt euch gepaart. Dein Partner bleibt bei dir; im Bau kommt bald euer Junges zur Welt.','#ff9ad0');
 }
 /** Kadaver mit Fleisch auf dem Boden am Bau (für die Jungen erreichbar), sonst null */
-function denCarcass(){ let b=null, bd=14; for(const a of animals){ if(!a.dead||!a.carc||a.carc.meat<=0||a.carc.tree!=null) continue; const d=Math.hypot(a.x-CUB_HOME.x,a.z-CUB_HOME.z); if(d<bd){ bd=d; b=a; } } return b; }
+function denCarcass(){
+  for(const a of animals) if(a.dead&&a.carc&&a.carc.meat>0&&a.carc.den) return a;   // im Bau abgelegt
+  let b=null, bd=14; for(const a of animals){ if(!a.dead||!a.carc||a.carc.meat<=0||a.carc.tree!=null) continue; const d=Math.hypot(a.x-CUB_HOME.x,a.z-CUB_HOME.z); if(d<bd){ bd=d; b=a; } } return b; }
 /** Ein Junges im Bau nimmt einen Bissen vom Kadaver a: satt, wächst (im Bau bis 35 %, danach weiter ab halbstark) */
 function cubEats(c,a){
   a.carc.meat--; goalEvent('feed',1);
   const kid=denKids().map(([,k])=>k).filter(k=>k.grow<1).sort((x,y)=>x.full-y.full)[0];   // das hungrigste frisst
   if(kid){ kid.full=Math.min(100,kid.full+12); kid.hp=Math.min(1,kid.hp+0.08); kid.grow=Math.min(kid.grow<SWITCH_AT?Math.max(kid.grow,DEN_CAP):1,kid.grow+0.025); }
-  puff(a.x,H(a.x,a.z)+0.5,a.z,0xc0392b,3,0.3); snd3d(['eat'],cub.x,cub.z,0.6,40,1.35);
+  puff(a.x,cubY()+0.5,a.z,0xc0392b,3,0.3); snd3d(['eat'],cub.x,cub.z,0.6,40,1.35);
   if(a.carc.meat<=0){ endCarcass(a); a.g.visible=false; a.g.rotation.z=0; }
 }
 function feedCub(){
@@ -166,7 +175,9 @@ function startRaid(){
 function raidStep(a,dt){
   const sp=a.sp, c=S.cub;
   if(!c||c.grow>=1||denCount()<=0){ endRaid(a); return; }
-  const cx=cub.x-a.x, cz=cub.z-a.z, cd=Math.hypot(cx,cz);
+  // Junge in der Höhle: der Räuber lauert am Eingang und dringt erst ein, wenn er sie entdeckt hat
+  const ax=cub.inside?CUB_HOME.x:cub.x, az=cub.inside?CUB_HOME.z:cub.z;
+  const cx=ax-a.x, cz=az-a.z, cd=Math.hypot(cx,cz);
   if(!a.found){
     if(cd>10) moveAnimal(a,cx,cz,sp.spd*0.65,dt);
     else {
@@ -174,13 +185,13 @@ function raidStep(a,dt){
       if(a.timer<=0){ const an=Math.random()*6.283, r=rnd(3,9); a.tx=CUB_HOME.x+Math.cos(an)*r; a.tz=CUB_HOME.z+Math.sin(an)*r; a.timer=rnd(1.5,3); }
       moveAnimal(a,a.tx-a.x,a.tz-a.z,sp.spd*0.3,dt);
       // Ein sattes Junges bleibt still und wird selten gefunden, ein hungriges ruft und verrät sich
-      a.roll+=dt; if(a.roll>=1){ a.roll=0; if(Math.random()<0.02+0.12*(1-denFull()/100)){ a.found=true; snd.alert(); toast('Dein Junges wurde entdeckt – vertreib den Räuber!','#ff8a70'); } }
+      a.roll+=dt; if(a.roll>=1){ a.roll=0; if(Math.random()<(0.02+0.12*(1-denFull()/100))*(cub.inside?0.5:1)){ a.found=true; snd.alert(); toast('Dein Junges wurde entdeckt – vertreib den Räuber!','#ff8a70'); } }
       if(!a.found&&a.raidS>22){ endRaid(a); toast('Der Räuber hat dein Junges nicht gefunden und zieht ab.','#9be07f'); }
     }
   } else if(cd>a.rad+0.7) moveAnimal(a,cx,cz,sp.spd*0.85,dt);
   else {
     animLegs(a.g,a.ph,0.05);
-    if(a.cd<=0){ a.cd=1.2; puff(cub.x,H(cub.x,cub.z)+0.5,cub.z,0xc0392b,4,0.4); snd3d(['mew'],cub.x,cub.z,1.3,90,1.3);
+    if(a.cd<=0){ a.cd=1.2; puff(ax,H(ax,az)+0.5,az,0xc0392b,4,0.4); snd3d(['mew'],ax,az,1.3,90,1.3);
       for(const [k,kid] of denKids()){ kid.hp-=0.07; if(kid.hp<=0) kidDies(k,'wurde im Bau von einem Räuber getötet'); } }
   }
 }
@@ -206,6 +217,22 @@ function birth(){
   { const b=$('btnBeCub'); b.disabled=false; b.textContent='Als Junges spielen'; } renderBirthChoices();
   $('birth').style.display='flex'; G.paused=true; for(const k in keys) keys[k]=false; G.joyX=G.joyY=0; if(document.exitPointerLock) document.exitPointerLock();
 }
+/** Boden unter den Jungen im Bau: im Höhlenraum oder draußen auf dem Vorplatz */
+function cubY(){ const t=cub.inside?denCave():null; return t?t.room.y:H(cub.x,cub.z); }
+/**
+ * Junge gehen in den Höhlenraum und wieder heraus: nachts, bei Gefahr (Räuber am Bau, Raubtier in der Nähe) und wenn drinnen
+ * Beute liegt, sind sie drinnen; tagsüber spielen sie mal drinnen, mal vor der Höhle.
+ */
+function denInOut(c,dt,food){
+  const t=denCave(); if(!t){ cub.inside=false; return; }
+  cub.playT=(cub.playT??rnd(20,50))-dt; if(cub.playT<=0){ cub.playIn=Math.random()<0.45; cub.playT=rnd(25,60); }
+  const danger=!!G.raider||animals.some(a=>!a.dead&&a.sp.pred&&!a.sp.friend&&!a.sp.croc&&Math.hypot(a.x-CUB_HOME.x,a.z-CUB_HOME.z)<35);
+  const want=dayF<0.35||danger||(food&&food.carc.den)||cub.playIn;
+  if(want&&!cub.inside){
+    if(Math.hypot(cub.x-CUB_HOME.x,cub.z-CUB_HOME.z)>1.2&&!danger){ cub.tx=CUB_HOME.x; cub.tz=CUB_HOME.z; cub.t=1; return; }   // erst zum Eingang
+    const rm=t.room; cub.inside=true; cub.x=rm.x+t.out[0]*(rm.r-1.6); cub.z=rm.z+t.out[1]*(rm.r-1.6); cub.tx=rm.x; cub.tz=rm.z; cub.t=rnd(2,4);
+  } else if(!want&&cub.inside){ cub.inside=false; cub.x=cub.tx=t.x+t.out[0]*1.2; cub.z=cub.tz=t.z+t.out[1]*1.2; cub.t=0; }
+}
 function updateCub(dt){
   if(G.raider&&(G.raider.dead||G.raider.state!=='raid')){   // Räuber weg: hatte er das Junge schon gefunden, gilt es als gerettet
     if(G.raider.found&&G.raider.raidXp&&S.cub){ toast('Du hast dein Junges vor dem Räuber gerettet! +60 EP','#9be07f'); gainXp(60); }
@@ -227,12 +254,14 @@ function updateCub(dt){
   }
   // Hungrig und Beute am Bau: zum Kadaver laufen und selbst fressen (Bissen für Bissen, die Kugeln verschwinden)
   const food=c.grow<1&&denFull()<92?denCarcass():null;
-  if(food){ cub.tx=food.x+Math.sin(cub.t*3)*0.4; cub.tz=food.z+Math.cos(cub.t*3)*0.4; cub.eatT=(cub.eatT||0)-dt;
+  denInOut(c,dt,food);
+  if(food&&!!food.carc.den===!!cub.inside){ cub.tx=food.x+Math.sin(cub.t*3)*0.4; cub.tz=food.z+Math.cos(cub.t*3)*0.4; cub.eatT=(cub.eatT||0)-dt;
     if(Math.hypot(food.x-cub.x,food.z-cub.z)<food.rad+1.2&&cub.eatT<=0){ cub.eatT=2.4/Math.max(1,denCount()); cubEats(c,food); } }
-  else { cub.t-=dt; if(cub.t<=0){ const an=Math.random()*6.283, r=rnd(0,1.8); cub.tx=CUB_HOME.x+Math.cos(an)*r; cub.tz=CUB_HOME.z+Math.sin(an)*r; cub.t=rnd(3,9); } }
+  else { cub.t-=dt; if(cub.t<=0){ const an=Math.random()*6.283, rm=cub.inside?denCave().room:null, r=rnd(0,rm?rm.r-1.8:1.8), mx=rm?rm.x:CUB_HOME.x, mz=rm?rm.z:CUB_HOME.z;
+    cub.tx=mx+Math.cos(an)*r; cub.tz=mz+Math.sin(an)*r; cub.t=rnd(3,9); } }
   const dx=cub.tx-cub.x, dz=cub.tz-cub.z, d=Math.hypot(dx,dz);
   if(d>0.3){ const v=1.3*dt/d; cub.x+=dx*v; cub.z+=dz*v; cubG.rotation.y=Math.atan2(dx,dz); cub.ph+=dt*9; animLegs(cubG,cub.ph,0.45); } else animLegs(cubG,cub.ph,0.03);
-  { const d0=denKids()[0]; cubG.scale.setScalar(0.34+0.66*Math.min(1,d0?d0[1].grow:c.grow)); } cubG.position.set(cub.x,H(cub.x,cub.z),cub.z); updateSibs(c,dt);
+  { const d0=denKids()[0]; cubG.scale.setScalar(0.34+0.66*Math.min(1,d0?d0[1].grow:c.grow)); } cubG.position.set(cub.x,cubY(),cub.z); updateSibs(c,dt);
   cub.saveT-=dt; if(cub.saveT<=0){ cub.saveT=10; save(); }
 }
 /**
@@ -263,4 +292,4 @@ function updateFamArrow(dt){
 
 export { offerText };
 export { mateWild, nearestWild, playerSeeks, cubDies, nearCub, CUB_HOME, FOOD_MAX, context, cub, doContext, endRaid, raidStep, seekT, seeking, updateCub, updateFamArrow };
-export { CUBSPEC, familyModels, rebuildCub, feedCub };
+export { denCave, CUBSPEC, familyModels, rebuildCub, feedCub };

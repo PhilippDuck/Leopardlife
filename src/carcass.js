@@ -3,7 +3,7 @@ import { animals } from './animals.js';
 import { snd } from './audio.js';
 import { DIFF, FOOD, ICOL, TRAITS, ico } from './data.js';
 import { dropOrbs, meatOrbs, puff } from './effects.js';
-import { CUB_HOME, FOOD_MAX } from './family.js';
+import { FOOD_MAX, denCave } from './family.js';
 
 import { animLegs, furColor, furName } from './models.js';
 import { P, players } from './player.js';
@@ -48,7 +48,7 @@ const DRAG_MAX=10;                     // Bissen: bis Antilope; Riesenantilope u
 const canDrag=c=>c&&c.carc&&c.carc.tree==null&&(FOOD[c.sp.id]||0)<=DRAG_MAX&&!players.some(o=>o.drag===c)&&!c.netDrag;   // netDrag: zieht gerade ein Online-Gast
 /** Online-Gast: Kadaver gehört dem Gastgeber, was hier passiert, geht auch an ihn (networld.js) */
 const toHost=(kind,c,i)=>{ if(c.nid!=null&&G.carcNet) G.carcNet(kind,c,i); };
-function grabCarcass(p,c){ if(!canDrag(c)) return; p.eatC=null; p.drag=c; toHost('grab',c); p.sneak=false; snd.step(0.4); tell(p,S.cub&&S.cub.grow<1?'Beute gepackt – zum Bau ziehen (Haus auf der Spürkarte) fürs Junge oder auf einen Baum (E/Ⓨ)':'Beute gepackt – zu einem Baum ziehen und klettern (E/Ⓨ) · nochmal: loslassen','#e0a060'); }
+function grabCarcass(p,c){ if(!canDrag(c)) return; p.eatC=null; p.drag=c; toHost('grab',c); p.sneak=false; snd.step(0.4); tell(p,S.cub&&S.cub.grow<1?'Beute gepackt – in die Höhle am Bau bringen (Haus auf der Spürkarte, am Eingang E/Ⓨ) fürs Junge oder auf einen Baum':'Beute gepackt – zu einem Baum ziehen und klettern (E/Ⓨ) · nochmal: loslassen','#e0a060'); }
 function dropCarcass(p){ if(!p.drag) return; const c=p.drag; p.drag=null; toHost('drop',c); if(c.carc) c.carc.orbs.userData.y0=H(c.x,c.z)+c.sp.size*1.4+0.6; }
 /** Gezogene Beute folgt hinter dem Leoparden; kostet Ausdauer; bei Erschöpfung, Treffer oder Tod lässt er los */
 function updateDrag(p,dt){
@@ -59,19 +59,19 @@ function updateDrag(p,dt){
   c.x+=(bx-c.x)*Math.min(1,dt*8); c.z+=(bz-c.z)*Math.min(1,dt*8);
   const gy=H(c.x,c.z); c.g.position.set(c.x,gy+c.sp.size*0.22,c.z); c.g.rotation.y=p.rot+Math.PI/2;
   const o=c.carc.orbs; o.userData.y0=gy+c.sp.size*1.4+0.6; o.position.x=c.x; o.position.z=c.z;
-  if(S.cub&&S.cub.grow<1&&Math.hypot(c.x-CUB_HOME.x,c.z-CUB_HOME.z)<6) storeAtDen(p,c);
 }
-/** Beute am Bau angekommen: Spieler lässt los, der Kadaver bleibt liegen – die Jungen gehen selbst hin und fressen */
+/** Beute in den Bau gebracht (Höhlenraum): die Jungen fressen selbst davon, das Fleisch hält länger, Aasfresser kommen nicht heran */
 function storeAtDen(p,c){
-  if(c.carc.den) return; dropCarcass(p); c.carc.den=true; c.carc.t+=120;   // am Bau hält das Fleisch länger
-  goalEvent('denMeat',1); snd.mew(); floatText('Beute am Bau',c.x,H(c.x,c.z)+1.6,c.z,'#ff9ad0');
-  tell(p,'Beute am Bau abgelegt – deine Jungen fressen selbst davon, wenn sie hungrig sind.','#ff9ad0');
+  c.carc.den=true; c.carc.t+=120;
+  goalEvent('denMeat',1); snd.mew(); floatText('Beute im Bau',c.x,c.g.position.y+1.6,c.z,'#ff9ad0');
+  tell(p,'Beute im Bau abgelegt – deine Jungen fressen selbst davon, wenn sie hungrig sind.','#ff9ad0');
 }
 /** Die gezogene Beute wird beim Klettern auf Baum i mitgenommen */
 function carcassToTree(p,i){
   const c=p.drag; p.drag=null; if(!c||!c.carc) return;
   placeInTree(c,i); toHost('tree',c,i);
   const py=trees[i].y+trees[i].perch[1];
+  if(trees[i].room){ if(trees[i]===denCave()) storeAtDen(p,c); else floatText('Beute in der Höhle',p.x,py+1.6,p.z,'#e0a060'); return; }   // in einen Höhlenraum gebracht
   goalEvent('treeMeat',1); cubLearn(p,'tree');
   if(!c.treeXp){ c.treeXp=true; floatText('Beute im Baum! +30 EP',p.x,py+1.6,p.z,'#e0a060'); gainXp(30,p); } else floatText('Beute im Baum',p.x,py+1.6,p.z,'#e0a060');
 }
