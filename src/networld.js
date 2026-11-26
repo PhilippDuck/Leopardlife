@@ -58,6 +58,28 @@ joinHooks.push(()=>{ sentAnimals.clear(); envAt=0; });
 function nearGuest(a){ for(const gh of ghosts){ const dx=gh.x-a.x, dz=gh.z-a.z; if(dx*dx+dz*dz<NET_R*NET_R) return true; } return false; }
 /** Zustand als Bits: 1 sichtbar, 2 tot, 4 jagt/greift an, 8 flieht, 16 blutet (Blutspur) */
 function bitsOf(a){ return (a.g.visible?1:0)|(a.dead?2:0)|(a.state==='chase'||a.state==='lunge'?4:0)|(a.state==='flee'?8:0)|(a.wound&&a.wound.die?16:0); }
+/** Wer zieht den Kadaver a? Gerät·8 + Spielernummer (eigener Spieler des Gastgebers oder ein Gast), sonst 0 */
+function draggerOf(a){
+  if(!a.carc) return 0;
+  if(a.netDrag) return a.netDrag.peer*8+a.netDrag.num;
+  const p=players.find(o=>o.drag===a); return p?net.id*8+(p.num||1):0;
+}
+/**
+ * Kadaver a hinter dem angezeigten Leoparden g herziehen (wie updateDrag in carcass.js). So laufen beide bei allen
+ * anderen im Gleichschritt, statt dass der Kadaver eigene, anders verzögerte Stände bekommt.
+ */
+function followDragger(a,g,dt){
+  const back=1.1+a.sp.size*0.6, ry=g.rotation.y, bx=g.position.x-Math.sin(ry)*back, bz=g.position.z-Math.cos(ry)*back;
+  const far=Math.hypot(bx-a.x,bz-a.z)>6, k=far?1:Math.min(1,dt*8);
+  a.x+=(bx-a.x)*k; a.z+=(bz-a.z)*k;
+  const gy=H(a.x,a.z); a.g.position.set(a.x,gy+a.sp.size*0.22,a.z); a.g.rotation.y=ry+Math.PI/2;
+  if(a.carc){ const o=a.carc.orbs; o.position.x=a.x; o.position.z=a.z; o.userData.y0=gy+a.sp.size*1.4+0.6; }
+}
+/** Gastgeber: Kadaver, die ein Gast zieht, folgen jedes Bild seinem angezeigten Leoparden */
+function hostDrags(dt){
+  for(const a of sentAnimals.values()){ if(!a.netDrag||!a.carc) continue;
+    const r=remotes.get(a.netDrag.peer+':'+a.netDrag.num); if(r&&r.g&&r.g.visible) followDragger(a,r.g,dt); }
+}
 /** Ein Gast hält das Tier fest bzw. zieht den Kadaver – nur so lange, wie es den Gast noch gibt und er sich meldet */
 const HOLD_MS=30000, DRAG_MS=5000;
 function releaseStale(a,now){
@@ -79,9 +101,10 @@ function hostSend(now){
     const g=a.g, inr=g.userData.inner, vis=g.visible;
     const s=[id,rd2(vis?g.position.x:a.x),rd2(g.position.y),rd2(vis?g.position.z:a.z),rd2(g.rotation.y),rd2(g.rotation.x),rd2(g.rotation.z),
       rd2((a.ph||0)%PH_WRAP),bitsOf(a),tgtOf(a),inr?rd2(inr.position.z):0,
-      a.carc?a.carc.meat:-1,a.carc&&a.carc.tree!=null?1:0];   // Kadaver: Bissen übrig (-1 = keiner), im Baum
+      a.carc?a.carc.meat:-1,a.carc&&a.carc.tree!=null?1:0,   // Kadaver: Bissen übrig (-1 = keiner), im Baum
+      draggerOf(a)];   // wer ihn zieht (Gerät·8 + Spielernummer): die anderen hängen ihn hinter dessen Leoparden
     // Unverändert (ruht, frisst, lauert) oder unsichtbar: nur jede IDLE_MS
-    const last=a.netLast, same=last&&last[1]===s[1]&&last[3]===s[3]&&last[4]===s[4]&&last[6]===s[6]&&last[8]===s[8]&&last[9]===s[9]&&last[11]===s[11]&&last[12]===s[12];
+    const last=a.netLast, same=last&&last[1]===s[1]&&last[3]===s[3]&&last[4]===s[4]&&last[6]===s[6]&&last[8]===s[8]&&last[9]===s[9]&&last[11]===s[11]&&last[12]===s[12]&&last[13]===s[13];
     if(!fresh&&(same||!vis)&&now-a.netAt<IDLE_MS) continue;
     a.netLast=s; a.netAt=now; st.push(s);
   }
@@ -137,7 +160,9 @@ onNet('grab',m=>{ if(!hostHas(m)) return; const a=sentAnimals.get(m.n), gh=ghost
 onNet('drg',m=>{
   if(!hostHas(m)||!isNum(m.x)||!isNum(m.z)) return;
   const a=sentAnimals.get(m.n), gh=ghostOf(m); if(!a||!a.carc||a.netDrag!==gh) return;
-  a.dragAt=performance.now(); a.x=m.x; a.z=m.z;
+  a.dragAt=performance.now();
+  const r=remotes.get(gh.peer+':'+gh.num); if(r&&r.g&&r.g.visible) return;   // folgt dem angezeigten Leoparden (hostDrags)
+  a.x=m.x; a.z=m.z;   // ohne Modell des Gastes: seine gemeldete Lage
   const gy=H(a.x,a.z); a.g.position.set(a.x,gy+a.sp.size*0.22,a.z); if(isNum(m.ry)) a.g.rotation.y=m.ry;
   const o=a.carc.orbs; o.position.x=a.x; o.position.z=a.z; o.userData.y0=gy+a.sp.size*1.4+0.6;
 });
@@ -272,6 +297,10 @@ function guestAnimals(dt,now){
     if(mine){ guestCarcass(a,b[b.length-1].s,now,true);
       if(now>=dragAt){ dragAt=now+WD_MS; toHostMsg({t:'drg',n:a.nid,pn:mine.num||1,x:rd2(a.x),z:rd2(a.z),ry:rd2(a.g.rotation.y)}); }
       continue; }
+    // Kadaver, den ein anderer zieht (Gastgeber oder anderer Gast): hinter dessen angezeigtem Leoparden
+    { const last=b[b.length-1].s, dc=last[13]||0, dp=Math.floor(dc/8);
+      if(dc&&dp!==net.id){ const r=remotes.get(dp+':'+(dc%8));
+        if(r&&r.g&&r.g.visible){ a.dead=true; a.g.visible=true; a.g.rotation.x=last[5]; a.g.rotation.z=last[6]; followDragger(a,r.g,dt); guestCarcass(a,last,now,false); continue; } } }
     let A=b[0], B=b[0];
     for(let i=b.length-1;i>=0;i--){ if(b[i].t<=rt){ A=b[i]; B=b[i+1]||b[i]; break; } }
     while(b.length>2&&b[1].t<=rt) b.shift();
@@ -297,7 +326,7 @@ function guestAnimals(dt,now){
 /** Jedes Bild (auch in der Pause, damit die Welt der Gäste nicht stehen bleibt) */
 function updateNetWorld(dt,now){
   if(NET_GUEST){ guestAnimals(dt,now); return; }
-  if(net.state==='online'&&net.role==='host'&&net.peers.size) hostSend(now);
+  if(net.state==='online'&&net.role==='host'&&net.peers.size){ hostDrags(dt); hostSend(now); }
   else if(sentAnimals.size) sentAnimals.clear();
 }
 

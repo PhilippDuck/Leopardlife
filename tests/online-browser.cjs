@@ -154,13 +154,22 @@ const browsers=[]; let relay; const errors=[];
   console.log('B erlegt '+await A.evaluate(id=>window.__leopard.animals.find(o=>o.nid===id).sp.n,kid)+' von A: +EP bei B, Kadaver bei beiden, Bissen '+meat0+' → '+(meat0-1));
   // B packt den Kadaver und zieht ihn: A sieht ihn an der neuen Stelle
   const dragTo=await B.evaluate(async id=>{ const {carcassContext,updateDrag}=await import('./src/carcass.js'); const p=window.__leopard.players[0], a=window.__leopard.mirror.get(id);
-    p.L.hunger=100; p.st=100; p.hurtT=0; const cx=carcassContext(p); cx.fn(); p.rot=0; p.x=a.x; p.z=a.z+3; p.ctl={fw:1,rt:0};
+    p.L.hunger=100; p.st=100; p.hurtT=0; const cx=carcassContext(p); cx.fn(); p.rot=0; p.x=a.x; p.z=a.z+3; p.ctl={fw:1,rt:0}; p.g.position.set(p.x,p.g.position.y,p.z); p.g.rotation.y=p.rot;   // Modell mitstellen (ohne Hauptschleife): die anderen hängen den Kadaver dahinter
     for(let i=0;i<20;i++) updateDrag(p,0.1); return {ok:p.drag===a,x:a.x,z:a.z}; },kid);
   assert.ok(dragTo.ok,'B zieht den Kadaver');
   await until(A,new Function('const a=window.__leopard.animals.find(o=>o.nid==='+kid+'); return Math.hypot(a.x-'+dragTo.x+',a.z-'+dragTo.z+')<0.3&&a.netDrag;'),20000);
   await B.evaluate(async()=>{ const {dropCarcass}=await import('./src/carcass.js'); dropCarcass(window.__leopard.players[0]); });
   await until(A,new Function('return !window.__leopard.animals.find(o=>o.nid==='+kid+').netDrag'),20000);
   console.log('B zieht den Kadaver, A sieht ihn mitwandern');
+  // A (Gastgeber) zieht: B sieht den Kadaver hinter dem Leoparden von A, im Gleichschritt
+  const dragA=await A.evaluate(async id=>{ const {carcassContext,updateDrag}=await import('./src/carcass.js'); const p=window.__leopard.players[0], a=window.__leopard.animals.find(o=>o.nid===id);
+    p.dead=false; p.x=a.x; p.z=a.z-1; p.tree=null; p.L.hunger=100; p.st=100; p.hurtT=0; const cx=carcassContext(p); cx.fn();
+    p.rot=Math.PI/2; p.x=a.x+4; p.z=a.z; p.ctl={fw:1,rt:0}; p.g.position.set(p.x,p.g.position.y,p.z); p.g.rotation.y=p.rot;
+    for(let i=0;i<20;i++) updateDrag(p,0.1); return {ok:p.drag===a,x:a.x,z:a.z}; },kid);
+  assert.ok(dragA.ok,'A zieht den Kadaver');
+  await until(B,new Function('const a=window.__leopard.mirror.get('+kid+'); return !!a&&Math.hypot(a.x-('+dragA.x+'),a.z-('+dragA.z+'))<0.3;'),20000);
+  await A.evaluate(async()=>{ const {dropCarcass}=await import('./src/carcass.js'); dropCarcass(window.__leopard.players[0]); });
+  console.log('A zieht den Kadaver, B sieht ihn hinter A');
   // Festbeißen: zähe Beute überlebt den Hinterhalt, B beißt sich fest, reißt sich los → bei A verwundet und auf der Flucht
   const [bid,bx,bz]=await preyAt(A,400,4); await seenAt(bid,bx,bz);
   await pounceOn(bid);
