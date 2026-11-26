@@ -1,4 +1,4 @@
-// LeoLife – Pflanzen: Bäume (mit Ausblenden vor der Kamera), Büsche, Felsen, Stämme, Blumen, Bodengras, hohes Gras als Versteck und die Felsen am Bau.
+// LeoLife – Pflanzen: Bäume (mit Ausblenden vor der Kamera), Büsche, Felsen, Stämme, Blumen, Bodengras, hohes Gras als Versteck. (Der Bau ist ein Felsplateau mit Höhle, kopje.js.)
 import { camera, grassLight, scene, windU } from './engine.js';
 import { REG, WORLD_SEED, pScale } from './save.js';
 import { seeded } from './noise.js';
@@ -318,10 +318,5 @@ const patches=[]; let tallGeo=null, tallMat=null, TALL_N=0;
 })();
 function inGrass(x,z){ for(let i=0;i<patches.length;i++){ const p=patches[i]; if(p.burnt) continue; const dx=x-p.x, dz=z-p.z; if(dx*dx+dz*dz<p.r*p.r) return true; } return false; }
 
-/* Bau (Startpunkt) */
-(function(){
-  const mat=new THREE.MeshLambertMaterial({color:0x8a8a80});
-  [[-3,0,-3,2.2],[-0.5,0,-4.2,2.8],[2.2,0,-3.2,2]].forEach(r=>{ const m=new THREE.Mesh(new THREE.DodecahedronGeometry(r[3],0),mat); m.position.set(r[0],H(r[0],r[2])+r[3]*0.5,r[2]); m.rotation.set(Math.random(),Math.random(),0); m.castShadow=true; m.receiveShadow=true; scene.add(m); addSight(r[0],r[2],r[3]*0.9,r[3]*1.4,1); addCol(r[0],r[2],r[3]*0.9); });
-})();
 
 export { releaseTree, treeSlot, dryBushGeometry, dryBushColor, shrubKind, bushGeometry, bushMaterial, bushColor, makeTree, woodMeshes, setTree, fadedTrees, applyTreeView, _tm, _tv, inGrass, leafGeoHi, leafGeoLo, leafMeshes, leafTime, patches, tallGeo, tallMat, trees, updateTrees };
