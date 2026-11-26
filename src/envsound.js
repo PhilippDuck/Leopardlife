@@ -14,11 +14,11 @@ function updateEnvSound(dt){
   let river=0, water=0, fire=0;
   for(const p of players){
     const rv=riverNear(p.x,p.z), e=rv.e;
-    river=Math.max(river,near(e,45)*(rv.ford>0.3?1.2:1));
+    river=Math.max(river,near(e,30)*(rv.ford>0.3?1.15:1));   // nur nah am Ufer hörbar
     water=Math.max(water,near(e,60),pondAt(p.x,p.z,3.5)?1:pondAt(p.x,p.z,6)?0.5:0);
     if(EV.on==='fire'){ const d=Math.abs((p.x*EV.dir.x+p.z*EV.dir.z)-EV.s); fire=Math.max(fire,near(d,140)); }
   }
   const night=Math.max(0,Math.min(1,(0.55-dayF)/0.35));
-  setEnvLoops({river:0.28*river*river,frogs:0.16*water*night,fire:0.55*fire*fire});
+  setEnvLoops({river:0.1*river*river,frogs:0.16*water*night,fire:0.55*fire*fire});
 }
 export { updateEnvSound };
