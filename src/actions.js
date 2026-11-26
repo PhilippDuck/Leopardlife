@@ -243,8 +243,8 @@ function defendYoung(kid,p){
 /** Getroffene Beute schreit: Hase und Maus quieken, Wild- und Warzenschwein quieken laut */
 function painCry(a){
   const id=a.sp.id;
-  if(id==='hase'||id==='maus') snd3d(['squeak'],a.x,a.z,id==='maus'?0.55:0.9,40,id==='maus'?rnd(1.35,1.6):rnd(0.95,1.15));
-  else if(id==='boar'||id==='wart') snd3d(['boarSqueal'],a.x,a.z,1,80,id==='wart'?rnd(1.05,1.2):rnd(0.9,1.02));
+  if(id==='hase'||id==='maus') snd3d(['squeak'],a.x,a.z,id==='maus'?0.3:0.5,35,id==='maus'?rnd(1.35,1.6):rnd(0.95,1.15));
+  else if(id==='boar'||id==='wart') snd3d(['boarSqueal'],a.x,a.z,0.55,60,id==='wart'?rnd(1.05,1.2):rnd(0.9,1.02));
 }
 function killAnimal(a,p=P,fromWounds){
   if(a.dead) return;

@@ -181,7 +181,7 @@ function eventStep(a,dt,move){
     const pan=EV.panic>0, fwd=along(a.x,a.z);
     let mx=EV.dir.x, mz=EV.dir.z;
     const side=across(a.x,a.z)-across(EV.herd[0].x,EV.herd[0].z)-a.gx; mx+=EV.dir.z*side*0.03; mz-=EV.dir.x*side*0.03;
-    if(!pan){ for(const p of players){ if(p.dead) continue; const d=Math.hypot(p.x-a.x,p.z-a.z); if(d<(p.sneak?5:13)){ EV.panic=7; snd3d(['alarm'],a.x,a.z,1,120,0.85); break; } } }
+    if(!pan){ for(const p of players){ if(p.dead) continue; const d=Math.hypot(p.x-a.x,p.z-a.z); if(d<(p.sneak?5:13)){ EV.panic=7; break; } } }
     if(a.hp<sp.hp) EV.panic=Math.max(EV.panic,5);
     move(a,mx,mz,pan?sp.spd:4.6,dt);
     if(pan){ a.cd-=dt; for(const p of players){ if(p.dead||p.tree!=null) continue; if(Math.hypot(p.x-a.x,p.z-a.z)<a.rad+0.7&&a.cd<=0){ a.cd=1.1; hurtPlayer(7,{sp:{id:'gnu',n:'Gnu',dmg:7}},false,p); floatText('Getrampelt!',p.x,p.y+2,p.z,'#ff7a5c'); } } }
