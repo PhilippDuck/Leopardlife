@@ -10,14 +10,14 @@ import { animals } from './animals.js';
 import { QUAL } from './data.js';
 import { quality } from './quality.js';
 import { seeded } from './noise.js';
-import { S } from './save.js';
+import { WORLD_SEED } from './save.js';
 
 const rockGeometry=new THREE.DodecahedronGeometry(1,0);
 const vegetationBushes={geometry:bushGeometry,material:bushMaterial};
 /** Anteil der Abschnitte mit einem Affenbrotbaum (nur im Trockenen) */
 const BAOBAB_CHANCE=0.07;
 /** Eigener Zufall je Abschnitt für den Affenbrotbaum, damit die übrige Bepflanzung gleich bleibt */
-const baobabRng=(cx,cz)=>seeded((S.seed^Math.imul(cx,0x2c1b3c6d)^Math.imul(cz,0x297a2d39)^0x5bd1e995)>>>0);
+const baobabRng=(cx,cz)=>seeded((WORLD_SEED^Math.imul(cx,0x2c1b3c6d)^Math.imul(cz,0x297a2d39)^0x5bd1e995)>>>0);
 /** Platz für einen Affenbrotbaum in Abschnitt cx/cz oder null (deterministisch aus Weltsamen und Koordinaten) */
 function baobabSpot(cx,cz){
   const r=baobabRng(cx,cz); if(r()>=BAOBAB_CHANCE) return null;

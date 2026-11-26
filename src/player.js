@@ -72,6 +72,7 @@ const JAG={col:0xe0a23c,col2:0xf0c98a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.44
  * @property {number} combatT Zeit seit dem letzten Kampf (keine Heilung)
  * @property {number} moving
  * @property {number} walkT Laufzyklus der Beine
+ * @property {number} [legA] Ausschlag der Beine in diesem Bild (move.js; net.js schickt ihn an die anderen Geräte)
  * @property {number} [stepT] Zeit bis zum nächsten Schrittgeräusch
  * @property {number} [pad] Controller-Index eines Mitspielers (coop.js)
  * @property {number} [num] Spielernummer 2…4 eines Mitspielers
@@ -126,4 +127,4 @@ const P=makePlayer();
 // Alle Spieler auf diesem Gerät. Noch einer; beim Splitscreen kommen weitere dazu.
 const players=[P];
 
-export { P, players, makePlayer, START_ROT, START_YAW, dropModel, rebuildPlayer };
+export { JAG, P, players, makePlayer, START_ROT, START_YAW, dropModel, rebuildPlayer };

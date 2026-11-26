@@ -58,6 +58,7 @@ import { updateInsects } from './insects.js';
 import { updateLexicon } from './lexicon.js';
 import { updateVenom } from './snake.js';
 import { updateExplore } from './explore.js';
+import { net, remotes, updateNet } from './net.js';
 onChunkFill(fillWater);
 onChunkFill(fillPlants);
 onChunkFill(fillKopje);
@@ -94,7 +95,7 @@ function frame(now){
   if(G.slowT>0){ G.slowT-=dt; if(players.length===1) dt*=0.25; }
   if(!G.paused) step(dt);
   for(const p of players) updateCamera(p,p.camera); updateTrees(dt,players.map(p=>({camera:p.camera,p}))); updateEnv(dt,now); eventsVisual(); updateTitle(dt); musicTick(); ambTick(dayF,W.rain,W.storm,S.tod*24,players.some(p=>animals.some(a=>!a.dead&&(a.state==='chase'||a.state==='lunge')&&a.tgt===p)));
-  updateChunks(dt); updateWorldContent(dt);
+  updateChunks(dt); updateWorldContent(dt); updateNet(now);
   renderAll();
 }
 function step(dt){
@@ -121,7 +122,7 @@ function step(dt){
 }
 
 // Für Browsertests (tools/*.py mit ?test): Spielzustand zum Nachsehen
-if(typeof location!=='undefined'&&location.search.includes('test')) window['__leopard']={G,players,S,animals};
+if(typeof location!=='undefined'&&location.search.includes('test')) window['__leopard']={G,players,S,animals,net,remotes};
 
 applyQuality();
 setInputMode(inputMode); setResLabel(); if(!S.goals) newGoals();

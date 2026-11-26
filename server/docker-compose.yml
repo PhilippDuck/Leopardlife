@@ -1,0 +1,22 @@
+# LeoLife-Relay auf dem NAS. Start: docker compose up -d --build
+# Den Schlüssel in einer Datei .env neben dieser Datei setzen:  RELAY_KEY=ein-langes-geheimes-wort
+services:
+  leolife-relay:
+    build: .
+    container_name: leolife-relay
+    restart: unless-stopped
+    environment:
+      RELAY_KEY: ${RELAY_KEY:?RELAY_KEY in .env setzen}
+      # Nur Verbindungen von diesen Seiten annehmen (Komma-getrennt). Leer = alle.
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://philippduck.github.io}
+      MAX_PEERS: ${MAX_PEERS:-8}
+      MAX_ROOMS: ${MAX_ROOMS:-20}
+    # Nur für Nginx Proxy Manager erreichbar machen: entweder über ein gemeinsames Docker-Netz (unten)
+    # oder über einen Port auf dem NAS (dann im Proxy Manager die NAS-IP und diesen Port eintragen).
+    ports:
+      - "8090:8080"
+    # networks: [npm]
+# networks:
+#   npm:
+#     external: true
+#     name: <Netzwerk von Nginx Proxy Manager, z. B. nginx-proxy-manager_default>
