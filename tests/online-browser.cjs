@@ -30,7 +30,7 @@ const browsers=[]; let relay; const errors=[];
     // Ohne Grafikkarte ist das Zeichnen zu langsam für zwei Geräte: Die Hauptschleife bleibt aus, nur das Netz wird
     // regelmäßig aktualisiert (dieselbe Funktion, die sonst jedes Bild läuft)
     await page.addInitScript(()=>{ window.requestAnimationFrame=()=>0;
-      addEventListener('load',()=>{ Promise.all([import('./src/net.js'),import('./src/networld.js'),import('./src/netcoop.js')]).then(([m,w,c])=>setInterval(()=>{ const now=performance.now(); m.updateNet(now); c.updateNetCoop(0.05); w.updateNetWorld(0.05,now); },50)); }); });
+      addEventListener('load',()=>{ Promise.all([import('./src/net.js'),import('./src/networld.js'),import('./src/netcoop.js'),import('./src/netfamily.js')]).then(([m,w,c,f])=>setInterval(()=>{ const now=performance.now(); m.updateNet(now); c.updateNetCoop(0.05); f.updateNetFamily(0.05,now); w.updateNetWorld(0.05,now); },50)); }); });
     await page.addInitScript(([seed,name,rport])=>{
       if(localStorage.getItem('jaguar-save-v1')) return;
       localStorage.setItem('jaguar-gfx2','low');
@@ -194,6 +194,31 @@ const browsers=[]; let relay; const errors=[];
   await until(B,()=>!window.__leopard.players[0].dead,30000);
   await A.evaluate(()=>{ clearInterval(window.__coopT); window.__leopard.players[0].ctl.act=false; }); await B.evaluate(()=>clearInterval(window.__coopT));
   console.log('Koop online: B ruft A, B geht zu Boden, A belebt B wieder');
+  // Gemeinsames Festbeißen: A hat sich festgebissen, B springt dazu – die Hilfe zählt bei A
+  await A.evaluate(()=>{ const L=window.__leopard, P=L.players[0], a=L.animals.find(o=>!o.dead&&!o.sp.friend); P.dead=false; P.bite={a,n:3,combo:0,round:0,pos:0.5,dir:1,speed:1,scores:[],idle:0}; });
+  await until(B,async()=>(await import('./src/coop.js')).netMates.list().some(q=>q.biting),20000);
+  await B.evaluate(async()=>{ const {netMates}=await import('./src/coop.js'); const {assistBite}=await import('./src/bite.js'); const q=netMates.list()[0], P=window.__leopard.players[0]; P.dead=false; P.x=q.x+1; P.z=q.z; assistBite(P); });
+  await until(A,()=>window.__leopard.players[0].bite.help>0,20000);
+  await A.evaluate(()=>{ window.__leopard.players[0].bite=null; });
+  console.log('B hilft beim Festbeißen von A: +5 % bei A');
+  // Familie der anderen: A hat einen Partner am Bau – B sieht ihn an derselben Stelle
+  const famAt=await A.evaluate(async()=>{ const {fam}=await import('./src/kin.js'); const S=window.__leopard.S, P=window.__leopard.players[0], a=fam[0];
+    S.partner=true; a.famOn=true; a.dead=false; a.x=P.x+3; a.z=P.z; a.g.position.set(a.x,a.g.position.y,a.z); a.g.visible=true; return [a.x,a.z]; });
+  await until(B,new Function('return (async()=>{ const {famShown}=await import("./src/netfamily.js"); return [...famShown.values()].some(e=>e.g&&e.g.visible&&Math.hypot(e.g.position.x-('+famAt[0]+'),e.g.position.z-('+famAt[1]+'))<0.3); })()'),20000);
+  console.log('B sieht den Partner von A am Bau');
+  // Paaren über Geräte: beide ausgewachsen, nicht verwandt – jeder bekommt einen Wurf mit beiden als Eltern
+  for(const pg of [A,B]) await pg.evaluate(()=>{ const S=window.__leopard.S, P=window.__leopard.players[0]; S.lvl=Math.max(S.lvl,8); S.preg=0; S.cub=null; P.dead=false; });
+  for(const pg of [A,B]) await until(pg,async()=>(await import('./src/coop.js')).netMates.list().some(q=>q.L.id&&q.L.lvl>=8&&!q.busy),20000);   // beide kennen den anderen schon als ausgewachsen
+  const idA=await A.evaluate(()=>window.__leopard.S.id), idB=await B.evaluate(()=>window.__leopard.S.id);
+  await B.evaluate(async()=>{ const {netMates}=await import('./src/coop.js'); const {pairPlayers}=await import('./src/kinship.js'); const q=netMates.list()[0], P=window.__leopard.players[0]; P.x=q.x+1; P.z=q.z; pairPlayers(P,q); });
+  const diag=pg=>pg.evaluate(async()=>{ const {netMates}=await import('./src/coop.js'); const {canPair,related}=await import('./src/kinship.js'); const {kidOf}=await import('./src/cubfollow.js'); const q=netMates.list()[0], P=window.__leopard.players[0], S=window.__leopard.S;
+    return {can:canPair(P,q),rel:related(P.L,q.L),qL:q.L,busy:q.busy,qdead:q.dead,lvl:P.L.lvl,dead:P.dead,kid:!!kidOf(P),preg:S.preg,id:S.id,toast:document.getElementById('toast').textContent}; });
+  await until(A,()=>window.__leopard.S.preg>0,20000).catch(async e=>{ console.log('A:',JSON.stringify(await diag(A))); console.log('B:',JSON.stringify(await diag(B))); throw e; });
+  await until(B,()=>window.__leopard.S.preg>0,20000);
+  const lpA=await A.evaluate(()=>window.__leopard.S.litterParents), lpB=await B.evaluate(()=>window.__leopard.S.litterParents);
+  assert.deepEqual([...lpA].sort(),[idA,idB].sort(),'Wurf bei A mit beiden Eltern'); assert.deepEqual([...lpB].sort(),[idA,idB].sort(),'Wurf bei B mit beiden Eltern');
+  for(const pg of [A,B]) await pg.evaluate(()=>{ const S=window.__leopard.S; S.preg=0; S.litterParents=null; S.partner=false; });
+  console.log('A und B haben sich gepaart: Wurf auf beiden Geräten');
   // Gemeinsam schlafen: beide sicher auf einem Baum, nachts; B will zuerst, dann A – die Nacht vergeht für beide
   await A.evaluate(()=>{ window.__leopard.S.tod=0.9; });
   await until(B,()=>Math.abs(window.__leopard.S.tod-0.9)<0.02,20000);

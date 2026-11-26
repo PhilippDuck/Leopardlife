@@ -28,9 +28,9 @@ import { renderPlayers, titleOn } from './title.js';
 /**
  * Leoparden der anderen Geräte im Online-Spiel (netcoop.js trägt sie ein): für Markieren, Wiederbeleben und Schlafen.
  * Jeder Eintrag: {remote:true, key, name, num, x, y, z, L:{lvl}, dead, downT (am Boden: Zahl, sonst null), revT, helping, wantSleep, pingT}
- * @type {{list:()=>any[], myName:()=>string|null, onPing:((p:any)=>void)|null}}
+ * @type {{list:()=>any[], myName:()=>string|null, onPing:((p:any)=>void)|null, onAssist:((p:any,q:any)=>void)|null, onPair:((p:any,q:any)=>void)|null}}
  */
-const netMates={list:()=>[],myName:()=>null,onPing:null};
+const netMates={list:()=>[],myName:()=>null,onPing:null,onAssist:null,onPair:null};
 /** Gibt es andere Leoparden, lokal oder online? */
 const anyMates=()=>players.length>1||netMates.list().length>0;
 /** Höchstens so viele Spieler teilen sich den Bildschirm */

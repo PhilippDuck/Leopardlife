@@ -1,7 +1,7 @@
 // LeoLife – Verwandtschaft und Familie im gemeinsamen Spiel: wer mit wem verwandt ist, Spieler als Paar, Wurf mit einem Jungen je Spieler.
 // Regel: Verwandte paaren sich nie (Eltern/Kinder, Geschwister, Großeltern/Enkel, Tante/Onkel mit Nichte/Neffe). Cousins dürfen. Wer neu einsteigt, ist fremd.
 import { snd } from './audio.js';
-import { nameOf, tell } from './coop.js';
+import { nameOf, netMates, tell } from './coop.js';
 import { TRAITS } from './data.js';
 import { puff } from './effects.js';
 import { FOOD_MAX, cub, feedCub, mateWild, nearCub, nearestWild, offerText, playerSeeks } from './family.js';
@@ -12,7 +12,7 @@ import { S, fresh, inheritTrait, maxHp, maxSt, save } from './save.js';
 import { G } from './state.js';
 import { toast } from './ui.js';
 import { rnd } from './util.js';
-import { carcassContext, nearCarcass, recordAncestor, takeMeat } from './carcass.js';
+import { carcassContext, nearCarcass, recordAncestor, recordPartner, takeMeat } from './carcass.js';
 import { canSleepNow, sleepOnTree } from './daynight.js';
 import { applyLearned, canSwitch, canSwitchFor, cubFollowContext, denFull, dropFollower, followerOf, heirLevel, kidInfo, kidOf, kidsOf, markTaken, numOf } from './cubfollow.js';
 import { drinkContext } from './thirst.js';
@@ -47,20 +47,33 @@ function playerOffer(p,q){ const a=p.L.traits||[], b=q.L.traits||[], both=a.filt
   if(pool.length) return pool[Math.floor(Math.random()*pool.length)]; const ks=Object.keys(TRAITS); return ks[Math.floor(Math.random()*ks.length)]; }
 /** Können sich die Spieler p und q paaren? Beide ausgewachsen, nicht verwandt, kein Junges und keine Trächtigkeit in der Familie. */
 function canPair(p,q){
-  return p!==q&&!p.dead&&!q.dead&&p.L.lvl>=8&&q.L.lvl>=8&&!kidOf(p)&&!kidOf(q)&&!(S.preg>0)&&!related(p.L,q.L);
+  const qBusy=q.remote?!!q.busy:!!kidOf(q);   // Leopard eines anderen Geräts: dessen Familie meldet es (netcoop.js)
+  return p!==q&&!p.dead&&!q.dead&&p.L.lvl>=8&&q.L.lvl>=8&&!kidOf(p)&&!qBusy&&!(S.preg>0)&&!related(p.L,q.L);
 }
 /** Nächster Mitspieler, mit dem sich p paaren könnte (höchstens 4,5 m entfernt). Meldet Verwandte einmal, statt still nichts zu tun. */
 function pairCandidate(p){
   let best=null, bd=4.5;
-  for(const q of players){ if(q===p||q.dead) continue; const d=Math.hypot(q.x-p.x,q.z-p.z); if(d<bd&&q.L.lvl>=8&&p.L.lvl>=8){ bd=d; best=q; } }
+  for(const q of players.concat(netMates.list().filter(o=>o.L.id))){ if(q===p||q.dead) continue; const d=Math.hypot(q.x-p.x,q.z-p.z); if(d<bd&&q.L.lvl>=8&&p.L.lvl>=8){ bd=d; best=q; } }
   return best;
 }
 /** Spieler p und q paaren sich: Der Wurf gehört der ganzen Familie und kommt im Bau zur Welt. */
 function pairPlayers(p,q){
   if(!canPair(p,q)){ if(related(p.L,q.L)) tell(p,'Ihr seid verwandt – Verwandte paaren sich nicht. Sucht euch Partner außerhalb der Familie.','#ff9ad0'); return; }
+  if(q.remote){ if(netMates.onPair) netMates.onPair(p,q); return; }   // anderes Gerät: es bestätigt, dann bekommt jeder seinen Wurf (netcoop.js)
   S.preg=25; S.litterParents=[ensureKin(p.L).id,ensureKin(q.L).id]; S.partnerPlayer=true; S.litterTrait=playerOffer(p,q); save(); snd.purr();
   for(const o of [p,q]) puff(o.x,o.y+1.2,o.z,0xff7ab8,8,0.45);
   toast(nameOf(p)+' und '+nameOf(q)+' haben sich gepaart. Im Bau kommt bald euer Wurf zur Welt – ein Junges für jeden, der will.','#ff9ad0');
+}
+/**
+ * Paarung mit dem Leoparden mate eines anderen Geräts (online): Jeder bekommt auf seinem Gerät einen eigenen Wurf,
+ * die Eltern sind beide Leoparden. mate: {id, parents, traits, fur, gen, name}
+ */
+function pairRemote(p,mate){
+  const offer=playerOffer(p,{L:{traits:mate.traits||[]}});
+  S.preg=25; S.litterParents=[ensureKin(p.L).id,mate.id]; S.partnerPlayer=true; S.litterTrait=offer; S.litterMateFur=mate.fur||null;
+  recordPartner(mate.id,mate.fur||null,mate.gen||p.L.gen||1,'Leopard von '+mate.name);
+  save(); snd.purr(); puff(p.x,p.y+1.2,p.z,0xff7ab8,8,0.45);
+  toast(nameOf(p)+' und '+mate.name+' haben sich gepaart. Bei jedem von euch kommt bald im Bau ein Junges zur Welt.','#ff9ad0');
 }
 /** Größe eines neuen Wurfs: im gemeinsamen Spiel mindestens ein Junges je Spieler (höchstens 4), sonst eins. */
 const litterSize=()=>Math.min(4,Math.max(1,players.length));
@@ -121,4 +134,4 @@ function mateContext(p){
 
 ensureKin(S);
 
-export { mateContextInfo, newId, ensureKin, related, canPair, pairCandidate, pairPlayers, litterSize, mateBecomeCub, takeFromLitter, litterLeaves, mateContext };
+export { mateContextInfo, newId, ensureKin, related, canPair, pairCandidate, pairPlayers, pairRemote, litterSize, mateBecomeCub, takeFromLitter, litterLeaves, mateContext };
