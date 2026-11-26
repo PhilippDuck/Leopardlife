@@ -45,9 +45,10 @@ function doClimb(p=P){
     else { p.x+=Math.sin(p.rot)*1.6; p.z+=Math.cos(p.rot)*1.6; }
     snd.step(0.25); return; }
   const i=nearestTree(p), t=i>=0?trees[i]:null;
-  if(p.L.b.climb<1&&!(t&&t.cave)){ tell(p,'Klettern ist noch nicht gelernt (Tab)','#b9b7a6'); return; }
+  const low=!!(t&&t.kopje&&t.kopje.small);   // kleine Felsgruppe: hinaufspringen geht auch ohne Klettern-Fähigkeit
+  if(p.L.b.climb<1&&!(t&&t.cave)&&!low){ tell(p,'Klettern ist noch nicht gelernt (Tab)','#b9b7a6'); return; }
   if(!t){ tell(p,'Kein Baum in Reichweite','#b9b7a6'); return; }
-  const cost=t.cave?5:45-5*(p.L.b.climb-1)+(p.drag?20:0); if(p.st<cost){ noStamina(p); return; } p.st-=cost;   // in die Höhle: kaum Ausdauer
+  const cost=t.cave?5:low?15+(p.drag?15:0):45-5*(p.L.b.climb-1)+(p.drag?20:0); if(p.st<cost){ noStamina(p); return; } p.st-=cost;   // in die Höhle: kaum Ausdauer
   if(p.drag) carcassToTree(p,i);   // die Beute kommt mit hinauf (bzw. in die Höhle)
   if(!t.cave){ goalEvent('climb',1); cubLearn(p,'tree'); }
   p.tree=i; p.climbT=0; p.fromX=p.x; p.fromZ=p.z; p.sneak=false; p.dropY=0; if(t.cave) snd.step(0.15); else snd.climb();

@@ -34,6 +34,7 @@ function buildKopje(k){
   const r=seeded(k.seed), rr=(a,b)=>a+r()*(b-a), gy=H(k.x,k.z), blocks=[], cleanup=[];
   const hue=rr(0.04,0.08), sat=rr(0.08,0.16), lit=rr(0.46,0.54);
   const block=(x,z,y,sx,sy,sz,ry,dl)=>blocks.push({x,y,z,sx,sy,sz,ry,l:lit+dl});
+  if(k.small) return buildRocks(k,r,rr,gy,blocks,block,cleanup,hue,sat);
   // Hauptfels: oben flach auf Höhe top, unten im Boden
   const sy=k.top*1.25; block(k.x,k.z,gy+k.top-KOP_FLAT*sy,k.R,sy,k.R*0.88,rr(0,6.28),0);
   // Blöcke rundum (nicht vor der Höhle), zwei rahmen den Eingang
@@ -47,17 +48,33 @@ function buildKopje(k){
   // ein, zwei Blöcke oben auf der Fläche, am Rand gegenüber der Höhle (Wackelsteine)
   for(let i=0,t=1+Math.floor(r()*2);i<t;i++){ const a=k.cave+Math.PI+rr(-0.7,0.7), d=k.R*0.6, s=rr(0.9,1.4);
     block(k.x+Math.sin(a)*d,k.z+Math.cos(a)*d,gy+k.top+s*0.45,s,s*0.85,s*0.9,rr(0,6.28),0.03); }
+  return finish(k,gy,blocks,cleanup,hue,sat,m);
+}
+/** Kleine Felsgruppe: ein flacher Block mit Brocken rundum, ohne Höhle (nur der Platz oben zum Klettern) */
+function buildRocks(k,r,rr,gy,blocks,block,cleanup,hue,sat){
+  const sy=k.top*1.3; block(k.x,k.z,gy+k.top-KOP_FLAT*sy,k.R,sy,k.R*rr(0.75,0.95),rr(0,6.28),0);
+  const n=3+Math.floor(r()*3);
+  for(let i=0;i<n;i++){ const a=i/n*6.283+rr(-0.4,0.4), d=k.R*rr(0.8,1.15), s=rr(0.7,1.5), x=k.x+Math.sin(a)*d, z=k.z+Math.cos(a)*d, h=s*rr(0.6,1);
+    block(x,z,H(x,z)+h*0.15,s,h,s*rr(0.8,1),rr(0,6.28),rr(-0.06,0.05));
+    const c=addCol(x,z,s*0.8,h<1); cleanup.push(()=>removeCol(c)); }
+  if(r()<0.5){ const a=rr(0,6.28), s=rr(0.6,0.9); block(k.x+Math.sin(a)*k.R*0.45,k.z+Math.cos(a)*k.R*0.45,gy+k.top+s*0.4,s,s*0.8,s*0.9,rr(0,6.28),0.03); }
+  return finish(k,gy,blocks,cleanup,hue,sat,null);
+}
+/** Blöcke als ein Mesh in die Szene, Kollision und Sicht, Baum-Plätze zum Klettern */
+function finish(k,gy,blocks,cleanup,hue,sat,m){
   const mesh=new THREE.InstancedMesh(kopRockGeo,kopRockMat,blocks.length), mt=new THREE.Matrix4(), q=new THREE.Quaternion(), e=new THREE.Euler(), v=new THREE.Vector3(), s=new THREE.Vector3(), c=new THREE.Color();
   blocks.forEach((b,i)=>{ q.setFromEuler(e.set(0,b.ry,0)); mesh.setMatrixAt(i,mt.compose(v.set(b.x,b.y,b.z),q,s.set(b.sx,b.sy,b.sz))); mesh.setColorAt(i,c.setHSL(hue,sat,b.l)); });
   mesh.castShadow=true; mesh.receiveShadow=true;
-  const cave=new THREE.Mesh(kopCaveGeo,kopCaveMat); cave.position.set(m.x,H(m.x,m.z)-0.1,m.z); cave.scale.set(1.25,1.55,0.35); cave.rotation.y=k.cave;
-  for(const o of [mesh,cave]){ scene.add(o); const cu=registerCull(o,k.x,k.z,k.R+6); cleanup.push(()=>{ unregisterCull(cu); scene.remove(o); }); }
+  const objs=[mesh];
+  if(m){ const cave=new THREE.Mesh(kopCaveGeo,kopCaveMat); cave.position.set(m.x,H(m.x,m.z)-0.1,m.z); cave.scale.set(1.25,1.55,0.35); cave.rotation.y=k.cave; objs.push(cave); }
+  for(const o of objs){ scene.add(o); const cu=registerCull(o,k.x,k.z,k.R+6); cleanup.push(()=>{ unregisterCull(cu); scene.remove(o); }); }
   cleanup.push(()=>mesh.dispose?.());
   { const col=addCol(k.x,k.z,k.R*0.9,false), sg=addSight(k.x,k.z,k.R*0.9,k.top,1); cleanup.push(()=>{ removeCol(col); removeSight(sg); }); }
   // Für das Klettern: Fläche oben und Höhle als Baum-Einträge ohne Teile (cy weit unten: wird nie ausgeblendet)
   const top={x:k.x,z:k.z,y:gy,f:1,parts:[],cx:0,cy:-1e4,cz:0,rx:k.R*0.5,ry:1,perch:[0,k.top+0.08,0],tr:k.R*0.9,kopje:k,reach:k.R*0.9,walkR:k.R*0.42};
-  const my=H(m.x,m.z), den={x:m.x,z:m.z,y:my,f:1,parts:[],cx:0,cy:-1e4,cz:0,rx:1,ry:1,perch:[-m.ox*0.7,0.02,-m.oz*0.7],tr:0.3,kopje:k,cave:true,reach:1.3,walkR:0.35,out:[m.ox,m.oz]};
-  const slots=[top,den].map(t=>{ const i=treeSlot(); trees[i]=t; return i; });
+  const spots=[top];
+  if(m){ const my=H(m.x,m.z); spots.push({x:m.x,z:m.z,y:my,f:1,parts:[],cx:0,cy:-1e4,cz:0,rx:1,ry:1,perch:[-m.ox*0.7,0.02,-m.oz*0.7],tr:0.3,kopje:k,cave:true,reach:1.3,walkR:0.35,out:[m.ox,m.oz]}); }
+  const slots=spots.map(t=>{ const i=treeSlot(); trees[i]=t; return i; });
   cleanup.push(()=>slots.forEach(releaseTree));
   return {slots,drop:()=>{ for(const fn of cleanup) fn(); }};
 }

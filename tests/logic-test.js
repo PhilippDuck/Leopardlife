@@ -674,13 +674,22 @@ console.log('audio nodes created',ACs&&ACs.count());
   T.P.x=7; T.P.z=5; run(2); assert.equal(T.ctx()&&T.ctx().label,'Bau hierher zurückverlegen'); key('KeyF'); run(2);
   assert.ok(!S0.den&&T.CUB_HOME.x===7&&T.CUB_HOME.z===5,'Bau nicht zurückverlegt');
   // Weite Welt: selten, fest je Abschnitt, mit dem Abschnitt geladen und entfernt
-  let found=null, n=0; for(let cx=10;cx<70;cx++) for(let cz=-40;cz<-20;cz++){ const s=T.worldKopje(cx,cz); if(s){ n++; if(!found) found={cx,cz,s}; } }
-  assert.ok(found,'kein Felsplateau in der weiten Welt'); assert.ok(n<150,'zu viele Felsplateaus: '+n);
+  let found=null, n=0, ns=0; for(let cx=10;cx<70;cx++) for(let cz=-40;cz<-20;cz++){ const s=T.worldKopje(cx,cz); if(s&&s.small) ns++; else if(s){ n++; if(!found) found={cx,cz,s}; } }
+  assert.ok(found,'kein Felsplateau in der weiten Welt'); assert.ok(n<200,'zu viele Felsplateaus: '+n); assert.ok(ns>0&&ns<350,'kleine Felsgruppen: '+ns);
   assert.equal(T.kopjeNear(found.s.x,found.s.z),found.s);
   const before=trees.filter(Boolean).length, c={cx:found.cx,cz:found.cz,content:[]}; T.fillKopje(c);
   assert.equal(trees.filter(t=>t&&t.kopje===found.s).length,2,'Felsplateau der weiten Welt nicht aufgebaut');
   c.content.forEach(it=>it.drop()); assert.equal(trees.filter(Boolean).length,before,'Felsplateau nicht entfernt');
-  console.log('Felsplateaus: '+T.homeKopjes.length+' im Startgebiet, '+n+' von 1200 Abschnitten, kletterbar (Höhe '+k.top.toFixed(1)+' m), Höhle als Versteck, Schlafplatz und Bau');
+  // Kleine Felsgruppe: ohne Höhle, auch ohne Klettern-Fähigkeit erklimmbar, oben sicher
+  const small=T.homeKopjes.filter(o=>o.small); assert.ok(small.length>=4,'zu wenige kleine Felsgruppen im Startgebiet: '+small.length);
+  assert.ok(T.homeKopjes.filter(o=>!o.small).length>=3,'zu wenige Felsplateaus im Startgebiet');
+  { const sk=small[0], st=trees.findIndex(t=>t&&t.kopje===sk);
+    assert.equal(trees.filter(t=>t&&t.kopje===sk).length,1,'kleine Felsgruppe mit Höhle');
+    assert.ok(!trees.some(t=>t&&!t.kopje&&Math.hypot(t.x-sk.x,t.z-sk.z)<sk.R),'Baum wächst in der Felsgruppe');
+    S0.b.climb=0; T.P.tree=null; T.P.x=sk.x+sk.R+1.0; T.P.z=sk.z; T.P.st+=100; run(2); key('KeyE'); run(90);
+    assert.equal(T.P.tree,st,'kleine Felsgruppe ohne Klettern nicht erklommen'); assert.ok(T.P.safe,'auf der Felsgruppe nicht sicher');
+    key('KeyE'); run(40); assert.equal(T.P.tree,null); S0.b.climb=1; }
+  console.log('Felsplateaus: '+T.homeKopjes.filter(o=>!o.small).length+' im Startgebiet, '+n+' von 1200 Abschnitten, kletterbar (Höhe '+k.top.toFixed(1)+' m), Höhle als Versteck, Schlafplatz und Bau; '+small.length+' kleine Felsgruppen im Startgebiet, '+ns+' in der weiten Welt, ohne Klettern erklimmbar');
 }
 // Fluss mit Furten: durchs Startgebiet und die weite Welt; tief (schwimmen, Herden bleiben draußen), an den Furten flach.
 // Er fließt nur bergab: von einer Quelle bis in einen großen See ohne Abfluss; dahinter bis zur nächsten Quelle kein Fluss.
