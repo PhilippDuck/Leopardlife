@@ -269,27 +269,41 @@ function renderOnline(){
     $('onRole').textContent=net.role==='host'?'Du bist Gastgeber. Mitspieler treten mit diesem Code bei.':'Du spielst in der Welt des Gastgebers.';
     const names=[...net.peers.entries()].map(([id,p])=>p.name+(id===net.host?' (Gastgeber)':''));
     $('onPeers').textContent=names.length?'Dabei: '+names.join(', '):'Noch niemand dabei.';
+    $('btnOnPlay').style.display=G.started?'none':'';
     $('onTraffic').textContent='Daten: ↑ '+(traffic.upRate/1024).toFixed(1)+' kB/s · ↓ '+(traffic.downRate/1024).toFixed(1)+' kB/s';
   }
   $('btnOnline').textContent=on?'Online · Raum '+net.room:'Online spielen';
 }
+/** Von wo das Fenster geöffnet wurde: Pause-Menü oder Startbildschirm (der bleibt dann unsichtbar darunter) */
+let onFromStart=false;
 function openOnline(){
   const c=onlineCfg();
   /** @type {HTMLInputElement} */($('onUrl')).value=c.url; /** @type {HTMLInputElement} */($('onKey')).value=c.key;
   /** @type {HTMLInputElement} */($('onUrl')).placeholder=DEFAULT_RELAY;
   if(c.url||c.key) $('onAdv').setAttribute('open','');
   /** @type {HTMLInputElement} */($('onName')).value=c.name;
-  renderOnline(); $('menu').style.display='none'; $('online').style.display='flex';
+  onFromStart=!G.started;
+  if(onFromStart) $('start').classList.add('under'); else $('menu').style.display='none';
+  renderOnline(); $('online').style.display='flex';
 }
-function closeOnline(){ $('online').style.display='none'; $('menu').style.display='flex'; G.menuT=performance.now(); }
+function closeOnline(){
+  $('online').style.display='none';
+  if(onFromStart){ onFromStart=false; $('start').classList.remove('under'); return; }
+  $('menu').style.display='flex'; G.menuT=performance.now();
+}
 const onlineOpen=()=>$('online').style.display==='flex';
-$('btnOnline').onclick=openOnline; $('btnOnBack').onclick=closeOnline;
+$('btnOnline').onclick=openOnline; $('btnStartOnline').onclick=openOnline; $('btnOnBack').onclick=closeOnline;
+// Vom Startbildschirm aus: Raum ist offen bzw. beigetreten, jetzt ins Spiel (wie der Knopf „Spielen“ dort)
+$('btnOnPlay').onclick=()=>{ closeOnline(); $('btnPlay').click(); };
+// Den Namen gleich beim Tippen merken, nicht erst beim Verbinden
+$('onName').addEventListener('input',()=>storeCfg(Object.assign(onlineCfg(),{name:/** @type {HTMLInputElement} */($('onName')).value.trim().slice(0,24)})));
 $('btnOnHost').onclick=()=>connect({create:true});
 $('btnOnJoin').onclick=()=>connect({room:/** @type {HTMLInputElement} */($('onCode')).value.trim()});
 $('btnOnLeave').onclick=leaveRoom;
 $('btnOnCancel').onclick=()=>{ reset(); status(''); renderOnline(); };
 
 // Nach dem Neuladen in die Welt des Gastgebers: selbst wieder beitreten
-{ const ses=session(); if(ses&&ses.rejoin&&ses.room) setTimeout(()=>connect({room:ses.room},withDefault(onlineCfg())),300); }
+// (vor dem Spielstart: das Fenster zeigt dann Raum und „Spielen“)
+{ const ses=session(); if(ses&&ses.rejoin&&ses.room) setTimeout(()=>{ if(!G.started) openOnline(); connect({room:ses.room},withDefault(onlineCfg())); },300); }
 
 export { closeOnline, joinHooks, netSend, onNet, onlineActive, onlineOpen, remotes, net, traffic, updateNet, wsUrl };
