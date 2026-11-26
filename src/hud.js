@@ -133,7 +133,7 @@ function updateUI(p=P){
   gauge(h,'Th',th/100,p.drinking,p.drinking?'trinkt':Math.round(th)+' %');
   h('bXp').style.width=(p.L.xp/xn*100)+'%'; h('tXp').textContent=p.L.xp+' / '+xn+' EP';
   const stEl=h('status');
-  let nt=p.tree==null?nearestTree(p):-1; if(nt>=0&&p.L.b.climb<1&&!trees[nt].cave) nt=-1;   // in eine Höhle geht man auch ohne Klettern
+  let nt=p.tree==null?nearestTree(p):-1; if(nt>=0&&p.L.b.climb<1&&!trees[nt].cave&&!trees[nt].kopje?.small) nt=-1;   // in eine Höhle und auf kleine Felsen geht es auch ohne Klettern
   const sm=(!me||players.length>1||touchUI()||padUI()||window.innerWidth<=820||window.innerHeight<=520)&&!hudExp;
   // Statuszeile nur für Einsteiger (erste Generation, Jungtier): erfahrene Spieler brauchen sie nicht
   const newbie=(S.gen||1)<=1&&p.L.lvl<4; stEl.style.display=newbie?'':'none';
