@@ -4,7 +4,7 @@ import { ATTR, ABIL, TRAITS, DIFF, REGIONS, QUAL, SPECIES, FOOD, DAT, ART, ICONS
 import { $, rnd } from './util.js';
 import { G } from './state.js';
 import { AC, ambTick, hasSample, initAudio, master, musicTick, nbuf, setListeners, snd, tone } from './audio.js';
-import { D, DIE_AT, OLD_AT, REG, REG_ID, S, ancF, at, attrCap, baseSpeed, beaten, dmg, fresh, has, maxHp, maxSt, oldF, pScale, resetState, save, xpNeed } from './save.js';
+import { D, DIE_AT, NET_GUEST, OLD_AT, REG, REG_ID, S, ancF, at, attrCap, baseSpeed, beaten, dmg, fresh, has, maxHp, maxSt, oldF, pScale, resetState, save, xpNeed } from './save.js';
 import { HORIZON, SMART, SUN_OFF, camera, canvas, grassLight, hemi, renderer, resize, scene, sun, windMulDir, windU } from './engine.js';
 import { cloudMat, clouds, sky, starMat, stars } from './sky.js';
 import { GLSL_H, GLSL_PONDMASK, H, PONDS, WATER_D, WORLD, addCol, collide, cullTiles, inWater, pondAt, registerTile, tileOf, waters } from './terrain.js';
@@ -41,7 +41,7 @@ import { updateTutorial } from './tutorial.js';
 import { updateTitle } from './title.js';
 import { updateBite } from './bite.js';
 import { updateFollowers } from './cubfollow.js';
-import { eventsVisual, updateEvents } from './worldevents.js';
+import { eventsVisual, guestEvents, updateEvents } from './worldevents.js';
 import { updateChunks } from './chunks.js';
 import { updateWatchers } from './vision.js';
 import { fillWater, updateWorldContent } from './worldcontent.js';
@@ -59,6 +59,7 @@ import { updateLexicon } from './lexicon.js';
 import { updateVenom } from './snake.js';
 import { updateExplore } from './explore.js';
 import { net, remotes, updateNet } from './net.js';
+import { mirror, updateNetWorld } from './networld.js';
 onChunkFill(fillWater);
 onChunkFill(fillPlants);
 onChunkFill(fillKopje);
@@ -95,7 +96,7 @@ function frame(now){
   if(G.slowT>0){ G.slowT-=dt; if(players.length===1) dt*=0.25; }
   if(!G.paused) step(dt);
   for(const p of players) updateCamera(p,p.camera); updateTrees(dt,players.map(p=>({camera:p.camera,p}))); updateEnv(dt,now); eventsVisual(); updateTitle(dt); musicTick(); ambTick(dayF,W.rain,W.storm,S.tod*24,players.some(p=>animals.some(a=>!a.dead&&(a.state==='chase'||a.state==='lunge')&&a.tgt===p)));
-  updateChunks(dt); updateWorldContent(dt); updateNet(now);
+  updateChunks(dt); updateWorldContent(dt); updateNet(now); updateNetWorld(G.paused?0:dt,now);
   renderAll();
 }
 function step(dt){
@@ -107,9 +108,11 @@ function step(dt){
   updateCoop(dt);
   G.birdT-=dt; if(G.birdT<=0){ G.birdT=rnd(4,11); if(dayF>0.45&&W.rain<0.5&&!hasSample('birdA')) snd.bird(); }   // Synth-Vögel nur, solange die Vogel-Aufnahmen fehlen
   updateWeather(dt);
-  for(let i=0;i<animals.length;i++) updateAnimal(animals[i],dt);
-  updateBirds(dt); updateWildBirds(dt); updateBaboons(dt); updateInsects(dt); updateLexicon(dt); updateVenom(dt); updateExplore(dt);
-  updateEvents(dt); updateWatchers();
+  // Gast im Online-Spiel: Tiere (außer der eigenen Familie), Paviantrupps und Ereignisse berechnet der Gastgeber (networld.js)
+  for(let i=0;i<animals.length;i++){ const a=animals[i]; if(!NET_GUEST||a.sp.friend) updateAnimal(a,dt); }
+  updateBirds(dt); updateWildBirds(dt); if(!NET_GUEST) updateBaboons(dt); updateInsects(dt); updateLexicon(dt); updateVenom(dt); updateExplore(dt);
+  if(NET_GUEST) guestEvents(dt); else updateEvents(dt);
+  updateWatchers();
   setListeners(players.map(p=>({x:p.x,z:p.z,yaw:p.cam.yaw}))); updateCalls(dt);
   for(let i=puffs.length-1;i>=0;i--){ const p=puffs[i]; p.t-=dt; p.vy-=12*dt; p.m.position.x+=p.vx*dt; p.m.position.y+=p.vy*dt; p.m.position.z+=p.vz*dt; p.m.material.opacity=Math.max(0,p.t/0.7); if(p.t<=0){ scene.remove(p.m); p.m.material.dispose(); puffs.splice(i,1); } }
   updateFx(dt);
@@ -122,7 +125,7 @@ function step(dt){
 }
 
 // Für Browsertests (tools/*.py mit ?test): Spielzustand zum Nachsehen
-if(typeof location!=='undefined'&&location.search.includes('test')) window['__leopard']={G,players,S,animals,net,remotes};
+if(typeof location!=='undefined'&&location.search.includes('test')) window['__leopard']={G,players,S,animals,net,remotes,mirror};
 
 applyQuality();
 setInputMode(inputMode); setResLabel(); if(!S.goals) newGoals();

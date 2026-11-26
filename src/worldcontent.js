@@ -5,8 +5,8 @@ import { scene } from './engine.js';
 import { HIPPO_POND_R, animals, placeAnimal } from './animals.js';
 import { SPECIES } from './data.js';
 import { buildBaboon, buildCroc, buildElephant, buildHippo, buildQuad, buildSnake, makeFur } from './models.js';
-import { players, dropModel } from './player.js';
-import { S, save } from './save.js';
+import { actors, dropModel } from './player.js';
+import { NET_GUEST, S, save } from './save.js';
 import { endCarcass } from './carcass.js';
 
 function fillWater(chunk){
@@ -35,6 +35,7 @@ function fillWater(chunk){
 /** Krokodil im Tümpel eines gestreamten Abschnitts (in gut der Hälfte der Tümpel, fest je Tümpel). Wie im Startgebiet:
     lauert abgetaucht, im trüben Wasser unsichtbar, greift Trinkende an. Verschwindet mit dem Abschnitt. */
 function spawnPondCroc(chunk,pond){
+  if(NET_GUEST) return null;   // Gast im Online-Spiel: Tiere kommen vom Gastgeber
   const random=chunkRng(chunk.cx-7919,chunk.cz+3571);
   if(random()>0.6) return null;
   const sp=SPECIES.find(s=>s.id==='croc'), fur=makeFur(), g=buildCroc(sp.m,fur); g.scale.setScalar(sp.size); scene.add(g);
@@ -47,6 +48,7 @@ function spawnPondCroc(chunk,pond){
 /** Nilpferde in großen Tümpeln der weiten Welt (in gut einem Drittel, fest je Tümpel; Seen: chance): zwei bis vier, oft mit einem Jungen.
     Tagsüber im Wasser, nachts grasen sie am Ufer. Verschwinden mit dem Abschnitt. */
 function spawnPondHippos(chunk,pond,chance=0.38){
+  if(NET_GUEST) return [];
   const random=chunkRng(chunk.cx+6113,chunk.cz-2203);
   if(pond.r<HIPPO_POND_R||random()>chance) return [];
   const sp=SPECIES.find(s=>s.id==='hippo'), n=2+Math.floor(random()*3), pod=[];
@@ -89,7 +91,7 @@ function spawnWorldHerd(chunk,now){
   const x=(chunk.cx+0.5)*CHUNK, z=(chunk.cz+0.5)*CHUNK;
   if(Math.hypot(x,z)<WORLD+40||pondAt(x,z,1.6)) return;
   // Tiere entstehen erst mit Abstand zu jedem Spieler.
-  if(players.some(p=>Math.hypot(p.x-x,p.z-z)<65)) return;
+  if(actors().some(p=>Math.hypot(p.x-x,p.z-z)<65)) return;
   const [id,,lo,hi]=pickWild(random,x,z);
   const sp=SPECIES.find(species=>species.id===id);
   const group=[], count=lo+Math.floor(random()*(hi-lo+1)), spread=sp.snake?0:4+count*2;
@@ -101,6 +103,7 @@ function spawnWorldHerd(chunk,now){
   worldHerds.set(chunk.key,{group,deadCount:0});
 }
 function updateWorldContent(dt){
+  if(NET_GUEST) return;
   worldContentTimer-=dt;
   if(worldContentTimer>0) return;
   worldContentTimer=1;
@@ -114,7 +117,7 @@ function updateWorldContent(dt){
       S.worldHunts[key]=now+5*60*1000;
       changed=true;
     }
-    const nearby=entry.group.some(a=>players.some(p=>Math.hypot(p.x-a.x,p.z-a.z)<400||p.drag===a||p.bite===a)||a.held||a.carc?.tree!=null);
+    const nearby=entry.group.some(a=>actors().some(p=>Math.hypot(p.x-a.x,p.z-a.z)<400||p.drag===a||p.bite===a)||a.held||a.carc?.tree!=null);
     const depleted=entry.group.every(a=>a.dead&&!a.carc);
     const replenished=depleted&&(!S.worldHunts?.[key]||S.worldHunts[key]<=now);
     if(nearby&&!replenished) continue;

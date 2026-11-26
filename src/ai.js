@@ -9,7 +9,7 @@ import { SMART, windMulDir } from './engine.js';
 import { raidStep, seeking } from './family.js';
 import { fam, famHurt, famRole, famStep } from './kin.js';
 import { animLegs } from './models.js';
-import { P, players } from './player.js';
+import { P, actors, players } from './player.js';
 import { VIEW_D } from './quality.js';
 import { D, S, pScale } from './save.js';
 import { G } from './state.js';
@@ -62,16 +62,17 @@ function moveAnimal(a,dx,dz,spd,dt){
 function pounceHits(a){
   for(const p of players){ if(p.pounce>0&&!p.hit&&Math.hypot(p.x-a.x,p.z-a.z)<a.rad+0.5+pScale(p.L)*0.8){ p.hit=true; p.pounce=Math.min(p.pounce,0.08); hitAnimal(a,p); return; } }
 }
-function nearestDist(a){ let m=1e9; for(const p of players) m=Math.min(m,Math.hypot(p.x-a.x,p.z-a.z)); return m; }
+function nearestDist(a){ let m=1e9; for(const p of actors()) m=Math.min(m,Math.hypot(p.x-a.x,p.z-a.z)); return m; }
 /**
  * Wählt, auf welchen Spieler Tier a reagiert: bei Jagd den bisherigen, sonst den nächsten lebenden.
+ * Beim Gastgeber im Online-Spiel auch die Leoparden der anderen Geräte (ghost, siehe player.js).
  * @returns {import('./player.js').Player}
  */
 function targetOf(a){
-  const t=a.tgt;
-  if(t&&!t.dead&&players.indexOf(t)>=0&&(a.state==='chase'||a.state==='lunge')) return t;
+  const t=a.tgt, all=actors();
+  if(t&&!t.dead&&all.indexOf(t)>=0&&(a.state==='chase'||a.state==='lunge')) return t;
   let best=P, bd=1e9;
-  for(const p of players){ if(p.dead) continue; const d=(p.x-a.x)*(p.x-a.x)+(p.z-a.z)*(p.z-a.z); if(d<bd){ bd=d; best=p; } }
+  for(const p of all){ if(p.dead) continue; const d=(p.x-a.x)*(p.x-a.x)+(p.z-a.z)*(p.z-a.z); if(d<bd){ bd=d; best=p; } }
   return a.tgt=best;
 }
 /** Beutetiere suchen bei Durst Wasser und trinken dort automatisch. */
@@ -97,7 +98,7 @@ function guardYoung(a,T){
   for(const k of a.kids){ if(k.dead||Math.hypot(k.x-a.x,k.z-a.z)>22) continue;
     const kd=Math.hypot(T.x-k.x,T.z-k.z);
     if(kd<(T.sneak?5:8)){
-      a.state='chase'; a.tgt=T; a.aggro=4.5; a.lost=0; a.sus=0; a.gcd=14; snd.alert(); if(a.sp.pred) growlAt(a);
+      a.state='chase'; a.tgt=T; a.aggro=4.5; a.lost=0; a.sus=0; a.gcd=14; if(!T.ghost) snd.alert(); if(a.sp.pred) growlAt(a);
       floatText('!',a.x,H(a.x,a.z)+a.sp.size*2.2,a.z,'#ff5a3c');
       for(const o of a.kids) if(!o.dead) startFlee(o);
       const now=performance.now(); if(now-(T.guardMsgAt||-1e9)>40000){ T.guardMsgAt=now; tell(T,'Vorsicht – ein Elterntier ('+a.sp.n+') verteidigt sein Junges!','#ff8a70'); }
@@ -121,7 +122,7 @@ function updateAnimal(a,dt){
     if(fi<3){ const r=famRole(fi); if(!r||!a.famOn){ a.g.visible=false; return; } famStep(a,dt,r); return; }
     if(!seeking()){ a.g.visible=false; return; }
   }
-  const dv=players.length>1?nearestDist(a):d;
+  const dv=actors().length>1?nearestDist(a):d, me=!T.ghost;   // me: Geräusche nur für die eigenen Spieler
   if(a.ev&&a.stun<=0&&eventStep(a,dt,moveAnimal)){ a.g.visible=dv<=VIEW_D&&!a.gone; a.g.position.set(a.x,H(a.x,a.z),a.z); pounceHits(a); return; }   // Ereignis steuert das Tier (auch außer Sicht)
   if(sp.snake){ a.g.visible=dv<=VIEW_D; if(dv>VIEW_D+20) return; snakeStep(a,dt,d,dx,dz,T); pounceHits(a); return; }
   if(sp.elephant&&dv<=VIEW_D&&!(a.stun>0)&&elephantStep(a,dt,T,d,dx,dz)){ a.g.visible=true; pounceHits(a); return; }   // Elefant: Drohen und Angriff
@@ -160,9 +161,9 @@ function updateAnimal(a,dt){
     if(hostile){
       a.near=d<detect*1.6+8;
       if(d<detect){
-        if(a.sus<=0) snd.notice();
+        if(a.sus<=0&&me) snd.notice();
         a.sus+=dt*(0.3+0.85*(1-d/detect));
-        if(a.sus>=1){ a.sus=0; a.near=false; a.state='chase'; a.lost=0; snd.alert(); if(sp.pred) growlAt(a); recruitPack(a); floatText('!',a.x,H(a.x,a.z)+sp.size*2.2,a.z,'#ff5a3c'); }
+        if(a.sus>=1){ a.sus=0; a.near=false; a.state='chase'; a.lost=0; if(me) snd.alert(); if(sp.pred) growlAt(a); recruitPack(a); floatText('!',a.x,H(a.x,a.z)+sp.size*2.2,a.z,'#ff5a3c'); }
       } else a.sus=Math.max(0,a.sus-dt*0.35);
     } else {
       a.sus=0;
@@ -174,7 +175,7 @@ function updateAnimal(a,dt){
     const c=a.carc;
     if(!c||!c.carc||c.carc.tree!=null){ a.state='wander'; a.timer=0; a.carc=null; }   // im Baum kommen sie nicht heran
     else { const cx=c.x-a.x, cz=c.z-a.z, cd=Math.hypot(cx,cz), pd=Math.hypot(T.x-c.x,T.z-c.z);
-      if(hostile&&!T.safe&&cd<25&&(pd<10||d<detect)){ a.state='chase'; a.lost=0; a.aggro=4; a.carc=null; snd.alert(); growlAt(a); floatText('!',a.x,H(a.x,a.z)+sp.size*2.2,a.z,'#ff5a3c'); }
+      if(hostile&&!T.safe&&cd<25&&(pd<10||d<detect)){ a.state='chase'; a.lost=0; a.aggro=4; a.carc=null; if(me) snd.alert(); growlAt(a); floatText('!',a.x,H(a.x,a.z)+sp.size*2.2,a.z,'#ff5a3c'); }
       else if(!hostile&&d<9){ a.carc=null; startFlee(a); }          // vor einem starken Jäger weichen Aasfresser zurück
       else if(cd>c.rad+1.3) moveAnimal(a,cx,cz,sp.spd*0.75,dt);
       else { a.g.rotation.y=Math.atan2(cx,cz); animLegs(a.g,a.ph,0.04); a.eatT+=dt; if(a.eatT>3){ a.eatT=0; c.carc.meat--; } } }
@@ -202,7 +203,7 @@ function updateAnimal(a,dt){
     if(T.safe){
       a.aggro=0; a.lost+=dt;
       if(d>a.rad+3.5) moveAnimal(a,dx,dz,sp.spd*0.6,dt); else animLegs(a.g,a.ph,0.05);
-      if(a.lost>({easy:2.5,normal:6,hard:12})[S.diff]){ a.state='wander'; a.timer=0; a.sus=0; a.scared=6; snd.lost(); floatText('?',a.x,H(a.x,a.z)+sp.size*2.2,a.z,'#ddd'); }
+      if(a.lost>({easy:2.5,normal:6,hard:12})[S.diff]){ a.state='wander'; a.timer=0; a.sus=0; a.scared=6; if(me) snd.lost(); floatText('?',a.x,H(a.x,a.z)+sp.size*2.2,a.z,'#ddd'); }
       a.g.position.set(a.x,H(a.x,a.z),a.z); return;
     }
     if(a.aggro>0) a.aggro-=dt;
@@ -216,7 +217,7 @@ function updateAnimal(a,dt){
     if(d<reach&&a.cd<=0){ a.cd=1.1; hurtPlayer(sp.dmg||sp.gdmg||6,a,false,T); a.g.userData.inner.position.z=0.3; }
     if(a.aggro<=0){
       if(!hostile){ a.state='wander'; a.timer=0; }
-      else { if(d>detect) a.lost+=dt; else a.lost=0; if(a.lost>3.5||d>75){ a.state='wander'; a.timer=0; if(d<50) snd.lost(); if(d<50) floatText('?',a.x,H(a.x,a.z)+sp.size*2.2,a.z,'#ddd'); } }
+      else { if(d>detect) a.lost+=dt; else a.lost=0; if(a.lost>3.5||d>75){ a.state='wander'; a.timer=0; if(d<50&&me) snd.lost(); if(d<50) floatText('?',a.x,H(a.x,a.z)+sp.size*2.2,a.z,'#ddd'); } }
     }
   }
   const inn=a.g.userData.inner; inn.position.z*=0.85;

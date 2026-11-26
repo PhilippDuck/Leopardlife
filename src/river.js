@@ -7,6 +7,7 @@ import { SPECIES } from './data.js';
 import { buildCroc, makeFur } from './models.js';
 import { animals, placeAnimal } from './animals.js';
 import { dropModel } from './player.js';
+import { NET_GUEST } from './save.js';
 import { endCarcass } from './carcass.js';
 import { spawnPondHippos } from './worldcontent.js';
 
@@ -43,6 +44,7 @@ function riverCroc(x,zMid){
   return lurkingCroc(pond,pond.x,pond.z);
 }
 function lurkingCroc(pond,x,z){
+  if(NET_GUEST) return null;   // Gast im Online-Spiel: Tiere kommen vom Gastgeber
   const sp=SPECIES.find(s=>s.id==='croc'), fur=makeFur(), g=buildCroc(sp.m,fur); g.scale.setScalar(sp.size); scene.add(g);
   const a={sp,g,fur,rad:sp.size*0.8+0.25,uid:riverAnimalId++,world:true};
   placeAnimal(a);
@@ -78,7 +80,7 @@ function fillRiver(chunk){
   }
   if(!parts.length&&!crocs.length) return;
   chunk.content.push({drop(){
-    for(const a of [...crocs,...pod]){ if(a.carc) endCarcass(a); dropModel(a.g); const i=animals.indexOf(a); if(i>=0) animals.splice(i,1); }
+    for(const a of [...crocs,...pod]){ if(!a) continue; if(a.carc) endCarcass(a); dropModel(a.g); const i=animals.indexOf(a); if(i>=0) animals.splice(i,1); }
     for(const p of parts){ unregisterCull(p.cull); scene.remove(p.mesh); waters.splice(waters.indexOf(p.mesh),1); p.g.dispose(); }
   }});
 }

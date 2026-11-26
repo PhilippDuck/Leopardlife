@@ -3,7 +3,7 @@
 // Schritt 2: mitwandernder Boden, Fernlandschaft und Berge folgen der Kamera – man kann endlos laufen.
 // Später hängen hier je Chunk Pflanzen, Wasser, Tiere und besondere Funde dran (chunk.content).
 import { scene } from './engine.js';
-import { P, players } from './player.js';
+import { P, actors, players } from './player.js';
 import { G } from './state.js';
 import { dryness, GLSL_H, H, hash2, onView, pondAt, registerCull, unregisterCull, vnoise } from './terrain.js';
 import { rnd } from './util.js';
@@ -70,16 +70,20 @@ function unloadChunk(c){ for(const it of c.content) if(it&&it.drop) it.drop(); c
 /** Laderadius in Metern: bis knapp hinter die Nebelgrenze, aber begrenzt (dahinter übernimmt die Fernlandschaft) */
 const loadR=()=>Math.min(260,Math.max(150,(G.FOG_BASE?G.FOG_BASE[1]:240)*0.9));
 const queue=[]; let planT=0;
+/** Um Leoparden anderer Geräte nur so weit laden, wie der Gastgeber Tiere an sie schickt (networld.js) */
+const GHOST_R=170;
 function plan(){
   const R=loadR(), need=new Set(); queue.length=0;
-  for(const p of players){ const pcx=chunkOf(p.x), pcz=chunkOf(p.z), n=Math.ceil(R/CHUNK)+1;
+  // Auch um die Leoparden anderer Geräte (Gastgeber im Online-Spiel): Dort leben die Tiere, die er für sie berechnet
+  const all=actors();
+  for(const p of all){ const Rp=p.ghost?Math.min(R,GHOST_R):R, pcx=chunkOf(p.x), pcz=chunkOf(p.z), n=Math.ceil(Rp/CHUNK)+1;
     for(let i=-n;i<=n;i++) for(let j=-n;j<=n;j++){ const cx=pcx+i, cz=pcz+j, x=cx*CHUNK+CHUNK/2, z=cz*CHUNK+CHUNK/2, d=Math.hypot(x-p.x,z-p.z);
-      if(d>R+CHUNK*0.7) continue; const k=keyOf(cx,cz); need.add(k);
+      if(d>Rp+CHUNK*0.7) continue; const k=keyOf(cx,cz); need.add(k);
       if(!chunks.has(k)&&!queue.some(q=>q.k===k)) queue.push({k,cx,cz,d}); } }
   queue.sort((a,b)=>a.d-b.d);
   // weit außerhalb aller Ladebereiche: entladen (mit Spielraum, damit es an der Grenze nicht flackert)
   for(const c of [...chunks.values()]){ if(need.has(c.key)) { c.used=performance.now(); continue; }
-    const x=c.cx*CHUNK+CHUNK/2, z=c.cz*CHUNK+CHUNK/2; const d=Math.min(...players.map(p=>Math.hypot(x-p.x,z-p.z)));
+    const x=c.cx*CHUNK+CHUNK/2, z=c.cz*CHUNK+CHUNK/2; const d=Math.min(...all.map(p=>Math.hypot(x-p.x,z-p.z)));
     if(d>R+CHUNK*2&&!c.content.some(item=>item.inUse?.())) unloadChunk(c); }
 }
 /** Pro Bild: Plan auffrischen und ein paar Chunks aufbauen (nahe sofort, ferne verteilt über mehrere Bilder) */

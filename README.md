@@ -27,7 +27,7 @@ durch Savanne und Sumpf.
 - Erfahrung gibt es auch fürs Erkunden neuer Wasserlöcher, Ausweichen vor Krokodilen, Vertreiben von Wilderern und Räubern und fürs Großziehen eines Jungen
 - Gebiete: Savanne (mit einzelnen Krokodilen) und Sumpf (mit vielen Krokodilen und dem Riesenkrokodil); weitere geplant
 - Steuerung mit Tastatur und Maus, Touch oder Xbox-Controller
-- Online spielen über mehrere Geräte (im Aufbau): Ein Gerät öffnet im Pause-Menü einen Raum, die anderen treten mit dem Raumcode bei und spielen in derselben Welt. Dafür braucht es einen eigenen kleinen Server, Einrichtung siehe [`server/README.md`](server/README.md). Bisher sieht man sich gegenseitig; Tiere, Wetter und Tageszeit laufen noch auf jedem Gerät für sich.
+- Online spielen über mehrere Geräte (im Aufbau): Ein Gerät öffnet im Pause-Menü einen Raum, die anderen treten mit dem Raumcode bei und spielen in derselben Welt. Dafür braucht es einen eigenen kleinen Server, Einrichtung siehe [`server/README.md`](server/README.md). Man sieht sich gegenseitig, und alle erleben dieselben Tiere, dieselbe Tageszeit, dasselbe Wetter und dieselben Ereignisse: Das berechnet der Gastgeber, und seine Raubtiere jagen auch die Leoparden der anderen Geräte. Noch nicht übers Netz: selbst jagen als Gast, gemeinsame Beute (kommt als Nächstes).
 - Gemeinsames Spiel (Splitscreen) für bis zu 4 Spieler: Im Spiel drückt ein weiterer Controller Start und steigt ein –
   auf der Stufe von Spieler 1, mit den passenden Punkten zum Verteilen. Back: eigene Entwicklung · Back halten: aussteigen. Erfahrung wird geteilt, Eigenschaften und
   Fähigkeiten verteilt jeder selbst.
@@ -80,6 +80,8 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 | `src/menu.js` | Pausenmenü, Einstellungen, Steuerungsliste, Neustart |
 | `src/models.js` | Tiermodelle aus Blöcken, Fellvarianten (inkl. Albino und Panther), eigenes Krokodilmodell (Schuppen, Zähne, Kiefer, schlängelnder Schwanz), Zusammenführen starrer Teile, Laufanimation |
 | `src/move.js` | Bewegung eines Leoparden pro Bild: Laufen, Sprinten, Sprung, Klettern, Kollision, Tarnung |
+| `src/net.js` | Online-Spiel: Verbindung zum Relay-Server, Räume, Leoparden der anderen Geräte (beim Gastgeber auch als Ziel für seine Tiere) |
+| `src/networld.js` | Online-Spiel: Der Gastgeber schickt Tiere, Tageszeit, Wetter und Ereignisse, die Gäste zeigen sie an; Treffer auf Gäste gehen an deren Gerät |
 | `src/perf.js` | Leistung: Schattentakt, automatische Auflösung, Bildratenanzeige |
 | `src/player.js` | Der Leopard des Spielers: Zustand, Startposition und Modell |
 | `src/quality.js` | Grafikstufen (niedrig/hoch/ultra) anwenden: Auflösung, Schatten, Gras, Nebel, Sichtweite |

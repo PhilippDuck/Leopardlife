@@ -1,5 +1,6 @@
-// Integrationstest Online-Spiel (Teil 1): lokales Relay, zwei Browser mit verschiedenen Welten.
-// Gerät A öffnet einen Raum, Gerät B tritt bei, lädt die Welt von A und sieht A laufen (und umgekehrt).
+// Integrationstest Online-Spiel: lokales Relay, zwei Browser mit verschiedenen Welten.
+// Teil 1: Gerät A öffnet einen Raum, Gerät B tritt bei, lädt die Welt von A und sieht A laufen (und umgekehrt).
+// Teil 2: B zeigt die Tiere, die Tageszeit, das Wetter und das Ereignis von A; ein Tier von A greift den Leoparden von B an.
 // Benötigt Playwright mit Chromium und `npm install` in server/. Aufruf: node tests/online-browser.cjs
 const { chromium }=require('playwright');
 const http=require('node:http'), fs=require('node:fs'), path=require('node:path'), assert=require('node:assert/strict');
@@ -29,7 +30,7 @@ const browsers=[]; let relay; const errors=[];
     // Ohne Grafikkarte ist das Zeichnen zu langsam für zwei Geräte: Die Hauptschleife bleibt aus, nur das Netz wird
     // regelmäßig aktualisiert (dieselbe Funktion, die sonst jedes Bild läuft)
     await page.addInitScript(()=>{ window.requestAnimationFrame=()=>0;
-      addEventListener('load',()=>{ import('./src/net.js').then(m=>setInterval(()=>m.updateNet(performance.now()),50)); }); });
+      addEventListener('load',()=>{ Promise.all([import('./src/net.js'),import('./src/networld.js')]).then(([m,w])=>setInterval(()=>{ const now=performance.now(); m.updateNet(now); w.updateNetWorld(0.05,now); },50)); }); });
     await page.addInitScript(([seed,name,rport])=>{
       if(localStorage.getItem('jaguar-save-v1')) return;
       localStorage.setItem('jaguar-gfx2','low');
@@ -93,6 +94,40 @@ const browsers=[]; let relay; const errors=[];
       camera.position.set(r.x-4,r.y+2.2,r.z-4); camera.lookAt(r.x,r.y+0.6,r.z); renderer.render(scene,camera); });
     await B.screenshot({path:path.join(process.env.SHOT_DIR,'online-b-sieht-a.png')});
   }
+
+  // Teil 2: Tiere von A erscheinen bei B an derselben Stelle (die eigene Tierwelt von B läuft nicht).
+  // Ohne Hauptschleife steht bei A kein Modell an seiner Stelle: einmal hinstellen und sichtbar machen
+  await A.evaluate(()=>{ for(const a of window.__leopard.animals){ a.g.position.set(a.x,a.g.position.y,a.z); a.g.visible=true; } });
+  await until(B,()=>window.__leopard.mirror.size>0); await wait(1500);
+  const pairs=await B.evaluate(()=>[...window.__leopard.mirror.entries()].filter(([,a])=>a.x!==1e6).slice(0,5).map(([id,a])=>[id,a.x,a.z,a.sp.id]));
+  assert.ok(pairs.length>0,'B zeigt Tiere von A');
+  const onA=await A.evaluate(ids=>ids.map(id=>{ const a=window.__leopard.animals.find(o=>o.nid===id); return a&&[a.x,a.z,a.sp.id]; }),pairs.map(p=>p[0]));
+  pairs.forEach((p,i)=>{ assert.ok(onA[i],'Tier '+p[0]+' gibt es bei A'); assert.equal(onA[i][2],p[3]); assert.ok(Math.hypot(onA[i][0]-p[1],onA[i][1]-p[2])<0.1,'gleiche Stelle '+JSON.stringify([p,onA[i]])); });
+  console.log('B zeigt '+await B.evaluate(()=>window.__leopard.mirror.size)+' Tiere von A an denselben Stellen');
+  // Tageszeit, Wetter und Steppenbrand kommen von A
+  await A.evaluate(async()=>{ const {W}=await import('./src/weather.js'); const {startEvent}=await import('./src/worldevents.js');
+    window.__leopard.S.tod=0.9; W.target=1; W.storm=true; startEvent('fire'); });
+  await until(B,async()=>{ const {W}=await import('./src/weather.js'); const {EV}=await import('./src/worldevents.js'); const S=window.__leopard.S;
+    return Math.abs(S.tod-0.9)<0.01&&W.target===1&&W.storm&&EV.on==='fire'; });
+  const ownTod=await B.evaluate(async()=>{ (await import('./src/save.js')).save(); return JSON.parse(localStorage.getItem('jaguar-save-v1')).tod; });
+  assert.notEqual(ownTod,0.9,'die Tageszeit des Gastgebers kommt nicht in den Spielstand von B');
+  console.log('Tageszeit, Gewitter und Steppenbrand von A sind bei B angekommen');
+  // Eine Hyäne von A greift den Leoparden von B an: A rechnet, der Schaden kommt auf dem Gerät von B an
+  const hp0=await B.evaluate(()=>window['__hp0']=window.__leopard.players[0].hp);
+  await A.evaluate(async()=>{ const {ghosts}=await import('./src/player.js'); const {updateAnimal}=await import('./src/ai.js');
+    const gh=ghosts[0], h=window.__leopard.animals.find(a=>a.sp.id==='hyena'&&!a.dead);
+    h.x=gh.x+0.6; h.z=gh.z; h.state='chase'; h.tgt=gh; h.aggro=5; h.cd=0; h.stun=0; h.wound=null; h.held=null; h.ev=null;
+    updateAnimal(h,0.05); });
+  await until(B,()=>window.__leopard.players[0].hp<window['__hp0'],20000).catch(()=>{});
+  const hp1=await B.evaluate(()=>window.__leopard.players[0].hp);
+  assert.ok(hp1<hp0,'Biss der Hyäne kommt bei B an ('+hp0+' → '+hp1+')');
+  console.log('Hyäne von A beißt Ben: Leben '+Math.round(hp0)+' → '+Math.round(hp1));
+  const traffic=await A.evaluate(async()=>{ const {traffic}=await import('./src/net.js'); return Math.round(traffic.upRate); });
+  console.log('Gastgeber sendet etwa '+(traffic/1024).toFixed(1)+' kB/s (Tiere stehen hier still)');
+  // Rechenzeit beim Gastgeber: ein vollständiger Stand aller Tiere in der Nähe von B
+  const ms=await A.evaluate(async()=>{ const w=await import('./src/networld.js'); let t=0; for(let i=0;i<40;i++){ for(const a of window.__leopard.animals) a.netAt=-1e9;
+    const t0=performance.now(); w.updateNetWorld(0.05,1e12+i*1000); t+=performance.now()-t0; } return t/40; });
+  console.log('Gastgeber: ein Stand aller Tiere kostet '+ms.toFixed(2)+' ms');
 
   // B verlässt den Raum: A entfernt Ben, B kehrt in die eigene Welt zurück
   await openOnline(B); await press(B,'btnOnLeave');

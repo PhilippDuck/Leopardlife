@@ -1,11 +1,11 @@
 // LeoLife – Online-Spiel über mehrere Geräte (Teil 1): Verbindung zum Relay-Server (server/relay.js), Räume,
 // gemeinsame Welt und die Leoparden der anderen Geräte. Ein Gerät öffnet einen Raum (Gastgeber), die anderen treten mit dem
-// Raumcode bei und spielen in der Welt des Gastgebers (Weltsamen und Gebiet, siehe save.js). Tiere, Wetter und Tageszeit
-// laufen in diesem Teil noch auf jedem Gerät für sich.
+// Raumcode bei und spielen in der Welt des Gastgebers (Weltsamen und Gebiet, siehe save.js). Tiere, Wetter, Tageszeit und
+// Ereignisse berechnet der Gastgeber für alle (networld.js); dafür sieht seine Tier-KI die Leoparden der Gäste als ghosts.
 import { QUAL } from './data.js';
 import { scene } from './engine.js';
 import { animLegs, buildQuad } from './models.js';
-import { JAG, dropModel, players } from './player.js';
+import { JAG, dropModel, ghosts, players } from './player.js';
 import { quality } from './quality.js';
 import { NET_KEY, NET_WORLD, REG_ID, S, WORLD_SEED, save } from './save.js';
 import { G } from './state.js';
@@ -33,10 +33,18 @@ const net={ws:null,state:'off',role:'',room:'',id:0,host:0,peers:new Map(),sendA
 /**
  * Leoparden der anderen Geräte, Schlüssel 'Gerät:Spielernummer'.
  * @typedef {{key:string, peer:number, num:number, g:any, label:{c:HTMLCanvasElement,tex:any,sp:any}, labelTxt:string, furKey:string,
- *   buf:{t:number,s:number[]}[], seenT:number}} Remote
+ *   buf:{t:number,s:number[]}[], seenT:number, ghost:import('./player.js').Ghost|null}} Remote
  * @type {Map<string,Remote>}
  */
 const remotes=new Map();
+/** Weitere Nachrichtenarten (networld.js): Typ → Behandlung; nur von Geräten im Raum */
+const netHandlers={};
+/** @param {string} type @param {(m:any)=>void} fn */
+function onNet(type,fn){ netHandlers[type]=fn; }
+/** Aufgerufen, wenn ein Gerät dazukommt (z. B. damit der Gastgeber ihm den ganzen Stand schickt) */
+const joinHooks=[];
+/** Datenmenge: gesendete und empfangene Bytes, je Sekunde gemittelt (Anzeige im Online-Fenster) */
+const traffic={up:0,down:0,upRate:0,downRate:0,t:0};
 
 /* ---------- Einstellungen (Server, Schlüssel, Name) ---------- */
 function onlineCfg(){ try{ return Object.assign({url:'',key:'',name:''},JSON.parse(localStorage.getItem(ONLINE_CFG)||'{}')); }catch(e){ return {url:'',key:'',name:''}; } }
@@ -84,14 +92,14 @@ function connect(want,c=readForm()){
     const hello={t:'hello',v:NET_PROTOCOL,key:c.key,name:c.name||'Leopard'};
     ws.send(JSON.stringify(want.create?Object.assign(hello,{create:true,world:{seed:WORLD_SEED,region:REG_ID}}):Object.assign(hello,{room:want.room.toUpperCase()})));
   };
-  ws.onmessage=e=>{ if(ws!==net.ws) return; let m; try{ m=JSON.parse(String(e.data)); }catch(err){ return; } onMessage(m); };
+  ws.onmessage=e=>{ if(ws!==net.ws) return; traffic.down+=String(e.data).length; let m; try{ m=JSON.parse(String(e.data)); }catch(err){ return; } onMessage(m); };
   ws.onclose=()=>{ if(ws===net.ws) dropped(); };
   ws.onerror=()=>{};
 }
 /** Verbindung schließen, ohne dass das als Abbruch zählt */
 function closeSocket(){ const ws=net.ws; net.ws=null; if(ws){ try{ ws.close(1000); }catch(e){} } }
-function reset(){ closeSocket(); net.state='off'; net.role=''; net.room=''; net.id=0; net.host=0; net.peers.clear(); net.want=null; for(const k of [...remotes.keys()]) dropRemote(k); }
-function netSend(o){ const ws=net.ws; if(ws&&ws.readyState===1&&net.state==='online') ws.send(JSON.stringify(o)); }
+function reset(){ closeSocket(); net.state='off'; net.role=''; net.room=''; net.id=0; net.host=0; net.peers.clear(); net.want=null; for(const k of [...remotes.keys()]) dropRemote(k); ghosts.length=0; }
+function netSend(o){ const ws=net.ws; if(ws&&ws.readyState===1&&net.state==='online'){ const s=JSON.stringify(o); traffic.up+=s.length; ws.send(s); } }
 
 /** Verbindung unerwartet weg */
 function dropped(){
@@ -111,8 +119,9 @@ function onMessage(m){
     case 'welcome': {
       net.retry=false;
       const w=m.world||{}, guest=m.host!==m.id;
-      if(guest&&(w.seed!==WORLD_SEED||w.region!==REG_ID)){
-        // Andere Welt: mit Samen und Gebiet des Gastgebers neu laden, danach tritt das Spiel von selbst wieder bei
+      if(guest&&(!NET_WORLD||w.seed!==WORLD_SEED||w.region!==REG_ID)){
+        // In die Welt des Gastgebers neu laden (auch bei gleichem Samen: als Gast läuft die eigene Tierwelt nicht),
+        // danach tritt das Spiel von selbst wieder bei
         setSession({world:{seed:w.seed,region:w.region},room:m.room,rejoin:true});
         closeSocket(); net.state='off'; save(); status('Lade die Welt des Gastgebers …'); renderOnline();
         setTimeout(()=>{ try{ location.reload(); }catch(e){} },300);
@@ -125,7 +134,7 @@ function onMessage(m){
       toast(guest?'Online im Raum '+m.room+' – '+[...net.peers.values()].map(p=>p.name).join(', '):'Raum '+m.room+' ist offen. Gib den Code an deine Mitspieler weiter.','#9be07f');
       return;
     }
-    case 'join': net.peers.set(m.id,{name:m.name}); net.profAt=0; toast(m.name+' ist online dabei.','#9be07f'); renderOnline(); return;
+    case 'join': net.peers.set(m.id,{name:m.name}); net.profAt=0; for(const f of joinHooks) f(m.id); toast(m.name+' ist online dabei.','#9be07f'); renderOnline(); return;
     case 'leave': { const p=net.peers.get(m.id); net.peers.delete(m.id); dropPeer(m.id); if(p) toast(p.name+' hat den Raum verlassen.','#b9b7a6'); renderOnline(); return; }
     case 'end': reset(); status('Der Gastgeber hat den Raum geschlossen.'); toast('Der Gastgeber hat den Raum geschlossen.','#f2b84b'); renderOnline(); backToOwnWorld('Der Raum ist zu Ende.'); return;
     case 'error': {
@@ -135,6 +144,7 @@ function onMessage(m){
     }
     case 'st': if(net.peers.has(m.from)&&Array.isArray(m.p)) onState(m.from,m.p); return;
     case 'pf': if(net.peers.has(m.from)&&Array.isArray(m.p)) onProfile(m.from,m.p); return;
+    default: { const h=netHandlers[m.t]; if(h&&net.peers.has(m.from)) h(m); }
   }
 }
 
@@ -149,8 +159,11 @@ const r2=v=>Math.round(v*100)/100;
 function sendState(){
   const list=[];
   for(const p of players){ const g=p.g; if(!g) continue; const inr=g.userData.inner;
+    // 0–12: Modell; 13–16: was die Tiere des Gastgebers wahrnehmen (Stufe, Tarnung, Geräusch, Zustand als Bits)
+    const bits=(p.safe?1:0)|(p.sneak?2:0)|(p.tree!=null?4:0)|(p.dead?8:0)|(p.drinking?16:0);
     list.push([p.num||1,r2(g.position.x),r2(g.position.y),r2(g.position.z),r2(g.rotation.y),r2(g.rotation.x),r2(g.rotation.z),r2(g.scale.x),
-      r2(inr.position.y),r2(inr.rotation.x),r2((p.walkT||0)%WALK_WRAP),r2(p.legA??0.02),g.visible?1:0]); }
+      r2(inr.position.y),r2(inr.rotation.x),r2((p.walkT||0)%WALK_WRAP),r2(p.legA??0.02),g.visible?1:0,
+      p.L.lvl,r2(p.stealth??1),r2(p.noise||0),bits,r2(p.x),r2(p.z),r2(p.y)]); }
   netSend({t:'st',p:list});
 }
 function sendProfile(){
@@ -177,11 +190,11 @@ function buildRemoteModel(r,fur){ if(r.g) dropModel(r.g); r.g=buildQuad(JAG,fur|
 /** @returns {Remote} */
 function addRemote(key,peer,num){
   /** @type {Remote} */
-  const r={key,peer,num,g:null,label:makeLabel(),labelTxt:'',furKey:'null',buf:[],seenT:0};
+  const r={key,peer,num,g:null,label:makeLabel(),labelTxt:'',furKey:'null',buf:[],seenT:0,ghost:null};
   buildRemoteModel(r,null); remotes.set(key,r); nameRemote(r,0); return r;
 }
 function nameRemote(r,lvl){ const n=net.peers.get(r.peer)?.name||'Leopard'; drawLabel(r,(r.num>1?n+' ('+r.num+')':n)+(lvl?' · Stufe '+lvl:'')); }
-function dropRemote(key){ const r=remotes.get(key); if(!r) return; dropModel(r.g); scene.remove(r.label.sp); r.label.tex.dispose(); r.label.sp.material.dispose(); remotes.delete(key); }
+function dropRemote(key){ const r=remotes.get(key); if(!r) return; dropModel(r.g); if(r.ghost){ const i=ghosts.indexOf(r.ghost); if(i>=0) ghosts.splice(i,1); } scene.remove(r.label.sp); r.label.tex.dispose(); r.label.sp.material.dispose(); remotes.delete(key); }
 function dropPeer(id){ for(const [k,r] of [...remotes]) if(r.peer===id) dropRemote(k); }
 function onState(from,list){
   const now=performance.now(), seen=new Set();
@@ -190,6 +203,7 @@ function onState(from,list){
     const key=from+':'+s[0]; seen.add(key);
     const r=remotes.get(key)||addRemote(key,from,s[0]);
     r.buf.push({t:now,s}); if(r.buf.length>10) r.buf.shift(); r.seenT=now;
+    if(net.role==='host'&&s.length>=20) ghostFrom(r,s);
   }
   for(const [k,r] of [...remotes]) if(r.peer===from&&!seen.has(k)) dropRemote(k);   // ein Splitscreen-Mitspieler dort ist ausgestiegen
 }
@@ -198,6 +212,14 @@ function onProfile(from,list){
     const fur=e[1]&&typeof e[1]==='object'?e[1]:null, fk=JSON.stringify(fur);
     if(fk!==r.furKey){ r.furKey=fk; buildRemoteModel(r,fur); }
     nameRemote(r,typeof e[2]==='number'?e[2]:0); }
+}
+/** Gastgeber: Leopard eines Gastes für die eigene Tier-KI auf den neuesten Stand bringen (ohne Verzögerung) */
+function ghostFrom(r,s){
+  let gh=r.ghost;
+  if(!gh){ gh=r.ghost={ghost:true,peer:r.peer,num:r.num,x:0,y:0,z:0,L:{lvl:1},stealth:1,noise:0,safe:false,sneak:false,tree:null,dead:false,drinking:false,upNow:0,camY:0}; ghosts.push(gh); }
+  const b=s[16];
+  gh.x=s[17]; gh.z=s[18]; gh.y=s[19]; gh.camY=s[2]; gh.L.lvl=s[13]; gh.stealth=s[14]; gh.noise=s[15];
+  gh.safe=!!(b&1); gh.sneak=!!(b&2); gh.tree=b&4?0:null; gh.dead=!!(b&8); gh.drinking=!!(b&16); gh.upNow=b&4?s[2]-s[19]:0;
 }
 const lerp=(a,b,u)=>a+(b-a)*u;
 function lerpAng(a,b,u){ let d=b-a; while(d>Math.PI) d-=Math.PI*2; while(d<-Math.PI) d+=Math.PI*2; return a+d*u; }
@@ -224,6 +246,7 @@ function updateRemotes(now){
 
 /** Jedes Bild (auch in der Pause): senden und die anderen Leoparden bewegen */
 function updateNet(now){
+  if(now-traffic.t>=1000){ const k=1000/Math.max(1000,now-traffic.t||1000); traffic.upRate=traffic.up*k; traffic.downRate=traffic.down*k; traffic.up=traffic.down=0; traffic.t=now; if(onlineOpen()) renderOnline(); }
   if(net.state==='online'&&net.peers.size){
     if(now>=net.sendAt){ net.sendAt=now+SEND_MS; sendState(); }
     if(now>=net.profAt){ net.profAt=now+PROFILE_MS; sendProfile(); }
@@ -243,6 +266,7 @@ function renderOnline(){
     $('onRole').textContent=net.role==='host'?'Du bist Gastgeber. Mitspieler treten mit diesem Code bei.':'Du spielst in der Welt des Gastgebers.';
     const names=[...net.peers.entries()].map(([id,p])=>p.name+(id===net.host?' (Gastgeber)':''));
     $('onPeers').textContent=names.length?'Dabei: '+names.join(', '):'Noch niemand dabei.';
+    $('onTraffic').textContent='Daten: ↑ '+(traffic.upRate/1024).toFixed(1)+' kB/s · ↓ '+(traffic.downRate/1024).toFixed(1)+' kB/s';
   }
   $('btnOnline').textContent=on?'Online · Raum '+net.room:'Online spielen';
 }
@@ -263,4 +287,4 @@ $('btnOnCancel').onclick=()=>{ reset(); status(''); renderOnline(); };
 // Nach dem Neuladen in die Welt des Gastgebers: selbst wieder beitreten
 { const ses=session(); if(ses&&ses.rejoin&&ses.room) setTimeout(()=>connect({room:ses.room},onlineCfg()),300); }
 
-export { closeOnline, onlineActive, onlineOpen, remotes, net, updateNet, wsUrl };
+export { closeOnline, joinHooks, netSend, onNet, onlineActive, onlineOpen, remotes, net, traffic, updateNet, wsUrl };
