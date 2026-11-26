@@ -24,6 +24,7 @@ import { makeCarcass } from './carcass.js';
 import { puff } from './effects.js';
 import { goalEvent } from './goals.js';
 import { dmg } from './save.js';
+import { G } from './state.js';
 import { hearR, visibility } from './vision.js';
 
 /** @type {{on:string|null,t:number,next:number,last:string,fireCooldown:number,drawT:number,dir:{x:number,z:number},s:number,herd:any[],rival:any,panic:number,burnT:number,regrow:number,lionT:number,kidT:number,home:{x:number,z:number}|null}} */
@@ -126,10 +127,11 @@ function poachStep(a,dt,move){
 }
 /** Ein Leopard greift einen Wilderer an: verletzt ihn; ab etwa der Hälfte ergreift er die Flucht (Wilderer werden vertrieben, nicht erlegt) */
 function humanHit(a,p){
-  let d=dmg(p.L); const amb=a.aimAt!==p&&!a.prey; if(amb) d*=1.6; d=Math.round(d*rnd(0.9,1.1));
+  let d=p.ghost?p.atkD:dmg(p.L); const amb=a.aimAt!==p&&!a.prey; if(amb) d*=1.6; d=Math.round(d*rnd(0.9,1.1));
   a.hp-=d; p.combatT=5; snd.hit(); puff(a.x,H(a.x,a.z)+1.2,a.z,0x9a958a,4,0.4);
   floatText((amb?'Überrascht! ':'')+'-'+d,a.x,H(a.x,a.z)+2.2,a.z,amb?'#f2b84b':'#fff');
-  if(a.hp<=a.sp.hp*0.45&&a.ev==='poach'){ a.ev='leave'; floatText('Vertrieben!',a.x,H(a.x,a.z)+2.6,a.z,'#9be07f'); gainXp(Math.round(a.sp.xp*0.6),p); }
+  if(a.hp<=a.sp.hp*0.45&&a.ev==='poach'){ a.ev='leave'; floatText('Vertrieben!',a.x,H(a.x,a.z)+2.6,a.z,'#9be07f');
+    if(p.ghost){ if(G.ghostXp) G.ghostXp(p,Math.round(a.sp.xp*0.6),'Wilderer vertrieben!'); } else gainXp(Math.round(a.sp.xp*0.6),p); }
   else if(a.ev==='poach'){ a.aimAt=p; a.aimT=0.9; a.shotT=Math.min(a.shotT,0.6); }
 }
 

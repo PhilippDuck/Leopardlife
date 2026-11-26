@@ -16,6 +16,7 @@ import { padUI } from './gamepad.js';
 import { touchUI } from './input.js';
 import { cubLearn } from './cubfollow.js';
 import { $ } from './util.js';
+import { G } from './state.js';
 
 /** Festbeißen bei jedem Tier, das ein Biss nicht sofort erledigt (d = Schaden dieses Bisses) – außer Leoparden und Krokodilen im Wasser */
 const fights=a=>!!(a.sp.pred||a.sp.fight);
@@ -78,12 +79,22 @@ function endBite(p,broke){
   const a=b.a; a.held=null; if(a.dead) return;
   const avg=b.scores.reduce((x,y)=>x+y,0)/b.n;   // nicht mehr geschaffte Bisse zählen als 0
   const chance=Math.max(0.03,Math.min(0.97,avg*1.15+(b.help||0)+(has('kiefer',p.L)?0.08:0)+Math.min(0.1,(p.L.lvl-(a.sp.hunt||a.sp.lvl||1))*0.02)-(a.sp.boss?0.12:0)-(fights(a)?0.1:0)));
-  if(!broke&&Math.random()<chance){ cubLearn(p,'bite'); killAnimal(a,p); return; }
-  // losgerissen: blutet je nach Schwere; leicht verletzt heilt es wieder
+  const kill=!broke&&Math.random()<chance;
+  if(a.nid!=null&&G.netBiteEnd){   // Online-Gast: Tier des Gastgebers – er erlegt es bzw. lässt es verwundet fliehen
+    G.netBiteEnd(p,a,kill,avg);
+    if(kill) cubLearn(p,'bite');
+    else tell(p,avg>=0.28?(a.sp.n+' hat sich losgerissen und blutet stark – folge der Blutspur!'):(a.sp.n+' hat sich losgerissen – nur eine leichte Wunde.'),avg>=0.28?'#ff7a5a':'#b9b7a6');
+    return; }
+  if(kill){ cubLearn(p,'bite'); killAnimal(a,p); return; }
+  breakFree(a,p,avg);
+  tell(p,a.wound.die?(a.sp.n+' hat sich losgerissen und blutet stark – folge der Blutspur!'):(a.sp.n+' hat sich losgerissen – nur eine leichte Wunde.'),a.wound.die?'#ff7a5a':'#b9b7a6');
+}
+/** Tier a hat sich von p losgerissen: blutet je nach Schwere (avg = Durchschnitt der Bisse); leicht verletzt heilt es wieder */
+function breakFree(a,p,avg){
+  a.held=null;
   a.wound={sev:avg,t:0,die:avg<0.28?0:14+(1-avg)*70,heal:30,by:p,acc:0};
   a.hp=Math.max(1,Math.round(a.hp*(1-avg*0.6)));
   if(a.sp.fight||a.sp.pred){ a.state='chase'; a.aggro=10; a.scared=0; a.lost=0; } else { a.state='flee'; a.fleeT=0; }   // Raubtiere und Kämpfer wehren sich
-  tell(p,a.wound.die?(a.sp.n+' hat sich losgerissen und blutet stark – folge der Blutspur!'):(a.sp.n+' hat sich losgerissen – nur eine leichte Wunde.'),a.wound.die?'#ff7a5a':'#b9b7a6');
 }
 /** Balken zeichnen: Punkt, Zielzone, Runden */
 function biteUi(p){
@@ -131,4 +142,4 @@ function woundTrail(a,dist){
   if(w.acc>(w.die?1.1:2.2)){ w.acc=0; bloodDrop(a.x+rnd(-0.3,0.3),a.z+rnd(-0.3,0.3),w.die?1:0.6); }
 }
 
-export { assistBite, biteHit, bitable, endBite, forgetWounds, startBite, updateBite, weakRecover, woundSlow, woundTick, woundTrail };
+export { assistBite, biteHit, bitable, breakFree, endBite, forgetWounds, startBite, updateBite, weakRecover, woundSlow, woundTick, woundTrail };
