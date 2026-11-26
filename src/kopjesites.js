@@ -20,8 +20,9 @@ const KOP_RIVER_GAP=40;
 /**
  * Ein Felsplateau: Mitte, Radius R am Boden, Höhe top der Fläche oben, Richtung des Höhleneingangs (Bogenmaß),
  * Samen für die Felsbrocken; home = im Startgebiet (nur dort kann die Höhle zum Bau werden);
- * small = kleine Felsgruppe: niedriger, ohne Höhle, auch ohne Klettern-Fähigkeit zu erklimmen.
- * @typedef {{x:number,z:number,R:number,top:number,cave:number,seed:number,home:boolean,small?:boolean}} KopjeSite
+ * small = kleine Felsgruppe: niedriger, ohne Höhle, auch ohne Klettern-Fähigkeit zu erklimmen;
+ * den = der Bau im Startgebiet (seine Höhle öffnet sich zum alten Bauplatz).
+ * @typedef {{x:number,z:number,R:number,top:number,cave:number,seed:number,home:boolean,small?:boolean,den?:boolean}} KopjeSite
  */
 /** @returns {KopjeSite} */
 function kopjeSite(x,z,r,home,small=false){
@@ -43,6 +44,14 @@ const homeKopjes=(()=>{
     if(Math.hypot(x-7,z-5)<25||PONDS.some(p=>Math.hypot(x-p.x,z-p.z)<p.r*1.3+8)||out.some(k=>Math.hypot(x-k.x,z-k.z)<k.R+40)||riverEdge(x,z)<20) continue;
     out.push(kopjeSite(x,z,r,true,true));
   }
+  // Der Bau: ein Felsplateau, dessen Höhle sich zum Bauplatz (7,5) und zum Startplatz hin öffnet (Richtung, die frei ist)
+  { const dx=7, dz=5, R=5.6, back=R*0.97+2.2;
+    let best=null;
+    for(let i=0;i<12;i++){ const a=Math.atan2(2-dx,2-dz)+(i%2?1:-1)*Math.ceil(i/2)*0.5236, ox=Math.sin(a), oz=Math.cos(a), x=dx-ox*back, z=dz-oz*back;   // 0°, ±30°, ±60° …
+      const bad=PONDS.some(p=>Math.hypot(x-p.x,z-p.z)<p.r+R+3)||riverEdge(x,z)<R+8||out.some(k=>Math.hypot(x-k.x,z-k.z)<k.R+R+10);
+      if(!bad){ best={x,z,a}; break; } }
+    if(!best){ const a=Math.atan2(2-dx,2-dz); best={x:dx-Math.sin(a)*back,z:dz-Math.cos(a)*back,a}; }
+    out.push({x:best.x,z:best.z,R,top:3.6,cave:best.a,seed:1+Math.floor(r()*2147483000),home:true,den:true}); }
   return out;
 })();
 /** @type {Map<string,KopjeSite|null>} */

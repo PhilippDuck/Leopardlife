@@ -26,6 +26,33 @@ const kopRockMat=new THREE.MeshLambertMaterial({color:0xffffff});
 const kopCaveGeo=new THREE.SphereGeometry(1,16,8,0,Math.PI*2,0,Math.PI/2);
 const kopCaveMat=new THREE.MeshBasicMaterial({color:0x14100c});
 
+/* ---------- Höhlenraum: unter den Felsplateaus im Startgebiet (und dem Bau) liegt ein Raum zum Hineingehen ---------- */
+/** Tiefe des Raums unter dem Boden, Radius und Höhe (m) */
+const ROOM_D=22, ROOM_R=7.5, ROOM_H=4.2;
+const roomDomeGeo=(()=>{
+  const g=new THREE.SphereGeometry(1,22,10,0,Math.PI*2,0,Math.PI/2), p=g.attributes.position;
+  for(let i=0;i<p.count;i++){ const x=p.getX(i), y=p.getY(i), z=p.getZ(i), n=1+0.07*Math.sin(x*6.1+z*4.3)+0.05*Math.sin(y*8.0+x*5.0); p.setXYZ(i,x*n,y*n,z*n); }
+  g.computeVertexNormals(); return g;
+})();
+// Die Sonne scheint auch hier unten (kein Schatten der Erde darüber): Wände und Boden leuchten deshalb fast nur aus sich selbst
+const roomWallMat=new THREE.MeshLambertMaterial({color:0x1a120c,emissive:0x3a2a1c,side:THREE.BackSide});
+const roomFloorMat=new THREE.MeshLambertMaterial({color:0x140e08,emissive:0x4a3824});
+const roomGlowMat=new THREE.MeshBasicMaterial({color:0xffe2b0,transparent:true,opacity:0.55,depthWrite:false,side:THREE.DoubleSide});
+/** Baut den Raum unter dem Felsen k (Mitte x,y,z = Boden); gibt Raum-Beschreibung und Objekte zurück */
+function buildRoom(k,gy,m,rr){
+  const room={x:k.x,y:gy-ROOM_D,z:k.z,r:ROOM_R,h:ROOM_H,out:[m.ox,m.oz]}, objs=[];
+  const dome=new THREE.Mesh(roomDomeGeo,roomWallMat); dome.position.set(room.x,room.y-0.2,room.z); dome.scale.set(ROOM_R,ROOM_H,ROOM_R); objs.push(dome);
+  const floor=new THREE.Mesh(new THREE.CircleGeometry(ROOM_R*1.02,24),roomFloorMat); floor.rotation.x=-Math.PI/2; floor.position.set(room.x,room.y,room.z); floor.receiveShadow=true; objs.push(floor);
+  // Licht vom Eingang: heller Fleck an der Wand in Richtung Ausgang
+  const glow=new THREE.Mesh(new THREE.CircleGeometry(1.1,16),roomGlowMat); glow.position.set(room.x+m.ox*(ROOM_R-0.35),room.y+1.0,room.z+m.oz*(ROOM_R-0.35)); glow.lookAt(room.x,room.y+1.0,room.z); glow.scale.set(1,1.3,1); objs.push(glow);
+  // ein paar Brocken an der Wand (nicht vor dem Ausgang)
+  const n=5, mesh=new THREE.InstancedMesh(kopRockGeo,kopRockMat,n), mt=new THREE.Matrix4(), q=new THREE.Quaternion(), e=new THREE.Euler(), v=new THREE.Vector3(), sc=new THREE.Vector3(), c=new THREE.Color();
+  for(let i=0;i<n;i++){ const a=k.cave+0.9+i/n*(6.283-1.8), d=ROOM_R*0.86, s=rr(0.5,1.0);
+    mesh.setMatrixAt(i,mt.compose(v.set(room.x+Math.sin(a)*d,room.y+s*0.2,room.z+Math.cos(a)*d),q.setFromEuler(e.set(0,rr(0,6.28),0)),sc.set(s,s*0.7,s))); mesh.setColorAt(i,c.setHSL(0.07,0.15,0.32)); }
+  objs.push(mesh);
+  return {room,objs};
+}
+
 /** Lage des Höhleneingangs am Fuß des Felsens: Punkt auf der Wand und Richtung nach außen */
 function caveMouth(k){ const ox=Math.sin(k.cave), oz=Math.cos(k.cave); return {x:k.x+ox*k.R*0.97,z:k.z+oz*k.R*0.97,ox,oz}; }
 
@@ -48,7 +75,9 @@ function buildKopje(k){
   // ein, zwei Blöcke oben auf der Fläche, am Rand gegenüber der Höhle (Wackelsteine)
   for(let i=0,t=1+Math.floor(r()*2);i<t;i++){ const a=k.cave+Math.PI+rr(-0.7,0.7), d=k.R*0.6, s=rr(0.9,1.4);
     block(k.x+Math.sin(a)*d,k.z+Math.cos(a)*d,gy+k.top+s*0.45,s,s*0.85,s*0.9,rr(0,6.28),0.03); }
-  return finish(k,gy,blocks,cleanup,hue,sat,m);
+  // Felsplateaus im Startgebiet: die Höhle führt in einen Raum unter dem Felsen (dort kann der Bau sein)
+  const rm=k.home?buildRoom(k,gy,m,rr):null;
+  return finish(k,gy,blocks,cleanup,hue,sat,m,rm);
 }
 /** Kleine Felsgruppe: ein flacher Block mit Brocken rundum, ohne Höhle (nur der Platz oben zum Klettern) */
 function buildRocks(k,r,rr,gy,blocks,block,cleanup,hue,sat){
@@ -61,19 +90,23 @@ function buildRocks(k,r,rr,gy,blocks,block,cleanup,hue,sat){
   return finish(k,gy,blocks,cleanup,hue,sat,null);
 }
 /** Blöcke als ein Mesh in die Szene, Kollision und Sicht, Baum-Plätze zum Klettern */
-function finish(k,gy,blocks,cleanup,hue,sat,m){
+function finish(k,gy,blocks,cleanup,hue,sat,m,rm=null){
   const mesh=new THREE.InstancedMesh(kopRockGeo,kopRockMat,blocks.length), mt=new THREE.Matrix4(), q=new THREE.Quaternion(), e=new THREE.Euler(), v=new THREE.Vector3(), s=new THREE.Vector3(), c=new THREE.Color();
   blocks.forEach((b,i)=>{ q.setFromEuler(e.set(0,b.ry,0)); mesh.setMatrixAt(i,mt.compose(v.set(b.x,b.y,b.z),q,s.set(b.sx,b.sy,b.sz))); mesh.setColorAt(i,c.setHSL(hue,sat,b.l)); });
   mesh.castShadow=true; mesh.receiveShadow=true;
   const objs=[mesh];
   if(m){ const cave=new THREE.Mesh(kopCaveGeo,kopCaveMat); cave.position.set(m.x,H(m.x,m.z)-0.1,m.z); cave.scale.set(1.25,1.55,0.35); cave.rotation.y=k.cave; objs.push(cave); }
+  if(rm) objs.push(...rm.objs);
   for(const o of objs){ scene.add(o); const cu=registerCull(o,k.x,k.z,k.R+6); cleanup.push(()=>{ unregisterCull(cu); scene.remove(o); }); }
   cleanup.push(()=>mesh.dispose?.());
   { const col=addCol(k.x,k.z,k.R*0.9,false), sg=addSight(k.x,k.z,k.R*0.9,k.top,1); cleanup.push(()=>{ removeCol(col); removeSight(sg); }); }
   // Für das Klettern: Fläche oben und Höhle als Baum-Einträge ohne Teile (cy weit unten: wird nie ausgeblendet)
   const top={x:k.x,z:k.z,y:gy,f:1,parts:[],cx:0,cy:-1e4,cz:0,rx:k.R*0.5,ry:1,perch:[0,k.top+0.08,0],tr:k.R*0.9,kopje:k,reach:k.R*0.9,walkR:k.R*0.42};
   const spots=[top];
-  if(m){ const my=H(m.x,m.z); spots.push({x:m.x,z:m.z,y:my,f:1,parts:[],cx:0,cy:-1e4,cz:0,rx:1,ry:1,perch:[-m.ox*0.7,0.02,-m.oz*0.7],tr:0.3,kopje:k,cave:true,reach:1.3,walkR:0.35,out:[m.ox,m.oz]}); }
+  if(m){ const my=H(m.x,m.z), cv={x:m.x,z:m.z,y:my,f:1,parts:[],cx:0,cy:-1e4,cz:0,rx:1,ry:1,perch:[-m.ox*0.7,0.02,-m.oz*0.7],tr:0.3,kopje:k,cave:true,reach:1.3,walkR:0.35,out:[m.ox,m.oz]};
+    // mit Raum: drinnen herumgehen (Mitte des Raums unter dem Felsen)
+    if(rm){ const R=rm.room; cv.perch=[R.x-m.x,R.y-my,R.z-m.z]; cv.walkR=R.r-1.3; cv.room=R; }
+    spots.push(cv); }
   const slots=spots.map(t=>{ const i=treeSlot(); trees[i]=t; return i; });
   cleanup.push(()=>slots.forEach(releaseTree));
   return {slots,drop:()=>{ for(const fn of cleanup) fn(); }};

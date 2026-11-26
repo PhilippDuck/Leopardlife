@@ -86,9 +86,28 @@ function updateCamera(p,cam){
   const fov=60-8*p.cam.huntF; if(Math.abs(cam.fov-fov)>0.05){ cam.fov=fov; cam.updateProjectionMatrix(); }
   const cp=Math.cos(p.cam.pitch);
   let cx=p.x+Math.sin(p.cam.yaw)*dist*cp, cz=p.z+Math.cos(p.cam.yaw)*dist*cp, cy=ty+Math.sin(p.cam.pitch)*dist;
+  const rm=p.tree!=null&&p.climbT>=0.5?trees[p.tree]?.room:null;
+  if(rm){   // im Höhlenraum: Kamera nah am Leoparden, unter der Decke und innerhalb der Wand
+    const d2=Math.min(dist,2.6+sc*1.6), pit=Math.min(p.cam.pitch,0.55), ty2=p.camY+sc*0.7;
+    cx=p.x+Math.sin(p.cam.yaw)*d2*Math.cos(pit); cz=p.z+Math.cos(p.cam.yaw)*d2*Math.cos(pit); cy=ty2+Math.sin(pit)*d2;
+    let dx=cx-rm.x, dz=cz-rm.z; const d=Math.hypot(dx,dz), lim=rm.r-0.7; if(d>lim){ dx*=lim/d; dz*=lim/d; } cx=rm.x+dx; cz=rm.z+dz;
+    const dd=Math.min(lim,Math.hypot(dx,dz)); cy=Math.max(rm.y+0.6,Math.min(cy,rm.y+rm.h*Math.sqrt(Math.max(0.05,1-(dd*dd)/(rm.r*rm.r)))-0.4));
+    cam.position.set(cx,cy,cz); cam.lookAt(p.x,ty2,p.z); if(p===P) denFade(p); return;
+  }
   cy=Math.max(cy,H(cx,cz)+0.6);
   if(p.cam.shake>0){ cx+=(Math.random()-0.5)*p.cam.shake; cy+=(Math.random()-0.5)*p.cam.shake; cz+=(Math.random()-0.5)*p.cam.shake; p.cam.shake=Math.max(0,p.cam.shake*0.86-0.005); }
   cam.position.set(cx,cy,cz); cam.lookAt(p.x,ty,p.z);
+  if(p===P) denFade(p);
+}
+/** Beim Gang in den Höhlenraum und hinaus kurz abblenden (der Weg führt durch den Fels) */
+let fadeOut=0, wasIn=false;
+function denFade(p){
+  const t=p.tree!=null?trees[p.tree]:null, inRoom=!!(t&&t.room);
+  if(wasIn&&!inRoom) fadeOut=1;
+  wasIn=inRoom;
+  const o=inRoom&&p.climbT<1?Math.sin(Math.PI*Math.min(1,p.climbT)):fadeOut;
+  fadeOut=Math.max(0,fadeOut-0.06);
+  const el=$('denFade'); const v=String(Math.round(o*100)/100); if(el.style.opacity!==v) el.style.opacity=v;
 }
 /** Fadenkreuz und Ausdauerring von Spieler p @param {import('./player.js').Player} [p] */
 function updateCross(p=P){
