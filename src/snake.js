@@ -1,6 +1,6 @@
 // LeoLife – Schlangen (Puffottern): liegen getarnt im Gras, warnen zischend und beißen, wenn man sie übersieht.
 import { hurtPlayer } from './actions.js';
-import { snd } from './audio.js';
+import { snd, snd3d } from './audio.js';
 import { tell } from './coop.js';
 import { puff } from './effects.js';
 import { animSnake } from './models.js';
@@ -46,7 +46,7 @@ function snakeStep(a,dt,d,dx,dz,T){
   } else if(a.state==='warn'){
     lift=0.7; a.g.rotation.y+=(Math.atan2(dx,dz)-a.g.rotation.y)*Math.min(1,dt*3);
     a.hissT=(a.hissT||0)-dt;
-    if(a.hissT<=0){ a.hissT=rnd(0.9,1.5); snd.notice(); floatText('ssss',a.x,H(a.x,a.z)+0.6,a.z,'#c8d68a'); }
+    if(a.hissT<=0){ a.hissT=rnd(1.3,2.1); if(!snd3d(['snakeHiss'],a.x,a.z,0.9,35,rnd(0.92,1.1))) snd.notice(); floatText('ssss',a.x,H(a.x,a.z)+0.6,a.z,'#c8d68a'); }
     if(!a.told||a.told!==T){ a.told=T; tell(T,'Eine Puffotter zischt im Gras – geh langsam zurück oder greif sie gezielt an.','#c8d68a'); }
     if(reachable&&d<biteR&&a.cd<=0) startStrike(a);
     if(d>warnR+2||!reachable){ a.state='lurk'; a.told=null; }
@@ -69,7 +69,7 @@ function snakeStep(a,dt,d,dx,dz,T){
   u.head.position.z=0.05+k;
   a.g.position.set(a.x,H(a.x,a.z),a.z);
 }
-function startStrike(a){ a.state='strike'; a.lt=0.35; a.bit=false; snd.croc(); }
+function startStrike(a){ a.state='strike'; a.lt=0.35; a.bit=false; if(!snd3d(['snakeHiss'],a.x,a.z,1.2,35,rnd(1.15,1.3))) snd.croc(); }
 
 /* ---------- Gift: wirkt einige Sekunden nach ---------- */
 function envenom(p){

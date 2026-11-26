@@ -1,6 +1,6 @@
 // LeoLife – Aktionen des Leoparden: Sprung, Klettern, Brüllen, Treffer austeilen und einstecken, Tod und Neubeginn.
 import { animals, placeAnimal } from './animals.js';
-import { climbStop, initAudio, snd, tone } from './audio.js';
+import { climbStop, initAudio, snd, snd3d, tone } from './audio.js';
 import { DAT, FOOD } from './data.js';
 import { puff, roarFx } from './effects.js';
 import { canvas } from './engine.js';
@@ -205,6 +205,7 @@ $('btnRespawn').onclick=()=>respawn();
  */
 function hitAnimal(a,p=P){
   if(a.sp.human){ humanHit(a,p); return; }   // Wilderer: verletzen und vertreiben, nicht erlegen
+  painCry(a);
   let d=p.ghost?p.atkD:dmg(p.L), amb=false; const leap=!!p.leap;
   // Hinterhalt – auch bei Tieren auf der Flucht vor dem Feuer und bei ziehenden Gnus (sie achten nicht auf dich)
   if(a.state==='wander'||a.state==='lurk'||a.stun>0||a.ev==='fire'||a.ev==='migr'){ d*=2+0.6*p.L.b.amb; amb=true; }
@@ -239,6 +240,12 @@ function defendYoung(kid,p){
     o.state='chase'; o.tgt=p; o.aggro=6; o.lost=0; o.scared=0; o.gcd=12; floatText('!',o.x,H(o.x,o.z)+o.sp.size*2.2,o.z,'#ff5a3c'); }
 }
 /** Tier a ist erlegt (von Spieler p); fromWounds: an seinen Wunden gestorben, während der Jäger anderswo ist */
+/** Getroffene Beute schreit: Hase und Maus quieken, Wild- und Warzenschwein quieken laut */
+function painCry(a){
+  const id=a.sp.id;
+  if(id==='hase'||id==='maus') snd3d(['squeak'],a.x,a.z,id==='maus'?0.55:0.9,40,id==='maus'?rnd(1.35,1.6):rnd(0.95,1.15));
+  else if(id==='boar'||id==='wart') snd3d(['boarSqueal'],a.x,a.z,1,80,id==='wart'?rnd(1.05,1.2):rnd(0.9,1.02));
+}
 function killAnimal(a,p=P,fromWounds){
   if(a.dead) return;
   a.wound=null; a.held=null;

@@ -42,7 +42,11 @@ const SAMPLES={roar:'audio/roar.mp3',dayA:'audio/amb-day-1.mp3',dayB:'audio/amb-
   fly:'audio/fly.mp3',birdA:'audio/bird-1.mp3',birdB:'audio/bird-2.mp3',doveA:'audio/dove-1.mp3',doveB:'audio/dove-2.mp3',gust:'audio/gust.mp3',owlA:'audio/owl-1.mp3',owlB:'audio/owl-2.mp3',owlC:'audio/owl-3.mp3',owlD:'audio/owl-4.mp3',
   music1:'audio/music-1.mp3',music2:'audio/music-2.mp3',music3:'audio/music-3.mp3',music4:'audio/music-4.mp3',night:'audio/amb-night.mp3',rain:'audio/rain.mp3',hyenaA:'audio/hyena-1.mp3',hyenaB:'audio/hyena-2.mp3',lion:'audio/lion.mp3',jackalA:'audio/jackal-1.mp3',jackalB:'audio/jackal-2.mp3',alarm:'audio/alarm.mp3',
   growlA:'audio/growl-1.mp3',growlB:'audio/growl-2.mp3',mew:'audio/mew.mp3',eat:'audio/eat.mp3',paws:'audio/paws.mp3',claws:'audio/claws.mp3',hurtA:'audio/hurt-1.mp3',hurtB:'audio/hurt-2.mp3',
-  thunder:'audio/thunder.mp3',thunderMid:'audio/thunder-mid.mp3',thunderMid2:'audio/thunder-mid-2.mp3',thunderFar:'audio/thunder-far.mp3'};
+  thunder:'audio/thunder.mp3',thunderMid:'audio/thunder-mid.mp3',thunderMid2:'audio/thunder-mid-2.mp3',thunderFar:'audio/thunder-far.mp3',
+  // Tiere und Umgebung (ElevenLabs): ersetzen die künstlich erzeugten Laute, sobald sie geladen sind
+  eleTrumpet:'audio/ele-trumpet.mp3',eleRumble:'audio/ele-rumble.mp3',hippo:'audio/hippo.mp3',snakeHiss:'audio/snake-hiss.mp3',croc:'audio/croc.mp3',squeak:'audio/squeak.mp3',
+  leoSaw:'audio/leopard-saw.mp3',babBark:'audio/baboon-bark.mp3',babScreech:'audio/baboon-screech.mp3',gnu:'audio/gnu.mp3',boarGrunt:'audio/boar-grunt.mp3',boarSqueal:'audio/boar-squeal.mp3',
+  guinea:'audio/guinea.mp3',gunshot:'audio/gunshot.mp3',frogs:'audio/frogs.mp3',river:'audio/river.mp3',fire:'audio/fire.mp3'};
 /** @type {Record<string, AudioBuffer>} */ const bufs={};
 /** Für Schleifen: Stille am Anfang und Ende überspringen (MP3 hat dort Polster), damit es nahtlos weiterläuft */
 const loopPts={};
@@ -87,6 +91,7 @@ function gunBus(){
   const k=new Float32Array(1024); for(let i=0;i<1024;i++){ const x=i/511.5-1; k[i]=Math.tanh(x*2.2)/Math.tanh(2.2); } gunShape=k;
 }
 function gunshot(x,z){
+  if(bufs.gunshot&&snd3d(['gunshot'],x,z,1.6,600,rnd(0.94,1.04))) return;   // Aufnahme (Echo ist schon drin), sonst der gebaute Knall
   if(!AC||!LIS.length) return; let L=LIS[0], d=1e9; for(const l of LIS){ const e=Math.hypot(x-l.x,z-l.z); if(e<d){ d=e; L=l; } }
   if(d>700) return; gunBus();
   const near=Math.pow(1-d/700,1.4), t=AC.currentTime+0.01+Math.min(0.8,d/340);   // Schall braucht etwas
@@ -161,6 +166,9 @@ function ambLoop(k){
 }
 /** Lautstärken der Umgebung nachführen und neue Ausschnitte starten: day 0…1 (Tageslicht), rain 0…1 */
 /** storm: Gewitter – dann schweigen Vögel, Fliege, Insekten und Grillen, nur Wind, Regen und Donner bleiben */
+/** Ortsgebundene Schleifen (Fluss, Frösche, Feuer): Lautstärke 0…1, von envsound.js je Bild gesetzt */
+const envVol={river:0,frogs:0,fire:0};
+function setEnvLoops(v){ for(const k in v) envVol[k]=v[k]; }
 function ambTick(day,rain,storm,hour,tense){
   if(!AC||AC.state!=='running') return;
   const t=AC.currentTime, dry=1-0.6*rain, calm=storm?Math.max(0,1-2*rain):1, hot=heat(hour||12), lv={day:0.22*day*dry,night:0.3*(1-day)*dry*calm,bugs:(0.08+0.27*hot)*day*dry*calm};
@@ -177,6 +185,7 @@ function ambTick(day,rain,storm,hour,tense){
     evNext[i]=t+rnd(e.gap[0],e.gap[1])/Math.max(0.15,fq); });
   musicFiles(t,storm&&rain>0.4||tense,rain);
   const rg=ambLoop('rain'); if(rg) rg.gain.setTargetAtTime(0.7*rain,t,0.8);
+  for(const k in envVol){ const g=ambLoop(k); if(g) g.gain.setTargetAtTime(envVol[k]*(k==='fire'?1:dry),t,0.6); }
   if(windG&&(bufs.dayA||bufs.windA||bufs.night)) windG.gain.value=0.02;   // Synth-Wind nur noch leise darunter
 }
 let climbSnd=null;   // Krallen an der Rinde: verstummt, sobald der Leopard oben ist
@@ -206,7 +215,7 @@ const snd={
   mew(){ if(sample('mew',1.0,rnd(0.92,1.15))) return; tone(950,0.22,'sine',0.11,620); tone(1200,0.1,'sine',0.05,900); },
   eat(){ if(bufs.eat){ if(AC.currentTime>eatUntil){ eatUntil=AC.currentTime+bufs.eat.duration*0.85; sample('eat',1.4,rnd(0.92,1.08)); } return; } for(let i=0;i<3;i++) noise(0.08,0.25,1600,800,'bandpass',i*0.13); },
   rustle(){ for(let i=0;i<3;i++) noise(0.09,0.14,3200,1500,'bandpass',i*0.07); },
-  croc(){ noise(0.55,0.5,2200,300,'bandpass'); noise(0.4,0.4,900,250,'lowpass',0.05); tone(70,0.6,'sawtooth',0.2,40); },
+  croc(){ if(sample('croc',0.75,rnd(0.92,1.06))) return; noise(0.55,0.5,2200,300,'bandpass'); noise(0.4,0.4,900,250,'lowpass',0.05); tone(70,0.6,'sawtooth',0.2,40); },
   snap(){ noise(0.05,0.55,2600,900,'bandpass'); tone(95,0.14,'square',0.22,45); },
   lap(){ noise(0.06,0.07,1500,700,'bandpass'); noise(0.05,0.05,1900,900,'bandpass',0.11); },
   lost(){ tone(500,0.18,'sine',0.1,330); },
@@ -217,15 +226,15 @@ const snd={
   splash(){ noise(0.16,0.16,1800,700,'bandpass'); },
   step(v){ noise(0.06,v,260,120,'lowpass'); },
   /** Perlhühner schlagen Alarm: schnelles, metallisches Gackern (v: Lautstärke nach Entfernung) */
-  cackle(v){ if(v<=0.01) return; for(let i=0;i<9;i++){ const f=rnd(1100,1500); tone(f,0.05,'square',0.05*v,f*0.7,i*rnd(0.06,0.09)); noise(0.04,0.12*v,2600,1400,'bandpass',i*0.075); } },
+  cackle(v){ if(v<=0.01) return; if(sample('guinea',Math.min(1,0.8*v),rnd(0.94,1.08))) return; for(let i=0;i<9;i++){ const f=rnd(1100,1500); tone(f,0.05,'square',0.05*v,f*0.7,i*rnd(0.06,0.09)); noise(0.04,0.12*v,2600,1400,'bandpass',i*0.075); } },
   /** Madenhacker fliegen zischend auf */
   hiss(v){ if(v<=0.01) return; for(let i=0;i<4;i++) noise(0.12,0.16*v,5200,3600,'bandpass',i*0.1); tone(3400,0.06,'sine',0.03*v,2600,0.05); },
   /** Paviane bellen Alarm: ein rauhes, zweisilbiges „Wa-hu“ (v: Lautstärke nach Entfernung) */
-  bark(v){ if(v<=0.01) return; for(let i=0;i<2;i++){ const o=i*rnd(0.34,0.46); tone(rnd(560,640),0.09,'sawtooth',0.12*v,420,o); tone(rnd(330,380),0.2,'sawtooth',0.14*v,230,o+0.1); noise(0.12,0.1*v,900,500,'bandpass',o); } },
+  bark(v){ if(v<=0.01) return; if(sample(Math.random()<0.25?'babScreech':'babBark',Math.min(1,0.85*v),rnd(0.94,1.08))) return; for(let i=0;i<2;i++){ const o=i*rnd(0.34,0.46); tone(rnd(560,640),0.09,'sawtooth',0.12*v,420,o); tone(rnd(330,380),0.2,'sawtooth',0.14*v,230,o+0.1); noise(0.12,0.1*v,900,500,'bandpass',o); } },
   /** Elefant trompetet: lautes, schmetterndes Blasen, das ansteigt und rau abbricht */
-  trumpet(v){ if(v<=0.01) return; tone(rnd(420,480),0.7,'sawtooth',0.16*v,rnd(700,780),0); tone(rnd(840,920),0.6,'square',0.05*v,1300,0.05); noise(0.6,0.12*v,1500,900,'bandpass',0.05); tone(160,0.3,'sawtooth',0.1*v,90,0.62); },
+  trumpet(v){ if(v<=0.01) return; if(sample('eleTrumpet',Math.min(1.2,v),rnd(0.94,1.05))) return; tone(rnd(420,480),0.7,'sawtooth',0.16*v,rnd(700,780),0); tone(rnd(840,920),0.6,'square',0.05*v,1300,0.05); noise(0.6,0.12*v,1500,900,'bandpass',0.05); tone(160,0.3,'sawtooth',0.1*v,90,0.62); },
   /** Nilpferd droht: tiefes, prustendes Grunzen in Stößen („Wuh-hu-hu-hu“) */
-  hippo(v){ if(v<=0.01) return; for(let i=0;i<5;i++){ const o=i*rnd(0.16,0.2); tone(rnd(95,125)*(i?0.9:1.2),0.16,'sawtooth',0.2*v,60,o); noise(0.12,0.16*v,500,180,'lowpass',o); } },
+  hippo(v){ if(v<=0.01) return; if(sample('hippo',Math.min(1,0.9*v),rnd(0.92,1.05))) return; for(let i=0;i<5;i++){ const o=i*rnd(0.16,0.2); tone(rnd(95,125)*(i?0.9:1.2),0.16,'sawtooth',0.2*v,60,o); noise(0.12,0.16*v,500,180,'lowpass',o); } },
   bird(){ const b=rnd(1800,3200); for(let i=0;i<3;i++) tone(b*rnd(0.9,1.15),0.09,'sine',0.035,b*rnd(1.1,1.4),i*0.13); }
 };
 
@@ -299,4 +308,4 @@ function musicTick(){
   while(mNext<now+0.3){ mSchedule(mStep,mNext); mNext+=M_STEP; mStep++; }
 }
 
-export { AC, ambTick, climbStop, musicSoon, setListeners, snd3d, hasSample, master, nbuf, initAudio, tone, snd, musicTick , gunshot };
+export { setEnvLoops, AC, ambTick, climbStop, musicSoon, setListeners, snd3d, hasSample, master, nbuf, initAudio, tone, snd, musicTick , gunshot };
