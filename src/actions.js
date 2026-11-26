@@ -121,6 +121,7 @@ function buzz(p,strong,weak,ms){ if(p===P){ if(padUI()) rumble(strong,weak,ms); 
 function hurtPlayer(d,a,force,p=P){
   if(p.ghost){ if(G.ghostHurt) G.ghostHurt(p,d,a,force); return; }   // Leopard eines anderen Geräts (Online-Spiel): Treffer geht dorthin
   if(p.dead||(p.safe&&!force)) return;
+  if(G.paused) return;   // Pause (online läuft die Welt beim Gastgeber weiter): der eigene Leopard ist sicher
   if(!force) d*=D().dmg;
   if(dayF<0.5) p.nightHurt=true;   // für „Nacht ohne Verletzung“ (lexicon.js)
   snd.hurt();

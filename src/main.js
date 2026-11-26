@@ -95,9 +95,23 @@ function frame(now){
   // Zeitlupe nach Hinterhalt/Beute verlangsamt die ganze Welt – im gemeinsamen Spiel nicht (die anderen spielen ja weiter)
   if(G.slowT>0){ G.slowT-=dt; if(players.length===1) dt*=0.25; }
   if(!G.paused) step(dt);
+  else if(hostLive()) worldStep(dt);   // Online-Gastgeber mit Gästen: Pause, Menü, Schlaf oder Tod halten die Welt der anderen nicht an
   for(const p of players) updateCamera(p,p.camera); updateTrees(dt,players.map(p=>({camera:p.camera,p}))); updateEnv(dt,now); eventsVisual(); updateTitle(dt); musicTick(); ambTick(dayF,W.rain,W.storm,S.tod*24,players.some(p=>animals.some(a=>!a.dead&&(a.state==='chase'||a.state==='lunge')&&a.tgt===p)));
   updateChunks(dt); updateWorldContent(dt); updateNet(now); updateNetWorld(G.paused?0:dt,now);
   renderAll();
+}
+/** Gastgeber im Online-Spiel mit mindestens einem Gast im Raum */
+const hostLive=()=>net.state==='online'&&net.role==='host'&&net.peers.size>0;
+/** Nur die Welt weiterrechnen (Tiere, Wetter, Tageszeit, Ereignisse), nicht die eigenen Leoparden – sie sind in der Pause sicher (hurtPlayer) */
+function worldStep(dt){
+  updateWeather(dt);
+  for(let i=0;i<animals.length;i++) updateAnimal(animals[i],dt);
+  updateBirds(dt); updateWildBirds(dt); updateBaboons(dt); updateEvents(dt);
+  if(G.started) updateDayNight(dt);
+  tickPuffs(dt); updateFx(dt);
+}
+function tickPuffs(dt){
+  for(let i=puffs.length-1;i>=0;i--){ const p=puffs[i]; p.t-=dt; p.vy-=12*dt; p.m.position.x+=p.vx*dt; p.m.position.y+=p.vy*dt; p.m.position.z+=p.vz*dt; p.m.material.opacity=Math.max(0,p.t/0.7); if(p.t<=0){ scene.remove(p.m); p.m.material.dispose(); puffs.splice(i,1); } }
 }
 function step(dt){
   for(const p of players) readControls(p,dt);
@@ -114,8 +128,7 @@ function step(dt){
   if(NET_GUEST) guestEvents(dt); else updateEvents(dt);
   updateWatchers();
   setListeners(players.map(p=>({x:p.x,z:p.z,yaw:p.cam.yaw}))); updateCalls(dt);
-  for(let i=puffs.length-1;i>=0;i--){ const p=puffs[i]; p.t-=dt; p.vy-=12*dt; p.m.position.x+=p.vx*dt; p.m.position.y+=p.vy*dt; p.m.position.z+=p.vz*dt; p.m.material.opacity=Math.max(0,p.t/0.7); if(p.t<=0){ scene.remove(p.m); p.m.material.dispose(); puffs.splice(i,1); } }
-  updateFx(dt);
+  tickPuffs(dt); updateFx(dt);
   if(G.toastT>0){ G.toastT-=dt; G.toastShown+=dt; if(G.toastT<=0){ if(toastQ.length){ const q=toastQ.shift(); showToast(q[0],q[1],q[2]); } else $('toast').style.opacity=0; } }
   if(G.lastHitT>0) G.lastHitT-=dt;
   updateWarn(dt); updateCross(); updateTracks(dt); updateFamily(dt); updateCub(dt); updateFollowers(dt); updateFamArrow(dt); updateLife(dt); updateDayNight(dt);
@@ -125,7 +138,7 @@ function step(dt){
 }
 
 // Für Browsertests (tools/*.py mit ?test): Spielzustand zum Nachsehen
-if(typeof location!=='undefined'&&location.search.includes('test')) window['__leopard']={G,players,S,animals,net,remotes,mirror};
+if(typeof location!=='undefined'&&location.search.includes('test')) window['__leopard']={G,players,S,animals,net,remotes,mirror,frame};
 
 applyQuality();
 setInputMode(inputMode); setResLabel(); if(!S.goals) newGoals();

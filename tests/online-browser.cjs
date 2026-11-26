@@ -176,6 +176,16 @@ const browsers=[]; let relay; const errors=[];
   await until(A,()=>{ const h=window.__leopard.animals.find(a=>a.sp.id==='hyena'&&!a.dead&&a.scared>0); return !!h; },20000);
   console.log('Brüllen von B vertreibt die Hyäne bei A');
 
+  // Pause beim Gastgeber: Mit Gast im Raum laufen die Tiere weiter, der eigene Leopard von A ist sicher
+  const paused=await A.evaluate(async()=>{ const L=window.__leopard, {hurtPlayer}=await import('./src/actions.js');
+    const a=L.animals.find(o=>!o.dead&&!o.sp.friend&&!o.held&&!o.sp.croc&&!o.sp.snake&&!o.carc&&o.g);
+    a.state='flee'; a.fleeT=0; a.stun=0; a.wound=null; a.ev=null; const x0=a.x, z0=a.z;
+    L.G.paused=true; const t0=performance.now(); L.frame(t0); L.frame(t0+50); L.frame(t0+100); L.frame(t0+150);
+    const hp=L.players[0].hp; hurtPlayer(10,a,false,L.players[0]);
+    const r={moved:Math.hypot(a.x-x0,a.z-z0),safe:L.players[0].hp===hp}; L.G.paused=false; return r; });
+  assert.ok(paused.moved>0.1,'Tiere laufen in der Pause des Gastgebers weiter ('+paused.moved+' m)');
+  assert.ok(paused.safe,'Leopard des Gastgebers ist in der Pause sicher');
+  console.log('Pause bei A: Tiere laufen weiter ('+paused.moved.toFixed(1)+' m), A ist sicher');
   const traffic=await A.evaluate(async()=>{ const {traffic}=await import('./src/net.js'); return Math.round(traffic.upRate); });
   console.log('Gastgeber sendet etwa '+(traffic/1024).toFixed(1)+' kB/s (Tiere stehen hier still)');
   // Rechenzeit beim Gastgeber: ein vollständiger Stand aller Tiere in der Nähe von B
