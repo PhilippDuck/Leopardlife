@@ -33,7 +33,7 @@ const net={ws:null,state:'off',role:'',room:'',id:0,host:0,peers:new Map(),sendA
 /**
  * Leoparden der anderen Geräte, Schlüssel 'Gerät:Spielernummer'.
  * @typedef {{key:string, peer:number, num:number, g:any, label:{c:HTMLCanvasElement,tex:any,sp:any}, labelTxt:string, furKey:string,
- *   buf:{t:number,s:number[]}[], seenT:number, ghost:import('./player.js').Ghost|null}} Remote
+ *   buf:{t:number,s:number[]}[], seenT:number, ghost:import('./player.js').Ghost|null, fur?:any, kin?:any}} Remote
  * @type {Map<string,Remote>}
  */
 const remotes=new Map();
@@ -164,7 +164,7 @@ function sendState(){
   for(const p of players){ const g=p.g; if(!g) continue; const inr=g.userData.inner;
     // 0–12: Modell; 13–16: was die Tiere des Gastgebers wahrnehmen (Stufe, Tarnung, Geräusch, Zustand als Bits)
     // 32 am Boden (wartet aufs Wiederbeleben), 64 hält X/F neben einem Leoparden dieses Empfängers am Boden, 128 will schlafen
-    const bits=(p.safe?1:0)|(p.sneak?2:0)|(p.tree!=null?4:0)|(p.dead?8:0)|(p.drinking?16:0)|(p.dead&&p.downT!=null?32:0)|(p.helping?64:0)|(p.wantSleep?128:0);
+    const bits=(p.safe?1:0)|(p.sneak?2:0)|(p.tree!=null?4:0)|(p.dead?8:0)|(p.drinking?16:0)|(p.dead&&p.downT!=null?32:0)|(p.helping?64:0)|(p.wantSleep?128:0)|(p.bite?256:0);   // 256 hat sich festgebissen
     list.push([p.num||1,r2(g.position.x),r2(g.position.y),r2(g.position.z),r2(g.rotation.y),r2(g.rotation.x),r2(g.rotation.z),r2(g.scale.x),
       r2(inr.position.y),r2(inr.rotation.x),r2((p.walkT||0)%WALK_WRAP),r2(p.legA??0.02),g.visible?1:0,
       p.L.lvl,r2(p.stealth??1),r2(p.noise||0),bits,r2(p.x),r2(p.z),r2(p.y),r2(p.revT||0)]); }
@@ -172,7 +172,8 @@ function sendState(){
 }
 function sendProfile(){
   const c=onlineCfg();
-  netSend({t:'pf',name:c.name||'Leopard',p:players.map(p=>[p.num||1,p.saveFur?(S.fur||null):p.fur,p.L.lvl])});
+  // 4. Feld: Herkunft und Familie (Kennung, Eltern, Erbanlagen, schon Nachwuchs) fürs Paaren über Geräte (netcoop.js)
+  netSend({t:'pf',name:c.name||'Leopard',p:players.map(p=>[p.num||1,p.saveFur?(S.fur||null):p.fur,p.L.lvl,G.profileExtra?G.profileExtra(p):null])});
 }
 
 /* ---------- Leoparden der anderen Geräte ---------- */
@@ -215,7 +216,8 @@ function onProfile(from,list){
   for(const e of list){ if(!Array.isArray(e)) continue; const r=remotes.get(from+':'+e[0]); if(!r) continue;
     const fur=e[1]&&typeof e[1]==='object'?e[1]:null, fk=JSON.stringify(fur);
     if(fk!==r.furKey){ r.furKey=fk; buildRemoteModel(r,fur); }
-    nameRemote(r,typeof e[2]==='number'?e[2]:0); }
+    nameRemote(r,typeof e[2]==='number'?e[2]:0);
+    r.fur=fur; r.kin=e[3]&&typeof e[3]==='object'?e[3]:null; }
 }
 /** Gastgeber: Leopard eines Gastes für die eigene Tier-KI auf den neuesten Stand bringen (ohne Verzögerung) */
 function ghostFrom(r,s){

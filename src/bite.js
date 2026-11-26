@@ -3,7 +3,7 @@
 // desto besser der Biss. Nach 3–5 Bissen entscheidet der Durchschnitt: erlegt – oder das Tier reißt sich los, blutet,
 // wird langsamer und erliegt je nach Schwere der Wunden später (Blutspur!). Ganz leichte Wunden heilen wieder.
 import { snd } from './audio.js';
-import { hEl, tell } from './coop.js';
+import { hEl, netMates, tell } from './coop.js';
 import { bloodDrop, puff } from './effects.js';
 import { players, P } from './player.js';
 import { has } from './save.js';
@@ -35,12 +35,18 @@ function startBite(p,a,d){
 function assistBite(p){
   if(p.dead||p.reconnectUntil) return false;
   const owner=players.find(o=>o!==p&&o.bite&&!o.dead&&Math.hypot(o.bite.a.x-p.x,o.bite.a.z-p.z)<o.bite.a.rad+3);
-  if(!owner) return false;
-  const b=owner.bite;
-  if(b.helpRound===b.round) return true;
+  if(owner){ helpBite(owner); return true; }
+  // online: ein Leopard eines anderen Geräts hat sich festgebissen – die Hilfe zählt dort (netcoop.js)
+  const q=netMates.list().find(o=>o.biting&&!o.dead&&Math.hypot(o.x-p.x,o.z-p.z)<4.5);
+  if(q&&netMates.onAssist){ netMates.onAssist(p,q); floatText('Gemeinsamer Angriff!',q.x,(q.y||H(q.x,q.z))+2,q.z,'#9be07f'); snd.hit(); return true; }
+  return false;
+}
+/** Ein Mitspieler hilft dem festgebissenen Spieler owner: einmal je Runde +5 % (höchstens +20 %) */
+function helpBite(owner){
+  const b=owner.bite; if(!b||b.helpRound===b.round) return;
   b.helpRound=b.round; b.help=Math.min(0.2,(b.help||0)+0.05);
   floatText('Gemeinsamer Angriff! +'+Math.round(b.help*100)+'%',b.a.x,H(b.a.x,b.a.z)+2,b.a.z,'#9be07f');
-  snd.hit(); return true;
+  snd.hit();
 }
 /** Druck auf die Sprung-Taste während des Festbeißens: Treffer bewerten */
 function biteHit(p){
@@ -142,4 +148,4 @@ function woundTrail(a,dist){
   if(w.acc>(w.die?1.1:2.2)){ w.acc=0; bloodDrop(a.x+rnd(-0.3,0.3),a.z+rnd(-0.3,0.3),w.die?1:0.6); }
 }
 
-export { assistBite, biteHit, bitable, breakFree, endBite, forgetWounds, startBite, updateBite, weakRecover, woundSlow, woundTick, woundTrail };
+export { assistBite, biteHit, bitable, breakFree, helpBite, endBite, forgetWounds, startBite, updateBite, weakRecover, woundSlow, woundTick, woundTrail };

@@ -13,7 +13,7 @@ import { G } from './state.js';
 import { H } from './terrain.js';
 import { floatText, toast } from './ui.js';
 import { $, rnd } from './util.js';
-import { canMate, fam, famPlace, renderBirthChoices } from './kin.js';
+import { canMate, fam, famPlace, famRole, renderBirthChoices } from './kin.js';
 import { eatFood } from './life.js';
 import { canSleepNow, sleepOnTree } from './daynight.js';
 import { carcassContext, endCarcass, nearCarcass, recordPartner, takeMeat } from './carcass.js';
@@ -22,7 +22,7 @@ import { moveAnimal } from './ai.js';
 import { nameOf, tell, viewMin } from './coop.js';
 import { gainXp } from './actions.js';
 import { canPair, ensureKin, litterLeaves, litterSize, newId, pairCandidate, pairPlayers, related } from './kinship.js';
-import { DEN_CAP, SWITCH_AT, cubFollowContext, denCount, denFull, denKids, followerOf, hasOwnCub, kidDies, kidOf, kidsOf, numOf, syncLitter, tickKids } from './cubfollow.js';
+import { DEN_CAP, SWITCH_AT, cubFollowContext, denCount, denFull, denKids, followerOf, followers, hasOwnCub, kidDies, kidOf, kidsOf, numOf, syncLitter, tickKids } from './cubfollow.js';
 import { drinkContext } from './thirst.js';
 import { trees } from './vegetation.js';
 
@@ -110,6 +110,7 @@ function doContext(){ const c=context(); if(c) c.fn(); }
 /** Fell eines Jungen: Mischung aus den Fellen der Eltern mit etwas Zufall; Albino und Schwarz bleiben selten, schwarze Eltern vererben öfter */
 function cubFur(ids){
   const fs=[S,...Object.values(S.mates||{})].filter(L=>L&&L.id&&ids.indexOf(L.id)>=0&&L.fur).map(L=>L.fur);
+  if(fs.length<2&&S.litterMateFur) fs.push(S.litterMateFur);   // Partner von einem anderen Gerät (online)
   if(fs.length<2&&S.partner&&fam[0].fur) fs.push(fam[0].fur);
   const f=makeFur(); if(!fs.length) return f;
   const mix=k=>{ const v=fs.reduce((x,o)=>x+(o[k]||1),0)/fs.length; return v*(0.92+Math.random()*0.16); };
@@ -191,7 +192,7 @@ function birth(){
   const ks=Object.keys(TRAITS).filter(t=>!has(t)), tr=S.litterTrait&&TRAITS[S.litterTrait]?S.litterTrait:ks[Math.floor(Math.random()*ks.length)]; S.litterTrait='';
   const parents=(S.litterParents||[ensureKin(S).id,S.partnerId||'wild']).slice(); S.litterParents=null;
   const pg=players.filter(q=>parents.indexOf(q.L.id)>=0).map(q=>q.L.gen||1), gen=1+(pg.length?Math.max(...pg):(S.gen||1));
-  const fur=cubFur(parents); if(tr==='dunkel'&&!fur.albino) fur.l=Math.min(fur.l,0.66);
+  const fur=cubFur(parents); S.litterMateFur=null; if(tr==='dunkel'&&!fur.albino) fur.l=Math.min(fur.l,0.66);
   // Nur Spieler, deren Leopard tatsächlich zu dieser Paarung gehört, erhalten ein Junges.
   const who=players.filter(q=>parents.indexOf(q.L.id)>=0&&!kidOf(q));
   if(!S.cub){ S.cub={full:70,grow:0,hp:1,trait:tr,n:0,gen,parents,fur,kids:{}}; cub.x=CUB_HOME.x; cub.z=CUB_HOME.z; cub.t=0; G.raidT=rnd(90,130)*D().raid; }
@@ -234,6 +235,20 @@ function updateCub(dt){
   { const d0=denKids()[0]; cubG.scale.setScalar(0.34+0.66*Math.min(1,d0?d0[1].grow:c.grow)); } cubG.position.set(cub.x,H(cub.x,cub.z),cub.z); updateSibs(c,dt);
   cub.saveT-=dt; if(cub.saveT<=0){ cub.saveT=10; save(); }
 }
+/**
+ * Sichtbare Familie dieses Geräts für die anderen im Online-Spiel (netfamily.js): Partner und Elterntiere am Bau,
+ * Junge im Bau und die mitlaufenden. Je Eintrag: Schlüssel, Modell, Fell, Junges?
+ * @returns {{k:string,g:any,fur:any,cub:boolean}[]}
+ */
+function familyModels(){
+  const out=[];
+  for(let i=0;i<3;i++){ const a=fam[i]; if(a&&famRole(i)&&a.famOn&&a.g&&a.g.visible&&!a.dead) out.push({k:'f'+i,g:a.g,fur:a.fur||null,cub:false}); }
+  const cf=S.cub&&S.cub.fur||null;
+  if(cubG&&cubG.visible) out.push({k:'c0',g:cubG,fur:cf,cub:true});
+  sibG.forEach((g,i)=>{ if(g.visible) out.push({k:'c'+(i+1),g,fur:cf,cub:true}); });
+  for(const f of followers) if(f.g&&f.g.visible) out.push({k:'w'+(f.p.num||1),g:f.g,fur:(kidOf(f.p)||{}).fur||cf,cub:true});
+  return out;
+}
 // Partnersuche: Pfeil und Hinweis nur in den ersten 15 s, danach nur noch der rosa Punkt auf der Spürkarte
 let seekT=0;
 function updateFamArrow(dt){
@@ -248,4 +263,4 @@ function updateFamArrow(dt){
 
 export { offerText };
 export { mateWild, nearestWild, playerSeeks, cubDies, nearCub, CUB_HOME, FOOD_MAX, context, cub, doContext, endRaid, raidStep, seekT, seeking, updateCub, updateFamArrow };
-export { rebuildCub, feedCub };
+export { CUBSPEC, familyModels, rebuildCub, feedCub };
