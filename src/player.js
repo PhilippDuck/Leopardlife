@@ -38,6 +38,7 @@ const JAG={col:0xe0a23c,col2:0xf0c98a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.44
  * @property {number|null} tree Index des Baums, auf dem er sitzt
  * @property {number} climbT Kletterfortschritt 0…1
  * @property {boolean} safe sicher oben im Baum
+ * @property {number} [atkD] nur bei Ghosts: Grundschaden aus dem Angriff des Gastes
  * @property {boolean} [ghost] nie bei eigenen Spielern: nur bei Leoparden anderer Geräte (Ghost), die die Tier-KI ebenfalls als Ziel nimmt
  * @property {number} [fromX] Startpunkt des Kletterns
  * @property {number} [fromZ]
@@ -130,7 +131,8 @@ const players=[P];
 /**
  * Online-Spiel, nur beim Gastgeber: die Leoparden der anderen Geräte, wie die Tiere sie wahrnehmen (net.js füllt sie).
  * Sie haben nur die Felder, die die Tier-KI liest; Treffer gehen über G.ghostHurt an ihr Gerät.
- * @typedef {{ghost:true, peer:number, num:number, x:number, y:number, z:number, L:{lvl:number}, stealth:number, noise:number,
+ * @typedef {{ghost:true, peer:number, num:number, x:number, y:number, z:number, L:{lvl:number,b?:{amb:number,climb:number}}, stealth:number, noise:number,
+ *   atkD?:number, leap?:boolean,
  *   safe:boolean, sneak:boolean, tree:number|null, dead:boolean, drinking:boolean, upNow:number, camY:number}} Ghost
  * @type {Ghost[]}
  */

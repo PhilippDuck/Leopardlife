@@ -88,9 +88,16 @@ function doRoar(p=P){
   p.rcd=22-3*p.L.b.roar; const R=16+7*p.L.b.roar;
   const sc=p.g?p.g.scale.x:1; roarFx(p.x,p.camY||p.y,p.z,p.rot,sc,R); p.cam.shake=Math.max(p.cam.shake,0.35); buzz(p,0.6,0.9,600); p.roarT=0.9;
   tell(p,'ROAAAR!','#f2b84b'); snd.roar();
-  animals.forEach(a=>{ if(a.dead) return; const d=Math.hypot(a.x-p.x,a.z-p.z); if(d>R) return;
-    if(a.sp.pred){ if(!a.sp.hunt||p.L.lvl+2*p.L.b.roar>=a.sp.hunt-3){ a.state='flee'; a.fleeT=0; a.aggro=0; a.scared=5; goalEvent('roar',1); } }
-    else if(!a.sp.boss&&!a.sp.friend&&!a.sp.elephant){ a.stun=1.2+0.5*p.L.b.roar; } });
+  const n=roarAt(p.x,p.z,R,p.L.lvl,p.L.b.roar); if(n) goalEvent('roar',n);
+  if(G.netRoar) G.netRoar(p,R);   // Online-Gast: die Tiere rechnet der Gastgeber
+}
+/** Brüllen bei x,z mit Reichweite R (Stufe lvl, Brüllen-Stufe rl): Raubtiere fliehen, Beute erstarrt. Gibt die Zahl der vertriebenen Raubtiere zurück. */
+function roarAt(x,z,R,lvl,rl){
+  let n=0;
+  animals.forEach(a=>{ if(a.dead) return; const d=Math.hypot(a.x-x,a.z-z); if(d>R) return;
+    if(a.sp.pred){ if(!a.sp.hunt||lvl+2*rl>=a.sp.hunt-3){ a.state='flee'; a.fleeT=0; a.aggro=0; a.scared=5; n++; } }
+    else if(!a.sp.boss&&!a.sp.friend&&!a.sp.elephant){ a.stun=1.2+0.5*rl; } });
+  return n;
 }
 /**
  * Spieler p bekommt n Erfahrung; Stufenaufstieg gibt 2 Punkte für die Entwicklung.
@@ -187,21 +194,25 @@ function respawn(p=P){
   if(!touchUI()){ try{ const r=canvas.requestPointerLock(); if(r&&r.catch) r.catch(()=>{}); }catch(e){} }
 }
 $('btnRespawn').onclick=()=>respawn();
-/** Spieler p trifft Tier a: Schaden, Hinterhalt, Beute, Erfahrung (Erfahrung und Stufe sind noch gemeinsam). */
+/**
+ * Spieler p trifft Tier a: Schaden, Hinterhalt, Beute, Erfahrung (Erfahrung und Stufe sind noch gemeinsam).
+ * Online beim Gastgeber kann p auch der Leopard eines Gastes sein (Ghost): Schaden kommt dann aus seiner Nachricht (atkD),
+ * was er sieht und hört, schickt G.ghostHitFx an sein Gerät.
+ */
 function hitAnimal(a,p=P){
   if(a.sp.human){ humanHit(a,p); return; }   // Wilderer: verletzen und vertreiben, nicht erlegen
-  let d=dmg(p.L), amb=false;
+  let d=p.ghost?p.atkD:dmg(p.L), amb=false; const leap=!!p.leap;
   // Hinterhalt – auch bei Tieren auf der Flucht vor dem Feuer und bei ziehenden Gnus (sie achten nicht auf dich)
   if(a.state==='wander'||a.state==='lurk'||a.stun>0||a.ev==='fire'||a.ev==='migr'){ d*=2+0.6*p.L.b.amb; amb=true; }
-  if(p.leap){ d*=1.25+0.25*p.L.b.climb; p.leap=false; floatText('Sprung vom Baum!',p.x,p.camY+2*pScale(p.L),p.z,'#9be07f'); }
+  if(leap){ d*=1.25+0.25*p.L.b.climb; p.leap=false; }
   d=Math.round(d*rnd(0.9,1.1));
   a.hp-=d; p.combatT=5;
-  floatText((amb?'Hinterhalt! ':'')+'-'+d,a.x,H(a.x,a.z)+a.sp.size*1.8,a.z,amb?'#f2b84b':'#fff');
   puff(a.x,H(a.x,a.z)+a.sp.size,a.z,0xc0392b,4,0.5);
-  G.lastHit=a; G.lastHitT=6; snd.hit(); if(amb){ snd.ambush(); goalEvent('amb',1); buzz(p,0.25,0.6,120); G.slowT=Math.max(G.slowT,0.16); p.cam.shake=Math.max(p.cam.shake,0.3*pScale(p.L)); }
   // aus dem Hinterhalt auf ein Tier, das dieser Biss nicht erledigt: festbeißen (das Minispiel entscheidet)
-  if(amb) cubLearn(p,'amb');
-  if(amb&&a.hp>0&&!a.held&&!players.some(o=>o.bite)&&bitable(a,0)){ a.hp+=d; startBite(p,a,d); return; }   // überlebt den Biss: festbeißen
+  const bite=amb&&a.hp>0&&!a.held&&!players.some(o=>o.bite)&&bitable(a,0);
+  if(bite) a.hp+=d;   // überlebt den Biss: festbeißen
+  if(p.ghost){ if(G.ghostHitFx) G.ghostHitFx(p,a,d,amb,leap,bite); } else hitFx(a,p,d,amb,leap);
+  if(bite){ if(p.ghost){ a.held=p; a.heldAt=performance.now(); } else startBite(p,a,d); return; }
   if(a.wound) a.hp-=Math.round(d*0.5);   // verwundete Beute ist leichter zu erlegen
   if(a.hp<=0){ killAnimal(a,p); return; }
   if(a===G.raider&&!a.raidXp){ a.raidXp=true; tell(p,'Du stellst dich dem Räuber am Bau! +40 EP','#9be07f'); gainXp(40,p); }
@@ -209,6 +220,13 @@ function hitAnimal(a,p=P){
   if(a.sp.snake){ a.state='chase'; a.aggro=6; return; }
   if(a.sp.fight){ a.state='chase'; a.aggro=10; a.scared=0; }
   else startFlee(a);
+}
+/** Was Spieler p bei seinem Treffer auf a sieht, hört und lernt (online auch auf dem Gerät eines Gastes, mit dem Tier vom Gastgeber) */
+function hitFx(a,p,d,amb,leap){
+  if(leap) floatText('Sprung vom Baum!',p.x,p.camY+2*pScale(p.L),p.z,'#9be07f');
+  floatText((amb?'Hinterhalt! ':'')+'-'+d,a.x,H(a.x,a.z)+a.sp.size*1.8,a.z,amb?'#f2b84b':'#fff');
+  G.lastHit=a; G.lastHitT=6; snd.hit(); if(amb){ snd.ambush(); goalEvent('amb',1); buzz(p,0.25,0.6,120); G.slowT=Math.max(G.slowT,0.16); p.cam.shake=Math.max(p.cam.shake,0.3*pScale(p.L)); }
+  if(amb) cubLearn(p,'amb');
 }
 /** Junges a wurde von Spieler p angegriffen: Mutter und wehrhafte Artgenossen in der Nähe gehen auf ihn los */
 function defendYoung(kid,p){
@@ -218,21 +236,25 @@ function defendYoung(kid,p){
 }
 /** Tier a ist erlegt (von Spieler p); fromWounds: an seinen Wunden gestorben, während der Jäger anderswo ist */
 function killAnimal(a,p=P,fromWounds){
-  const woundOwner=a.wound&&a.wound.by&&players.includes(a.wound.by)?a.wound.by:p;
-  if(!fromWounds&&!p.dead) cubLearn(p,'kill');
   if(a.dead) return;
-  if(!fromWounds){ snd.kill(); buzz(p,0.5,0.8,180); G.slowT=Math.max(G.slowT,0.22); p.cam.shake=Math.max(p.cam.shake,0.4*pScale(p.L)); }
   a.wound=null; a.held=null;
+  a.dead=true; a.respawn=rnd(18,30);
+  // Jede Beute bleibt als Kadaver mit einer Kugel je Bissen liegen: Fressen ist eine bewusste Entscheidung (Aktionstaste)
+  makeCarcass(a,a.juv?Math.max(1,Math.ceil((FOOD[a.sp.id]||1)*0.4)):FOOD[a.sp.id]||1);
+  puff(a.x,H(a.x,a.z)+a.sp.size*0.7,a.z,a.sp.m.col,10,0.5+a.sp.size*0.5);
+  const xpv=Math.round(a.sp.xp*(a.juv?0.4:1))*(a.fur&&a.fur.albino?2:1);
+  if(p.ghost){ if(G.ghostKill) G.ghostKill(p,a,xpv,!!(a.fur&&a.fur.albino)); return; }   // Gast: Belohnung auf seinem Gerät
+  killRewards(a,p,fromWounds,xpv,!!(a.fur&&a.fur.albino));
+}
+/** Was Spieler p für das Erlegen von a bekommt: Erfahrung, Leben, Ziele, Lernen fürs Junge, Sieg über den Herrscher */
+function killRewards(a,p,fromWounds,xpv,albino){
+  if(!fromWounds&&!p.dead) cubLearn(p,'kill');
+  if(!fromWounds){ snd.kill(); buzz(p,0.5,0.8,180); G.slowT=Math.max(G.slowT,0.22); p.cam.shake=Math.max(p.cam.shake,0.4*pScale(p.L)); }
   {
-    a.dead=true; a.respawn=rnd(18,30); p.L.kills=(p.L.kills||0)+1; goalEvent('kill',1,{sp:a.sp.id,night:dayF<0.5,herd:!!a.herd});
-    // Jede Beute bleibt als Kadaver mit einer Kugel je Bissen liegen. Futter fürs Junge: Kadaver zum Bau ziehen.
-    { const n=a.juv?Math.max(1,Math.ceil((FOOD[a.sp.id]||1)*0.4)):FOOD[a.sp.id]||1;
-      { let m=n;   // jede Beute bleibt als Kadaver liegen: Fressen ist eine bewusste Entscheidung (Aktionstaste)
-        makeCarcass(a,m); } }
-    if(fromWounds) tell(woundOwner,a.sp.n+': an den Wunden verendet – folge der Blutspur zum Kadaver!','#f2b84b');
-    puff(a.x,H(a.x,a.z)+a.sp.size*0.7,a.z,a.sp.m.col,10,0.5+a.sp.size*0.5);
+    p.L.kills=(p.L.kills||0)+1; goalEvent('kill',1,{sp:a.sp.id,night:dayF<0.5,herd:!!a.herd});
+    if(fromWounds) tell(p,a.sp.n+': an den Wunden verendet – folge der Blutspur zum Kadaver!','#f2b84b');
     p.hp=Math.min(maxHp(p.L),p.hp+maxHp(p.L)*0.25+a.sp.xp*0.1);
-    const xpv=Math.round(a.sp.xp*(a.juv?0.4:1))*(a.fur&&a.fur.albino?2:1); if(a.fur&&a.fur.albino) tell(p,'Seltene Beute: ein Albino! Doppelte Erfahrung.','#f2b84b');
+    if(albino) tell(p,'Seltene Beute: ein Albino! Doppelte Erfahrung.','#f2b84b');
     floatText('+'+xpv+' EP',p.x,p.y+2*pScale(p.L),p.z,'#8ad4ef');
     gainXp(xpv,p);
     if(a.sp.boss&&!beaten(REG_ID)){ S.beat=Object.assign({},S.beat,{[REG_ID]:true}); if(REG_ID==='savanne') S.won=true; save(); $('winTitle').textContent=REG.winT; $('winText').textContent=REG.winX; setTimeout(()=>{ snd.win(); $('win').style.display='flex'; G.paused=true; if(document.exitPointerLock) document.exitPointerLock(); },900); }
@@ -240,6 +262,6 @@ function killAnimal(a,p=P,fromWounds){
 }
 G.lastHit=null; G.lastHitT=0;
 
-export { killAnimal };
+export { hitFx, killAnimal, killRewards, roarAt };
 export { doClimb, doPounce, pounceLabel, pounceRun, setPounceLabel, togglePounce, doRoar, gainXp, hitAnimal, hurtPlayer, nearestTree };
 export { respawn };

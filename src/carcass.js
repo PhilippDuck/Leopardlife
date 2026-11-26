@@ -45,9 +45,11 @@ function nearCarcass(p=P){ for(const a of animals){ if(!a.carc||a.carc.meat<=0) 
    Wie echte Leoparden: Beute bis Antilopengröße packen, langsam (und angreifbar) zu einem Baum ziehen und mit hinaufnehmen.
    Im Baum kommen Hyänen, Schakale und Löwen nicht heran, und das Fleisch hält länger. */
 const DRAG_MAX=10;                     // Bissen: bis Antilope; Riesenantilope und großes Krokodil sind zu schwer
-const canDrag=c=>c&&c.carc&&c.carc.tree==null&&(FOOD[c.sp.id]||0)<=DRAG_MAX&&!players.some(o=>o.drag===c);
-function grabCarcass(p,c){ if(!canDrag(c)) return; p.eatC=null; p.drag=c; p.sneak=false; snd.step(0.4); tell(p,S.cub&&S.cub.grow<1?'Beute gepackt – zum Bau ziehen (Haus auf der Spürkarte) fürs Junge oder auf einen Baum (E/Ⓨ)':'Beute gepackt – zu einem Baum ziehen und klettern (E/Ⓨ) · nochmal: loslassen','#e0a060'); }
-function dropCarcass(p){ if(!p.drag) return; const c=p.drag; p.drag=null; if(c.carc) c.carc.orbs.userData.y0=H(c.x,c.z)+c.sp.size*1.4+0.6; }
+const canDrag=c=>c&&c.carc&&c.carc.tree==null&&(FOOD[c.sp.id]||0)<=DRAG_MAX&&!players.some(o=>o.drag===c)&&!c.netDrag;   // netDrag: zieht gerade ein Online-Gast
+/** Online-Gast: Kadaver gehört dem Gastgeber, was hier passiert, geht auch an ihn (networld.js) */
+const toHost=(kind,c,i)=>{ if(c.nid!=null&&G.carcNet) G.carcNet(kind,c,i); };
+function grabCarcass(p,c){ if(!canDrag(c)) return; p.eatC=null; p.drag=c; toHost('grab',c); p.sneak=false; snd.step(0.4); tell(p,S.cub&&S.cub.grow<1?'Beute gepackt – zum Bau ziehen (Haus auf der Spürkarte) fürs Junge oder auf einen Baum (E/Ⓨ)':'Beute gepackt – zu einem Baum ziehen und klettern (E/Ⓨ) · nochmal: loslassen','#e0a060'); }
+function dropCarcass(p){ if(!p.drag) return; const c=p.drag; p.drag=null; toHost('drop',c); if(c.carc) c.carc.orbs.userData.y0=H(c.x,c.z)+c.sp.size*1.4+0.6; }
 /** Gezogene Beute folgt hinter dem Leoparden; kostet Ausdauer; bei Erschöpfung, Treffer oder Tod lässt er los */
 function updateDrag(p,dt){
   const c=p.drag; if(!c) return;
@@ -68,14 +70,19 @@ function storeAtDen(p,c){
 /** Die gezogene Beute wird beim Klettern auf Baum i mitgenommen */
 function carcassToTree(p,i){
   const c=p.drag; p.drag=null; if(!c||!c.carc) return;
+  placeInTree(c,i); toHost('tree',c,i);
+  const py=trees[i].y+trees[i].perch[1];
+  goalEvent('treeMeat',1); cubLearn(p,'tree');
+  if(!c.treeXp){ c.treeXp=true; floatText('Beute im Baum! +30 EP',p.x,py+1.6,p.z,'#e0a060'); gainXp(30,p); } else floatText('Beute im Baum',p.x,py+1.6,p.z,'#e0a060');
+}
+/** Kadaver c liegt ab jetzt in Baum i (Astgabel); Aasfresser kommen nicht mehr heran */
+function placeInTree(c,i){
   const t=trees[i], px=t.x+t.perch[0], pz=t.z+t.perch[2], py=t.y+t.perch[1];
   const ang=Math.atan2(px-t.x,pz-t.z)+1.2, off=0.5;
-  c.x=px+Math.sin(ang)*off; c.z=pz+Math.cos(ang)*off; c.carc.tree=i; c.carc.t+=90;
+  c.x=px+Math.sin(ang)*off; c.z=pz+Math.cos(ang)*off; c.carc.tree=i; c.carc.t+=90; c.netDrag=null;
   c.g.position.set(c.x,py-0.05,c.z); c.g.rotation.y=ang;
   const o=c.carc.orbs; o.position.set(c.x,py+c.sp.size*0.9+0.9,c.z); o.userData.y0=o.position.y;
   animals.forEach(a=>{ if(a.state==='scav'&&a.carc===c){ a.state='wander'; a.timer=0; a.carc=null; } });   // Aasfresser geben auf
-  goalEvent('treeMeat',1); cubLearn(p,'tree');
-  if(!c.treeXp){ c.treeXp=true; floatText('Beute im Baum! +30 EP',p.x,py+1.6,p.z,'#e0a060'); gainXp(30,p); } else floatText('Beute im Baum',p.x,py+1.6,p.z,'#e0a060');
 }
 /** Kontextaktion am Kadaver für Spieler p (gemeinsam für Tastatur, Touch und Controller), sonst null */
 function carcassContext(p){
@@ -99,7 +106,7 @@ function updateEating(p,dt){
   const inReach=c.carc&&(c.carc.tree!=null?p.tree===c.carc.tree:(p.tree==null&&Math.hypot(c.x-p.x,c.z-p.z)<=c.rad+3.2));
   if(p.dead||moving||!inReach||c.carc.meat<=0||L.hunger>=100){ p.eatC=null; return; }
   p.eatT+=dt; if(p.eatT<BITE_T) return; p.eatT=0;
-  c.carc.meat--; L.hunger=Math.min(100,L.hunger+10); if(p.tree!=null) goalEvent('treeEat',1); p.hp=Math.min(maxHp(L),p.hp+maxHp(L)*0.05);
+  c.carc.meat--; toHost('eat',c); L.hunger=Math.min(100,L.hunger+10); if(p.tree!=null) goalEvent('treeEat',1); p.hp=Math.min(maxHp(L),p.hp+maxHp(L)*0.05);
   snd.eat(); puff(c.x,H(c.x,c.z)+0.6,c.z,0xc0392b,3,0.35);
   if(L.hunger>=100){ p.eatC=null; floatText('satt',p.x,p.y+1.8,p.z,'#e0a060'); }
 }
@@ -183,5 +190,5 @@ $('btnBookBack').onclick=closeBook;
 
 export { esc, herdLead, startFlee };
 export { recordPartner, renderTree, treeNodes };
-export { carcassContext, carcassToTree, dropCarcass, updateDrag };
+export { carcassContext, carcassToTree, dropCarcass, placeInTree, updateDrag };
 export { archiveLine, bookOpen, closeBook, endCarcass, makeCarcass, nearCarcass, recordAncestor, takeMeat, updateEating };

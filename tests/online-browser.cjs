@@ -127,6 +127,55 @@ const browsers=[]; let relay; const errors=[];
   const hp1=await B.evaluate(()=>window.__leopard.players[0].hp);
   assert.ok(hp1<hp0,'Biss der Hyäne kommt bei B an ('+hp0+' → '+hp1+')');
   console.log('Hyäne von A beißt Ben: Leben '+Math.round(hp0)+' → '+Math.round(hp1));
+  // Teil 3: B jagt Tiere von A. Beute neben B stellen; B springt, A rechnet und schickt Treffer, Erfahrung und Kadaver
+  const preyAt=(page,hp,off)=>page.evaluate(async([hp,off])=>{ const {ghosts}=await import('./src/player.js'); const {FOOD}=await import('./src/data.js'); const gh=ghosts[0];
+    const a=window.__leopard.animals.find(o=>!o.dead&&!o.carc&&!o.sp.pred&&!o.sp.fight&&!o.sp.friend&&!o.sp.human&&!o.sp.croc&&!o.sp.snake&&!o.sp.hippo&&!o.sp.elephant&&!o.sp.boss&&!o.herd&&!o.juv&&(FOOD[o.sp.id]||0)>=2&&(FOOD[o.sp.id]||0)<=10&&!o.netUsed);
+    a.netUsed=true; a.x=gh.x+off; a.z=gh.z+1; a.g.position.set(a.x,a.g.position.y,a.z); a.g.visible=true; a.state='wander'; a.hp=hp; a.stun=0; a.wound=null; a.held=null; a.ev=null; a.netAt=-1e9;
+    return [a.nid,a.x,a.z]; },[hp,off]);
+  // warten, bis B das Tier an der neuen Stelle zeigt
+  const seenAt=(id,x,z)=>until(B,new Function('const a=window.__leopard.mirror.get('+id+'); return !!a&&a.g.visible&&Math.hypot(a.x-('+x+'),a.z-('+z+'))<0.2;'),20000);
+  const pounceOn=(id)=>B.evaluate(id=>{ const p=window.__leopard.players[0], a=window.__leopard.mirror.get(id); p.x=a.x; p.z=a.z-0.5; p.pounce=0.3; p.hit=false; p.dead=false; },id);
+  const B0=await B.evaluate(()=>{ const p=window.__leopard.players[0]; return {xp:p.L.xp,lvl:p.L.lvl,k:p.L.kills||0}; });
+  const [kid,kx,kz]=await preyAt(A,1,0); await seenAt(kid,kx,kz);
+  await pounceOn(kid);
+  await until(A,new Function('return window.__leopard.animals.find(o=>o.nid==='+kid+').dead'),20000).catch(async e=>{
+    console.log('B:',JSON.stringify(await B.evaluate(id=>{ const p=window.__leopard.players[0], a=window.__leopard.mirror.get(id); return {px:p.x,pz:p.z,pounce:p.pounce,hit:p.hit,ax:a.x,az:a.z,vis:a.g.visible,dead:a.dead}; },kid)));
+    console.log('A:',JSON.stringify(await A.evaluate(async id=>{ const {ghosts}=await import('./src/player.js'); const a=window.__leopard.animals.find(o=>o.nid===id); return {gh:ghosts.map(g=>[g.peer,g.num,g.x,g.z,g.dead,g.atkD]),ax:a.x,az:a.z,hp:a.hp,held:!!a.held,dead:a.dead}; },kid)));
+    throw e; });
+  await until(B,()=>{ const p=window.__leopard.players[0]; return (p.L.kills||0)>0; },20000);
+  const B1=await B.evaluate(()=>{ const p=window.__leopard.players[0]; return {xp:p.L.xp,lvl:p.L.lvl,k:p.L.kills||0}; });
+  assert.ok(B1.k===B0.k+1&&(B1.xp!==B0.xp||B1.lvl>B0.lvl),'B bekommt die Beute angerechnet '+JSON.stringify([B0,B1]));
+  // Der Kadaver liegt auch bei B; B frisst einen Bissen, A zieht ihn ab
+  await until(B,new Function('const a=window.__leopard.mirror.get('+kid+'); return a&&a.carc&&a.carc.meat>0;'),20000);
+  const meat0=await A.evaluate(id=>window.__leopard.animals.find(o=>o.nid===id).carc.meat,kid);
+  await B.evaluate(async id=>{ const {takeMeat,updateEating}=await import('./src/carcass.js'); const p=window.__leopard.players[0], a=window.__leopard.mirror.get(id);
+    p.x=a.x; p.z=a.z-1; p.tree=null; p.ctl={fw:0,rt:0}; p.L.hunger=40; takeMeat(a,false,p); updateEating(p,1); },kid);
+  await until(A,new Function('return window.__leopard.animals.find(o=>o.nid==='+kid+').carc.meat==='+(meat0-1)),20000);
+  console.log('B erlegt '+await A.evaluate(id=>window.__leopard.animals.find(o=>o.nid===id).sp.n,kid)+' von A: +EP bei B, Kadaver bei beiden, Bissen '+meat0+' → '+(meat0-1));
+  // B packt den Kadaver und zieht ihn: A sieht ihn an der neuen Stelle
+  const dragTo=await B.evaluate(async id=>{ const {carcassContext,updateDrag}=await import('./src/carcass.js'); const p=window.__leopard.players[0], a=window.__leopard.mirror.get(id);
+    p.L.hunger=100; p.st=100; p.hurtT=0; const cx=carcassContext(p); cx.fn(); p.rot=0; p.x=a.x; p.z=a.z+3; p.ctl={fw:1,rt:0};
+    for(let i=0;i<20;i++) updateDrag(p,0.1); return {ok:p.drag===a,x:a.x,z:a.z}; },kid);
+  assert.ok(dragTo.ok,'B zieht den Kadaver');
+  await until(A,new Function('const a=window.__leopard.animals.find(o=>o.nid==='+kid+'); return Math.hypot(a.x-'+dragTo.x+',a.z-'+dragTo.z+')<0.3&&a.netDrag;'),20000);
+  await B.evaluate(async()=>{ const {dropCarcass}=await import('./src/carcass.js'); dropCarcass(window.__leopard.players[0]); });
+  await until(A,new Function('return !window.__leopard.animals.find(o=>o.nid==='+kid+').netDrag'),20000);
+  console.log('B zieht den Kadaver, A sieht ihn mitwandern');
+  // Festbeißen: zähe Beute überlebt den Hinterhalt, B beißt sich fest, reißt sich los → bei A verwundet und auf der Flucht
+  const [bid,bx,bz]=await preyAt(A,400,4); await seenAt(bid,bx,bz);
+  await pounceOn(bid);
+  await until(B,()=>!!window.__leopard.players[0].bite,20000);
+  await until(A,new Function('return !!window.__leopard.animals.find(o=>o.nid==='+bid+').held'),20000);
+  await B.evaluate(async()=>{ const {endBite}=await import('./src/bite.js'); endBite(window.__leopard.players[0],true); });
+  await until(A,new Function('const a=window.__leopard.animals.find(o=>o.nid==='+bid+'); return !a.held&&a.wound&&a.state==="flee";'),20000);
+  console.log('B beißt sich fest, das Tier reißt sich bei A verwundet los');
+  // Brüllen von B vertreibt eine Hyäne von A
+  await A.evaluate(async()=>{ const {ghosts}=await import('./src/player.js'); const gh=ghosts[0], h=window.__leopard.animals.find(a=>a.sp.id==='hyena'&&!a.dead);
+    h.x=gh.x+5; h.z=gh.z; h.state='wander'; h.scared=0; });
+  await B.evaluate(async()=>{ const {doRoar}=await import('./src/actions.js'); const p=window.__leopard.players[0]; p.L.b.roar=1; p.rcd=0; p.dead=false; doRoar(p); });
+  await until(A,()=>{ const h=window.__leopard.animals.find(a=>a.sp.id==='hyena'&&!a.dead&&a.scared>0); return !!h; },20000);
+  console.log('Brüllen von B vertreibt die Hyäne bei A');
+
   const traffic=await A.evaluate(async()=>{ const {traffic}=await import('./src/net.js'); return Math.round(traffic.upRate); });
   console.log('Gastgeber sendet etwa '+(traffic/1024).toFixed(1)+' kB/s (Tiere stehen hier still)');
   // Rechenzeit beim Gastgeber: ein vollständiger Stand aller Tiere in der Nähe von B
