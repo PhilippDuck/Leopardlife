@@ -6,11 +6,12 @@ const WebSocket=require('ws');
 const { startRelay, setQuiet }=require('./relay.js');
 setQuiet(true);
 
-function client(port){
-  const ws=new WebSocket('ws://127.0.0.1:'+port), inbox=[], waiters=[];
+function client(port,origin){
+  const ws=new WebSocket('ws://127.0.0.1:'+port,origin?{origin}:{}), inbox=[], waiters=[];
+  ws.on('error',()=>{});
   ws.on('message',d=>{ const m=JSON.parse(String(d)); const w=waiters.findIndex(x=>x.f(m)); if(w>=0) waiters.splice(w,1)[0].res(m); else inbox.push(m); });
   const closed=new Promise(res=>ws.on('close',(code)=>res(code)));
-  return { ws, closed, open:new Promise(res=>ws.on('open',res)),
+  return { ws, closed, open:new Promise((res,rej)=>{ ws.on('open',res); ws.on('error',rej); }),
     send:o=>ws.send(JSON.stringify(o)),
     drain:f=>{ let n=0; for(let i=inbox.length-1;i>=0;i--) if(f(inbox[i])){ inbox.splice(i,1); n++; } return n; },
     next:(f=()=>true,ms=2000)=>{ const i=inbox.findIndex(f); if(i>=0) return Promise.resolve(inbox.splice(i,1)[0]);
@@ -19,7 +20,14 @@ function client(port){
 const is=t=>m=>m.t===t;
 
 (async()=>{
-  assert.throws(()=>startRelay({key:'',open:false}),/RELAY_KEY/);
+  assert.throws(()=>startRelay({key:'',open:false,origins:[]}),/ALLOWED_ORIGINS/);
+  // Ohne Schlüssel, aber mit erlaubter Herkunft: jeder Schlüssel (auch keiner) passt, fremde Herkunft wird abgewiesen
+  { const r0=startRelay({key:'',open:false,origins:['https://gut.example']}); const p0=await r0.listen(0);
+    try{
+      const ok=client(p0,'https://gut.example'); await ok.open; ok.send({t:'hello',v:1,name:'O',create:true,world:{seed:7}});
+      assert.match((await ok.next(is('welcome'))).room,/^[A-Z]{4}$/); ok.ws.close();
+      const bad=client(p0,'https://boese.example'); await assert.rejects(bad.open);
+    } finally { await r0.close(); } }
   const relay=startRelay({key:'geheim',maxPeers:2,rate:50});
   const port=await relay.listen(0);
   try{

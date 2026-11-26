@@ -16,7 +16,7 @@ const num=(v,d)=>{ const n=parseInt(v,10); return Number.isFinite(n)&&n>0?n:d; }
 const CFG={
   port:num(process.env.PORT,8080),
   key:process.env.RELAY_KEY||'',
-  open:process.env.RELAY_OPEN==='1',            // ohne Schlüssel erlauben (nur zum Ausprobieren im Heimnetz)
+  open:process.env.RELAY_OPEN==='1',            // ohne Schlüssel und ohne ALLOWED_ORIGINS erlauben (nur zum Ausprobieren im Heimnetz)
   maxPeers:num(process.env.MAX_PEERS,8),        // Geräte je Raum (jedes Gerät kann bis zu 4 Splitscreen-Spieler haben)
   maxRooms:num(process.env.MAX_ROOMS,50),
   maxMsg:num(process.env.MAX_MSG_BYTES,32768),
@@ -28,7 +28,7 @@ const ROOM_CHARS='ABCDEFGHJKLMNPQRSTUVWXYZ';
 
 /** Schlüssel vergleichen, ohne über die Laufzeit etwas zu verraten */
 function keyOk(k,cfg){
-  if(cfg.open&&!cfg.key) return true;
+  if(!cfg.key) return true;   // ohne Schlüssel schützen Herkunft, Raumcode und Grenzen
   if(typeof k!=='string') return false;
   const a=crypto.createHash('sha256').update(k).digest(), b=crypto.createHash('sha256').update(cfg.key).digest();
   return crypto.timingSafeEqual(a,b);
@@ -51,7 +51,8 @@ function cleanWorld(w){
  */
 function startRelay(over={}){
   const cfg=Object.assign({},CFG,over);
-  if(!cfg.key&&!cfg.open) throw new Error('RELAY_KEY fehlt. Setze einen geheimen Schlüssel (oder RELAY_OPEN=1 nur zum Ausprobieren).');
+  // Der Schlüssel ist freiwillig, wenn nur bestimmte Webseiten verbinden dürfen (ein Schlüssel im öffentlichen Spielcode schützt nichts).
+  if(!cfg.key&&!cfg.open&&!cfg.origins.length) throw new Error('Setze ALLOWED_ORIGINS (z. B. https://philippduck.github.io) oder RELAY_KEY (oder RELAY_OPEN=1 nur zum Ausprobieren).');
   /** @type {Map<string,{code:string, host:number, world:any, peers:Map<number,any>}>} */
   const rooms=new Map();
   let nextId=1;
@@ -136,7 +137,7 @@ function log(s){ if(!quiet) console.log(new Date().toISOString()+' '+s); }
 if(require.main===module){
   try{
     const r=startRelay();
-    r.listen().then(p=>log('LeoLife-Relay hört auf Port '+p+(CFG.key?'':' (ohne Schlüssel!)')+(CFG.origins.length?' · erlaubte Herkunft: '+CFG.origins.join(', '):'')));
+    r.listen().then(p=>log('LeoLife-Relay hört auf Port '+p+(CFG.key?' · mit Schlüssel':'')+(CFG.origins.length?' · erlaubte Herkunft: '+CFG.origins.join(', '):'')));
     const stop=()=>{ log('Beende …'); r.close().then(()=>process.exit(0)); };
     process.on('SIGTERM',stop); process.on('SIGINT',stop);
   }catch(e){ console.error(e.message); process.exit(1); }
