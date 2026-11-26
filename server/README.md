@@ -16,7 +16,7 @@ Kleiner WebSocket-Server, über den mehrere Geräte gemeinsam LeoLife spielen. E
    ```
 4. Prüfen: `http://<NAS-IP>:8090/` zeigt „LeoLife-Relay läuft“.
 
-Der Container hört intern auf Port 8080; `docker-compose.yml` gibt ihn auf dem NAS als Port **8090** frei. Läuft Nginx Proxy Manager im selben Docker-Netz, kann der Port-Eintrag entfallen (siehe Kommentar in `docker-compose.yml`).
+Der Container hört intern auf Port 8080; `docker-compose.yml` gibt ihn auf dem NAS als Port **8090** frei. Ist 8090 schon belegt („port is already allocated“), in `.env` einen freien Port setzen, z. B. `RELAY_PORT=8091`, und diesen auch im Proxy Manager eintragen. Läuft Nginx Proxy Manager im selben Docker-Netz, kann der Port-Eintrag entfallen (siehe Kommentar in `docker-compose.yml`).
 
 ## Nginx Proxy Manager
 
@@ -55,6 +55,7 @@ Wer beitritt, spielt in der Welt des Gastgebers: Das Spiel lädt einmal neu und 
 | `MAX_ROOMS` | 50 | gleichzeitige Räume |
 | `MAX_MSG_BYTES` | 32768 | größte Nachricht |
 | `MAX_MSG_PER_SEC` | 60 | Nachrichten je Sekunde und Gerät |
+| `RELAY_PORT` | 8090 | Port auf dem NAS (nur `docker-compose.yml`) |
 | `PORT` | 8080 | Port im Container |
 | `RELAY_OPEN` | – | `1` erlaubt den Start ohne Schlüssel (nur zum Ausprobieren im Heimnetz) |
 
