@@ -271,7 +271,7 @@ function makeHud(p){
 /** Element id der Anzeige von Spieler p (Spieler 1: die Originale, Mitspieler: ihre Kopie). */
 function hEl(p,id){ if(p===P||!p.hud) return $(id); const c=p.hc||(p.hc={}); return c[id]||(c[id]=q(p.hud,'.h-'+id)); }
 /** Hinweis an Spieler p in der Mitte seines Ausschnitts. Spieler 1: die übliche Meldung (nur bei ihm). */
-function tell(p,txt,col){ if(p===P||!p.hud){ toast(txt,col,true); return; } mateToast(p,txt.replace('(Tab)','(Back)'),col); }
+function tell(p,txt,col){ if(p.ghost) return; if(p===P||!p.hud){ toast(txt,col,true); return; } mateToast(p,txt.replace('(Tab)','(Back)'),col); }
 function mateToast(p,txt,col){ const el=hEl(p,'toast'); el.textContent=txt; el.style.color=col||'#fff'; el.style.opacity='1'; p.toastT=Math.max(3,Math.min(10,1.2+txt.length/14)); }
 // Allgemeine Meldungen (Wetter, Familie, Überfälle …) erscheinen in jedem Ausschnitt
 on('toast',(t,c)=>{ for(const p of players) if(p!==P&&p.hud) mateToast(p,t,c); });

@@ -38,6 +38,7 @@ const JAG={col:0xe0a23c,col2:0xf0c98a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.44
  * @property {number|null} tree Index des Baums, auf dem er sitzt
  * @property {number} climbT Kletterfortschritt 0…1
  * @property {boolean} safe sicher oben im Baum
+ * @property {boolean} [ghost] nie bei eigenen Spielern: nur bei Leoparden anderer Geräte (Ghost), die die Tier-KI ebenfalls als Ziel nimmt
  * @property {number} [fromX] Startpunkt des Kletterns
  * @property {number} [fromZ]
  * @property {number} upNow aktuelle Höhe über dem Boden im Baum
@@ -126,5 +127,15 @@ function rebuildPlayer(p=P){ dropModel(p.g); p.g=buildQuad(JAG,p.saveFur?(S.fur|
 const P=makePlayer();
 // Alle Spieler auf diesem Gerät. Noch einer; beim Splitscreen kommen weitere dazu.
 const players=[P];
+/**
+ * Online-Spiel, nur beim Gastgeber: die Leoparden der anderen Geräte, wie die Tiere sie wahrnehmen (net.js füllt sie).
+ * Sie haben nur die Felder, die die Tier-KI liest; Treffer gehen über G.ghostHurt an ihr Gerät.
+ * @typedef {{ghost:true, peer:number, num:number, x:number, y:number, z:number, L:{lvl:number}, stealth:number, noise:number,
+ *   safe:boolean, sneak:boolean, tree:number|null, dead:boolean, drinking:boolean, upNow:number, camY:number}} Ghost
+ * @type {Ghost[]}
+ */
+const ghosts=[];
+/** Alle Leoparden, auf die Tiere reagieren: die eigenen und (beim Gastgeber) die der anderen Geräte */
+const actors=()=>ghosts.length?/** @type {any[]} */(players).concat(ghosts):players;
 
-export { JAG, P, players, makePlayer, START_ROT, START_YAW, dropModel, rebuildPlayer };
+export { JAG, P, actors, ghosts, players, makePlayer, START_ROT, START_YAW, dropModel, rebuildPlayer };

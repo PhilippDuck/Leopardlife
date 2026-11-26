@@ -8,7 +8,7 @@ import { keys } from './input.js';
 import { animLegs, buildQuad, furName, makeFur } from './models.js';
 import { P, dropModel, players } from './player.js';
 import { quality } from './quality.js';
-import { D, S, has, save, tlvOf } from './save.js';
+import { D, NET_GUEST, S, has, save, tlvOf } from './save.js';
 import { G } from './state.js';
 import { H } from './terrain.js';
 import { floatText, toast } from './ui.js';
@@ -222,7 +222,7 @@ function updateCub(dt){
         if(hungry||nd<30) snd3d(['mew'],cub.x,cub.z,hungry?1.3:0.75,hungry?90:40,rnd(1.05,1.35)); }
       if(cub.away&&nd<10){ snd3d(['mew'],cub.x,cub.z,1.1,40,rnd(1.15,1.4)); setTimeout(()=>snd3d(['mew'],cub.x+0.8,cub.z,1,40,rnd(1.2,1.45)),380); }
       cub.away=nd>40; }
-    G.raidT-=dt; if(G.raidT<=0&&!G.raider) startRaid();
+    G.raidT-=dt; if(G.raidT<=0&&!G.raider&&!NET_GUEST) startRaid();   // Gast im Online-Spiel: die Tiere steuert der Gastgeber
   }
   // Hungrig und Beute am Bau: zum Kadaver laufen und selbst fressen (Bissen für Bissen, die Kugeln verschwinden)
   const food=c.grow<1&&denFull()<92?denCarcass():null;

@@ -21,7 +21,9 @@ function loadSave(){
   try{ const raw=localStorage.getItem(SAVE_KEY); if(raw){ const o=JSON.parse(raw); if(o&&o.lvl){ resetState(Object.assign(fresh(),o)); S.a=Object.assign(fresh().a,o.a); S.b=Object.assign(fresh().b,o.b); $('btnReset').style.display=''; $('btnPlay').textContent='Weiterspielen (Stufe '+S.lvl+')'; } } }catch(e){}
 }
 loadSave();
-function save(){ try{ localStorage.setItem(SAVE_KEY,JSON.stringify(S)); }catch(e){} }
+/** Gast im Online-Spiel: eigene Tageszeit, die statt der des Gastgebers gespeichert wird (siehe NET_GUEST) */
+let ownTime=null;
+function save(){ try{ localStorage.setItem(SAVE_KEY,JSON.stringify(ownTime?Object.assign({},S,ownTime):S)); }catch(e){} }
 // Weltsamen: bestimmt die Landschaft (Hügel, später auch Pflanzen und Wasser je Chunk). Alte Spielstände bekommen hier ihren.
 if(!S.seed){ S.seed=1+Math.floor(Math.random()*2147483000); save(); }
 /* Online-Spiel (net.js): Wer einem Raum beitritt, spielt in der Welt des Gastgebers. Samen und Gebiet kommen dann aus der
@@ -33,6 +35,10 @@ const netSession=(()=>{ try{ return JSON.parse(sessionStorage.getItem(NET_KEY)||
 const NET_WORLD=netSession&&netSession.world&&netSession.world.seed>0?netSession.world:null;
 /** Weltsamen, aus dem die Landschaft gebaut wird (eigener oder der des Gastgebers) */
 const WORLD_SEED=NET_WORLD?NET_WORLD.seed:S.seed;
+/** Gast im Online-Spiel: Tiere, Wetter, Tageszeit und Ereignisse kommen vom Gastgeber (networld.js), hier läuft davon nichts */
+const NET_GUEST=!!NET_WORLD;
+/** Eigene Tageszeit des Gastes: Sie bleibt im Spielstand, solange die des Gastgebers gilt */
+if(NET_GUEST) ownTime={tod:S.tod,day:S.day};
 
 const xpNeed=l=>Math.round(32*Math.pow(l,1.4));
 // Erbanlagen: jedes Junge bekommt eine; bis zu drei werden über die Generationen weitergegeben
@@ -112,4 +118,4 @@ const LEOPARD_KEYS=['lvl','xp','pts','a','b','traits','tlv','fur','hunger','thir
 const copyLeopard=(L=S)=>{ const o=/** @type {any} */({}); for(const k of LEOPARD_KEYS) o[k]=JSON.parse(JSON.stringify(L[k]===undefined?null:L[k])); return o; };
 
 export { inheritTrait, tf, tlvOf, traitName, hungerRate, thirstRate };
-export { NET_KEY, NET_WORLD, WORLD_SEED, LINES_KEY, LEOPARD_KEYS, copyLeopard, D, DIE_AT, OLD_AT, REG, REG_ID, S, ancF, at, attrCap, baseSpeed, beaten, dmg, fresh, has, maxHp, maxSt, oldF, pScale, resetState, save, xpNeed };
+export { NET_GUEST, NET_KEY, NET_WORLD, WORLD_SEED, LINES_KEY, LEOPARD_KEYS, copyLeopard, D, DIE_AT, OLD_AT, REG, REG_ID, S, ancF, at, attrCap, baseSpeed, beaten, dmg, fresh, has, maxHp, maxSt, oldF, pScale, resetState, save, xpNeed };

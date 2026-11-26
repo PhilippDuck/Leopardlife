@@ -97,6 +97,7 @@ function doRoar(p=P){
  * Im gemeinsamen Spiel wird die Erfahrung gleichmäßig auf alle Spieler verteilt.
  */
 function gainXp(n,p=P){
+  if(p&&p.ghost) return;   // Erfahrung bekommt ein anderes Gerät selbst
   if(players.length>1){ const share=n/players.length; for(const q of players) gainXpOne(share,q); return; }
   gainXpOne(n,p);
 }
@@ -111,6 +112,7 @@ function gainXpOne(n,p){
 function buzz(p,strong,weak,ms){ if(p===P){ if(padUI()) rumble(strong,weak,ms); } else if(p.pad!=null) rumble(strong,weak,ms,p.pad); }
 /** Spieler p erleidet d Schaden durch a (a.sp beschreibt die Ursache). force: auch auf dem Baum bzw. ohne Schwierigkeitsfaktor. */
 function hurtPlayer(d,a,force,p=P){
+  if(p.ghost){ if(G.ghostHurt) G.ghostHurt(p,d,a,force); return; }   // Leopard eines anderen Geräts (Online-Spiel): Treffer geht dorthin
   if(p.dead||(p.safe&&!force)) return;
   if(!force) d*=D().dmg;
   if(dayF<0.5) p.nightHurt=true;   // für „Nacht ohne Verletzung“ (lexicon.js)

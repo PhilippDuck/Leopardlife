@@ -254,6 +254,23 @@ function updateEvents(dt){
     if(a.hp<a.maxHp*0.2&&a.ev==='rival'){ a.ev='leave'; endEvent('Der Rivale flieht verwundet – euer Revier gehört wieder euch!','#9be07f'); }
   }
 }
+/* ---------- Gast im Online-Spiel: Ereignisse kommen vom Gastgeber (networld.js) ---------- */
+/** Stand des Ereignisses beim Gastgeber übernehmen: welches, Feuerfront s und Richtung */
+function applyEvent(on,s,dx,dz){
+  const was=EV.on;
+  EV.on=on||null; EV.s=s; EV.dir={x:dx,z:dz};
+  if(EV.on==='fire'&&was!=='fire'){ EV.drawT=0; EV.burnT=0; fireFx(true); }
+  if(was==='fire'&&EV.on!=='fire'){ burnGrass(false); fireFx(false); EV.regrow=240; players.forEach(p=>{ p.fireWarn=false; }); }
+}
+/** Pro Bild beim Gast: nur Feuer zeichnen, Gras verbrennen und die eigenen Leoparden verbrennen; Tiere und Ablauf macht der Gastgeber */
+function guestEvents(dt){
+  if(EV.regrow>0){ EV.regrow-=dt; if(EV.regrow<=0) burnGrass(true); }
+  if(EV.on!=='fire') return;
+  EV.drawT-=dt; if(EV.drawT<=0){ EV.drawT=1/15; drawFire(); }
+  for(const p of players){ if(p.dead||safeFromFire(p)) continue; const d=along(p.x,p.z)-EV.s;
+    if(d<0.5&&d>-5){ p.fireT=(p.fireT||0)-dt; if(p.fireT<=0){ p.fireT=0.45; hurtPlayer(6,{sp:{id:'fire',n:'Feuer',dmg:6}},true,p); floatText('Feuer!',p.x,p.y+2,p.z,'#ff8a3a'); } } }
+  EV.burnT-=dt; if(EV.burnT<=0){ EV.burnT=1.25; burnGrass(false); }
+}
 /** Rauchschleier über der Welt, solange es brennt (nach der Tageszeit-Farbe aufrufen) */
 function eventsVisual(){
   if(EV.on!=='fire') return; const p=P, d=Math.abs(along(p.x,p.z)-EV.s), k=Math.max(0,1-d/160)*0.45, c=new THREE.Color(0x8a6046);
@@ -262,4 +279,4 @@ function eventsVisual(){
 /** Läuft gerade ein Ereignis? (für Tests und Anzeige) */
 const eventOn=()=>EV.on;
 
-export { humanHit, EV, eventOn, eventStep, eventsVisual, startEvent, endEvent, updateEvents, EV_NAMES };
+export { humanHit, EV, applyEvent, eventOn, eventStep, eventsVisual, guestEvents, startEvent, endEvent, updateEvents, EV_NAMES };

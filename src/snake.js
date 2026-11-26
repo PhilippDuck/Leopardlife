@@ -73,6 +73,7 @@ function startStrike(a){ a.state='strike'; a.lt=0.35; a.bit=false; snd.croc(); }
 
 /* ---------- Gift: wirkt einige Sekunden nach ---------- */
 function envenom(p){
+  if(p.ghost) return;   // Gift: das andere Gerät vergiftet seinen Leoparden selbst (networld.js)
   const first=!(p.venom>0); p.venom=Math.min(14,(p.venom||0)+7);
   if(first){ floatText('Gift!',p.x,p.y+1.8*pScale(p.L),p.z,'#9bd24a'); tell(p,'Gebissen! Das Gift brennt noch eine Weile – halt dich von Gefahren fern.','#9bd24a'); }
 }
@@ -86,4 +87,4 @@ function updateVenom(dt){
   }
 }
 
-export { snakeStep, updateVenom };
+export { envenom, snakeStep, updateVenom };

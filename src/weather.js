@@ -4,6 +4,7 @@ import { AC, hasSample, master, nbuf, snd } from './audio.js';
 import { startFlee } from './carcass.js';
 import { camera, scene, windU } from './engine.js';
 import { P } from './player.js';
+import { NET_GUEST } from './save.js';
 import { toast } from './ui.js';
 import { rnd } from './util.js';
 
@@ -26,8 +27,15 @@ const rainMat=new THREE.ShaderMaterial({
   const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3)); g.setAttribute('aEnd',new THREE.BufferAttribute(end,1));
   const m=new THREE.LineSegments(g,rainMat); m.frustumCulled=false; m.renderOrder=5; scene.add(m);
 })();
+/** Gast im Online-Spiel: Wetter des Gastgebers übernehmen (networld.js); Regenbeginn wie sonst ansagen */
+function setWeather(rain,target,storm){
+  if(target>0&&W.target<=0) toast(storm?'Ein Gewitter zieht auf! Donner und Regen übertönen deine Schritte.':'Es beginnt zu regnen – der Regen übertönt deine Schritte.','#9fc0e0');
+  if(storm&&!W.storm) W.lightT=rnd(4,9);
+  W.target=target; W.storm=storm; if(Math.abs(W.rain-rain)>0.08) W.rain=rain;
+}
 function updateWeather(dt){
   W.t-=dt;
+  if(NET_GUEST) W.t=1e9;   // der Gastgeber bestimmt das Wetter
   if(W.t<=0){
     if(W.target>0){ W.target=0; W.storm=false; W.t=rnd(150,300); }
     else if(Math.random()<0.45){ W.target=rnd(0.6,1); W.storm=Math.random()<0.45; W.t=rnd(60,140); W.lightT=rnd(4,9);
@@ -39,11 +47,11 @@ function updateWeather(dt){
   if(W.storm&&W.rain>0.5){ W.lightT-=dt;
     if(W.lightT<=0){ W.lightT=rnd(5,14); W.flash=1; setTimeout(()=>snd.thunder(),rnd(500,2400));
       // Donner schreckt Beute in der Nähe auf
-      for(const a of animals){ if(!a.dead&&!a.sp.fight&&a.state==='wander'&&Math.hypot(a.x-P.x,a.z-P.z)<60&&Math.random()<0.5) startFlee(a); } } }
+      if(!NET_GUEST) for(const a of animals){ if(!a.dead&&!a.sp.fight&&a.state==='wander'&&Math.hypot(a.x-P.x,a.z-P.z)<60&&Math.random()<0.5) startFlee(a); } } }
   rainMat.uniforms.uOp.value=W.rain*0.85; rainMat.uniforms.uCam.value.copy(camera.position); rainMat.uniforms.uTime.value+=dt;
   if(AC&&master&&!rainGain){ try{ const s=AC.createBufferSource(); s.buffer=nbuf; s.loop=true; const f=AC.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1700; f.Q.value=0.5;
     rainGain=AC.createGain(); rainGain.gain.value=0; s.connect(f); f.connect(rainGain); rainGain.connect(master); s.start(); }catch(e){} }
   if(rainGain) rainGain.gain.setTargetAtTime(W.rain*(hasSample('rain')?0.03:0.16),AC.currentTime,0.4);   // mit Regen-Aufnahme nur noch leises Rauschen darunter
 }
 
-export { W, updateWeather };
+export { W, setWeather, updateWeather };

@@ -5,7 +5,7 @@ import { endRaid } from './family.js';
 import { keys, touchUI } from './input.js';
 import { menuOpen } from './menu.js';
 import { P, players } from './player.js';
-import { D, S, maxHp, maxSt, save } from './save.js';
+import { D, NET_GUEST, S, maxHp, maxSt, save } from './save.js';
 import { cloudMat, sky, starMat } from './sky.js';
 import { G } from './state.js';
 import { toast } from './ui.js';
@@ -79,6 +79,7 @@ function updateDayNight(dt){
  */
 function sleepOnTree(p=P){
   if(sleeping) return;
+  if(NET_GUEST){ tell(p,'Im Online-Spiel bestimmt der Gastgeber die Tageszeit – schlafen kann nur er.','#9fb4ff'); return; }
   if(players.length>1){
     p.wantSleep=true;
     const waiting=players.filter(o=>!o.dead&&!o.wantSleep);
