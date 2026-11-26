@@ -196,7 +196,11 @@ function updateUI(p=P){
   h('cdP').style.width=(1-p.pcd/1.3)*100+'%';
   h('cdRbox').style.opacity=p.L.b.roar?1:0.35; h('cdR').style.width=p.L.b.roar?(1-p.rcd/(22-3*p.L.b.roar))*100+'%':'0%';
   h('cdEbox').style.opacity=p.L.b.climb?1:0.35; h('cdE').style.width=(p.tree!=null?p.climbT*100:nt>=0?100:0)+'%';
-  if(me&&touchUI()){ $('tbE').style.opacity=p.L.b.climb?1:0.35; $('tbE').classList.toggle('on',p.tree!=null); $('tbC').classList.toggle('on',p.sneak); $('tbR').style.opacity=p.L.b.roar?1:0.35;
+  if(me&&touchUI()){
+    // Knopf sagt, was er gerade tut: in die Höhle bzw. hinaus, auf den Felsen, klettern, herunter; ohne Ziel blass
+    const tt=p.tree!=null?trees[p.tree]:nt>=0?trees[nt]:null, lab=p.tree!=null?(tt&&tt.cave?'Hinaus':'Runter'):tt&&tt.cave?'Höhle':tt&&tt.kopje?'Felsen':'Klettern';
+    if($('tbE').textContent!==lab) $('tbE').textContent=lab;
+    $('tbE').style.opacity=p.L.b.climb||p.tree!=null||nt>=0?1:0.35; $('tbE').classList.toggle('on',p.tree!=null); $('tbC').classList.toggle('on',p.sneak); $('tbR').style.opacity=p.L.b.roar?1:0.35;
     const rf=p.L.b.roar?1-p.rcd/(22-3*p.L.b.roar):0, tr=$('tbR'); tr.style.setProperty('--cd',rf.toFixed(3)); tr.classList.toggle('ready',rf>=1&&p.L.b.roar>0); }
   // Ziel
   let best=null, bd=28;

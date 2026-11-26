@@ -20,7 +20,7 @@ import { carcassContext, endCarcass, nearCarcass, recordPartner, takeMeat } from
 import { goalEvent } from './goals.js';
 import { moveAnimal } from './ai.js';
 import { nameOf, tell, viewMin } from './coop.js';
-import { gainXp } from './actions.js';
+import { doClimb, gainXp, nearestTree } from './actions.js';
 import { canPair, ensureKin, litterLeaves, litterSize, newId, pairCandidate, pairPlayers, related } from './kinship.js';
 import { DEN_CAP, SWITCH_AT, cubFollowContext, denCount, denFull, denKids, followerOf, followers, hasOwnCub, kidDies, kidOf, kidsOf, numOf, syncLitter, tickKids } from './cubfollow.js';
 import { drinkContext } from './thirst.js';
@@ -94,6 +94,7 @@ function context(){
   { const dc=denContext(); if(dc) return dc; }
   if(P.tree!=null) return (P.safe&&P.climbT>=1&&canSleepNow())?{label:P.wantSleep?'Wartet auf die anderen …':players.some(o=>o!==P&&o.wantSleep)?'Schlafen (die anderen warten)':'Schlafen',fn:()=>sleepOnTree(P)}:null;
   { const cf=cubFollowContext(P); if(cf) return cf; }
+  { const i=nearestTree(P); if(i>=0&&trees[i].cave) return {label:trees[i].room&&trees[i]===denCave()?'In den Bau':'In die Höhle',fn:()=>doClimb(P)}; }   // auch über die Aktionstaste (Touch)
   if(S.cub&&!cubGrown()&&S.food>0&&denFull()<97&&nearCub(P)) return {label:'Füttern (Rest im Vorrat)',fn:feedCub};   // alte Spielstände: übrig gebliebener Vorrat
   if(S.food>0&&S.hunger<50) return {label:'Fressen',fn:eatFood};
   { const dr=drinkContext(P); if(dr) return dr; }
