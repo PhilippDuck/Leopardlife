@@ -100,6 +100,8 @@ const JAG={col:0xe0a23c,col2:0xf0c98a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.44
  * @property {number} [pingT] Restzeit der Markierungen der Mitspieler
  * @property {HTMLElement[]} [marks] Markierungen in seiner Anzeige
  * @property {any} [reviveNear] Mitspieler am Boden in der Nähe (Hinweis zum Wiederbeleben)
+ * @property {boolean} [helping] hält X/F neben dem Leoparden eines anderen Geräts am Boden (Online-Spiel)
+ * @property {boolean} [remote] nie bei eigenen Spielern: nur bei Einträgen anderer Geräte (netMates in coop.js)
  */
 
 /**

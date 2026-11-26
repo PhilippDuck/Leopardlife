@@ -30,7 +30,7 @@ const browsers=[]; let relay; const errors=[];
     // Ohne Grafikkarte ist das Zeichnen zu langsam für zwei Geräte: Die Hauptschleife bleibt aus, nur das Netz wird
     // regelmäßig aktualisiert (dieselbe Funktion, die sonst jedes Bild läuft)
     await page.addInitScript(()=>{ window.requestAnimationFrame=()=>0;
-      addEventListener('load',()=>{ Promise.all([import('./src/net.js'),import('./src/networld.js')]).then(([m,w])=>setInterval(()=>{ const now=performance.now(); m.updateNet(now); w.updateNetWorld(0.05,now); },50)); }); });
+      addEventListener('load',()=>{ Promise.all([import('./src/net.js'),import('./src/networld.js'),import('./src/netcoop.js')]).then(([m,w,c])=>setInterval(()=>{ const now=performance.now(); m.updateNet(now); c.updateNetCoop(0.05); w.updateNetWorld(0.05,now); },50)); }); });
     await page.addInitScript(([seed,name,rport])=>{
       if(localStorage.getItem('jaguar-save-v1')) return;
       localStorage.setItem('jaguar-gfx2','low');
@@ -164,7 +164,10 @@ const browsers=[]; let relay; const errors=[];
   // Festbeißen: zähe Beute überlebt den Hinterhalt, B beißt sich fest, reißt sich los → bei A verwundet und auf der Flucht
   const [bid,bx,bz]=await preyAt(A,400,4); await seenAt(bid,bx,bz);
   await pounceOn(bid);
-  await until(B,()=>!!window.__leopard.players[0].bite,20000);
+  await until(B,()=>!!window.__leopard.players[0].bite,20000).catch(async e=>{
+    console.log('A:',JSON.stringify(await A.evaluate(async id=>{ const {ghosts}=await import('./src/player.js'); const a=window.__leopard.animals.find(o=>o.nid===id); return {sp:a.sp.id,st:a.state,hp:a.hp,held:!!a.held,dead:a.dead,x:a.x,z:a.z,gh:ghosts.map(g=>[g.x,g.z,g.dead,g.atkD])}; },bid)));
+    console.log('B:',JSON.stringify(await B.evaluate(id=>{ const p=window.__leopard.players[0], a=window.__leopard.mirror.get(id); return {px:p.x,pz:p.z,hit:p.hit,pounce:p.pounce,dead:p.dead,drag:!!p.drag,ax:a&&a.x,az:a&&a.z}; },bid)));
+    throw e; });
   await until(A,new Function('return !!window.__leopard.animals.find(o=>o.nid==='+bid+').held'),20000);
   await B.evaluate(async()=>{ const {endBite}=await import('./src/bite.js'); endBite(window.__leopard.players[0],true); });
   await until(A,new Function('const a=window.__leopard.animals.find(o=>o.nid==='+bid+'); return !a.held&&a.wound&&a.state==="flee";'),20000);
@@ -175,6 +178,35 @@ const browsers=[]; let relay; const errors=[];
   await B.evaluate(async()=>{ const {doRoar}=await import('./src/actions.js'); const p=window.__leopard.players[0]; p.L.b.roar=1; p.rcd=0; p.dead=false; doRoar(p); });
   await until(A,()=>{ const h=window.__leopard.animals.find(a=>a.sp.id==='hyena'&&!a.dead&&a.scared>0); return !!h; },20000);
   console.log('Brüllen von B vertreibt die Hyäne bei A');
+
+  // Koop über Geräte: B ruft (Markierung bei A), B geht zu Boden statt zu sterben, A belebt B wieder, gemeinsam schlafen
+  await B.evaluate(async()=>{ const {pingMates}=await import('./src/coop.js'); pingMates(window.__leopard.players[0]); });
+  await until(A,async()=>(await import('./src/coop.js')).netMates.list().some(q=>q.pingT>0),20000);
+  await B.evaluate(async()=>{ const {hurtPlayer}=await import('./src/actions.js'); const p=window.__leopard.players[0]; p.safe=false; p.tree=null; p.dead=false; window.__leopard.G.paused=false;
+    hurtPlayer(p.hp+50,{sp:{id:'hyena',n:'Hyäne'}},true,p); });
+  const down=await B.evaluate(()=>{ const p=window.__leopard.players[0]; return {dead:p.dead,downT:p.downT,deadScreen:document.getElementById('dead').style.display}; });
+  assert.ok(down.dead&&down.downT>0&&down.deadScreen!=='flex','B ist am Boden statt tot '+JSON.stringify(down));
+  await until(A,async()=>(await import('./src/coop.js')).netMates.list().some(q=>q.downT!=null),20000);
+  // A stellt sich daneben und hält die Aktionstaste; beide Geräte rechnen ihr Koop-Bild (ohne Hauptschleife von Hand)
+  await A.evaluate(async()=>{ const {netMates}=await import('./src/coop.js'); const q=netMates.list()[0], P=window.__leopard.players[0]; P.dead=false; P.x=q.x+1; P.z=q.z; P.ctl.act=true;
+    window.__coopT=setInterval(async()=>(await import('./src/coop.js')).updateCoop(0.1),100); });
+  await B.evaluate(()=>{ window.__coopT=setInterval(async()=>(await import('./src/coop.js')).updateCoop(0.1),100); });
+  await until(B,()=>!window.__leopard.players[0].dead,30000);
+  await A.evaluate(()=>{ clearInterval(window.__coopT); window.__leopard.players[0].ctl.act=false; }); await B.evaluate(()=>clearInterval(window.__coopT));
+  console.log('Koop online: B ruft A, B geht zu Boden, A belebt B wieder');
+  // Gemeinsam schlafen: beide sicher auf einem Baum, nachts; B will zuerst, dann A – die Nacht vergeht für beide
+  await A.evaluate(()=>{ window.__leopard.S.tod=0.9; });
+  await until(B,()=>Math.abs(window.__leopard.S.tod-0.9)<0.02,20000);
+  const day0=await B.evaluate(()=>window.__leopard.S.day||0);
+  await B.evaluate(async()=>{ const {sleepOnTree}=await import('./src/daynight.js'); const p=window.__leopard.players[0]; p.tree=0; p.safe=true; p.climbT=1; sleepOnTree(p); });
+  await until(A,async()=>(await import('./src/coop.js')).netMates.list().some(q=>q.wantSleep),20000);
+  await A.evaluate(async()=>{ const {sleepOnTree}=await import('./src/daynight.js'); const p=window.__leopard.players[0]; p.tree=0; p.safe=true; p.climbT=1; sleepOnTree(p); });
+  await until(B,new Function('const S=window.__leopard.S; return (S.day||0)>'+day0+'&&S.tod>0.25&&S.tod<0.4;'),20000);
+  await wait(2500); assert.equal(await B.evaluate(()=>window.__leopard.S.day),day0+1,'genau ein neuer Tag bei B');
+  await until(A,()=>{ const S=window.__leopard.S; return S.tod>0.25&&S.tod<0.4; },20000);
+  await A.evaluate(()=>{ const p=window.__leopard.players[0]; p.tree=null; p.safe=false; window.__leopard.G.paused=false; });
+  await B.evaluate(()=>{ const p=window.__leopard.players[0]; p.tree=null; p.safe=false; window.__leopard.G.paused=false; });
+  console.log('Gemeinsam geschlafen: neuer Tag bei A und B (Tag '+day0+' → '+await B.evaluate(()=>window.__leopard.S.day)+')');
 
   // Pause beim Gastgeber: Mit Gast im Raum laufen die Tiere weiter, der eigene Leopard von A ist sicher
   const paused=await A.evaluate(async()=>{ const L=window.__leopard, {hurtPlayer}=await import('./src/actions.js');

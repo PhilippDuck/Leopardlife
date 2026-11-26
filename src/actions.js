@@ -132,8 +132,10 @@ function hurtPlayer(d,a,force,p=P){
   p.hurtT=0.25;
   floatText('-'+Math.round(d),p.x,p.camY+1.5*pScale(p.L),p.z,'#ff7a5c');
   if(p.hp<=0){
-    // Koop: zu Boden gehen, solange ein anderer noch steht; fällt der Letzte, endet es für alle wie im Einzelspiel (über Spieler 1)
-    if(players.length>1){ if(othersAlive(p)){ downPlayer(p,a); return; } p.dead=true; p.downT=null; die(P,a); return; }
+    // Koop: zu Boden gehen, solange ein anderer noch steht (online auch auf einem anderen Gerät);
+    // fällt der Letzte am Gerät, endet es für alle hier wie im Einzelspiel (über Spieler 1)
+    if(othersAlive(p)){ downPlayer(p,a); return; }
+    if(players.length>1){ p.dead=true; p.downT=null; die(P,a); return; }
     die(p,a);
   }
 }

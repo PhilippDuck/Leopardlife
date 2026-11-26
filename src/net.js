@@ -163,10 +163,11 @@ function sendState(){
   const list=[];
   for(const p of players){ const g=p.g; if(!g) continue; const inr=g.userData.inner;
     // 0–12: Modell; 13–16: was die Tiere des Gastgebers wahrnehmen (Stufe, Tarnung, Geräusch, Zustand als Bits)
-    const bits=(p.safe?1:0)|(p.sneak?2:0)|(p.tree!=null?4:0)|(p.dead?8:0)|(p.drinking?16:0);
+    // 32 am Boden (wartet aufs Wiederbeleben), 64 hält X/F neben einem Leoparden dieses Empfängers am Boden, 128 will schlafen
+    const bits=(p.safe?1:0)|(p.sneak?2:0)|(p.tree!=null?4:0)|(p.dead?8:0)|(p.drinking?16:0)|(p.dead&&p.downT!=null?32:0)|(p.helping?64:0)|(p.wantSleep?128:0);
     list.push([p.num||1,r2(g.position.x),r2(g.position.y),r2(g.position.z),r2(g.rotation.y),r2(g.rotation.x),r2(g.rotation.z),r2(g.scale.x),
       r2(inr.position.y),r2(inr.rotation.x),r2((p.walkT||0)%WALK_WRAP),r2(p.legA??0.02),g.visible?1:0,
-      p.L.lvl,r2(p.stealth??1),r2(p.noise||0),bits,r2(p.x),r2(p.z),r2(p.y)]); }
+      p.L.lvl,r2(p.stealth??1),r2(p.noise||0),bits,r2(p.x),r2(p.z),r2(p.y),r2(p.revT||0)]); }
   netSend({t:'st',p:list});
 }
 function sendProfile(){
@@ -306,4 +307,6 @@ $('btnOnCancel').onclick=()=>{ reset(); status(''); renderOnline(); };
 // (vor dem Spielstart: das Fenster zeigt dann Raum und „Spielen“)
 { const ses=session(); if(ses&&ses.rejoin&&ses.room) setTimeout(()=>{ if(!G.started) openOnline(); connect({room:ses.room},withDefault(onlineCfg())); },300); }
 
-export { closeOnline, joinHooks, netSend, onNet, onlineActive, onlineOpen, remotes, net, traffic, updateNet, wsUrl };
+/** Eigener Name im Online-Spiel */
+const ownName=()=>onlineCfg().name||'Leopard';
+export { ownName, closeOnline, joinHooks, netSend, onNet, onlineActive, onlineOpen, remotes, net, traffic, updateNet, wsUrl };
