@@ -47,6 +47,9 @@ import { updateWatchers } from './vision.js';
 import { fillWater, updateWorldContent } from './worldcontent.js';
 import { fillPlants } from './chunkplants.js';
 import { fillKopje } from './kopje.js';
+import { fillProps } from './props.js';
+import { fillTrails } from './trails.js';
+import { updateSpray } from './groundfx.js';
 import { fillRiver } from './river.js';
 import { onChunkFill } from './chunks.js';
 import { APP_VERSION } from './version.js';
@@ -67,6 +70,8 @@ import { updateEnvSound } from './envsound.js';
 onChunkFill(fillWater);
 onChunkFill(fillPlants);
 onChunkFill(fillKopje);
+onChunkFill(fillProps);
+onChunkFill(fillTrails);
 onChunkFill(fillRiver);
 document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent='Version '+APP_VERSION; });
 if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }); }
@@ -100,7 +105,7 @@ function frame(now){
   if(G.slowT>0){ G.slowT-=dt; if(players.length===1) dt*=0.25; }
   if(!G.paused) step(dt);
   else if(hostLive()) worldStep(dt);   // Online-Gastgeber mit Gästen: Pause, Menü, Schlaf oder Tod halten die Welt der anderen nicht an
-  for(const p of players) updateCamera(p,p.camera); updateTrees(dt,players.map(p=>({camera:p.camera,p}))); updateEnv(dt,now); eventsVisual(); updateEnvSound(dt); updateTitle(dt); musicTick(); ambTick(dayF,W.rain,W.storm,S.tod*24,players.some(p=>animals.some(a=>!a.dead&&(a.state==='chase'||a.state==='lunge')&&a.tgt===p)));
+  for(const p of players) updateCamera(p,p.camera); updateTrees(dt,players.map(p=>({camera:p.camera,p}))); updateSpray(dt,P); updateEnv(dt,now); eventsVisual(); updateEnvSound(dt); updateTitle(dt); musicTick(); ambTick(dayF,W.rain,W.storm,S.tod*24,players.some(p=>animals.some(a=>!a.dead&&(a.state==='chase'||a.state==='lunge')&&a.tgt===p)));
   updateChunks(dt); updateWorldContent(dt); updateFish(now); updateNet(now); updateNetCoop(dt); updateNetFamily(dt,now); updateNetWorld(G.paused?0:dt,now);
   renderAll();
 }

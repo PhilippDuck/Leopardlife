@@ -338,7 +338,9 @@ const patches=[]; let tallGeo=null, tallMat=null, TALL_N=0;
   for(const k in byT){ const m=reedMesh(byT[k],r); registerTile(m,+k,84); scene.add(m); }
   patches.push(...reedPatches(spots));
 })();
+/** Steht x,z in einem Dorngestrüpp? (dort kommt man nur langsam voran) */
+function thornAt(x,z){ for(let i=0;i<patches.length;i++){ const p=patches[i]; if(!p.thorn) continue; const dx=x-p.x, dz=z-p.z; if(dx*dx+dz*dz<p.r*p.r) return true; } return false; }
 function inGrass(x,z){ for(let i=0;i<patches.length;i++){ const p=patches[i]; if(p.burnt) continue; const dx=x-p.x, dz=z-p.z; if(dx*dx+dz*dz<p.r*p.r) return true; } return false; }
 
 
-export { treeKinds, modelMeshes, releaseTree, treeSlot, dryBushGeometry, dryBushColor, shrubKind, bushGeometry, bushMaterial, bushColor, makeTree, woodMeshes, setTree, fadedTrees, applyTreeView, _tm, _tv, inGrass, leafGeoHi, leafGeoLo, leafMeshes, leafTime, patches, tallGeo, tallMat, trees, updateTrees };
+export { thornAt, treeKinds, modelMeshes, releaseTree, treeSlot, dryBushGeometry, dryBushColor, shrubKind, bushGeometry, bushMaterial, bushColor, makeTree, woodMeshes, setTree, fadedTrees, applyTreeView, _tm, _tv, inGrass, leafGeoHi, leafGeoLo, leafMeshes, leafTime, patches, tallGeo, tallMat, trees, updateTrees };

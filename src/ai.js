@@ -13,6 +13,7 @@ import { P, actors, players } from './player.js';
 import { VIEW_D } from './quality.js';
 import { D, S, pScale } from './save.js';
 import { G } from './state.js';
+import { saltNear, trailDrinkSpot, trailStep, trailTo } from './trails.js';
 import { H, PONDS, RIV_FORD, RIV_SWIM, WORLD, collide, fordX, inWater, nearestPond, riverDepth, riverNear, samePond } from './terrain.js';
 import { addTrack } from './tracks.js';
 import { floatText } from './ui.js';
@@ -92,14 +93,21 @@ function animalWater(a,dt){
   if(a.state!=='drink'&&a.thirst<24){
     const q=nearestPond(a.x,a.z); if(!q) return false;
     a.drinkPond=q; const an=Math.atan2(a.z-q.z,a.x-q.x); a.drinkX=q.x+Math.cos(an)*q.r*0.93; a.drinkZ=q.z+Math.sin(an)*q.r*0.93; a.state='drink';
+    // Wildwechsel: liegt ein Pfad zu diesem Wasser in der Nähe, geht die Herde auf ihm und trinkt an seinem Ende
+    a.trail=q.river?null:trailTo(q,a.x,a.z); if(a.trail) [a.drinkX,a.drinkZ]=trailDrinkSpot(a.trail,q);
   }
+  // Salzlecke: Pflanzenfresser ohne Durst gehen ab und zu zu einer nahen Lecke und lecken eine Weile
+  if(a.state==='wander'&&!a.sp.pred&&!a.juv){ a.saltT=(a.saltT??rnd(120,400))-dt;
+    if(a.saltT<=0){ a.saltT=rnd(300,700); const s=saltNear(a.x,a.z,90);
+      if(s){ const an=Math.atan2(a.z-s.z,a.x-s.x); a.drinkPond=s; a.lickT=rnd(8,16); a.trail=null; a.drinkX=s.x+Math.cos(an)*s.r*0.6; a.drinkZ=s.z+Math.sin(an)*s.r*0.6; a.state='drink'; } } }
   if(a.state!=='drink') return false;
   const q=a.drinkPond;
   if(!q){ a.state='wander'; return false; }
-  const dx=a.drinkX-a.x,dz=a.drinkZ-a.z,d=Math.hypot(dx,dz);
-  if(d>2.1) moveAnimal(a,dx,dz,Math.min(a.sp.spd*0.45,4.5),dt);
+  let dx=a.drinkX-a.x,dz=a.drinkZ-a.z; const d=Math.hypot(dx,dz);
+  if(d>2.1){ const w=d>14?trailStep(a):null; if(w){ dx=w[0]-a.x; dz=w[1]-a.z; } else a.trail=null; moveAnimal(a,dx,dz,Math.min(a.sp.spd*0.45,4.5),dt); }
+  else if(q.salt){ a.lickT-=dt; a.g.rotation.y=Math.atan2(q.x-a.x,q.z-a.z); animLegs(a.g,a.ph,0.03); if(a.lickT<=0){ a.drinkPond=null; a.state='wander'; a.timer=0; } }
   else { a.thirst=Math.min(100,a.thirst+24*dt); a.g.rotation.y=Math.atan2(q.x-a.x,q.z-a.z); animLegs(a.g,a.ph,0.03);
-    if(a.thirst>=94){ a.thirst=100; a.drinkPond=null; a.state='wander'; a.timer=0; } }
+    if(a.thirst>=94){ a.thirst=100; a.drinkPond=null; a.trail=null; a.state='wander'; a.timer=0; } }
   return true;
 }
 /** Wehrhafte Eltern: kommt Spieler T einem ihrer Jungen zu nahe, greifen sie an (true = Angriff begonnen). */
@@ -119,7 +127,7 @@ function guardYoung(a,T){
 function updateAnimal(a,dt){
   const T=targetOf(a), stealth=T.stealth==null?1:T.stealth;
   if(a.dead){
-    if(a.carc){ a.carc.t-=dt; if(a.carc.t<=0||a.carc.meat<=0){ endCarcass(a); a.g.visible=false; a.g.rotation.z=0; } else syncOrbs(a.carc.orbs,a.carc.meat,a.carc.t,performance.now()/1000); return; }
+    if(a.carc){ a.carc.t-=dt; if(a.carc.t<=0||a.carc.meat<=0){ if(a.carc.tree==null&&a.sp.size>=0.6&&!a.sp.croc) G.onBones?.(a.x,a.z,a.sp.size); endCarcass(a); a.g.visible=false; a.g.rotation.z=0; } else syncOrbs(a.carc.orbs,a.carc.meat,a.carc.t,performance.now()/1000); return; }
     if(a.world) return;
     if(a.temp){ a.gone=true; return; }   // Ereignistiere kommen nicht wieder
     a.respawn-=dt; if(a.respawn<=0) placeAnimal(a); return; }

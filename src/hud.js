@@ -17,7 +17,7 @@ import { D, DIE_AT, S, baseSpeed, has, maxHp, maxSt, oldF, pScale, tf, xpNeed } 
 import { G } from './state.js';
 import { H, PONDS, riverMarks, streamedPonds } from './terrain.js';
 import { $ } from './util.js';
-import { patches, trees } from './vegetation.js';
+import { patches, thornAt, trees } from './vegetation.js';
 import { W } from './weather.js';
 import { hEl, nameOf, reviveHint, viewMin } from './coop.js';
 import { mateContextInfo } from './kinship.js';
@@ -161,9 +161,9 @@ function updateUI(p=P){
   if(ctx) setSt('F: '+ctx.label,ctx.label+' möglich','#ff9ad0');
   else if(p.tree!=null){ const t=trees[p.tree];
     if(t&&t.cave) setSt(p.safe?'Versteckt in der Höhle – E: hinaus':'Geht in die Höhle …',p.safe?'In der Höhle':'In die Höhle …','var(--green)');
-    else if(p.safe) setSt(t&&t.kopje?'Sicher auf dem Felsen – E: runter · Leertaste: Sprung von oben':'Sicher auf dem Baum – E: runter · Leertaste: Sprung von oben',t&&t.kopje?'Sicher auf dem Felsen':'Sicher auf dem Baum','var(--green)'); else setSt('Klettert …','Klettert …','var(--green)'); }
-  else if(nt>=0){ const t=trees[nt]; if(t.cave) setSt('Höhle – E zum Hineingehen','Höhle: hinein','var(--green)'); else if(t.kopje) setSt('Felsen in Reichweite – E zum Klettern','Felsen: klettern','var(--green)'); else setSt('Baum in Reichweite – E zum Klettern','Baum: klettern','var(--green)'); }
-  else if(p.grass&&(p.sneak||p.L.lvl<4)) setSt(p.sneak?'Versteckt im hohen Gras':'Versteckt im hohen Gras – als Jungtier auch ohne Schleichen','Versteckt','var(--green)');
+    else if(p.safe){ const on=t&&t.kopje?(t.kopje.termite?'dem Termitenhügel':'dem Felsen'):'dem Baum'; setSt('Sicher auf '+on+' – E: runter · Leertaste: Sprung von oben','Sicher auf '+on,'var(--green)'); } else setSt('Klettert …','Klettert …','var(--green)'); }
+  else if(nt>=0){ const t=trees[nt]; if(t.cave) setSt('Höhle – E zum Hineingehen','Höhle: hinein','var(--green)'); else if(t.kopje){ if(t.kopje.termite) setSt('Termitenhügel in Reichweite – E zum Hinaufspringen','Termitenhügel: hinauf','var(--green)'); else setSt('Felsen in Reichweite – E zum Klettern','Felsen: klettern','var(--green)'); } else setSt('Baum in Reichweite – E zum Klettern','Baum: klettern','var(--green)'); }
+  else if(p.grass&&(p.sneak||p.L.lvl<4)){ const w=thornAt(p.x,p.z)?'im Dorngestrüpp':'im hohen Gras'; setSt(p.sneak?'Versteckt '+w:'Versteckt '+w+' – als Jungtier auch ohne Schleichen','Versteckt','var(--green)'); }
   else if(p.grass) setSt('Im Gras – schleiche (C), um dich zu verstecken','Im Gras – schleichen!','var(--mut)');
   else if(p.sneak) setSt('Schleicht','Schleicht','var(--gold)');
   else setSt('Sichtbar','Sichtbar','var(--mut)');
@@ -198,7 +198,7 @@ function updateUI(p=P){
   h('cdEbox').style.opacity=p.L.b.climb?1:0.35; h('cdE').style.width=(p.tree!=null?p.climbT*100:nt>=0?100:0)+'%';
   if(me&&touchUI()){
     // Knopf sagt, was er gerade tut: in die Höhle bzw. hinaus, auf den Felsen, klettern, herunter; ohne Ziel blass
-    const tt=p.tree!=null?trees[p.tree]:nt>=0?trees[nt]:null, lab=p.tree!=null?(tt&&tt.cave?'Hinaus':'Runter'):tt&&tt.cave?'Höhle':tt&&tt.kopje?'Felsen':'Klettern';
+    const tt=p.tree!=null?trees[p.tree]:nt>=0?trees[nt]:null, lab=p.tree!=null?(tt&&tt.cave?'Hinaus':'Runter'):tt&&tt.cave?'Höhle':tt&&tt.kopje?(tt.kopje.termite?'Hügel':'Felsen'):'Klettern';
     if($('tbE').textContent!==lab) $('tbE').textContent=lab;
     $('tbE').style.opacity=p.L.b.climb||p.tree!=null||nt>=0?1:0.35; $('tbE').classList.toggle('on',p.tree!=null); $('tbC').classList.toggle('on',p.sneak); $('tbR').style.opacity=p.L.b.roar?1:0.35;
     const rf=p.L.b.roar?1-p.rcd/(22-3*p.L.b.roar):0, tr=$('tbR'); tr.style.setProperty('--cd',rf.toFixed(3)); tr.classList.toggle('ready',rf>=1&&p.L.b.roar>0); }

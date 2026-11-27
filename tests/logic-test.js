@@ -31,7 +31,7 @@ const doc={ querySelectorAll:()=>[], getElementById:el, addEventListener(){}, cr
 let raf=null;
 const g={ window:win, document:doc, navigator:{maxTouchPoints:0}, localStorage:{getItem:k=>(k in ls?ls[k]:null),setItem:(k,v)=>{ls[k]=String(v);}}, THREE:win.THREE,
   requestAnimationFrame:fn=>{ if(fn.name==='frame') raf=fn; else fn(); }, setTimeout:fn=>{ fn(); } };
-const body=code+'\n;globalThis.__trees=trees;globalThis.__T={assistBite,disconnectPlayer,pollCoop,leavePlayer,G,makeTree,fillPlants,baobabSpot,riverNear,riverDepth,riverEdge,lakePond,RIV_LAKE,RIV_HEAD,fordX,fillRiver,RIV_SWIM,pondAt,worldPond,moveAnimal,samePond,waterDepth,homeKopjes,worldKopje,fillKopje,denCave,cubState:()=>cub,kopjeNear,CUB_HOME,chunkRng,sightAt,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,H,visibility,lineOfSight,addSight,hearR,startEvent,endEvent,EV,updateEvents,eventOn,inGrass,patches,updateAnimal,WORLD,kidOf,kidsOf,tickKids,updateLife,playerSeeks,canSwitchFor,markTaken,cubFollowContext,cubLearn,updateFollowers,followers,learnOf,canSwitch,woundTick,forgetWounds,resetMates,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping,PONDS,drinkContext,updateDrinking,hungerRate,crocStep,BURROWS,updateLexicon,lexIds,fowl,oxen,fowlSpots,oxpeckerSpots,vultureSpots,TROOPS,troopOf,updateBaboons,eleThreat,WATER_D,hippoThreat};';
+const body=code+'\n;globalThis.__trees=trees;globalThis.__T={PONDS,patches,trailsNear,trailTo,trailStep,saltNear,fillProps,fillTrails,leaveBones,thornAt,assistBite,disconnectPlayer,pollCoop,leavePlayer,G,makeTree,fillPlants,baobabSpot,riverNear,riverDepth,riverEdge,lakePond,RIV_LAKE,RIV_HEAD,fordX,fillRiver,RIV_SWIM,pondAt,worldPond,moveAnimal,samePond,waterDepth,homeKopjes,worldKopje,fillKopje,denCave,cubState:()=>cub,kopjeNear,CUB_HOME,chunkRng,sightAt,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,H,visibility,lineOfSight,addSight,hearR,startEvent,endEvent,EV,updateEvents,eventOn,inGrass,patches,updateAnimal,WORLD,kidOf,kidsOf,tickKids,updateLife,playerSeeks,canSwitchFor,markTaken,cubFollowContext,cubLearn,updateFollowers,followers,learnOf,canSwitch,woundTick,forgetWounds,resetMates,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping,PONDS,drinkContext,updateDrinking,hungerRate,crocStep,BURROWS,updateLexicon,lexIds,fowl,oxen,fowlSpots,oxpeckerSpots,vultureSpots,TROOPS,troopOf,updateBaboons,eleThreat,WATER_D,hippoThreat};';
 new Function(...Object.keys(g), body)(...Object.values(g));
 const T=globalThis.__T; const rnd2=()=>Math.random()*8-4; const localStorageDump=()=>ls['jaguar-lines'];
 els.btnPlay.onclick();
@@ -822,4 +822,21 @@ console.log('Ereignis-Auswahl und Feuerpause OK');
  if(S.lex.vulture||S.lex.oxpecker) throw Error('Vogel ohne Sichtung entdeckt');
  if(!T.fowlSpots().length||T.vultureSpots().some(v=>!isFinite(v.x))) throw Error('Vogelpositionen fehlerhaft');
  console.log('Lexikon-Vögel: '+T.lexIds.length+' Einträge, Perlhühner nah und sichtbar entdeckt, alter Spielstand OK');
+}
+// Landschaft: Termitenhügel zum Hinaufspringen, Wildwechsel zwischen den Wasserlöchern, Dorngestrüpp bremst
+{
+ const assert=require('node:assert/strict'), trees=globalThis.__trees, T=globalThis.__T;
+ const mounds=trees.filter(t=>t&&t.kopje&&t.kopje.termite);
+ assert.ok(mounds.length>=3,'zu wenige Termitenhügel im Startgebiet: '+mounds.length);
+ assert.ok(mounds.every(t=>t.kopje.small&&t.perch[1]>1.5&&t.tr>0.3),'Termitenhügel nicht wie kleine Felsen erkletterbar');
+ const ponds=T.PONDS, trails=T.trailsNear(ponds[0].x,ponds[0].z).filter(t=>ponds.includes(t.p)&&ponds.includes(t.q));
+ assert.ok(trails.length>=1,'kein Wildwechsel zwischen den Wasserlöchern');
+ const t=trails[0], mid=t.pts[Math.floor(t.pts.length/2)], tr=T.trailTo(t.q,mid[0]+3,mid[1]);
+ assert.ok(tr&&tr.t===t&&tr.toQ===1,'Tier findet den Pfad zum Wasser nicht');
+ const a={x:mid[0],z:mid[1],trail:tr}, w=T.trailStep(a);
+ assert.ok(w&&Math.hypot(w[0]-t.q.x,w[1]-t.q.z)<Math.hypot(mid[0]-t.q.x,mid[1]-t.q.z),'Pfad führt nicht zum Wasser');
+ const thorn=T.patches.find(p=>p.thorn);
+ assert.ok(thorn&&T.thornAt(thorn.x,thorn.z)&&!T.thornAt(thorn.x+thorn.r+1,thorn.z),'Dorngestrüpp fehlt');
+ T.leaveBones(ponds[0].x+30,ponds[0].z,1);
+ console.log('Landschaft: '+mounds.length+' Termitenhügel, '+trails.length+' Wildwechsel am ersten Wasserloch, Dorngestrüpp, Knochen OK');
 }

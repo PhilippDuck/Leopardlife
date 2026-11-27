@@ -21,6 +21,7 @@ durch Savanne und Sumpf.
 - Nilpferde dösen tagsüber in großen Wasserlöchern (nur Rücken, Augen und Ohren schauen heraus) und grasen nachts am Ufer; wer zwischen sie und das Wasser gerät oder ihnen zu nahe kommt, wird erst angedroht und dann angegriffen
 - Felsplateaus (Kopjes) aus großen Granitblöcken: hinaufklettern für Aussicht und Sicherheit, Beute mitnehmen, oben schlafen; die Höhle am Fuß ist ein Versteck und Schlafplatz und kann im Startgebiet zum Bau für die Jungen werden. Der Bau selbst ist ein Felsplateau, dessen Höhle in einen Raum unter dem Felsen führt: Dort spielen die Jungen (tagsüber auch vor dem Eingang, nachts und bei Gefahr drinnen), dort bringt man die Beute hinein (am Eingang E), und dort kann man schlafen. Dazwischen liegen kleine Felsgruppen, auf die man auch ohne Klettern-Fähigkeit hinaufspringt
 - Ein Fluss schlängelt sich durch die Savanne und die weite Welt. Er entspringt an einer Quelle, fließt durch eine flache Aue stetig bergab und mündet in einen großen See ohne Abfluss. Dahinter beginnt der nächste Flussabschnitt an einer neuen Quelle. Im Tiefen muss man langsam schwimmen. Grasende Herden ziehen am Ufer entlang zu den flachen Furten (Stromschnellen); wer flieht, jagt oder wandert, schwimmt einfach hinüber. Krokodile lauern dort und vor allem in den breiten, tiefen Gumpen; im See leben Krokodile und Nilpferde. Am Ufer kann man trinken.
+- Termitenhügel als Deckung und Aussichtspunkt (hinaufspringen), Dorngestrüpp als Versteck, in dem man nur langsam vorankommt; Wildwechsel führen Herden zum Wasser, an Salzlecken bleiben sie stehen; Knochen an alten Fressplätzen
 - Trübe Tümpel verbergen Krokodile – nur feine Wellen und geducktes Lauschen am Ufer verraten sie
 - Tierlexikon im Menü: jede neu entdeckte Art bringt Erfahrung und einen Tipp
 - Erfahrung auch für unbemerktes Anpirschen, Beute im Baum, eine Nacht ohne Verletzung und ein vor dem Räuber gerettetes Junges
@@ -46,6 +47,7 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 | `index.html` | Seite, Stile und Oberfläche |
 | `src/acaciamodel.js` | Low-Poly-Modell der Schirmakazie (mit Meshy erzeugt, von `tools/meshy-model.cjs` umgewandelt; nicht von Hand ändern) |
 | `src/baobabmodel.js`, `src/deadtreemodel.js` | Low-Poly-Modelle von Affenbrotbaum und totem Baum (ebenso erzeugt) |
+| `src/termitemodel.js`, `src/euphorbiamodel.js`, `src/acaciabushmodel.js`, `src/aloemodel.js`, `src/rockpilemodel.js`, `src/bonesmodel.js`, `src/thornmodel.js` | Low-Poly-Modelle der Landschaftsobjekte (mit `--colors` erzeugt: Farbe je Dreieck) |
 | `src/actions.js` | Aktionen des Leoparden: Sprung, Klettern, Brüllen, Treffer austeilen und einstecken, Tod und Neubeginn |
 | `src/ai.js` | Tierverhalten: Rudeljagd, Flucht, Angriff, Herden |
 | `src/animals.js` | Alle Tiere der Welt: Anlegen pro Gebiet, Platzieren und Herden bilden |
@@ -70,6 +72,7 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 | `src/gamepad.js` | Controller-Steuerung (Xbox-Belegung) und Menübedienung per Controller |
 | `src/goals.js` | Tagesziele |
 | `src/hide.js` | Versteck-Anzeige am Fadenkreuz und dunkler Bildrand |
+| `src/groundfx.js` | Trockenrisse um Wasserlöcher im Trockenen, Gischt an den Furten |
 | `src/hud.js` | Anzeige: Entdeckungswarnung, Kamera, Fadenkreuz, Statusleisten, Ziel, Spürkarte |
 | `src/input.js` | Eingabe über Tastatur, Maus und Touch, Umschalten der Anzeige je nach zuletzt benutzter Eingabe |
 | `src/kin.js` | Partner und Elterntiere am Bau: verteidigen, Futter bringen, beschützen; Wechsel ins Junge |
@@ -92,6 +95,8 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 | `src/quality.js` | Grafikstufen (niedrig/hoch/ultra) anwenden: Auflösung, Schatten, Gras, Nebel, Sichtweite |
 | `src/river.js` | Fluss und See: Wasserflächen je Abschnitt, Krokodile an Furten und in Gumpen, Krokodile und Nilpferde im See (Verlauf, Gefälle, Tiefe und Aue in `terrain.js`) |
 | `src/reeds.js` | Schilf: Büschel aus Blättern und Rohrkolben, nur an der Wasserlinie von Wasserlöchern, Fluss und See, wiegen sich im Wind; Gruppen sind Verstecke |
+| `src/props.js` | Landschaftsobjekte aus Low-Poly-Modellen: Termitenhügel (Deckung, hinaufspringen), Euphorbien und Aloen am Felsrand, Akazienbüsche, Steinhaufen, Knochen (auch an alten Fressplätzen), Dorngestrüpp (Versteck, bremst) |
+| `src/trails.js` | Wildwechsel zwischen benachbarten Wasserlöchern (Herden gehen darauf zum Wasser) und Salzlecken, an denen Pflanzenfresser lecken |
 | `src/regions.js` | Gebiete-Fenster und Wandern zwischen Gebieten |
 | `src/save.js` | Spielstand: Laden/Speichern, Gebiet, Schwierigkeit und daraus abgeleitete Werte (Leben, Ausdauer, Schaden, Tempo …) |
 | `src/skills.js` | Entwicklungsfenster: Eigenschaften, Fähigkeiten, Erbanlagen, Ahnenkraft |
