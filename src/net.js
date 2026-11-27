@@ -23,6 +23,14 @@ const STALE_MS=4000, GONE_MS=12000;
 /** Laufzyklus wird modulo WALK_WRAP gesendet (kleine Zahlen) */
 const WALK_WRAP=Math.PI*20;
 const ONLINE_CFG='leolife-online';
+const HOST_ROOM_KEY='leolife-host-room', LAST_ROOM_KEY='leolife-last-room';
+const ROOM_CHARS='ABCDEFGHJKLMNPQRSTUVWXYZ';
+const validRoomCode=code=>/^[A-Z]{4}$/.test((code||'').trim().toUpperCase());
+function randomRoomCode(){ const bytes=new Uint8Array(4); crypto.getRandomValues(bytes); return [...bytes].map(b=>ROOM_CHARS[b%ROOM_CHARS.length]).join(''); }
+function readRoomCode(key){ try{ const c=localStorage.getItem(key)||''; return validRoomCode(c)?c.toUpperCase():''; }catch(e){ return ''; } }
+function writeRoomCode(key,code){ try{ if(validRoomCode(code)) localStorage.setItem(key,code.trim().toUpperCase()); }catch(e){} }
+function ownHostCode(){ let code=readRoomCode(HOST_ROOM_KEY); if(!code){ code=randomRoomCode(); writeRoomCode(HOST_ROOM_KEY,code); } return code; }
+function lastRoomCode(){ return readRoomCode(LAST_ROOM_KEY); }
 
 /**
  * Zustand der Verbindung.
@@ -85,6 +93,12 @@ const onlineActive=()=>net.state!=='off';
  * @param {{url:string,key:string,name:string}} [c] Server, Schlüssel, Name (Standard: aus dem Fenster)
  */
 function connect(want,c=readForm()){
+  if(want.create){
+    if(!G.started){ status('Starte erst dein Spiel, bevor du einen Raum öffnest. Beitreten geht schon jetzt.'); return; }
+    const code=(want.room||/** @type {HTMLInputElement} */($('onHostCode')).value||'').trim().toUpperCase();
+    if(!validRoomCode(code)){ status('Der eigene Raumcode muss aus vier Buchstaben bestehen.'); return; }
+    want=Object.assign({},want,{room:code}); writeRoomCode(HOST_ROOM_KEY,code);
+  }
   if(location.protocol==='https:'&&c.url.startsWith('ws://')){ status('Diese Seite läuft über https – der Server braucht eine wss://-Adresse.'); return; }
   if(!want.create&&!/^[A-Za-z]{4}$/.test(want.room||'')){ status('Der Raumcode hat 4 Buchstaben.'); return; }
   closeSocket();
@@ -93,7 +107,7 @@ function connect(want,c=readForm()){
   net.ws=ws; net.state='connecting'; net.want=want; status('Verbinde …'); renderOnline();
   ws.onopen=()=>{
     const hello={t:'hello',v:NET_PROTOCOL,key:c.key,name:c.name||'Leopard'};
-    ws.send(JSON.stringify(want.create?Object.assign(hello,{create:true,world:{seed:WORLD_SEED,region:REG_ID}}):Object.assign(hello,{room:want.room.toUpperCase()})));
+    ws.send(JSON.stringify(want.create?Object.assign(hello,{create:true,room:want.room,world:{seed:WORLD_SEED,region:REG_ID}}):Object.assign(hello,{room:want.room.toUpperCase()})));
   };
   ws.onmessage=e=>{ if(ws!==net.ws) return; traffic.down+=String(e.data).length; let m; try{ m=JSON.parse(String(e.data)); }catch(err){ return; } onMessage(m); };
   ws.onclose=()=>{ if(ws===net.ws) dropped(); };
@@ -131,6 +145,7 @@ function onMessage(m){
         return;
       }
       net.state='online'; net.role=guest?'guest':'host'; net.room=m.room; net.id=m.id; net.host=m.host;
+      if(guest){ writeRoomCode(LAST_ROOM_KEY,m.room); /** @type {HTMLInputElement} */($('onCode')).value=m.room; }
       net.peers.clear(); for(const p of m.peers||[]) net.peers.set(p.id,{name:p.name});
       net.ping=null; net.pingAt=0; net.pingSendAt=0; net.pingSamples=[];
       if(guest&&NET_WORLD) setSession({world:NET_WORLD,room:m.room,rejoin:true});
@@ -280,6 +295,10 @@ function renderOnline(){
   $('onSetup').style.display=net.state==='off'?'':'none';
   $('onWait').style.display=net.state==='connecting'?'':'none';
   $('onLive').style.display=on?'':'none';
+  const hostReady=!!G.started, hostInput=/** @type {HTMLInputElement} */($('onHostCode')), last=lastRoomCode();
+  $('onHostSetup').style.display=hostReady?'':'none'; $('onHostLocked').style.display=hostReady?'none':'';
+  $('btnOnHost').disabled=!hostReady||!validRoomCode(hostInput.value); $('btnOnNewHostCode').disabled=!hostReady;
+  $('btnOnQuick').style.display=last?'':'none'; $('btnOnQuick').textContent=last?'Letzten Raum '+last+' betreten':'Letzten Raum betreten';
   if(on){
     $('onRoom').textContent=net.room;
     $('onRole').textContent=net.role==='host'?'Du bist Gastgeber. Mitspieler treten mit diesem Code bei.':'Du spielst in der Welt des Gastgebers.';
@@ -298,6 +317,8 @@ function openOnline(){
   /** @type {HTMLInputElement} */($('onUrl')).placeholder=DEFAULT_RELAY;
   if(c.url||c.key) $('onAdv').setAttribute('open','');
   /** @type {HTMLInputElement} */($('onName')).value=c.name;
+  /** @type {HTMLInputElement} */($('onHostCode')).value=G.started?ownHostCode():'';
+  /** @type {HTMLInputElement} */($('onCode')).value=lastRoomCode();
   onFromStart=!G.started;
   if(onFromStart) $('start').classList.add('under'); else $('menu').style.display='none';
   renderOnline(); $('online').style.display='flex';
@@ -313,8 +334,15 @@ $('btnOnline').onclick=openOnline; $('btnStartOnline').onclick=openOnline; $('bt
 $('btnOnPlay').onclick=()=>{ closeOnline(); $('btnPlay').click(); };
 // Den Namen gleich beim Tippen merken, nicht erst beim Verbinden
 $('onName').addEventListener('input',()=>storeCfg(Object.assign(onlineCfg(),{name:/** @type {HTMLInputElement} */($('onName')).value.trim().slice(0,24)})));
-$('btnOnHost').onclick=()=>connect({create:true});
+$('onHostCode').addEventListener('input',()=>{
+  const el=/** @type {HTMLInputElement} */($('onHostCode')); el.value=el.value.toUpperCase().replace(/[^A-Z]/g,'').slice(0,4);
+  if(validRoomCode(el.value)) writeRoomCode(HOST_ROOM_KEY,el.value);
+  renderOnline();
+});
+$('btnOnNewHostCode').onclick=()=>{ const code=randomRoomCode(); /** @type {HTMLInputElement} */($('onHostCode')).value=code; writeRoomCode(HOST_ROOM_KEY,code); status('Dein neuer Raumcode ist gespeichert.'); renderOnline(); };
+$('btnOnHost').onclick=()=>connect({create:true,room:/** @type {HTMLInputElement} */($('onHostCode')).value});
 $('btnOnJoin').onclick=()=>connect({room:/** @type {HTMLInputElement} */($('onCode')).value.trim()});
+$('btnOnQuick').onclick=()=>{ const code=lastRoomCode(); if(code) connect({room:code}); };
 $('btnOnLeave').onclick=leaveRoom;
 $('btnOnCancel').onclick=()=>{ reset(); status(''); renderOnline(); };
 

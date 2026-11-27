@@ -445,8 +445,13 @@ body.quad .ph{--rad:92px}
   <p style="font-size:12.5px;color:var(--mut);margin-top:0">Mit anderen Geräten in derselben Welt spielen: Ein Gerät öffnet einen Raum, die anderen treten mit dem Raumcode bei und spielen in der Welt des Gastgebers. Dein Spielstand bleibt auf deinem Gerät.</p>
   <div id="onSetup">
     <label class="onrow">Dein Name<input id="onName" maxlength="24" autocomplete="off"></label>
-    <button id="btnOnHost" style="width:100%;margin-top:10px">Raum öffnen</button>
+    <div id="onHostSetup" style="margin-top:10px">
+      <label class="onrow">Dein Raumcode · bleibt auf diesem Gerät gespeichert<input id="onHostCode" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false"></label>
+      <div class="onjoin"><button id="btnOnNewHostCode" class="sec">Neuer Code</button><button id="btnOnHost">Raum öffnen</button></div>
+    </div>
+    <p id="onHostLocked" style="display:none;font-size:12px;color:var(--mut);margin:10px 0">Einen Raum kannst du öffnen, sobald dein Spiel läuft. Beitreten geht schon jetzt.</p>
     <div class="onjoin"><input id="onCode" placeholder="Raumcode" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false"><button id="btnOnJoin" class="sec">Beitreten</button></div>
+    <button id="btnOnQuick" class="sec" style="display:none;width:100%;margin-top:8px">Letzten Raum betreten</button>
     <details id="onAdv"><summary>Eigener Server</summary>
       <p style="font-size:12px;color:var(--mut);margin:4px 0">Nur nötig, wenn ihr einen anderen Server nutzt. Leer lassen für den Standard-Server.</p>
       <label class="onrow">Server<input id="onUrl" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
