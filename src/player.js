@@ -9,6 +9,10 @@ import { S, maxHp, maxSt } from './save.js';
 // Blick beim Start und beim Aufwachen im Bau: seitlich an den Felsen vorbei ins offene Gelände
 const START_YAW=-1.9, START_ROT=1.24;
 const JAG={leo:'adult',col:0xe0a23c,col2:0xf0c98a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.44,ears:0.15,tail:1.1,tailTip:0x2a1c10,spots:1};
+/** Spielfigur als Jungtier (Stufe unter JUV_LVL): eigenes Modell mit großem Kopf und kurzen Beinen */
+const JAG_CUB=Object.assign({},JAG,{leo:'cub'}), JUV_LVL=4;
+/** Modell für Stufe lvl */
+const jagFor=lvl=>lvl<JUV_LVL?JAG_CUB:JAG;
 /**
  * Ein Spieler-Leopard: Position, Zustand, eigene Kamera und Steuerquelle.
  * Stufe, Eigenschaften und Fähigkeiten liegen (noch) gemeinsam im Spielstand S.
@@ -126,7 +130,7 @@ function makePlayer(o={}){
 }
 function dropModel(g){ if(!g) return; scene.remove(g); g.userData.dispose?.(); const i=blobs.indexOf(g.userData.blob); if(i>=0) blobs.splice(i,1); }
 /** Baut das Modell von Spieler p neu (nach Fellwechsel, Generationswechsel, Grafikstufe). */
-function rebuildPlayer(p=P){ dropModel(p.g); p.g=buildQuad(JAG,p.saveFur?(S.fur||null):p.fur); p.g.userData.blob.visible=!QUAL[quality].sh; scene.add(p.g); }
+function rebuildPlayer(p=P){ dropModel(p.g); p.g=buildQuad(jagFor(p.L.lvl),p.saveFur?(S.fur||null):p.fur); p.g.userData.blob.visible=!QUAL[quality].sh; scene.add(p.g); }
 const P=makePlayer();
 // Alle Spieler auf diesem Gerät. Noch einer; beim Splitscreen kommen weitere dazu.
 const players=[P];
@@ -142,4 +146,4 @@ const ghosts=[];
 /** Alle Leoparden, auf die Tiere reagieren: die eigenen und (beim Gastgeber) die der anderen Geräte */
 const actors=()=>ghosts.length?/** @type {any[]} */(players).concat(ghosts):players;
 
-export { JAG, P, actors, ghosts, players, makePlayer, START_ROT, START_YAW, dropModel, rebuildPlayer };
+export { JAG, JUV_LVL, jagFor, P, actors, ghosts, players, makePlayer, START_ROT, START_YAW, dropModel, rebuildPlayer };

@@ -47,6 +47,7 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 | `index.html` | Seite, Stile und Oberfläche |
 | `src/acaciamodel.js` | Low-Poly-Modell der Schirmakazie (mit Meshy erzeugt, von `tools/meshy-model.cjs` umgewandelt; nicht von Hand ändern) |
 | `src/baobabmodel.js`, `src/deadtreemodel.js` | Low-Poly-Modelle von Affenbrotbaum und totem Baum (ebenso erzeugt) |
+| `src/bushmodel.js`, `src/drybushmodel.js`, `src/rockmodel.js` | Low-Poly-Modelle von grünem Busch, vertrocknetem Busch und Stein (`--single`: Helligkeit je Dreieck, Farbton aus dem Spiel) |
 | `src/termitemodel.js`, `src/euphorbiamodel.js`, `src/acaciabushmodel.js`, `src/aloemodel.js`, `src/rockpilemodel.js`, `src/bonesmodel.js`, `src/thornmodel.js` | Low-Poly-Modelle der Landschaftsobjekte (mit `--colors` erzeugt: Farbe je Dreieck) |
 | `src/actions.js` | Aktionen des Leoparden: Sprung, Klettern, Brüllen, Treffer austeilen und einstecken, Tod und Neubeginn |
 | `src/ai.js` | Tierverhalten: Rudeljagd, Flucht, Angriff, Herden |

@@ -6,6 +6,7 @@
  *
  * --colors: alles ein Teil (wood), statt Helligkeit die echte Farbe je Dreieck (rgb) – für Felsen, Termitenhügel, Blüten …
  * --saturation 0.5: Farben entsättigen (nur mit --colors)
+ * --single: ein Teil mit Helligkeit je Dreieck, ohne Laub (Farbton gibt das Spiel)
  *
  * --perch: Liegeplatz auf diesem Anteil der Höhe über der Stammmitte (z. B. oben auf dem dicken Affenbrotbaum-Stamm
  *          oder in der Astgabel). Ohne --perch liegt er oben auf dem Laub in der Kronenmitte.
@@ -27,6 +28,8 @@ if (!src || !out) { console.error('Aufruf: node tools/meshy-model.cjs <modell.gl
 const NAME = arg('name', 'MODEL'), HEIGHT = +arg('height', 6), PERCH = arg('perch') === undefined ? null : +arg('perch');
 // --colors: ein Teil mit echter Farbe je Dreieck (für Felsen, Termitenhügel, Aloe …), kein Laub
 const COLORS = process.argv.includes('--colors');
+// --single: alles ein Teil mit Helligkeit je Dreieck (kein Laub abtrennen), Farbton aus der Instanzfarbe (Büsche, Steine)
+const SINGLE = process.argv.includes('--single');
 // --saturation f: Sättigung der Farben mit f malnehmen (z. B. 0.5 für erdige statt knallige Töne)
 const SATURATION = arg('saturation') === undefined ? 1 : +arg('saturation');
 
@@ -93,7 +96,7 @@ for (let t = 0; t < tris; t++) {
     const s = sample(u, v); c[0] += s[0] / W.length; c[1] += s[1] / W.length; c[2] += s[2] / W.length;
   }
   const mx = Math.max(...c), mn = Math.min(...c), sat = mx ? (mx - mn) / mx : 0;
-  triCol.push(c); triLeaf.push(!COLORS && sat > 0.3 && c[1] >= c[0] * 0.8 && c[1] > c[2] * 1.2);
+  triCol.push(c); triLeaf.push(!COLORS && !SINGLE && sat > 0.3 && c[1] >= c[0] * 0.8 && c[1] > c[2] * 1.2);
 }
 // Einzelne Ausreißer: Ein Dreieck, dessen Nachbarn (gemeinsame Ecke) überwiegend anders sind, wird angeglichen
 const byVert = new Map();

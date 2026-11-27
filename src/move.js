@@ -12,12 +12,13 @@ import { H, RIV_SWIM, WORLD, collide, inWater, riverDepth, swampFactor } from '.
 import { inGrass, thornAt, trees } from './vegetation.js';
 import { W } from './weather.js';
 import { $ } from './util.js';
-import { P } from './player.js';
+import { JUV_LVL, P, rebuildPlayer } from './player.js';
 import { hEl } from './coop.js';
 
 /** Bewegt Spieler p um dt Sekunden. Gibt die Tarnung zurück (0 = unsichtbar, 1 = normal sichtbar). */
 /** @param {import('./player.js').Player} p */
 function stepPlayer(p,dt){
+  if(p.g.userData.leopard&&(p.L.lvl<JUV_LVL)!==(p.g.userData.leopard==='cub')) rebuildPlayer(p);   // aus dem Jungtier wird ein Halbstarker
   if(p.bite){ p.g.position.set(p.x,H(p.x,p.z),p.z); p.g.rotation.y=p.rot; p.walkT+=dt*10; animLegs(p.g,p.walkT,0.25); return; }   // festgebissen: hängt an der Beute
   const fw=p.ctl.fw, rt=p.ctl.rt, il=Math.hypot(fw,rt);
   const s=Math.sin(p.cam.yaw), c=Math.cos(p.cam.yaw);
