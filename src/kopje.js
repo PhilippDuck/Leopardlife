@@ -1,6 +1,6 @@
 // LeoLife – Felsplateaus (Kopjes): Inseln aus großen Granitblöcken mitten in der Savanne. Oben ist es flach – der Leopard
-// klettert hinauf (Aussicht, sicher vor Löwen und Hyänen, Beute mitnehmen, schlafen). Am Fuß liegt eine Höhle: hinein,
-// verstecken, schlafen; im Startgebiet kann sie zum Bau für die Jungen werden. Lage: kopjesites.js.
+// klettert hinauf (Aussicht, sicher vor Löwen und Hyänen, Beute mitnehmen, schlafen). Am Fuß liegt eine begehbare Höhle,
+// die im Startgebiet und in der weiten Welt zum Bau für die Jungen werden kann. Lage: kopjesites.js.
 // Für das Klettern stehen Fläche und Höhle als Einträge ohne Teile in der Baumliste (kopje: Fels, cave: Höhle) –
 // so gelten Sicherheit, Schlafen und Beute-Mitnehmen wie auf Bäumen.
 import { scene } from './engine.js';
@@ -75,8 +75,8 @@ function buildKopje(k){
   // ein, zwei Blöcke oben auf der Fläche, am Rand gegenüber der Höhle (Wackelsteine)
   for(let i=0,t=1+Math.floor(r()*2);i<t;i++){ const a=k.cave+Math.PI+rr(-0.7,0.7), d=k.R*0.6, s=rr(0.9,1.4);
     block(k.x+Math.sin(a)*d,k.z+Math.cos(a)*d,gy+k.top+s*0.45,s,s*0.85,s*0.9,rr(0,6.28),0.03); }
-  // Felsplateaus im Startgebiet: die Höhle führt in einen Raum unter dem Felsen (dort kann der Bau sein)
-  const rm=k.home?buildRoom(k,gy,m,rr):null;
+  // Jede Höhle führt in einen begehbaren Raum unter dem Felsen und kann zum Bau werden.
+  const rm=m?buildRoom(k,gy,m,rr):null;
   return finish(k,gy,blocks,cleanup,hue,sat,m,rm);
 }
 /** Kleine Felsgruppe: ein flacher Block mit Brocken rundum, ohne Höhle (nur der Platz oben zum Klettern) */

@@ -6,8 +6,8 @@ import { PONDS, WORLD, dryness, pondAt, riverEdge } from './terrain.js';
 
 /** Feldgröße der weiten Welt (wie CHUNK in chunks.js; chunks.js lädt Pflanzen und darf hier nicht importiert werden) */
 const KOP_CELL=64;
-/** Anteil der Felder der weiten Welt mit einem Felsplateau (im Trockenen; im Feuchten seltener) */
-const KOP_CHANCE=0.09;
+/** Anteil der 64-m-Felder mit einem seltenen Höhlenplateau */
+const KOP_CHANCE=0.04;
 /** Anteil der übrigen Felder mit einer kleinen Felsgruppe (ohne Höhle, auch ohne Klettern-Fähigkeit zu erklimmen) */
 const KOP_SMALL_CHANCE=0.16;
 /** Kleine Felsgruppen im Startgebiet (Plateaus: REG.kopjes) */
@@ -56,7 +56,7 @@ const homeKopjes=(()=>{
 })();
 /** @type {Map<string,KopjeSite|null>} */
 const worldKopjes=new Map();
-/** Felsplateau im Feld (cx,cz) der weiten Welt oder null (fest aus Weltsamen und Lage) */
+/** Felsplateau im Feld (cx,cz) der Welt oder null (fest aus Weltsamen und Lage) */
 function worldKopje(cx,cz){
   const key=cx+','+cz; if(worldKopjes.has(key)) return worldKopjes.get(key)??null;
   const r=seeded((WORLD_SEED^Math.imul(cx,0x1f3a5c7)^Math.imul(cz,0x6e2b9d1)^0x4b4f504a)>>>0);
@@ -64,7 +64,8 @@ function worldKopje(cx,cz){
   const roll=r();
   if(roll<KOP_CHANCE){
     const x=cx*KOP_CELL+18+r()*(KOP_CELL-36), z=cz*KOP_CELL+18+r()*(KOP_CELL-36), d=dryness(x,z);
-    if(Math.hypot(x,z)>WORLD+30&&(d>0.3||r()<0.35)&&!pondAt(x,z,2)&&riverEdge(x,z)>=KOP_RIVER_GAP) site=kopjeSite(x,z,r,false);
+    const nearStart=homeKopjes.some(k=>Math.hypot(x-k.x,z-k.z)<k.R+18);
+    if(Math.hypot(x,z)>60&&!nearStart&&(d>0.3||r()<0.35)&&!pondAt(x,z,2)&&riverEdge(x,z)>=KOP_RIVER_GAP) site=kopjeSite(x,z,r,false);
   } else if(roll<KOP_CHANCE+KOP_SMALL_CHANCE){
     const x=cx*KOP_CELL+12+r()*(KOP_CELL-24), z=cz*KOP_CELL+12+r()*(KOP_CELL-24), d=dryness(x,z);
     if(Math.hypot(x,z)>WORLD+20&&(d>0.25||r()<0.4)&&!pondAt(x,z,2)&&riverEdge(x,z)>=20) site=kopjeSite(x,z,r,false,true);
@@ -74,7 +75,6 @@ function worldKopje(cx,cz){
 /** Felsplateau, dessen Fuß (plus Rand m) die Stelle x,z berührt, sonst null */
 function kopjeNear(x,z,m=0){
   for(const k of homeKopjes) if(Math.hypot(x-k.x,z-k.z)<k.R+m) return k;
-  if(Math.hypot(x,z)<WORLD+10) return null;
   const cx=Math.floor(x/KOP_CELL), cz=Math.floor(z/KOP_CELL);
   for(let i=cx-1;i<=cx+1;i++) for(let j=cz-1;j<=cz+1;j++){ const k=worldKopje(i,j); if(k&&Math.hypot(x-k.x,z-k.z)<k.R+m) return k; }
   return null;
