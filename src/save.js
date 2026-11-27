@@ -85,8 +85,8 @@ function inheritTrait(L,t){
 const attrCap=(L=S)=>L.lvl+2;
 /** @type {(k:string, L?:Leopard)=>number} */
 const at=(k,L=S)=>Math.min(L.a[k],attrCap(L));
-// Alter zählt ab Stufe 8 in Sekunden; ab OLD_AT lassen Tempo und Kraft nach, bei DIE_AT endet das Leben
-const OLD_AT=18*60, DIE_AT=/** @type {(L?:Leopard)=>number} */((L=S)=>25*60+300*tf('lang',L));
+// Alter zählt ab Stufe 8 in Sekunden; ab OLD_AT lassen Tempo und Kraft nach, bei DIE_AT endet das Leben. Beide Phasen sind verdreifacht.
+const OLD_AT=54*60, DIE_AT=/** @type {(L?:Leopard)=>number} */((L=S)=>75*60+900*tf('lang',L));
 /** @type {(L?:Leopard)=>number} */
 const oldF=(L=S)=>L.lvl>=8?Math.max(0,Math.min(1,(L.age-OLD_AT)/(DIE_AT(L)-OLD_AT))):0;
 /* ---------- Gebiete: jede zweite Generation öffnet ein neues. Jedes Gebiet ist eine eigene Karte; beim Wandern wird sie neu aufgebaut. ---------- */
