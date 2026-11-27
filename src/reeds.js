@@ -2,7 +2,7 @@
 // In feuchten Gegenden (swampFactor) steht es dichter. Gruppen von Büscheln sind Verstecke wie hohes Gras.
 import { windU } from './engine.js';
 import { seeded, snoise } from './noise.js';
-import { H, LAKE_D as LAKE_DEPTH, PONDS, WATER_D, dryness, riverNear, swampFactor, worldPond } from './terrain.js';
+import { H, LAKE_D, PONDS, WATER_D, dryness, riverNear, swampFactor, worldPond } from './terrain.js';
 import { kopjeNear } from './kopjesites.js';
 
 /* ---------- Ein Büschel (Low-Poly, flache Flächen, Farbe je Fläche); mit oder ohne Halme mit Rohrkolben ---------- */
@@ -60,13 +60,13 @@ reedMaterial.onBeforeCompile=sh=>{   // je höher, desto stärker wiegt sich das
     ' float hk=max(0.0,transformed.y); float sw=sin(uTime*1.6+wp.x*0.35+wp.z*0.29)*0.6+sin(uTime*3.3+wp.x*0.9+wp.z*0.4)*0.25;\n'+
     ' wp.xz+=uWind*(sw+0.6)*hk*hk*0.05;\n vec4 mvPosition=viewMatrix*wp;\n gl_Position=projectionMatrix*mvPosition;');
 };
-const tick=()=>{ reedTime.value=performance.now()/1000; };
+const reedTick=()=>{ reedTime.value=performance.now()/1000; };
 
 /** Abstand zur Wasserlinie (negativ im Wasser): Wasserlöcher des Startgebiets, Tümpel der weiten Welt, Fluss (nur wo er Wasser führt) und See.
     Die Becken sind zur Mitte hin gewölbt (Tiefe D unter dem Pegel): Das Wasser (WATER_D unter dem Pegel) reicht bis r·√(1−WATER_D/D). */
 const edge=D=>Math.sqrt(Math.max(0,1-WATER_D/D));
 function shoreDist(x,z){
-  const r=riverNear(x,z); let e=r.ld-r.lr*edge(LAKE_DEPTH);   // sofort auslesen: riverNear liefert ein geteiltes Objekt
+  const r=riverNear(x,z); let e=r.ld-r.lr*edge(LAKE_D);   // sofort auslesen: riverNear liefert ein geteiltes Objekt
   if(r.w>1.2&&r.cd<1e8) e=Math.min(e,r.cd-r.w*edge(r.D));
   for(let i=0;i<PONDS.length;i++){ const p=PONDS[i]; e=Math.min(e,Math.hypot(x-p.x,z-p.z)-p.r*edge(1)); }
   const w=worldPond(x,z); if(w) e=Math.min(e,Math.hypot(x-w.x,z-w.z)-w.r*edge(1));
@@ -107,7 +107,7 @@ function reedMesh(spots,rng){
       mesh.setColorAt(i,c.setRGB(f*(1+0.12*d),f,f*(1-0.3*d)));
     });
     mesh.castShadow=true; mesh.receiveShadow=true; mesh.frustumCulled=false;
-    mesh.onBeforeRender=tick;
+    mesh.onBeforeRender=reedTick;
     group.add(mesh);
   });
   group.dispose=()=>group.children.forEach(ch=>/** @type {any} */(ch).dispose?.());

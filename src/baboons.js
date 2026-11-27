@@ -39,7 +39,7 @@ function troopOf(a){
   if(!tr){
     tr={herd,all:[],cx:a.x,cz:a.z,alarmT:0,calmT:0,barkT:0,homeT:0,threat:null,home:null,homeI:-1,mobCd:0,mobP:null,goal:false};
     herd.troop=tr; TROOPS.push(tr);
-    const free=herd.filter(m=>!m.kids||!m.kids.length).reverse(), nM=herd.length>=6?2:1;
+    const childless=herd.filter(m=>!m.kids||!m.kids.length), free=(childless.length?childless:herd.filter(m=>!m.juv)).reverse(), nM=herd.length>=6?2:1;   // haben alle Junge, wird trotzdem einer Männchen
     for(const m of free.slice(0,nM)){ m.male=true; m.g.scale.setScalar(m.sp.size*1.15); m.rad=m.sp.size*1.15*0.8+0.25; if(m.g.userData.mane) m.g.userData.mane.visible=true; }
   }
   return a.troop=tr;

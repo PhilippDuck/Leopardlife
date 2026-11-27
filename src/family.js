@@ -52,7 +52,7 @@ function denContext(){
   if(G.raider) return null;
   const t=P.tree!=null?trees[P.tree]:null;
   if(t&&t.cave&&P.safe&&P.climbT>=1){
-    if(t===denCave()) return {label:'Bau hierher zurückverlegen',fn:()=>moveDen(null)};
+    if(t===denCave()) return null;   // schon der Bau: nichts anbieten (zurück an den alten Platz geht nur dort)
     const d=caveDen(t); if(Math.hypot(d.x-CUB_HOME.x,d.z-CUB_HOME.z)>1) return {label:'Bau in diese Höhle verlegen',fn:()=>moveDen(t)};
   }
   if(S.den&&P.tree==null&&Math.hypot(P.x-OLD_DEN.x,P.z-OLD_DEN.z)<5) return {label:'Bau hierher zurückverlegen',fn:()=>moveDen(null)};
