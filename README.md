@@ -91,6 +91,7 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 | `src/player.js` | Der Leopard des Spielers: Zustand, Startposition und Modell |
 | `src/quality.js` | Grafikstufen (niedrig/hoch/ultra) anwenden: Auflösung, Schatten, Gras, Nebel, Sichtweite |
 | `src/river.js` | Fluss und See: Wasserflächen je Abschnitt, Krokodile an Furten und in Gumpen, Krokodile und Nilpferde im See (Verlauf, Gefälle, Tiefe und Aue in `terrain.js`) |
+| `src/reeds.js` | Schilf: Büschel aus Blättern und Rohrkolben, nur an der Wasserlinie von Wasserlöchern, Fluss und See, wiegen sich im Wind; Gruppen sind Verstecke |
 | `src/regions.js` | Gebiete-Fenster und Wandern zwischen Gebieten |
 | `src/save.js` | Spielstand: Laden/Speichern, Gebiet, Schwierigkeit und daraus abgeleitete Werte (Leben, Ausdauer, Schaden, Tempo …) |
 | `src/skills.js` | Entwicklungsfenster: Eigenschaften, Fähigkeiten, Erbanlagen, Ahnenkraft |

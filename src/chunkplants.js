@@ -1,9 +1,10 @@
 // Vegetation außerhalb des Startgebiets. Baumplätze erst freigeben, wenn kein Tier mehr darauf sitzt.
 import { CHUNK } from './chunks.js';
 import { scene } from './engine.js';
-import { H, WORLD, dryness, swampFactor, pondAt, addCol, addSight, removeCol, removeSight, registerCull, unregisterCull } from './terrain.js';
+import { H, WORLD, dryness, pondAt, addCol, addSight, removeCol, removeSight, registerCull, unregisterCull } from './terrain.js';
 import { dryBushGeometry, dryBushColor, shrubKind, bushGeometry, bushMaterial, bushColor, makeTree, treeKinds, leafMeshes, leafGeoLo, trees, setTree, patches, tallGeo, tallMat, treeSlot, releaseTree } from './vegetation.js';
 import { kopjeNear } from './kopjesites.js';
+import { reedMesh, reedPatches, reedSpots } from './reeds.js';
 import { players } from './player.js';
 import { followers } from './cubfollow.js';
 import { animals } from './animals.js';
@@ -13,9 +14,6 @@ import { seeded } from './noise.js';
 import { WORLD_SEED } from './save.js';
 
 const rockGeometry=new THREE.DodecahedronGeometry(1,0);
-const reedGeometry=new THREE.CylinderGeometry(0.045,0.075,1,4); reedGeometry.translate(0,0.5,0);
-const reedHeadGeometry=new THREE.SphereGeometry(0.085,5,4);
-const reedMaterial=new THREE.MeshLambertMaterial({color:0xffffff});
 const vegetationBushes={geometry:bushGeometry,material:bushMaterial};
 /** Anteil der Abschnitte mit einem Affenbrotbaum (nur im Trockenen) */
 const BAOBAB_CHANCE=0.07;
@@ -110,22 +108,12 @@ function fillPlants(chunk){
     });
     show(mesh);
   }
-  // Schilf wächst in feuchten Senken. Die Flecken sind deckend wie hohes Gras, haben aber eigene Halme und Samenstände.
-  for(let attempt=0;attempt<5;attempt++){
-    const center=place(6), nearWater=pondAt(center.x,center.z,1.8), wet=Math.max(swampFactor(center.x,center.z),nearWater?0.58:0);
-    if(nearWater&&pondAt(center.x,center.z,0.92)) continue;
-    if(wet<0.42) continue;
-    const patch={...center,r:4.8+wet*2.2,reed:true}; patches.push(patch);
-    cleanup.push(()=>patches.splice(patches.indexOf(patch),1));
-    const count=20+Math.floor(rng()*13), stems=new THREE.InstancedMesh(reedGeometry,reedMaterial,count), heads=new THREE.InstancedMesh(reedHeadGeometry,reedMaterial,Math.ceil(count*0.55));
-    const color=new THREE.Color(), m=new THREE.Matrix4(), q=new THREE.Quaternion(), v=new THREE.Vector3(), s=new THREE.Vector3();
-    for(let i=0;i<count;i++){
-      const a=rng()*Math.PI*2,d=Math.sqrt(rng())*patch.r,x=center.x+Math.cos(a)*d,z=center.z+Math.sin(a)*d,h=1.35+rng()*1.15;
-      q.setFromAxisAngle(new THREE.Vector3(0,1,0),rng()*6.28); m.compose(v.set(x,H(x,z),z),q,s.set(0.8,h,0.8)); stems.setMatrixAt(i,m);
-      stems.setColorAt(i,color.setHSL(0.23+rng()*0.055,0.34+rng()*0.2,0.26+rng()*0.16));
-      if(i<heads.count){ m.compose(v.set(x,H(x,z)+h*0.94,z),q,s.set(0.85,1.8,0.85)); heads.setMatrixAt(i,m); heads.setColorAt(i,color.setHSL(0.12+rng()*0.045,0.42,0.29+rng()*0.12)); }
-    }
-    stems.castShadow=true; heads.castShadow=true; show(stems); show(heads);
+  // Schilf nur am Ufer von Wasserlöchern, Fluss und See, in feuchten Gegenden dichter (reeds.js).
+  // Verstecke aus allen Plätzen, damit sie auf jedem Gerät gleich sind; gezeichnet wird auf „niedrig“ nur jeder zweite Büschel.
+  const reeds=reedSpots(ox,oz,ox+CHUNK,oz+CHUNK,rng,(x,z)=>Math.hypot(x,z)<WORLD+3);
+  if(reeds.length){
+    show(reedMesh(quality==='low'?reeds.filter((_,i)=>i%2===0):reeds,rng));
+    for(const patch of reedPatches(reeds)){ patches.push(patch); cleanup.push(()=>patches.splice(patches.indexOf(patch),1)); }
   }
   const pos=[], rotations=[], hues=[];
   for(let i=0;i<2;i++){
