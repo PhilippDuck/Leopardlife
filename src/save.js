@@ -105,9 +105,9 @@ const dmg=(L=S)=>(6+1.5*(L.lvl-1)+3*at('str',L))*(1+0.15*tf('kiefer',L))*(1-0.3*
 const baseSpeed=(L=S)=>(7+0.12*(L.lvl-1)+0.45*at('spd',L))*(1+0.1*tf('flink',L))*(1-0.25*oldF(L))*(1+(ancF()-1)*0.5);
 /** @type {(L?:Leopard)=>number} */
 const pScale=(L=S)=>Math.min(2.0,0.5+0.075*(L.lvl-1));
-/** Hunger je Sekunde (Sättigung sinkt von 100 in rund 7 Minuten): Erbanlage „Genügsam“, Eigenschaft „Genügsamer Magen“, Schwierigkeit */
+/** Hunger je Sekunde (Sättigung sinkt von 100 in rund 10 Minuten): Erbanlage „Genügsam“, Eigenschaft „Genügsamer Magen“, Schwierigkeit */
 /** @type {(L?:Leopard)=>number} */
-const hungerRate=(L=S)=>(100/420)*(1-0.25*tf('genug',L))*(1-0.05*at('sat',L))*D().hunger;
+const hungerRate=(L=S)=>(100/600)*(1-0.25*tf('genug',L))*(1-0.05*at('sat',L))*D().hunger;
 /** Durst je Sekunde (Wasser sinkt von 100 in rund 5 Minuten, bei Regen langsamer) */
 /** @type {(L?:Leopard, rain?:number)=>number} */
 const thirstRate=(L=S,rain=0)=>(100/300)*(1-0.25*tf('genug',L))*(1-0.4*rain)*D().hunger;

@@ -150,6 +150,7 @@ function onMessage(m){
       net.ping=null; net.pingAt=0; net.pingSendAt=0; net.pingSamples=[];
       if(guest&&NET_WORLD) setSession({world:NET_WORLD,room:m.room,rejoin:true});
       net.profAt=0; status(''); renderOnline();
+      if(guest) closeOnline();
       toast(guest?'Online im Raum '+m.room+' – '+[...net.peers.values()].map(p=>p.name).join(', '):'Raum '+m.room+' ist offen. Gib den Code an deine Mitspieler weiter.','#9be07f');
       return;
     }

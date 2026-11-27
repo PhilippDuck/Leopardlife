@@ -106,7 +106,7 @@ function updateEating(p,dt){
   const inReach=c.carc&&(c.carc.tree!=null?p.tree===c.carc.tree:(p.tree==null&&Math.hypot(c.x-p.x,c.z-p.z)<=c.rad+3.2));
   if(p.dead||moving||!inReach||c.carc.meat<=0||L.hunger>=100){ p.eatC=null; return; }
   p.eatT+=dt; if(p.eatT<BITE_T) return; p.eatT=0;
-  c.carc.meat--; toHost('eat',c); L.hunger=Math.min(100,L.hunger+10); if(p.tree!=null) goalEvent('treeEat',1); p.hp=Math.min(maxHp(L),p.hp+maxHp(L)*0.05);
+  c.carc.meat--; toHost('eat',c); L.hunger=Math.min(100,L.hunger+15); if(p.tree!=null) goalEvent('treeEat',1); p.hp=Math.min(maxHp(L),p.hp+maxHp(L)*0.05);
   snd.eat(); puff(c.x,H(c.x,c.z)+0.6,c.z,0xc0392b,3,0.35);
   if(L.hunger>=100){ p.eatC=null; floatText('satt',p.x,p.y+1.8,p.z,'#e0a060'); }
 }

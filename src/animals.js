@@ -36,7 +36,7 @@ function placeAnimal(a){
   if(sp.friend){ const ks=Object.keys(TRAITS); a.trait=ks[Math.floor(Math.random()*ks.length)]; }   // Erbanlage, die dieser Leopard weitergeben würde
   a.g.visible=true;
 }
-SPECIES.forEach(sp=>{ const cnt=(REG.counts&&REG.counts[sp.id]!==undefined)?REG.counts[sp.id]:sp.count; for(let i=0;i<cnt;i++){ const fur=makeFur(), g=sp.croc?buildCroc(sp.m,fur):sp.snake?buildSnake(sp.m,fur):sp.baboon?buildBaboon(sp.m,fur):sp.elephant?buildElephant(sp.m,fur):sp.hippo?buildHippo(sp.m,fur):buildQuad(sp.m,fur); g.scale.setScalar(sp.size); scene.add(g); const a={sp,g,fur,rad:sp.size*0.8+0.25,uid:animals.length}; placeAnimal(a); animals.push(a); } });
+SPECIES.forEach(sp=>{ const cnt=(REG.counts&&REG.counts[sp.id]!==undefined)?REG.counts[sp.id]:sp.count, population=cnt>0?Math.max(1,Math.floor(cnt*0.8)):0; for(let i=0;i<population;i++){ const fur=makeFur(), g=sp.croc?buildCroc(sp.m,fur):sp.snake?buildSnake(sp.m,fur):sp.baboon?buildBaboon(sp.m,fur):sp.elephant?buildElephant(sp.m,fur):sp.hippo?buildHippo(sp.m,fur):buildQuad(sp.m,fur); g.scale.setScalar(sp.size); scene.add(g); const a={sp,g,fur,rad:sp.size*0.8+0.25,uid:animals.length}; placeAnimal(a); animals.push(a); } });
 // Herden; Arten mit sp.troop (Paviane, Elefanten) bilden größere Gruppen
 SPECIES.filter(sp=>sp.troop||['capy','deer','anti'].includes(sp.id)).forEach(sp=>{ const L=animals.filter(a=>a.sp===sp), [lo,hi]=sp.troop||[3,4];
   for(let i=0;i<L.length;){ let n=Math.min(L.length-i,lo+Math.floor(Math.random()*(hi-lo+1))); if(sp.troop&&L.length-i-n<lo) n=L.length-i; const grp=L.slice(i,i+n);
