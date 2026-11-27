@@ -5,8 +5,8 @@ import { seeded, snoise } from './noise.js';
 import { H, LAKE_D as LAKE_DEPTH, PONDS, WATER_D, dryness, riverNear, swampFactor, worldPond } from './terrain.js';
 import { kopjeNear } from './kopjesites.js';
 
-/* ---------- Ein Büschel (Low-Poly, flache Flächen, Farbe je Fläche) ---------- */
-const reedGeometry=(function(){
+/* ---------- Ein Büschel (Low-Poly, flache Flächen, Farbe je Fläche); mit oder ohne Halme mit Rohrkolben ---------- */
+function reedGeometry(heads){
   const r=seeded(0x5c41f), rr=(a,b)=>a+r()*(b-a), pos=[], col=[], c=new THREE.Color();
   const tri=(a,b,d,color)=>{ pos.push(...a,...b,...d); for(let i=0;i<3;i++) col.push(color.r,color.g,color.b); };
   const quad=(a,b,d,e,color)=>{ tri(a,b,d,color); tri(a,d,e,color); };
@@ -26,7 +26,7 @@ const reedGeometry=(function(){
     }
   }
   // Halme mit Rohrkolben (braun) und dünner Spitze
-  for(let i=0;i<3;i++){
+  for(let i=0;i<(heads?3:0);i++){
     const a=i/3*6.283+rr(-0.5,0.5), x=Math.cos(a)*rr(0.04,0.16), z=Math.sin(a)*rr(0.04,0.16), h=rr(1.6,2.25), lx=rr(-0.12,0.12), lz=rr(-0.12,0.12);
     const top=[x+lx,h,z+lz], hb=h*0.8;
     c.setHSL(0.18,0.32,0.36);
@@ -46,7 +46,9 @@ const reedGeometry=(function(){
   g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
   g.computeVertexNormals(); g.computeBoundingSphere();
   return g;
-})();
+}
+/** Büschel nur aus Blättern und Büschel mit Rohrkolben */
+const reedGeos=[reedGeometry(false),reedGeometry(true)];
 
 /** Zeit für das Wiegen im Wind (wird vor dem Zeichnen gesetzt) */
 const reedTime={value:0};
@@ -86,22 +88,30 @@ function reedSpots(x0,z0,x1,z1,rng,skip){
     const wet=swampFactor(px,pz), n=snoise(px/11+3.1,pz/11-7.4);
     if(n<-0.1-0.55*wet) continue;   // in Gruppen, in feuchten Gegenden fast durchgehend
     if(kopjeNear(px,pz,1)||(skip&&skip(px,pz))) continue;
-    out.push({x:px,z:pz,y:H(px,pz),a:rng()*6.283,s:0.95+rng()*0.5,h:0.85+rng()*0.4,dry:dryness(px,pz)});
+    // Rohrkolben in Gruppen mit Freiraum dazwischen: etwa jeder zweite Büschel, nach grobem Rauschen
+    const heads=snoise(px/7-11.3,pz/7+5.9)>0.12;
+    out.push({x:px,z:pz,y:H(px,pz),a:rng()*6.283,s:0.95+rng()*0.5,h:0.85+rng()*0.4,dry:dryness(px,pz),heads});
   } }
   return out;
 }
 
-/** Instanz-Modell aus Schilfplätzen (gefärbt: im Trockenen gelblicher) */
+/** Instanz-Modelle aus Schilfplätzen (Gruppe: Büschel ohne und mit Rohrkolben; gefärbt: im Trockenen gelblicher) */
 function reedMesh(spots,rng){
-  const mesh=new THREE.InstancedMesh(reedGeometry,reedMaterial,spots.length), m=new THREE.Matrix4(), q=new THREE.Quaternion(), v=new THREE.Vector3(), s=new THREE.Vector3(), c=new THREE.Color(), UP=new THREE.Vector3(0,1,0);
-  spots.forEach((p,i)=>{
-    m.compose(v.set(p.x,p.y-0.05,p.z),q.setFromAxisAngle(UP,p.a),s.set(p.s,p.s*p.h,p.s)); mesh.setMatrixAt(i,m);
-    const f=0.88+rng()*0.22, d=Math.min(1,p.dry);
-    mesh.setColorAt(i,c.setRGB(f*(1+0.12*d),f,f*(1-0.3*d)));
+  const group=new THREE.Group(), m=new THREE.Matrix4(), q=new THREE.Quaternion(), v=new THREE.Vector3(), s=new THREE.Vector3(), c=new THREE.Color(), UP=new THREE.Vector3(0,1,0);
+  [false,true].forEach((heads,gi)=>{
+    const list=spots.filter(p=>!!p.heads===heads); if(!list.length) return;
+    const mesh=new THREE.InstancedMesh(reedGeos[gi],reedMaterial,list.length);
+    list.forEach((p,i)=>{
+      m.compose(v.set(p.x,p.y-0.05,p.z),q.setFromAxisAngle(UP,p.a),s.set(p.s,p.s*p.h,p.s)); mesh.setMatrixAt(i,m);
+      const f=0.88+rng()*0.22, d=Math.min(1,p.dry);
+      mesh.setColorAt(i,c.setRGB(f*(1+0.12*d),f,f*(1-0.3*d)));
+    });
+    mesh.castShadow=true; mesh.receiveShadow=true; mesh.frustumCulled=false;
+    mesh.onBeforeRender=tick;
+    group.add(mesh);
   });
-  mesh.castShadow=true; mesh.receiveShadow=true; mesh.frustumCulled=false;
-  mesh.onBeforeRender=tick;
-  return mesh;
+  group.dispose=()=>group.children.forEach(ch=>/** @type {any} */(ch).dispose?.());
+  return group;
 }
 
 /** Verstecke: je 8-m-Feld mit mindestens drei Büscheln ein Kreis um die Büschel */
