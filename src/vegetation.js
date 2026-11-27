@@ -8,13 +8,17 @@ import { rnd } from './util.js';
 import { P } from './player.js';
 import { kopjeNear } from './kopjesites.js';
 import { ACACIA } from './acaciamodel.js';
+import { BAOBAB } from './baobabmodel.js';
+import { DEADTREE } from './deadtreemodel.js';
 import { modelGeometry } from './meshmodel.js';
 import { addWaterPlants } from './waterplants.js';
 
 /* Bäume: aus mehreren Teilen (Stamm, Äste, Wurzeln, Laubballen). Arten: Urwaldbaum, Urwaldriese, Schirmakazie, toter Baum, Palme am Wasser.
    Werden ausgeblendet, wenn ihre Krone zwischen Kamera und Leopard steht.
-   Jedes Teil hat eine Sorte (kind): 'wood' und 'leaf' sind Zylinder und Laubballen; die Schirmakazie ist ein fertiges Modell
-   (acaciaWood, acaciaLeaf aus acaciamodel.js). Je Sorte gibt es eigene Instanz-Modelle (treeKinds). */
+   Jedes Teil hat eine Sorte (kind): 'wood' und 'leaf' sind Zylinder und Laubballen. Schirmakazie, Affenbrotbaum und toter Baum
+   sind fertige Low-Poly-Modelle (TREE_MODELS, Sorten <name>Wood und <name>Leaf). Je Sorte gibt es eigene Instanz-Modelle (treeKinds). */
+/** Low-Poly-Baummodelle aus tools/meshy-model.cjs; der tote Baum hat kein Laub */
+const TREE_MODELS={acacia:ACACIA,baobab:BAOBAB,dead:DEADTREE};
 const trees=[]; let woodMeshes=[], leafMeshes=[], leafGeoHi=null, leafGeoLo=null; const dirtyTree=new Set(); const leafTime={value:0};
 const _tm=new THREE.Matrix4(), _tb=new THREE.Matrix4(), _tq=new THREE.Quaternion(), _tv=new THREE.Vector3(), _UP=new THREE.Vector3(0,1,0);
 function setTree(i){
@@ -46,6 +50,20 @@ function windy(mat){
 }
 /** Geometrie, Material und Liste der Instanz-Modelle je Teil-Sorte (wird beim Anlegen des Startgebiets gefüllt) */
 const treeKinds={}; const modelMeshes=[];
+/**
+ * Baum aus einem Low-Poly-Modell: je Baum gedreht, k-fach skaliert, leicht gestreckt; Holz- und Laubfarbe (Farbton × Helligkeit im Modell).
+ * Setzt Krone (cx/cy/cz, rx/ry), Liegeplatz (perch) und Stammradius (tr) aus den Eckdaten des Modells.
+ */
+function modelTree(t,name,k,woodColor,leafColor,random){
+  const M=TREE_MODELS[name], I=M.info, sx=k*(0.9+random()*0.22), sz=k*(0.9+random()*0.22);
+  const q=new THREE.Quaternion().setFromAxisAngle(_UP,random()*6.283);
+  const m=new THREE.Matrix4().compose(new THREE.Vector3(0,-0.15,0),q,new THREE.Vector3(sx,k,sz));   // Fuß etwas eingesenkt, damit er am Hang nicht schwebt
+  const at=v=>new THREE.Vector3(v[0],v[1],v[2]).applyMatrix4(m);
+  t.parts.push({kind:name+'Wood',leaf:false,c:woodColor,m});
+  if(M.leaf) t.parts.push({kind:name+'Leaf',leaf:true,c:leafColor,m:m.clone()});
+  const cr=at(I.crown), pe=at(I.perch), sxz=(sx+sz)/2;
+  t.cx=cr.x; t.cz=cr.z; t.cy=cr.y; t.rx=I.rx*sxz; t.ry=I.ry*k; t.perch=[pe.x,pe.y,pe.z]; t.tr=I.trunkR*sxz;
+}
 function makeTree(o,random=Math.random){
     const rnd=(min,max)=>min+random()*(max-min);
     const t={x:o.x,z:o.z,y:H(o.x,o.z),f:1,parts:[],cx:0,cz:0};
@@ -65,37 +83,15 @@ function makeTree(o,random=Math.random){
       leaf([p[0],p[1]-0.15*k,p[2]],0.45*k,0.35*k,0.45*k,hsl(0.08,0.45,0.28));
       t.cx=p[0]; t.cz=p[2]; t.cy=p[1]; t.rx=2.6*k; t.ry=1.1*k; t.perch=[p[0],p[1]+0.25*k,p[2]]; t.tr=0.28*k;
     } else if(o.baobab){
-      // Affenbrotbaum: riesiger flaschenförmiger Stamm, kurze dicke Äste, nur kleine Laubbüschel an den Enden
-      const k=rnd(1,1.25), h=rnd(7.5,8.5)*k, rb=1.8*k, h1=h*0.5, bark=hsl(rnd(0.05,0.08),rnd(0.12,0.18),rnd(0.46,0.54)), hue=rnd(0.21,0.26);
-      wood([0,-0.4,0],[0,h1,0],rb,bark);               // unten bauchig (Zylinder läuft oben auf 70 % zu)
-      wood([0,h1-0.2,0],[0,h,0],rb*0.7,bark);           // oben schlanker
-      const nr=4+Math.floor(random()*2);
-      for(let j=0;j<nr;j++){ const a=j/nr*6.283+rnd(-0.3,0.3); wood([Math.cos(a)*rb*1.15,-0.3,Math.sin(a)*rb*1.15],[Math.cos(a)*0.3*k,1.6*k,Math.sin(a)*0.3*k],0.5*k,bark); }
-      const nb=6+Math.floor(random()*3); let top=h;
-      for(let j=0;j<nb;j++){ const a=j/nb*6.283+rnd(-0.35,0.35), L=rnd(2.2,3.4)*k, s=[Math.cos(a)*0.45*k,h-0.4*k,Math.sin(a)*0.45*k], e=[Math.cos(a)*L,h+rnd(0.9,2)*k,Math.sin(a)*L];
-        wood(s,e,0.34*k,bark); top=Math.max(top,e[1]);
-        for(let m=0;m<2;m++){ const b=a+(m?1:-1)*rnd(0.3,0.8), tw=[e[0]+Math.cos(b)*rnd(0.7,1.2)*k,e[1]+rnd(0.4,0.9)*k,e[2]+Math.sin(b)*rnd(0.7,1.2)*k];
-          wood(e,tw,0.13*k,bark); top=Math.max(top,tw[1]);
-          leaf([tw[0],tw[1]+0.2*k,tw[2]],rnd(0.8,1.15)*k,rnd(0.4,0.55)*k,rnd(0.8,1.15)*k,hsl(hue+rnd(-0.015,0.015),rnd(0.35,0.45),rnd(0.3,0.38))); } }
-      t.baobab=true; t.cx=0; t.cz=0; t.cy=top; t.rx=4.2*k; t.ry=1.4*k; t.perch=[0,h+0.15*k,0]; t.tr=rb*0.95;
+      // Affenbrotbaum: riesiger flaschenförmiger Stamm, kurze dicke Äste, nur kleine Laubbüschel an den Enden; Liegeplatz oben auf dem Stamm
+      modelTree(t,'baobab',rnd(0.9,1.15),hsl(rnd(0.05,0.08),rnd(0.08,0.13),rnd(0.36,0.43)),hsl(rnd(0.21,0.26),rnd(0.35,0.45),rnd(0.3,0.38)),random);
+      t.baobab=true;
     } else if(o.sav&&random()<0.1){
-      // Toter Baum: kahle, graue Äste
-      const k=rnd(0.8,1.25), h=rnd(4,6)*k, bark=hsl(0.08,0.07,rnd(0.46,0.56)), top=[rnd(-0.4,0.4)*k,h,rnd(-0.4,0.4)*k];
-      wood([0,-0.2,0],top,0.28*k,bark);
-      const nb=3+Math.floor(random()*2);
-      for(let j=0;j<nb;j++){ const a=j/nb*6.283+rnd(-0.4,0.4), u=rnd(0.5,0.9), s=[top[0]*u,h*u,top[2]*u], L=rnd(1.4,2.4)*k, e=[s[0]+Math.cos(a)*L,s[1]+rnd(0.9,1.9)*k,s[2]+Math.sin(a)*L];
-        wood(s,e,0.13*k,bark); const b=a+rnd(-0.9,0.9); wood(e,[e[0]+Math.cos(b)*0.9*k,e[1]+0.7*k,e[2]+Math.sin(b)*0.9*k],0.07*k,bark); }
-      t.cx=top[0]*0.7; t.cz=top[2]*0.7; t.cy=h*0.75; t.rx=1.5*k; t.ry=h*0.3; t.perch=[top[0],h,top[2]]; t.tr=0.28*k;
+      // Toter Baum: kahle, graue Äste; Liegeplatz in der Astgabel
+      modelTree(t,'dead',rnd(0.8,1.25),hsl(0.08,0.07,rnd(0.46,0.56)),0,random);
     } else if(o.sav){
-      // Schirmakazie: Low-Poly-Modell (Meshy), je Baum gedreht, etwas größer oder kleiner, leicht gestreckt und eigener Farbton
-      const I=ACACIA.info, k=rnd(0.85,1.3), sx=k*rnd(0.9,1.12), sz=k*rnd(0.9,1.12), hue=rnd(0.19,0.25);
-      const q=new THREE.Quaternion().setFromAxisAngle(_UP,random()*6.283), sc=new THREE.Vector3(sx,k,sz);
-      const m=new THREE.Matrix4().compose(new THREE.Vector3(0,-0.15,0),q,sc);   // Fuß etwas eingesenkt, damit er am Hang nicht schwebt
-      const at=v=>new THREE.Vector3(v[0],v[1],v[2]).applyMatrix4(m);
-      t.parts.push({kind:'acaciaWood',leaf:false,c:hsl(rnd(0.06,0.09),rnd(0.14,0.22),rnd(0.3,0.38)),m});
-      t.parts.push({kind:'acaciaLeaf',leaf:true,c:hsl(hue,rnd(0.3,0.4),rnd(0.3,0.37)),m:m.clone()});
-      const cr=at(I.crown), pe=at(I.perch), sxz=(sx+sz)/2;
-      t.cx=cr.x; t.cz=cr.z; t.cy=cr.y; t.rx=I.rx*sxz; t.ry=I.ry*k; t.perch=[pe.x,pe.y,pe.z]; t.tr=I.trunkR*sxz;
+      // Schirmakazie: flache, breite Laubschirme; Liegeplatz oben auf der Krone
+      modelTree(t,'acacia',rnd(0.85,1.3),hsl(rnd(0.06,0.09),rnd(0.14,0.22),rnd(0.3,0.38)),hsl(rnd(0.19,0.25),rnd(0.3,0.4),rnd(0.3,0.37)),random);
     } else {
       // Urwaldbaum (selten ein Riese): Brettwurzeln, Äste mit eigenen Laubballen, oben hellere Blätter
       const big=random()<0.1, k=rnd(0.8,1.4), kb=k*(big?1.45:1), h=(big?rnd(10,12.5):rnd(5.5,8))*k, r=(big?0.62:0.42)*k;
@@ -135,8 +131,10 @@ function makeTree(o,random=Math.random){
   const lm=windy(new THREE.MeshLambertMaterial({color:0xffffff}));
   treeKinds.wood={geo:wg,mat:wm,list:woodMeshes};
   treeKinds.leaf={geo:leafGeoHi,mat:lm,list:leafMeshes};
-  treeKinds.acaciaWood={geo:modelGeometry(ACACIA.wood),mat:new THREE.MeshLambertMaterial({color:0xffffff,vertexColors:true}),list:modelMeshes};
-  treeKinds.acaciaLeaf={geo:modelGeometry(ACACIA.leaf),mat:windy(new THREE.MeshLambertMaterial({color:0xffffff,vertexColors:true})),list:modelMeshes};
+  const mwm=new THREE.MeshLambertMaterial({color:0xffffff,vertexColors:true}), mlm=windy(new THREE.MeshLambertMaterial({color:0xffffff,vertexColors:true}));
+  for(const name in TREE_MODELS){ const M=TREE_MODELS[name];
+    treeKinds[name+'Wood']={geo:modelGeometry(M.wood),mat:mwm,list:modelMeshes};
+    if(M.leaf) treeKinds[name+'Leaf']={geo:modelGeometry(M.leaf),mat:mlm,list:modelMeshes}; }
   const MS={};
   for(const kind in N){ const K=treeKinds[kind], ms=MS[kind]={}; for(const k in N[kind]){ const m=ms[k]=new THREE.InstancedMesh(K.geo,K.mat,N[kind][k]); K.list.push(m); registerTile(m,+k,84); } }
   const c=new THREE.Color();

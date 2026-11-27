@@ -45,6 +45,7 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 |---|---|
 | `index.html` | Seite, Stile und Oberfläche |
 | `src/acaciamodel.js` | Low-Poly-Modell der Schirmakazie (mit Meshy erzeugt, von `tools/meshy-model.cjs` umgewandelt; nicht von Hand ändern) |
+| `src/baobabmodel.js`, `src/deadtreemodel.js` | Low-Poly-Modelle von Affenbrotbaum und totem Baum (ebenso erzeugt) |
 | `src/actions.js` | Aktionen des Leoparden: Sprung, Klettern, Brüllen, Treffer austeilen und einstecken, Tod und Neubeginn |
 | `src/ai.js` | Tierverhalten: Rudeljagd, Flucht, Angriff, Herden |
 | `src/animals.js` | Alle Tiere der Welt: Anlegen pro Gebiet, Platzieren und Herden bilden |
@@ -99,7 +100,7 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 | `src/tracks.js` | Spuren und Fährten der Tiere |
 | `src/ui.js` | Meldungen (mit Warteschlange) und schwebende Texte |
 | `src/util.js` | Kleine Hilfsfunktionen ohne Spielzustand |
-| `src/vegetation.js` | Pflanzen: Bäume (mit Ausblenden vor der Kamera; die Schirmakazie als Low-Poly-Modell), Büsche, Felsen, Stämme, Blumen, Bodengras, hohes Gras als Versteck und die Felsen am Bau |
+| `src/vegetation.js` | Pflanzen: Bäume (mit Ausblenden vor der Kamera; Schirmakazie, Affenbrotbaum und toter Baum als Low-Poly-Modelle), Büsche, Felsen, Stämme, Blumen, Bodengras, hohes Gras als Versteck und die Felsen am Bau |
 | `src/weather.js` | Wetter: Regen und Gewitter |
 | `vendor/three.min.js` | three.js r128 |
 | `sw.js` | Service Worker für Installation und Offline-Betrieb |
@@ -109,7 +110,7 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 | `tests/check-names.js` | Meldet Namen, die ein Modul benutzt, aber weder anlegt noch importiert |
 | `tools/add-imports.py` | Ergänzt solche fehlenden Importe automatisch aus den Exporten der anderen Module |
 | `tools/coop-shot.py` | Splitscreen-Browsertest mit simulierten Controllern (Einsteigen, Bewegen, Aussteigen, Pause) |
-| `tools/meshy-model.cjs` | Wandelt ein Meshy-Modell (GLB mit Textur) in ein kleines JS-Modul um: Helligkeit je Dreieck statt Textur, Holz und Laub getrennt, Fuß auf den Boden. Aufruf: `node tools/meshy-model.cjs modell.glb src/ziel.js --name NAME --height 5.5` |
+| `tools/meshy-model.cjs` | Wandelt ein Meshy-Modell (GLB mit Textur) in ein kleines JS-Modul um: Helligkeit je Dreieck statt Textur, Holz und Laub getrennt, Fuß auf den Boden. Aufruf: `node tools/meshy-model.cjs modell.glb src/ziel.js --name NAME --height 5.5 [--perch 0.65]` (`--perch`: Liegeplatz auf diesem Anteil der Höhe, sonst oben auf dem Laub) |
 | `tools/shot.py` | Startet das Spiel in Headless-Chrome, öffnet alle Fenster, macht Bildschirmfotos und meldet Fehler |
 
 ## App-Version

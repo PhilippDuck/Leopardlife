@@ -2,7 +2,11 @@
 /*
  * Wandelt ein mit Meshy erzeugtes Low-Poly-Modell (GLB mit eingebetteter PNG-Textur) in ein kleines JS-Modul für das Spiel um.
  *
- *   node tools/meshy-model.cjs <modell.glb> <src/ziel.js> --name ACACIA --height 6
+ *   node tools/meshy-model.cjs <modell.glb> <src/ziel.js> --name ACACIA --height 6 [--perch 0.7]
+ *
+ * --perch: Liegeplatz auf diesem Anteil der Höhe über der Stammmitte (z. B. oben auf dem dicken Affenbrotbaum-Stamm
+ *          oder in der Astgabel). Ohne --perch liegt er oben auf dem Laub in der Kronenmitte.
+ * Das Werkzeug gibt außerdem den Stammradius je Höhenstufe aus, damit man --perch passend wählen kann.
  *
  * - Die Textur wird je Dreieck gemittelt: flache Farbflächen brauchen keine Textur, nur eine Helligkeit je Dreieck.
  *   Den Farbton gibt das Spiel je Baum vor (Instanzfarbe), damit jeder Baum etwas anders aussieht.
@@ -17,7 +21,7 @@ const zlib = require('zlib');
 function arg(name, def) { const i = process.argv.indexOf('--' + name); return i > 0 ? process.argv[i + 1] : def; }
 const [src, out] = process.argv.slice(2).filter((a, i, all) => !a.startsWith('--') && !(i > 0 && all[i - 1].startsWith('--')));
 if (!src || !out) { console.error('Aufruf: node tools/meshy-model.cjs <modell.glb> <ziel.js> --name NAME --height METER'); process.exit(1); }
-const NAME = arg('name', 'MODEL'), HEIGHT = +arg('height', 6);
+const NAME = arg('name', 'MODEL'), HEIGHT = +arg('height', 6), PERCH = arg('perch') === undefined ? null : +arg('perch');
 
 /* ---------- GLB lesen ---------- */
 const glb = fs.readFileSync(src);
@@ -94,6 +98,14 @@ for (let pass = 0; pass < 2; pass++) {
   for (let t = 0; t < tris; t++) { const n = [...neighbours[t]]; if (n.length < 3) continue; const same = n.filter((o) => triLeaf[o] === triLeaf[t]).length; if (same / n.length < 0.25) next[t] = !triLeaf[t]; }
   triLeaf.splice(0, tris, ...next);
 }
+// Kleine Laubinseln (z. B. grüne Streifen auf Ästen) gehören zum Holz: zusammenhängende Laubstücke unter MIN_LEAF Dreiecken umfärben
+const MIN_LEAF = 12, seen = new Uint8Array(tris);
+for (let t = 0; t < tris; t++) {
+  if (!triLeaf[t] || seen[t]) continue;
+  const group = [t]; seen[t] = 1;
+  for (let g = 0; g < group.length; g++) for (const o of neighbours[group[g]]) if (triLeaf[o] && !seen[o]) { seen[o] = 1; group.push(o); }
+  if (group.length < MIN_LEAF) for (const o of group) triLeaf[o] = false;
+}
 
 /* ---------- Ausrichten: Stammfuß auf y=0 im Ursprung, Höhe in Metern ---------- */
 let minY = Infinity, maxY = -Infinity;
@@ -127,15 +139,34 @@ const atHip = (i) => wood.verts[i + 1] > HEIGHT * 0.08 && wood.verts[i + 1] < HE
 for (let i = 0; i < wood.verts.length; i += 3) if (atHip(i)) { tx += wood.verts[i]; tz += wood.verts[i + 2]; tn++; }
 tx /= tn || 1; tz /= tn || 1;
 for (let i = 0; i < wood.verts.length; i += 3) if (atHip(i)) trunkR += Math.hypot(wood.verts[i] - tx, wood.verts[i + 2] - tz) / tn;
+// Krone: das Laub, bei Bäumen ohne Laub das Holz über 40 % der Höhe
 let cx = 0, cz = 0, cminY = Infinity, cmaxY = -Infinity, rx = 0;
-const lv = leaf.verts, ln = lv.length / 3;
+const lv = leaf.tris ? leaf.verts : wood.verts.filter((_, i, a) => a[i - (i % 3) + 1] > HEIGHT * 0.4), ln = lv.length / 3;
 for (let i = 0; i < lv.length; i += 3) { cx += lv[i] / ln; cz += lv[i + 2] / ln; cminY = Math.min(cminY, lv[i + 1]); cmaxY = Math.max(cmaxY, lv[i + 1]); }
 for (let i = 0; i < lv.length; i += 3) rx = Math.max(rx, Math.hypot(lv[i] - cx, lv[i + 2] - cz));
-// Liegeplatz: höchste Laubfläche in der Nähe der Kronenmitte (dort liegt der Leopard oben auf)
-let perchY = cminY;
-for (let i = 0; i < lv.length; i += 3) if (Math.hypot(lv[i] - cx, lv[i + 2] - cz) < rx * 0.35) perchY = Math.max(perchY, lv[i + 1]);
+// Stammradius je Höhenstufe (nur Ecken nahe der Stammachse), zur Wahl von --perch
+const band = (lo, hi) => { let x = 0, z = 0, n = 0; for (let i = 0; i < wood.verts.length; i += 3) { const y = wood.verts[i + 1]; if (y >= lo && y < hi) { x += wood.verts[i]; z += wood.verts[i + 2]; n++; } } return n ? [x / n, z / n, n] : null; };
+for (let f = 0; f < 1; f += 0.05) {
+  const b = band(f * HEIGHT, (f + 0.05) * HEIGHT); if (!b) continue;
+  let r = 0, n = 0; for (let i = 0; i < wood.verts.length; i += 3) { const y = wood.verts[i + 1]; if (y >= f * HEIGHT && y < (f + 0.05) * HEIGHT) { r = Math.max(r, Math.hypot(wood.verts[i] - b[0], wood.verts[i + 2] - b[1])); n++; } }
+  console.log(`  Höhe ${(f * 100).toFixed(0).padStart(3)} %: Holz-Ausdehnung ${r.toFixed(2)} m (${n} Ecken)`);
+}
+let perchX = cx, perchY = cminY, perchZ = cz;
+if (PERCH !== null) {
+  // Liegeplatz auf fester Höhe: Mitte der Holz-Ecken dort, die nahe der Stammachse liegen
+  // (Stammachse von unten nach oben verfolgen, damit abstehende Äste die Mitte nicht verschieben)
+  perchY = PERCH * HEIGHT; perchX = tx; perchZ = tz;
+  for (let y = HEIGHT * 0.15; y <= perchY + 1e-6; y += HEIGHT * 0.05) {
+    let x = 0, z = 0, n = 0;
+    for (let i = 0; i < wood.verts.length; i += 3) { const vy = wood.verts[i + 1]; if (Math.abs(vy - y) < HEIGHT * 0.04 && Math.hypot(wood.verts[i] - perchX, wood.verts[i + 2] - perchZ) < trunkR * 2 + 0.3) { x += wood.verts[i]; z += wood.verts[i + 2]; n++; } }
+    if (n) { perchX = x / n; perchZ = z / n; }
+  }
+} else {
+  // Liegeplatz: höchste Laubfläche in der Nähe der Kronenmitte (dort liegt der Leopard oben auf)
+  for (let i = 0; i < lv.length; i += 3) if (Math.hypot(lv[i] - cx, lv[i + 2] - cz) < rx * 0.35) perchY = Math.max(perchY, lv[i + 1]);
+}
 const r2 = (v) => Math.round(v * 100) / 100;
-const info = { height: HEIGHT, trunkR: r2(Math.max(0.15, trunkR)), trunk: [r2(tx), r2(tz)], crown: [r2(cx), r2((cminY + cmaxY) / 2), r2(cz)], crownBottom: r2(cminY), crownTop: r2(cmaxY), rx: r2(rx), ry: r2((cmaxY - cminY) / 2), perch: [r2(cx), r2(perchY), r2(cz)] };
+const info = { height: HEIGHT, trunkR: r2(Math.max(0.15, trunkR)), trunk: [r2(tx), r2(tz)], crown: [r2(cx), r2((cminY + cmaxY) / 2), r2(cz)], crownBottom: r2(cminY), crownTop: r2(cmaxY), rx: r2(rx), ry: r2((cmaxY - cminY) / 2), perch: [r2(perchX), r2(perchY), r2(perchZ)] };
 
 /* ---------- Ausgabe ---------- */
 const b64 = (Arr, data) => Buffer.from(new Arr(data).buffer).toString('base64');
@@ -145,7 +176,7 @@ const file = `// Erzeugt mit tools/meshy-model.cjs aus ${require('path').basenam
 export const ${NAME} = {
   info: ${JSON.stringify(info)},
   wood: ${enc(wood)},
-  leaf: ${enc(leaf)},
+  leaf: ${leaf.tris ? enc(leaf) : 'null'},
 };
 `;
 fs.writeFileSync(out, file);
