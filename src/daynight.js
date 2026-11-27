@@ -111,7 +111,8 @@ function doSleep(){
       p.hp=maxHp(L); p.st=maxSt(L);
       L.hunger=Math.max(5,Math.min(L.hunger-45,30));   // man wacht hungrig auf
       L.thirst=Math.max(10,Math.min((L.thirst??100)-40,40));   // … und durstig
-      if(L.lvl>=8) L.age+=secs; }
+      // Das Alter läuft wie im normalen Spiel in Echtzeit, nicht mit dem beschleunigten Schlaf-Zeitsprung.
+    }
     if(S.cub&&S.cub.grow<1) Object.values(kidsOf()).forEach(k=>{ k.full=Math.max(8,k.full-secs*0.28*D().hunger); });
     if(S.preg>0) S.preg=Math.max(0.1,S.preg-secs);
     G.raidT=rnd(90,130)*D().raid; if(G.raider) endRaid(G.raider);
