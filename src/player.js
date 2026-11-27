@@ -8,7 +8,7 @@ import { S, maxHp, maxSt } from './save.js';
 /* Spieler */
 // Blick beim Start und beim Aufwachen im Bau: seitlich an den Felsen vorbei ins offene Gelände
 const START_YAW=-1.9, START_ROT=1.24;
-const JAG={col:0xe0a23c,col2:0xf0c98a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.44,ears:0.15,tail:1.1,tailTip:0x2a1c10,spots:1};
+const JAG={leo:'adult',col:0xe0a23c,col2:0xf0c98a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.44,ears:0.15,tail:1.1,tailTip:0x2a1c10,spots:1};
 /**
  * Ein Spieler-Leopard: Position, Zustand, eigene Kamera und Steuerquelle.
  * Stufe, Eigenschaften und Fähigkeiten liegen (noch) gemeinsam im Spielstand S.
@@ -124,7 +124,7 @@ function makePlayer(o={}){
   rebuildPlayer(p); p.hp=maxHp(p.L); p.st=maxSt(p.L);
   return p;
 }
-function dropModel(g){ if(!g) return; scene.remove(g); const i=blobs.indexOf(g.userData.blob); if(i>=0) blobs.splice(i,1); }
+function dropModel(g){ if(!g) return; scene.remove(g); g.userData.dispose?.(); const i=blobs.indexOf(g.userData.blob); if(i>=0) blobs.splice(i,1); }
 /** Baut das Modell von Spieler p neu (nach Fellwechsel, Generationswechsel, Grafikstufe). */
 function rebuildPlayer(p=P){ dropModel(p.g); p.g=buildQuad(JAG,p.saveFur?(S.fur||null):p.fur); p.g.userData.blob.visible=!QUAL[quality].sh; scene.add(p.g); }
 const P=makePlayer();

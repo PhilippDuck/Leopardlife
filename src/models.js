@@ -1,6 +1,7 @@
 // LeoLife – Tiermodelle aus Blöcken, Fellvarianten (inkl. Albino und Panther), Zusammenführen starrer Teile, Laufanimation.
 import { blobs } from './quality.js';
 import { rnd } from './util.js';
+import { buildLeopard } from './leopard.js';
 
 /* ---------- Tiermodelle ---------- */
 const matCache={}; const M=c=>matCache[c]||(matCache[c]=new THREE.MeshLambertMaterial({color:c}));
@@ -42,7 +43,15 @@ function mergeRigid0(root,stops){
   done.forEach(m=>{ m.parent.remove(m); m.geometry.dispose(); });   // erst entfernen, wenn das neue Modell steht
   root.add(mesh);
 }
+/** Leopard aus dem Low-Poly-Modell mit Skelett (leopard.js): o.leo 'adult' oder 'cub', v Fellvariante (makeFur) */
+function leopardQuad(o,v){
+  const f=k=>v?furColor(o[k],v):o[k];
+  const g=buildLeopard(o.leo,{fur:f('col'),light:f('col2'),spot:v&&v.albino?0xd9cbb4:v&&v.melan?0x0b0908:0x2a1c10,nose:v&&v.albino?0xc8506a:0x1c1612},v);
+  const sh=new THREE.Mesh(shadowGeo,shadowMat); sh.scale.set(0.6,1,1.15); sh.position.y=0.03; g.add(sh); blobs.push(sh); g.userData.blob=sh;
+  return g;
+}
 function buildQuad(o,v){
+  if(o.leo) return leopardQuad(o,v);
   if(v){ o=Object.assign({},o); ['col','col2','mane','stripe','tailTip'].forEach(k=>{ if(o[k]!==undefined) o[k]=furColor(o[k],v); }); }
   const eyeC=v&&v.albino?0xc8506a:0x111111, noseC=v&&v.albino?0xd9a0a8:0x222222;
   // o: col, col2, len, hgt, wid, leg, head, ears, horns, tail, mane, spots, snout
