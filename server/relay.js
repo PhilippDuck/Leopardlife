@@ -2,7 +2,7 @@
 // Der Server rechnet nichts vom Spiel; ein Browser im Raum ist der Gastgeber (Host).
 //
 // Ablauf (JSON über WebSocket):
-//   Gerät → Relay  {t:'hello', v:1, key, name, create:true, world:{seed,region}}   Raum öffnen (wird Host)
+//   Gerät → Relay  {t:'hello', v:1, key, name, create:true, room:'ABCD', world:{seed,region}}   Raum öffnen (wird Host)
 //                  {t:'hello', v:1, key, name, room:'ABCD'}                        Raum beitreten
 //   Relay → Gerät  {t:'welcome', id, room, host, world, peers:[{id,name}]}
 //                  {t:'join', id, name} · {t:'leave', id} · {t:'end', why} · {t:'error', code, msg}
@@ -86,7 +86,10 @@ function startRelay(over={}){
     if(m.create){
       const world=cleanWorld(m.world); if(!world) return fail(ws,'world','Ungültige Welt.');
       if(rooms.size>=cfg.maxRooms) return fail(ws,'full','Der Server hat gerade zu viele Räume.');
-      const code=newRoomCode(rooms); if(!code) return fail(ws,'full','Kein Raumcode frei.');
+      const requested=typeof m.room==='string'?m.room.trim().toUpperCase():'';
+      if(requested&&!/^[A-Z]{4}$/.test(requested)) return fail(ws,'roomcode','Der Raumcode muss aus vier Buchstaben bestehen.');
+      if(requested&&rooms.has(requested)) return fail(ws,'occupied','Dieser Raumcode ist gerade belegt. Wähle „Neuer Code“ oder versuche es später erneut.');
+      const code=requested||newRoomCode(rooms); if(!code) return fail(ws,'full','Kein Raumcode frei.');
       r={code,host:ws.id,world,peers:new Map()}; rooms.set(code,r);
       log('Raum '+code+' geöffnet von '+ws.name);
     } else {
