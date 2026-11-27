@@ -5,6 +5,7 @@
  *   node tools/meshy-model.cjs <modell.glb> <src/ziel.js> --name ACACIA --height 6 [--perch 0.7] [--colors]
  *
  * --colors: alles ein Teil (wood), statt Helligkeit die echte Farbe je Dreieck (rgb) – für Felsen, Termitenhügel, Blüten …
+ * --saturation 0.5: Farben entsättigen (nur mit --colors)
  *
  * --perch: Liegeplatz auf diesem Anteil der Höhe über der Stammmitte (z. B. oben auf dem dicken Affenbrotbaum-Stamm
  *          oder in der Astgabel). Ohne --perch liegt er oben auf dem Laub in der Kronenmitte.
@@ -26,6 +27,8 @@ if (!src || !out) { console.error('Aufruf: node tools/meshy-model.cjs <modell.gl
 const NAME = arg('name', 'MODEL'), HEIGHT = +arg('height', 6), PERCH = arg('perch') === undefined ? null : +arg('perch');
 // --colors: ein Teil mit echter Farbe je Dreieck (für Felsen, Termitenhügel, Aloe …), kein Laub
 const COLORS = process.argv.includes('--colors');
+// --saturation f: Sättigung der Farben mit f malnehmen (z. B. 0.5 für erdige statt knallige Töne)
+const SATURATION = arg('saturation') === undefined ? 1 : +arg('saturation');
 
 /* ---------- GLB lesen ---------- */
 const glb = fs.readFileSync(src);
@@ -122,6 +125,8 @@ fx /= fn || 1; fz /= fn || 1;
 const P = (i) => [(pos[i * 3] - fx) * scale, (pos[i * 3 + 1] - minY) * scale, (pos[i * 3 + 2] - fz) * scale];
 
 /* ---------- Teile bauen ---------- */
+/** Farbe zur Graustufe hin ziehen (gleiche Helligkeit), Faktor SATURATION */
+function desat(c) { const g = 0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2]; return c.map((v) => g + (v - g) * SATURATION); }
 function part(leaf) {
   const map = new Map(), verts = [], index = [], shade = [];
   const list = []; for (let t = 0; t < tris; t++) if (triLeaf[t] === leaf) list.push(t);
@@ -131,7 +136,7 @@ function part(leaf) {
     for (let k = 0; k < 3; k++) { const i = idx[t * 3 + k]; if (!map.has(i)) { map.set(i, verts.length / 3); verts.push(...P(i)); } index.push(map.get(i)); }
     shade.push(Math.round(Math.min(2, Math.max(0.3, Math.sqrt(lum(triCol[t]) / mean))) * 100));   // Helligkeit relativ zum Mittel, 100 = 1.0
   }
-  const rgb = []; for (const t of list) rgb.push(...triCol[t].map((v) => Math.round(Math.min(255, v))));
+  const rgb = []; for (const t of list) rgb.push(...desat(triCol[t]).map((v) => Math.round(Math.min(255, Math.max(0, v)))));
   return { verts, index, shade, rgb, tris: list.length, color: meanCol.map(Math.round) };
 }
 const wood = part(false), leaf = part(true);

@@ -50,6 +50,37 @@ const KINDS={
 };
 for(const k in KINDS) KINDS[k].geos=KINDS[k].parts.map(([p,m])=>[modelGeometry(p),m]);
 
+/* ---------- Erdfleck am Fuß der Termitenhügel ----------
+   Ausgeblichene Erde in der Form des Hügels (Umriss aus den unteren Ecken des Modells), die nach außen hin ausläuft. */
+const APRON_N=24, APRON_OUT=2.3;
+/** Umriss des Hügels am Boden: größter Abstand der unteren Ecken je Winkelstück (geglättet) */
+const moundFoot=(function(){
+  const P=KINDS.termite.geos[0][0].attributes.position, f=new Array(APRON_N).fill(0.3);
+  for(let i=0;i<P.count;i++){ const y=P.getY(i); if(y>0.35) continue; const x=P.getX(i), z=P.getZ(i), k=Math.floor((Math.atan2(z,x)/6.283+1)*APRON_N)%APRON_N; f[k]=Math.max(f[k],Math.hypot(x,z)); }
+  return f.map((_,k)=>(f[(k+APRON_N-1)%APRON_N]+2*f[k]+f[(k+1)%APRON_N])/4);
+})();
+/** Verlauf: innen fast deckend, außen durchsichtig (über die u-Koordinate) */
+const apronTex=(function(){
+  const cv=document.createElement('canvas'); cv.width=64; cv.height=1; const ctx=cv.getContext('2d'); if(!ctx||!ctx.createLinearGradient) return null;
+  const g=ctx.createLinearGradient(0,0,64,0); g.addColorStop(0,'rgba(255,255,255,0.78)'); g.addColorStop(0.45,'rgba(255,255,255,0.4)'); g.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle=g; ctx.fillRect(0,0,64,1); const t=new THREE.CanvasTexture(cv); t.wrapS=THREE.ClampToEdgeWrapping; return t;
+})();
+const apronMat=new THREE.MeshLambertMaterial({map:apronTex,vertexColors:true,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});
+/** Eine Geometrie für alle Erdflecken der Hügel in list (folgt dem Gelände), Farbe wie der Hügel, etwas blasser */
+function apronMesh(list){
+  const pos=[], uv=[], col=[], idx=[], c=new THREE.Color(), base=new THREE.Color(0xa58466);
+  for(const p of list){
+    c.setHex(p.c??0xffffff).multiply(base);
+    const ca=Math.cos(p.a), sa=Math.sin(p.a), o=pos.length/3, ring=(f,u)=>{ for(let k=0;k<APRON_N;k++){
+      const an=(k+0.5)/APRON_N*6.283, r=moundFoot[k]*f*p.s, lx=Math.cos(an)*r, lz=Math.sin(an)*r;
+      const x=p.x+lx*ca+lz*sa, z=p.z-lx*sa+lz*ca; pos.push(x,H(x,z)+0.05,z); uv.push(u,0.5); col.push(c.r,c.g,c.b); } };
+    ring(0.9,0); ring(APRON_OUT,1);
+    for(let k=0;k<APRON_N;k++){ const a=o+k, b=o+(k+1)%APRON_N; idx.push(a,b,a+APRON_N, b,b+APRON_N,a+APRON_N); }
+  }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); g.setAttribute('color',new THREE.Float32BufferAttribute(col,3)); g.setIndex(idx); g.computeVertexNormals();
+  const m=new THREE.Mesh(g,apronMat); m.receiveShadow=true; m.frustumCulled=false; m.userData.ownGeo=true; return m;
+}
+
 /**
  * Instanz-Modelle für Plätze einer Sorte. Plätze: {x,z,y,a (Drehung),s (Größe),sy (Höhe, sonst s),c (Farbe, Hex; sonst weiß)}
  * @returns {any[]}
@@ -62,7 +93,7 @@ function propMeshes(kind,list){
     mesh.castShadow=!K.noShadow; mesh.receiveShadow=true; mesh.frustumCulled=false;
     if(mat===propLeafMat) mesh.onBeforeRender=propTick;
     return mesh;
-  });
+  }).concat(kind==='termite'&&apronTex?[apronMesh(list)]:[]);
 }
 
 /* ---------- Plätze ---------- */
@@ -77,7 +108,7 @@ function cellProps(x0,z0,rng,skip,kop){
   const at=()=>({x:x0+4+rng()*(CHUNK-8),z:z0+4+rng()*(CHUNK-8)});
   const put=(kind,p,s,extra)=>out[kind].push(Object.assign({x:p.x,z:p.z,y:H(p.x,p.z),a:rng()*6.283,s},extra));
   const tries=(n,chance,minDry,fn)=>{ for(let i=0;i<n;i++){ const p=at(), r=rng(); if(r<chance&&dryness(p.x,p.z)>=minDry&&free(p.x,p.z,3)) fn(p); } };
-  tries(2,0.2,0.35,p=>put('termite',p,0.75+rng()*0.5,{y:H(p.x,p.z)-0.2,c:propHsl(0.04+rng()*0.03,0.25+rng()*0.15,0.75+rng()*0.2)}));
+  tries(2,0.2,0.35,p=>put('termite',p,0.75+rng()*0.5,{y:H(p.x,p.z)-0.2,c:propHsl(0.07+rng()*0.04,0.08+rng()*0.1,0.82+rng()*0.16)}));
   tries(1,0.18,0.5,p=>put('euphorbia',p,0.8+rng()*0.4,{y:H(p.x,p.z)-0.1}));
   tries(2,0.4,0.4,p=>put('bush',p,0.8+rng()*0.5,{c:propHsl(0.15+rng()*0.08,0.25+rng()*0.15,0.75+rng()*0.2)}));
   tries(1,0.35,0.3,p=>put('rocks',p,0.7+rng()*0.8,{y:H(p.x,p.z)-0.12,c:propHsl(0.08,0.06,0.8+rng()*0.25)}));
@@ -148,7 +179,7 @@ function fillProps(chunk){
     if(quality==='low'&&(kind==='aloe'||kind==='bones')) list=list.filter((_,i)=>i%2===0);   // nur Zierde: auf „niedrig“ weniger
     for(const m of propMeshes(kind,list)){
       scene.add(m); const cu=registerCull(m,x0+CHUNK/2,z0+CHUNK/2,55);
-      cleanup.push(()=>{ unregisterCull(cu); scene.remove(m); m.dispose?.(); });
+      cleanup.push(()=>{ unregisterCull(cu); scene.remove(m); m.dispose?.(); if(m.userData.ownGeo) m.geometry.dispose(); });
     }
   }
   if(cleanup.length) chunk.content.push({
