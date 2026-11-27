@@ -57,9 +57,9 @@ const treeKinds={}; const modelMeshes=[];
  */
 function modelTree(t,name,k,woodColor,leafColor,random){
   const M=TREE_MODELS[name], I=M.info, sx=k*(0.9+random()*0.22), sz=k*(0.9+random()*0.22);
-  const q=new THREE.Quaternion().setFromAxisAngle(_UP,random()*6.283);
+  const ang=random()*6.283, ca=Math.cos(ang), sa=Math.sin(ang), q=new THREE.Quaternion().setFromAxisAngle(_UP,ang);
   const m=new THREE.Matrix4().compose(new THREE.Vector3(0,-0.15,0),q,new THREE.Vector3(sx,k,sz));   // Fuß etwas eingesenkt, damit er am Hang nicht schwebt
-  const at=v=>new THREE.Vector3(v[0],v[1],v[2]).applyMatrix4(m);
+  const at=v=>{ const x=v[0]*sx, z=v[2]*sz; return {x:x*ca+z*sa,y:v[1]*k-0.15,z:-x*sa+z*ca}; };   // wie m, als Zahlen
   t.parts.push({kind:name+'Wood',leaf:false,c:woodColor,m});
   if(M.leaf) t.parts.push({kind:name+'Leaf',leaf:true,c:leafColor,m:m.clone()});
   const cr=at(I.crown), pe=at(I.perch), sxz=(sx+sz)/2;

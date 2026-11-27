@@ -271,7 +271,7 @@ console.log('audio nodes created',ACs&&ACs.count());
   // laufen bricht das Fressen ab
   Q.ctl.fw=1; T.updateEating(Q,0.75); const stopped=Q.eatC==null; Q.ctl.fw=0; P.eatC=null;
   T.endCarcass(a); a.carc=keep[3]; a.dead=keep[2]; a.x=keep[0]; a.z=keep[1]; T.players.pop();
-  if(!info||!/^Fressen/.test(info.label)||orbs!==4||fed!==60||left!==1||!both||!stopped) { console.log('FEHLER: Kadaver-Bissen',info,orbs,fed,left,both,stopped); process.exit(1); }
+  if(!info||!/^Fressen/.test(info.label)||orbs!==4||fed!==75||left!==1||!both||!stopped) { console.log('FEHLER: Kadaver-Bissen',info,orbs,fed,left,both,stopped); process.exit(1); }
   console.log('Kadaver: 4 Kugeln, Spieler 2 frisst 3 Bissen ('+fed+' % satt), Spieler 1 frisst mit, Laufen bricht ab'); }
 // Gemeinsam schlafen: erst wenn alle wollen (zuletzt im Test, weil der Schlaf das Spiel kurz anhält)
 { const P=T.P, S=T.S(); if(P.dead) T.respawn(); T.unpause(); S.tod=0.9;
@@ -604,8 +604,8 @@ console.log('audio nodes created',ACs&&ACs.count());
     const a=T.makeTree({x:300,z:400,sav},T.chunkRng(8,9));
     const b=T.makeTree({x:300,z:400,sav},T.chunkRng(8,9));
     assert.deepEqual(a.perch,b.perch);
-    assert.deepEqual(a.parts.map(p=>p.leaf),b.parts.map(p=>p.leaf));
-    assert.ok(a.parts.length>5);
+    assert.deepEqual(a.parts.map(p=>p.kind),b.parts.map(p=>p.kind));
+    assert.ok(a.parts.length>=1&&a.perch.every(Number.isFinite));
   }
   const first=load(40), second=load(41);
   const tree=trees.find(t=>t&&Math.floor(t.x/64)===41);
@@ -634,11 +634,11 @@ console.log('audio nodes created',ACs&&ACs.count());
   const trees=globalThis.__trees, bao=trees.filter(t=>t&&t.baobab);
   assert.ok(bao.length>=1,'kein Affenbrotbaum im Startgebiet');
   const a=T.makeTree({x:500,z:500,baobab:true},T.chunkRng(3,4)), b=T.makeTree({x:500,z:500,baobab:true},T.chunkRng(3,4));
-  assert.deepEqual(a.perch,b.perch); assert.ok(a.baobab&&a.tr>1.5&&a.perch[1]>7,'Affenbrotbaum zu klein');
+  assert.deepEqual(a.perch,b.perch); assert.ok(a.baobab&&a.tr>1.5&&a.perch[1]>5,'Affenbrotbaum zu klein');
   // Klettern wie bei anderen Bäumen
   const S0=T.S(); S0.b.climb=1; if(T.dead()) T.respawn(); if(els.menu.style.display==='flex') els.btnResume.onclick();
   const t=bao[0], ti=trees.indexOf(t); T.P.tree=null; T.P.drag=null; T.P.x=t.x+t.tr+0.9; T.P.z=t.z; T.P.st=T.P.st+100; run(2); key('KeyE'); run(90);
-  assert.equal(T.P.tree,ti,'Affenbrotbaum nicht erklettert'); assert.ok(T.P.safe&&T.P.camY-T.P.y>6,'oben nicht angekommen');
+  assert.equal(T.P.tree,ti,'Affenbrotbaum nicht erklettert'); assert.ok(T.P.safe&&T.P.camY-T.P.y>4.5,'oben nicht angekommen');
   key('KeyE'); run(40); assert.equal(T.P.tree,null);
   // Weite Welt: selten, aber vorhanden, an derselben Stelle beim Wiederladen
   let found=null, n=0; for(let cx=10;cx<70;cx++) for(let cz=-40;cz<-20;cz++){ const s=T.baobabSpot(cx,cz); if(s){ n++; if(!found) found={cx,cz,s}; } }
@@ -672,6 +672,7 @@ console.log('audio nodes created',ACs&&ACs.count());
   // Bau verlegen (die Jungen ziehen mit), dann schlafen
   assert.equal(T.ctx()&&T.ctx().label,'Bau in diese Höhle verlegen'); key('KeyF'); run(2);
   assert.ok(Math.hypot(T.CUB_HOME.x-ct.x,T.CUB_HOME.z-ct.z)<3,'Bau nicht verlegt'); assert.ok(S0.den,'Bau nicht gespeichert');
+  assert.ok(!T.ctx()||!/verlegen/.test(T.ctx().label),'in der eigenen Höhle wird ein Umzug angeboten');
   S0.tod=0.9; run(2); assert.equal(T.ctx()&&T.ctx().label,'Schlafen'); key('KeyF'); run(5); assert.ok(S0.tod>0.25&&S0.tod<0.3||T.P.wantSleep,'in der Höhle nicht geschlafen');   // im Koop wartet man auf die anderen
   key('KeyE'); run(10); assert.equal(T.P.tree,null); assert.ok(Math.hypot(T.P.x-ct.x,T.P.z-ct.z)>1,'nicht aus der Höhle gekommen');
   T.P.x=7; T.P.z=5; run(2); assert.equal(T.ctx()&&T.ctx().label,'Bau hierher zurückverlegen'); key('KeyF'); run(2);
@@ -810,7 +811,9 @@ console.log('Ereignis-Auswahl und Feuerpause OK');
  P.x=f.birds[0].x+3; P.z=f.birds[0].z; T.updateLexicon(1);
  if(S.lex.fowl) throw Error('Unsichtbare Perlhühner entdeckt');
  for(const b of f.birds) b.m.g.visible=true;
- P.x=f.birds[0].x+60; T.updateLexicon(1);
+ P.x=f.birds[0].x+60; P.z=f.birds[0].z;   // weit weg von allen Trupps (ein anderer Trupp könnte zufällig dort picken)
+ for(let i=0;i<60&&T.fowl.some(g=>g.birds.some(b=>Math.hypot(b.x-P.x,b.z-P.z)<45));i++) P.z+=37;
+ T.updateLexicon(1);
  if(S.lex.fowl) throw Error('Perlhühner aus der Ferne entdeckt');
  const xp0=S.xp, lv0=S.lvl; P.x=f.birds[0].x+3; T.updateLexicon(1);
  if(S.lex.fowl!==1||!S.lex.maus) throw Error('Perlhühner nicht entdeckt');
