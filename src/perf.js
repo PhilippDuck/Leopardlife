@@ -3,6 +3,7 @@ import { renderer, sun } from './engine.js';
 import { PX_BASE } from './quality.js';
 import { G } from './state.js';
 import { $ } from './util.js';
+import { net } from './net.js';
 
 /* Leistung: Schattenkarte nur jedes zweite Bild, Auflösung passt sich der Bildrate an, Bildrate auf Wunsch anzeigen */
 let autoRes=true, showFps=false, fpsN=0, fpsT=0, fpsVal=0, shadowTick=0;
@@ -21,7 +22,7 @@ function perfTick(now){
         if(fpsVal<48&&G.pxScale>0.55){ G.pxScale=Math.max(0.55,G.pxScale-0.1); renderer.setPixelRatio(PX_BASE*G.pxScale); }
         else if(fpsVal>57&&G.pxScale<1){ G.pxScale=Math.min(1,G.pxScale+0.05); renderer.setPixelRatio(PX_BASE*G.pxScale); }
       }
-      if(showFps) $('fps').textContent=Math.round(fpsVal)+' Bilder/s · Auflösung '+Math.round(G.pxScale*100)+' %';
+      if(showFps) $('fps').textContent=Math.round(fpsVal)+' Bilder/s · Auflösung '+Math.round(G.pxScale*100)+' %'+(net.state==='online'?' · Ping '+(typeof net.ping==='number'?Math.round(net.ping)+' ms':'–'):'');
     }
     fpsT=now; fpsN=0;
   }

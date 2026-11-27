@@ -17,6 +17,13 @@ function H0(x,z){ const h=Hn(x,z), d=Math.hypot(x-7,z-5); if(d>=22) return h; le
 function moisture(x,z){
   return Math.max(0,Math.min(1,0.5+1.3*snoise(x/420+NO[0][0],z/420+NO[0][1])));
 }
+/** Feuchte Senken mit Schilf: fest aus Weltsamen und Position abgeleitet, weich begrenzt statt harter Biome-Kante. */
+function swampFactor(x,z){
+  const wet=moisture(x,z), detail=0.5+0.5*snoise(x/95+NO[1][0],z/95+NO[1][1]);
+  const smooth=(a,b,v)=>{ const t=Math.max(0,Math.min(1,(v-a)/(b-a))); return t*t*(3-2*t); };
+  const regional=REG.n==='Sumpf'?0.5:0;
+  return Math.max(regional,smooth(0.72,0.9,wet)*smooth(0.18,0.55,detail));
+}
 function dryness(x,z){
   const distance=Math.hypot(x,z);
   const original=Math.min(1,Math.max(0,(distance-60)/130));
@@ -96,7 +103,7 @@ const riverEdge=(x,z)=>riverNear(x,z).e;
 /** Gelände mit Aue, aber ohne Wasserbecken (Pegel der Wasserlöcher) */
 function Hv(x,z){ const r=riverNear(x,z), h=H0(x,z); return r.vw>0?h+(r.vt-h)*r.vw:h; }
 // Jedes zweite Wasserloch ist ein trüber Tümpel: braunes Wasser, in dem man ein abgetauchtes Krokodil nicht sieht.
-const PONDS=REG.ponds.map((p,i)=>({x:p[0],z:p[1],r:p[2],L:Hv(p[0],p[1]),murky:i%2===1}));
+const PONDS=REG.ponds.map((p,i)=>({x:p[0],z:p[1],r:p[2],L:Hv(p[0],p[1]),murky:i%2===1||swampFactor(p[0],p[1])>0.4}));
 const wpCache=new Map();
 function worldPond(x,z){
   const gx=Math.floor(x/256), gz=Math.floor(z/256), key=gx*100003+gz;
@@ -105,7 +112,7 @@ function worldPond(x,z){
   let p=null;
   if(!(Math.hypot(px,pz)<WORLD+50||moisture(px,pz)<0.62||riverEdge(px,pz)<RIV_POND_GAP)){
     const h=Math.sin(px*12.9898+pz*78.233)*43758.5453;   // fest je Tümpel: gut die Hälfte ist trüb
-    p={x:px,z:pz,r:14+moisture(px,pz)*10,L:Hv(px,pz),murky:h-Math.floor(h)<0.45};
+    p={x:px,z:pz,r:14+moisture(px,pz)*10,L:Hv(px,pz),murky:h-Math.floor(h)<0.45+0.35*swampFactor(px,pz)};
   }
   wpCache.set(key,p); return p;
 }
@@ -269,4 +276,4 @@ function collide(x,z,rad,skipLow){
   _col.x=x; _col.z=z; return _col;
 }
 
-export { RIV_SWIM, RIV_HEAD, RIV_LAKE, riverEdge, lakePond, Hv, riverDepth, RIV_FORD, fordX, riverLevel, riverMarks, riverNear, waterDepth, samePond, GLSL_DRY, moisture, dryness, worldPond, streamedPonds, removeSight, addSight, sightAt, GLSL_H, GLSL_PONDMASK, H, H0, PONDS, WATER_D, WORLD, addCol, collide, cullTiles, hash2, inWater, nearestPond, onView, pondAt, registerCull, registerTile, removeCol, tileOf, unregisterCull, vnoise, waters };
+export { RIV_SWIM, RIV_HEAD, RIV_LAKE, riverEdge, lakePond, Hv, riverDepth, RIV_FORD, fordX, riverLevel, riverMarks, riverNear, waterDepth, samePond, GLSL_DRY, moisture, swampFactor, dryness, worldPond, streamedPonds, removeSight, addSight, sightAt, GLSL_H, GLSL_PONDMASK, H, H0, PONDS, WATER_D, WORLD, addCol, collide, cullTiles, hash2, inWater, nearestPond, onView, pondAt, registerCull, registerTile, removeCol, tileOf, unregisterCull, vnoise, waters };

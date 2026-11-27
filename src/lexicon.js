@@ -35,7 +35,8 @@ const LEX={
   snake:'Liegt getarnt im Gras und zischt, bevor sie beißt. Ihr Gift wirkt nach.',
   gnu:'Zieht in großen Herden durch die Savanne. Achtung vor den trampelnden Hufen.',
   rival:'Ein fremder Leopard, der dein Revier will.',
-  poacher:'Schießt auf alles, was sich bewegt. Vertreiben, nicht töten – Brüllen hilft.'
+  poacher:'Schießt auf alles, was sich bewegt. Vertreiben, nicht töten – Brüllen hilft.',
+  fish:'Welse und Buntbarsche halten sich in flachem Uferwasser auf. Ein Sprung kann einen kleinen Fisch erwischen; Schleichen erhöht die Chance.'
 };
 const LEX_XP=5;
 /* Vögel sind keine SPECIES: eigene Einträge, entdeckt, sobald einer sichtbar und nah genug ist (r: Abstand am Boden) */
@@ -44,9 +45,9 @@ const LEX_BIRDS=[
   {id:'fowl',n:'Perlhühner',r:18,spots:fowlSpots,tip:'Picken in kleinen Trupps im Gras und schlagen laut Alarm, wenn ein Jäger kommt. Schleichend kommst du näher heran.'},
   {id:'oxpecker',n:'Madenhacker',r:15,spots:oxpeckerSpots,tip:'Sitzen auf dem Rücken großer Huftiere und warnen sie zischend. Schleich dich langsam an.'}
 ];
-const lexIds=SPECIES.filter(s=>LEX[s.id]).map(s=>s.id).concat(LEX_BIRDS.map(b=>b.id));
+const lexIds=SPECIES.filter(s=>LEX[s.id]).map(s=>s.id).concat(['fish'],LEX_BIRDS.map(b=>b.id));
 const lex=()=>S.lex||(S.lex={});
-const lexEntry=id=>{ const b=LEX_BIRDS.find(o=>o.id===id); if(b) return {n:b.n,tip:b.tip}; const sp=SPECIES.find(o=>o.id===id); return {n:sp.n,tip:LEX[id]}; };
+const lexEntry=id=>{ const b=LEX_BIRDS.find(o=>o.id===id); if(b) return {n:b.n,tip:b.tip}; if(id==='fish') return {n:'Fische',tip:LEX.fish}; const sp=SPECIES.find(o=>o.id===id); return {n:sp.n,tip:LEX[id]}; };
 /** Spieler p sieht Tier a deutlich genug, um es ins Lexikon aufzunehmen? */
 function seesClearly(p,a,d){
   if(a.hidden) return false;
@@ -62,6 +63,7 @@ function discoverId(p,id,xp){
   gainXp(xp,p); renderLexBtn();
 }
 const discover=(p,a)=>discoverId(p,a.sp.id,LEX_XP);
+G.discoverFish=p=>discoverId(p,'fish',LEX_XP);
 /** Vögel: sichtbar und nah genug? */
 function birdCheck(p){
   for(const b of LEX_BIRDS){ if(lex()[b.id]) continue;

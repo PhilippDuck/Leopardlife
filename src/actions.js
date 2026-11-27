@@ -26,6 +26,7 @@ import { toggleSkills } from './skills.js';
 import { assistBite, bitable, biteHit, forgetWounds, startBite } from './bite.js';
 import { SWITCH_AT, cubLearn, cubSpot, growOf, hasOwnCub, heirLevel } from './cubfollow.js';
 import { humanHit } from './worldevents.js';
+import { tryFishCatch } from './fish.js';
 
 /* ---------- Aktionen ---------- */
 /** Index des nächsten erreichbaren Baums für Spieler p, sonst -1. */
@@ -71,6 +72,11 @@ function doPounce(p=P){
   if(p.tree!=null){ if(p.climbT<1) return; const h=p.upNow; p.leap=true; leaveTree(p,1); p.dropRate=h/(0.55+0.04*p.L.b.jmp); }
   p.st-=15; p.pounce=(p.leap?0.55:0.38)+0.04*p.L.b.jmp; p.pT=p.pounce; p.pcd=1.3-0.2*p.L.b.jmp; p.hit=false; snd.pounce();
   if(!pounceRun(p)) p.rot=Math.atan2(-Math.sin(p.cam.yaw),-Math.cos(p.cam.yaw));   // sonst: in die Richtung, in die er gerade läuft bzw. schaut
+  if(tryFishCatch(p)){
+    p.L.hunger=Math.min(100,p.L.hunger+12); floatText('Fisch gefangen · +12 Sättigung',p.x,p.y+1.8*pScale(p.L),p.z,'#9ed7ce');
+    tell(p,'Ein kleiner Fisch – nicht viel, aber besser als nichts. +2 EP','#9ed7ce'); gainXp(2,p);
+    if(G.discoverFish) G.discoverFish(p); save();
+  }
 }
 /** Richtung des Sprungangriffs je Spieler: zum Fadenkreuz (Kamera) oder in die aktuelle Laufrichtung. Jeder stellt es für sich ein (gespeichert je Spielernummer). */
 const pKey=p=>'jaguar-pounce'+((p.num||1)>1?'-'+p.num:'');
