@@ -7,10 +7,14 @@ import { GLSL_DRY, GLSL_H, GLSL_PONDMASK, H, PONDS, WORLD, addCol, addSight, dry
 import { rnd } from './util.js';
 import { P } from './player.js';
 import { kopjeNear } from './kopjesites.js';
+import { ACACIA } from './acaciamodel.js';
+import { modelGeometry } from './meshmodel.js';
 import { addWaterPlants } from './waterplants.js';
 
 /* Bäume: aus mehreren Teilen (Stamm, Äste, Wurzeln, Laubballen). Arten: Urwaldbaum, Urwaldriese, Schirmakazie, toter Baum, Palme am Wasser.
-   Werden ausgeblendet, wenn ihre Krone zwischen Kamera und Leopard steht. */
+   Werden ausgeblendet, wenn ihre Krone zwischen Kamera und Leopard steht.
+   Jedes Teil hat eine Sorte (kind): 'wood' und 'leaf' sind Zylinder und Laubballen; die Schirmakazie ist ein fertiges Modell
+   (acaciaWood, acaciaLeaf aus acaciamodel.js). Je Sorte gibt es eigene Instanz-Modelle (treeKinds). */
 const trees=[]; let woodMeshes=[], leafMeshes=[], leafGeoHi=null, leafGeoLo=null; const dirtyTree=new Set(); const leafTime={value:0};
 const _tm=new THREE.Matrix4(), _tb=new THREE.Matrix4(), _tq=new THREE.Quaternion(), _tv=new THREE.Vector3(), _UP=new THREE.Vector3(0,1,0);
 function setTree(i){
@@ -28,13 +32,27 @@ function blobGeo(detail){
     Je Teil ein eigener Strom, damit eine Änderung an einem Teil die anderen nicht verschiebt. */
 function vegRng(k){ const r=seeded((WORLD_SEED^k)>>>0); return {r,rr:(a,b)=>a+r()*(b-a)}; }
 const hsl=(h,s,l)=>new THREE.Color().setHSL(h,s,l).getHex();
+/** Laub wiegt sich im Wind: verschiebt die Ecken im Vertex-Shader nach Zeit, Ort und Windrichtung */
+function windy(mat){
+  mat.onBeforeCompile=sh=>{
+    sh.uniforms.uTime=leafTime;
+    sh.uniforms.uWind=windU;
+    sh.vertexShader='uniform float uTime; uniform vec2 uWind;\n'+sh.vertexShader.replace('#include <project_vertex>',
+      'vec4 wp=vec4(transformed,1.0);\n#ifdef USE_INSTANCING\n wp=instanceMatrix*wp;\n#endif\n wp=modelMatrix*wp;\n'+
+      ' float sw=sin(uTime*1.3+wp.x*0.21+wp.z*0.17)*0.16+sin(uTime*2.7+wp.x*0.7+wp.y*0.5)*0.05;\n wp.xz+=uWind*(sw+0.05);\n'+
+      ' vec4 mvPosition=viewMatrix*wp;\n gl_Position=projectionMatrix*mvPosition;');
+  };
+  return mat;
+}
+/** Geometrie, Material und Liste der Instanz-Modelle je Teil-Sorte (wird beim Anlegen des Startgebiets gefüllt) */
+const treeKinds={}; const modelMeshes=[];
 function makeTree(o,random=Math.random){
     const rnd=(min,max)=>min+random()*(max-min);
     const t={x:o.x,z:o.z,y:H(o.x,o.z),f:1,parts:[],cx:0,cz:0};
     const wood=(a,b,r,c)=>{ const dx=b[0]-a[0], dy=b[1]-a[1], dz=b[2]-a[2], len=Math.hypot(dx,dy,dz)||0.01;
       _tq.setFromUnitVectors(_UP,_tv.set(dx/len,dy/len,dz/len));
-      t.parts.push({leaf:false,c,m:new THREE.Matrix4().compose(new THREE.Vector3(a[0],a[1],a[2]),_tq.clone(),new THREE.Vector3(r,len,r))}); };
-    const leaf=(p,sx,sy,sz,c,q)=>t.parts.push({leaf:true,c,m:new THREE.Matrix4().compose(new THREE.Vector3(p[0],p[1],p[2]),
+      t.parts.push({kind:'wood',leaf:false,c,m:new THREE.Matrix4().compose(new THREE.Vector3(a[0],a[1],a[2]),_tq.clone(),new THREE.Vector3(r,len,r))}); };
+    const leaf=(p,sx,sy,sz,c,q)=>t.parts.push({kind:'leaf',leaf:true,c,m:new THREE.Matrix4().compose(new THREE.Vector3(p[0],p[1],p[2]),
       q||new THREE.Quaternion().setFromEuler(new THREE.Euler(rnd(-0.25,0.25),random()*6.28,rnd(-0.25,0.25))),new THREE.Vector3(sx,sy,sz))});
     if(o.palm){
       // Palme: gebogener Stamm aus Segmenten, Wedel hängen nach unten
@@ -69,15 +87,15 @@ function makeTree(o,random=Math.random){
         wood(s,e,0.13*k,bark); const b=a+rnd(-0.9,0.9); wood(e,[e[0]+Math.cos(b)*0.9*k,e[1]+0.7*k,e[2]+Math.sin(b)*0.9*k],0.07*k,bark); }
       t.cx=top[0]*0.7; t.cz=top[2]*0.7; t.cy=h*0.75; t.rx=1.5*k; t.ry=h*0.3; t.perch=[top[0],h,top[2]]; t.tr=0.28*k;
     } else if(o.sav){
-      // Schirmakazie: kurzer Stamm, gabelt sich, flache breite Laubschirme
-      const k=rnd(0.85,1.3), h1=rnd(1.8,2.8)*k, bark=hsl(0.06,0.25,rnd(0.17,0.24)), ln=[rnd(-0.3,0.3)*k,h1,rnd(-0.3,0.3)*k], hue=rnd(0.19,0.25);
-      wood([0,-0.2,0],ln,0.3*k,bark);
-      const nf=2+Math.floor(random()*2); let top=0;
-      for(let j=0;j<nf;j++){ const a=j/nf*6.283+rnd(-0.5,0.5), L=rnd(1.6,2.6)*k, e=[ln[0]+Math.cos(a)*L,h1+rnd(1.8,2.8)*k,ln[2]+Math.sin(a)*L]; top=Math.max(top,e[1]);
-        wood(ln,e,0.17*k,bark);
-        leaf([e[0],e[1]+0.3*k,e[2]],rnd(2,2.8)*k,rnd(0.42,0.6)*k,rnd(2,2.8)*k,hsl(hue+rnd(-0.015,0.015),rnd(0.34,0.44),rnd(0.31,0.4)),new THREE.Quaternion().setFromEuler(new THREE.Euler(rnd(-0.08,0.08),random()*6.28,rnd(-0.08,0.08)))); }
-      leaf([ln[0],top+0.35*k,ln[2]],rnd(2.6,3.3)*k,0.55*k,rnd(2.6,3.3)*k,hsl(hue,rnd(0.36,0.44),rnd(0.36,0.43)),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,random()*6.28,0)));
-      t.cx=ln[0]; t.cz=ln[2]; t.cy=top+0.2*k; t.rx=4*k; t.ry=1.2*k; t.perch=[ln[0],top+0.35*k+0.47*k,ln[2]]; t.tr=0.3*k;
+      // Schirmakazie: Low-Poly-Modell (Meshy), je Baum gedreht, etwas größer oder kleiner, leicht gestreckt und eigener Farbton
+      const I=ACACIA.info, k=rnd(0.85,1.3), sx=k*rnd(0.9,1.12), sz=k*rnd(0.9,1.12), hue=rnd(0.19,0.25);
+      const q=new THREE.Quaternion().setFromAxisAngle(_UP,random()*6.283), sc=new THREE.Vector3(sx,k,sz);
+      const m=new THREE.Matrix4().compose(new THREE.Vector3(0,-0.15,0),q,sc);   // Fuß etwas eingesenkt, damit er am Hang nicht schwebt
+      const at=v=>new THREE.Vector3(v[0],v[1],v[2]).applyMatrix4(m);
+      t.parts.push({kind:'acaciaWood',leaf:false,c:hsl(rnd(0.06,0.09),rnd(0.14,0.22),rnd(0.3,0.38)),m});
+      t.parts.push({kind:'acaciaLeaf',leaf:true,c:hsl(hue,rnd(0.3,0.4),rnd(0.3,0.37)),m:m.clone()});
+      const cr=at(I.crown), pe=at(I.perch), sxz=(sx+sz)/2;
+      t.cx=cr.x; t.cz=cr.z; t.cy=cr.y; t.rx=I.rx*sxz; t.ry=I.ry*k; t.perch=[pe.x,pe.y,pe.z]; t.tr=I.trunkR*sxz;
     } else {
       // Urwaldbaum (selten ein Riese): Brettwurzeln, Äste mit eigenen Laubballen, oben hellere Blätter
       const big=random()<0.1, k=rnd(0.8,1.4), kb=k*(big?1.45:1), h=(big?rnd(10,12.5):rnd(5.5,8))*k, r=(big?0.62:0.42)*k;
@@ -110,25 +128,20 @@ function makeTree(o,random=Math.random){
   bao.forEach(b=>trees.push(makeTree({x:b.x,z:b.z,baobab:true},wr)));
   PONDS.forEach(p=>{ const n=REG.palms[0]+Math.floor(wr()*(REG.palms[1]-REG.palms[0]+1)); for(let j=0;j<n;j++){ const a=wr()*6.283, d=p.r*wrnd(1.12,1.45); trees.push(makeTree({x:p.x+Math.cos(a)*d,z:p.z+Math.sin(a)*d,palm:true},wr)); } });
   PONDS.forEach(addWaterPlants);
-  const nW={}, nL={}; trees.forEach(t=>{ const k=tileOf(t.x,t.z); t.parts.forEach(p=>{ const N=p.leaf?nL:nW; p.k=k; p.i=N[k]=(N[k]||0); N[k]++; }); });
+  const N={}; trees.forEach(t=>{ const k=tileOf(t.x,t.z); t.parts.forEach(p=>{ const n=N[p.kind]||(N[p.kind]={}); p.k=k; p.i=n[p.k]=(n[p.k]||0); n[p.k]++; }); });
   const wg=new THREE.CylinderGeometry(0.7,1,1,7,1); wg.translate(0,0.5,0);
   const wm=new THREE.MeshLambertMaterial({color:0xffffff});
   leafGeoHi=blobGeo(1); leafGeoLo=blobGeo(0);
-  const lm=new THREE.MeshLambertMaterial({color:0xffffff});
-  lm.onBeforeCompile=sh=>{   // Laub wiegt sich im Wind
-    sh.uniforms.uTime=leafTime;
-    sh.uniforms.uWind=windU;
-    sh.vertexShader='uniform float uTime; uniform vec2 uWind;\n'+sh.vertexShader.replace('#include <project_vertex>',
-      'vec4 wp=vec4(transformed,1.0);\n#ifdef USE_INSTANCING\n wp=instanceMatrix*wp;\n#endif\n wp=modelMatrix*wp;\n'+
-      ' float sw=sin(uTime*1.3+wp.x*0.21+wp.z*0.17)*0.16+sin(uTime*2.7+wp.x*0.7+wp.y*0.5)*0.05;\n wp.xz+=uWind*(sw+0.05);\n'+
-      ' vec4 mvPosition=viewMatrix*wp;\n gl_Position=projectionMatrix*mvPosition;');
-  };
-  const WM={}, LM={};
-  for(const k in nW){ const m=WM[k]=new THREE.InstancedMesh(wg,wm,nW[k]); woodMeshes.push(m); registerTile(m,+k,84); }
-  for(const k in nL){ const m=LM[k]=new THREE.InstancedMesh(leafGeoHi,lm,nL[k]); leafMeshes.push(m); registerTile(m,+k,84); }
+  const lm=windy(new THREE.MeshLambertMaterial({color:0xffffff}));
+  treeKinds.wood={geo:wg,mat:wm,list:woodMeshes};
+  treeKinds.leaf={geo:leafGeoHi,mat:lm,list:leafMeshes};
+  treeKinds.acaciaWood={geo:modelGeometry(ACACIA.wood),mat:new THREE.MeshLambertMaterial({color:0xffffff,vertexColors:true}),list:modelMeshes};
+  treeKinds.acaciaLeaf={geo:modelGeometry(ACACIA.leaf),mat:windy(new THREE.MeshLambertMaterial({color:0xffffff,vertexColors:true})),list:modelMeshes};
+  const MS={};
+  for(const kind in N){ const K=treeKinds[kind], ms=MS[kind]={}; for(const k in N[kind]){ const m=ms[k]=new THREE.InstancedMesh(K.geo,K.mat,N[kind][k]); K.list.push(m); registerTile(m,+k,84); } }
   const c=new THREE.Color();
-  trees.forEach((t,i)=>{ t.parts.forEach(p=>{ p.mesh=(p.leaf?LM:WM)[p.k]; p.mesh.setColorAt(p.i,c.setHex(p.c)); }); setTree(i); addCol(t.x,t.z,t.tr+0.1); addSight(t.x,t.z,t.tr+0.15,t.baobab?8:6,t.baobab?1:0.55); });   // Stamm verdeckt teilweise, der dicke Affenbrotbaum ganz
-  woodMeshes.concat(leafMeshes).forEach(m=>{ m.castShadow=true; m.receiveShadow=true; scene.add(m); });
+  trees.forEach((t,i)=>{ t.parts.forEach(p=>{ p.mesh=MS[p.kind][p.k]; p.mesh.setColorAt(p.i,c.setHex(p.c)); }); setTree(i); addCol(t.x,t.z,t.tr+0.1); addSight(t.x,t.z,t.tr+0.15,t.baobab?8:6,t.baobab?1:0.55); });   // Stamm verdeckt teilweise, der dicke Affenbrotbaum ganz
+  woodMeshes.concat(leafMeshes,modelMeshes).forEach(m=>{ m.castShadow=true; m.receiveShadow=true; scene.add(m); });
 })();
 /** Bäume, die gerade in mindestens einer Ansicht ausgeblendet sind oder es waren (nur diese müssen je Ansicht umgestellt werden) */
 const fadedTrees=new Set();
@@ -321,4 +334,4 @@ const patches=[]; let tallGeo=null, tallMat=null, TALL_N=0;
 function inGrass(x,z){ for(let i=0;i<patches.length;i++){ const p=patches[i]; if(p.burnt) continue; const dx=x-p.x, dz=z-p.z; if(dx*dx+dz*dz<p.r*p.r) return true; } return false; }
 
 
-export { releaseTree, treeSlot, dryBushGeometry, dryBushColor, shrubKind, bushGeometry, bushMaterial, bushColor, makeTree, woodMeshes, setTree, fadedTrees, applyTreeView, _tm, _tv, inGrass, leafGeoHi, leafGeoLo, leafMeshes, leafTime, patches, tallGeo, tallMat, trees, updateTrees };
+export { treeKinds, modelMeshes, releaseTree, treeSlot, dryBushGeometry, dryBushColor, shrubKind, bushGeometry, bushMaterial, bushColor, makeTree, woodMeshes, setTree, fadedTrees, applyTreeView, _tm, _tv, inGrass, leafGeoHi, leafGeoLo, leafMeshes, leafTime, patches, tallGeo, tallMat, trees, updateTrees };
