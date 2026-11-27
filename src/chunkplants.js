@@ -2,7 +2,7 @@
 import { CHUNK } from './chunks.js';
 import { scene } from './engine.js';
 import { H, WORLD, dryness, swampFactor, pondAt, addCol, addSight, removeCol, removeSight, registerCull, unregisterCull } from './terrain.js';
-import { dryBushGeometry, dryBushColor, shrubKind, bushGeometry, bushMaterial, bushColor, makeTree, woodMeshes, leafMeshes, leafGeoHi, leafGeoLo, trees, setTree, patches, tallGeo, tallMat, treeSlot, releaseTree } from './vegetation.js';
+import { dryBushGeometry, dryBushColor, shrubKind, bushGeometry, bushMaterial, bushColor, makeTree, treeKinds, leafMeshes, leafGeoLo, trees, setTree, patches, tallGeo, tallMat, treeSlot, releaseTree } from './vegetation.js';
 import { kopjeNear } from './kopjesites.js';
 import { players } from './player.js';
 import { followers } from './cubfollow.js';
@@ -47,23 +47,21 @@ function fillPlants(chunk){
   if(stems.length||baobab){
     const generated=stems.map(({x,z})=>makeTree({x,z,sav:dryness(x,z)>0.45},rng));
     if(baobab) generated.push(makeTree(baobab,baobab.rng));
-    const parts=generated.flatMap(t=>t.parts);
-    const trunks=new THREE.InstancedMesh(woodMeshes[0].geometry,woodMeshes[0].material,parts.filter(p=>!p.leaf).length);
-    const crowns=new THREE.InstancedMesh(quality==='low'?leafGeoLo:leafGeoHi,leafMeshes[0].material,parts.filter(p=>p.leaf).length);
-    if(crowns.count>0){
-      leafMeshes.push(crowns);
-      cleanup.push(()=>leafMeshes.splice(leafMeshes.indexOf(crowns),1));
-      show(crowns);
+    // Je Teil-Sorte ein Instanz-Modell (Zylinder, Laubballen, Akazien-Modell …)
+    const parts=generated.flatMap(t=>t.parts), meshes={}, counts={};
+    for(const part of parts) counts[part.kind]=(counts[part.kind]||0)+1;
+    for(const kind in counts){
+      const K=treeKinds[kind], mesh=meshes[kind]=new THREE.InstancedMesh(kind==='leaf'&&quality==='low'?leafGeoLo:K.geo,K.mat,counts[kind]);
+      mesh.castShadow=mesh.receiveShadow=true;
+      if(kind==='leaf'){ leafMeshes.push(mesh); cleanup.push(()=>leafMeshes.splice(leafMeshes.indexOf(mesh),1)); }   // Qualität tauscht die Laubform
+      show(mesh);
+      counts[kind]=0;
     }
-    trunks.castShadow=crowns.castShadow=true;
-    trunks.receiveShadow=crowns.receiveShadow=true;
-    show(trunks);
-    let woodIndex=0, leafIndex=0;
     const color=new THREE.Color();
     generated.forEach(tree=>{
       for(const part of tree.parts){
-        part.mesh=part.leaf?crowns:trunks;
-        part.i=part.leaf?leafIndex++:woodIndex++;
+        part.mesh=meshes[part.kind];
+        part.i=counts[part.kind]++;
         part.mesh.setColorAt(part.i,color.setHex(part.c));
       }
       const slot=treeSlot();
