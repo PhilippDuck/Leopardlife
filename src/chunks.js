@@ -5,7 +5,7 @@
 import { scene } from './engine.js';
 import { P, actors, players } from './player.js';
 import { G } from './state.js';
-import { dryness, GLSL_H, H, hash2, onView, pondAt, registerCull, unregisterCull, vnoise } from './terrain.js';
+import { dryness, GLSL_H, H, hash2, onView, pondAt, registerCull, unregisterCull, vnoise, swampFactor } from './terrain.js';
 import { rnd } from './util.js';
 import { seeded } from './noise.js';
 import { REG, WORLD_SEED } from './save.js';
@@ -20,7 +20,7 @@ const chunkOf=v=>Math.floor(v/CHUNK);
 
 /* ---------- Boden je Chunk ---------- */
 const groundMat=new THREE.MeshLambertMaterial({vertexColors:true});
-const c1=new THREE.Color(REG.ground[0]), c2=new THREE.Color(REG.ground[1]), dirt=new THREE.Color(0x8f7248), sand=new THREE.Color(0xcbbb8c), mud=new THREE.Color(0x66684a), _c=new THREE.Color();
+const c1=new THREE.Color(REG.ground[0]), c2=new THREE.Color(REG.ground[1]), dirt=new THREE.Color(0x8f7248), sand=new THREE.Color(0xcbbb8c), mud=new THREE.Color(0x66684a), marsh=new THREE.Color(0x526844), _c=new THREE.Color();
 function newGroundMesh(){
   const g=new THREE.PlaneGeometry(CHUNK,CHUNK,SEG,SEG); g.rotateX(-Math.PI/2);
   const n=g.attributes.position.count;
@@ -36,6 +36,8 @@ function fillGround(m,cx,cz){
     p.setXYZ(i,x,H(x,z),z);
     const t=dryness(x,z);
     _c.copy(c1).lerp(c2,t);
+    const wet=swampFactor(x,z);
+    if(wet>0.12) _c.lerp(marsh,wet*0.68);
     const n=vnoise(x,z);
     if(n>0.3) _c.lerp(dirt,Math.min(1,(n-0.3)*3)*0.75); else if(n<-0.3) _c.multiplyScalar(1+Math.max(-0.22,(n+0.3)*0.6));
     const po=pondAt(x,z,1.35);

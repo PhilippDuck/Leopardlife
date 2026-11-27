@@ -7,6 +7,7 @@ import { GLSL_DRY, GLSL_H, GLSL_PONDMASK, H, PONDS, WORLD, addCol, addSight, dry
 import { rnd } from './util.js';
 import { P } from './player.js';
 import { kopjeNear } from './kopjesites.js';
+import { addWaterPlants } from './waterplants.js';
 
 /* Bäume: aus mehreren Teilen (Stamm, Äste, Wurzeln, Laubballen). Arten: Urwaldbaum, Urwaldriese, Schirmakazie, toter Baum, Palme am Wasser.
    Werden ausgeblendet, wenn ihre Krone zwischen Kamera und Leopard steht. */
@@ -108,6 +109,7 @@ function makeTree(o,random=Math.random){
   for(let i=trees.length-1;i>=0;i--) if(bao.some(b=>Math.hypot(b.x-trees[i].x,b.z-trees[i].z)<8)) trees.splice(i,1);
   bao.forEach(b=>trees.push(makeTree({x:b.x,z:b.z,baobab:true},wr)));
   PONDS.forEach(p=>{ const n=REG.palms[0]+Math.floor(wr()*(REG.palms[1]-REG.palms[0]+1)); for(let j=0;j<n;j++){ const a=wr()*6.283, d=p.r*wrnd(1.12,1.45); trees.push(makeTree({x:p.x+Math.cos(a)*d,z:p.z+Math.sin(a)*d,palm:true},wr)); } });
+  PONDS.forEach(addWaterPlants);
   const nW={}, nL={}; trees.forEach(t=>{ const k=tileOf(t.x,t.z); t.parts.forEach(p=>{ const N=p.leaf?nL:nW; p.k=k; p.i=N[k]=(N[k]||0); N[k]++; }); });
   const wg=new THREE.CylinderGeometry(0.7,1,1,7,1); wg.translate(0,0.5,0);
   const wm=new THREE.MeshLambertMaterial({color:0xffffff});

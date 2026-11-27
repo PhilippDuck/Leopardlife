@@ -8,6 +8,8 @@ import { buildBaboon, buildCroc, buildElephant, buildHippo, buildQuad, buildSnak
 import { actors, dropModel } from './player.js';
 import { NET_GUEST, S, save } from './save.js';
 import { endCarcass } from './carcass.js';
+import { addWaterPlants } from './waterplants.js';
+import { createSchool } from './fish.js';
 
 function fillWater(chunk){
   const x=chunk.cx*CHUNK, z=chunk.cz*CHUNK;
@@ -23,11 +25,13 @@ function fillWater(chunk){
   mesh.receiveShadow=true;
   scene.add(mesh); waters.push(mesh); streamedPonds.push(pond);
   const cull=registerCull(mesh,pond.x,pond.z,pond.r);
+  const lilies=addWaterPlants(pond), fish=createSchool(pond);
   const croc=spawnPondCroc(chunk,pond), pod=spawnPondHippos(chunk,pond);
   chunk.content.push({drop(){
     for(const a of croc?[croc,...pod]:pod){ if(a.carc) endCarcass(a); dropModel(a.g); const i=animals.indexOf(a); if(i>=0) animals.splice(i,1); }
     unregisterCull(cull); scene.remove(mesh);
     waters.splice(waters.indexOf(mesh),1); streamedPonds.splice(streamedPonds.indexOf(pond),1);
+    lilies?.drop(); fish?.drop();
     geometry.dispose(); material.dispose();
   }});
 }

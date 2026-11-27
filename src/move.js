@@ -8,7 +8,7 @@ import { setHide } from './hide.js';
 import { animLegs } from './models.js';
 import { S, at, baseSpeed, has, maxHp, maxSt, pScale, tf } from './save.js';
 import { G } from './state.js';
-import { H, RIV_SWIM, WORLD, collide, inWater, riverDepth } from './terrain.js';
+import { H, RIV_SWIM, WORLD, collide, inWater, riverDepth, swampFactor } from './terrain.js';
 import { inGrass, trees } from './vegetation.js';
 import { W } from './weather.js';
 import { $ } from './util.js';
@@ -28,6 +28,7 @@ function stepPlayer(p,dt){
   let sprint=wantSprint&&p.st>1;
   const sneak=p.sneak&&!sprint;   // beim Sprinten ruht das Schleichen
   let spd=baseSpeed(p.L)*(sprint?1.6:sneak?0.45:1); if(p.wet) spd*=p.swim?0.45:0.65;   // waten bzw. schwimmen
+  spd*=1-0.32*swampFactor(p.x,p.z);   // zäher Schlamm in feuchten Senken
   if(p.drag){ sprint=false; spd*=0.45; }   // Beute ziehen: langsam, kein Sprint
   if(sprint) p.st-=20*dt; else p.st=Math.min(maxSt(p.L),p.st+(12+2*at('sta',p.L))*(p.L.hunger<25||(p.L.thirst??100)<25?0.5:1)*(moving?0.7:1.3)*dt);
   if(p===P&&p.st<=1&&G.tSprint){ G.tSprint=false; $('tbS').classList.remove('on'); }

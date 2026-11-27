@@ -114,6 +114,8 @@ function startRelay(over={}){
       if(!m||typeof m!=='object'||typeof m.t!=='string') return;
       if(!ws.room){ if(m.t==='hello'){ clearTimeout(helloT); hello(ws,m); } return; }
       if(m.t==='hello') return;
+      // Latenzprobe bleibt beim Absender und wird nicht an den Raum weitergeleitet.
+      if(m.t==='ping'){ if(typeof m.c==='number'&&Number.isFinite(m.c)) send(ws,{t:'pong',c:m.c}); return; }
       const r=rooms.get(ws.room); if(!r) return;
       m.from=ws.id; const to=m.to; delete m.to; const out=JSON.stringify(m);
       if(to!==undefined){ const p=r.peers.get(to); if(p) send(p,out); return; }

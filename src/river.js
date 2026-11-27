@@ -10,6 +10,8 @@ import { dropModel } from './player.js';
 import { NET_GUEST } from './save.js';
 import { endCarcass } from './carcass.js';
 import { spawnPondHippos } from './worldcontent.js';
+import { addWaterPlants } from './waterplants.js';
+import { createSchool } from './fish.js';
 
 /** Abstand der Stützstellen der Wasserfläche entlang des Flusses (m) */
 const RIV_STEP=2;
@@ -55,11 +57,12 @@ function lurkingCroc(pond,x,z){
 function inBed(x,zMid){ const r=riverNear(x,zMid); return r.u>=RIV_HEAD&&r.u<=RIV_LAKE-1.3*r.lr; }
 /** Abschnitt füllen: Wasserfläche des Flusses, Krokodile an Furten und in Gumpen, der See (falls seine Mitte hier liegt) mit seinen Tieren */
 function fillRiver(chunk){
-  const x0=chunk.cx*CHUNK, zMid=(chunk.cz+0.5)*CHUNK, crocs=[], parts=[], random=chunkRng(chunk.cx+5101,chunk.cz-881);
+  const x0=chunk.cx*CHUNK, zMid=(chunk.cz+0.5)*CHUNK, crocs=[], parts=[], schools=[], random=chunkRng(chunk.cx+5101,chunk.cz-881);
   const g=riverStrip(x0,chunk.cz);
   if(g){
     const mesh=new THREE.Mesh(g,riverMat); mesh.userData.y=0; mesh.receiveShadow=true; scene.add(mesh); waters.push(mesh);
     const r=riverNear(x0+CHUNK/2,zMid), n=r.n; parts.push({mesh,g,cull:registerCull(mesh,x0+CHUNK/2,r.zc,CHUNK*0.75)});
+    if(r.w>2&&r.ford>0.18) schools.push(createSchool({x:x0+CHUNK/2,z:r.zc,r:r.w*0.9,L:r.L,river:true,n:r.n,ford:r.ford}));
     // Furten (cos=1) und Gumpen (cos=−1) in diesem Abschnitt; nur wo die Flussmitte im Abschnitt liegt
     for(let k=Math.floor((x0+n*2.3*RIV_FORD/6.2832)/RIV_FORD)-1;;k++){
       const fx=fordX(n,k), px=fx+RIV_FORD/2; if(fx>=x0+CHUNK&&px>=x0+CHUNK) break;
@@ -69,19 +72,21 @@ function fillRiver(chunk){
   }
   // Der See: Wasserfläche, Krokodile verteilt im Wasser, oft eine Gruppe Nilpferde
   const lake=riverNear(x0+CHUNK/2,zMid).seg.pond;
-  let pod=[];
+  let pod=[], lilies=null, lakeFish=null;
   if(Math.floor(lake.x/CHUNK)===chunk.cx&&Math.floor(lake.z/CHUNK)===chunk.cz){
     const lg=new THREE.CircleGeometry(lake.r,72); lg.rotateX(-Math.PI/2);
     const mesh=new THREE.Mesh(lg,riverMat); mesh.position.set(lake.x,lake.L-WATER_D,lake.z); mesh.userData.y=lake.L-WATER_D; mesh.receiveShadow=true;
     scene.add(mesh); waters.push(mesh); parts.push({mesh,g:lg,cull:registerCull(mesh,lake.x,lake.z,lake.r)});
+    lilies=addWaterPlants(lake); lakeFish=createSchool(lake);
     const lr=chunkRng(chunk.cx-4421,chunk.cz+1297), nc=LAKE_CROCS[0]+Math.floor(lr()*(LAKE_CROCS[1]-LAKE_CROCS[0]+1));
     for(let i=0;i<nc;i++){ const an=lr()*6.283, rr=lake.r*(0.35+lr()*0.4); crocs.push(lurkingCroc(lake,lake.x+Math.cos(an)*rr,lake.z+Math.sin(an)*rr)); }
     pod=spawnPondHippos(chunk,lake,LAKE_HIPPO_CHANCE);
   }
-  if(!parts.length&&!crocs.length) return;
+  if(!parts.length&&!crocs.length&&!schools.length) return;
   chunk.content.push({drop(){
     for(const a of [...crocs,...pod]){ if(!a) continue; if(a.carc) endCarcass(a); dropModel(a.g); const i=animals.indexOf(a); if(i>=0) animals.splice(i,1); }
     for(const p of parts){ unregisterCull(p.cull); scene.remove(p.mesh); waters.splice(waters.indexOf(p.mesh),1); p.g.dispose(); }
+    for(const s of schools) s?.drop(); lilies?.drop(); lakeFish?.drop();
   }});
 }
 

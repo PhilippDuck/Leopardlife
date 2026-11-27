@@ -59,6 +59,7 @@ import { updateLexicon } from './lexicon.js';
 import { updateVenom } from './snake.js';
 import { updateExplore } from './explore.js';
 import { net, remotes, updateNet } from './net.js';
+import { updateFish } from './fish.js';
 import { updateNetCoop } from './netcoop.js';
 import { updateNetFamily } from './netfamily.js';
 import { mirror, updateNetWorld } from './networld.js';
@@ -100,7 +101,7 @@ function frame(now){
   if(!G.paused) step(dt);
   else if(hostLive()) worldStep(dt);   // Online-Gastgeber mit Gästen: Pause, Menü, Schlaf oder Tod halten die Welt der anderen nicht an
   for(const p of players) updateCamera(p,p.camera); updateTrees(dt,players.map(p=>({camera:p.camera,p}))); updateEnv(dt,now); eventsVisual(); updateEnvSound(dt); updateTitle(dt); musicTick(); ambTick(dayF,W.rain,W.storm,S.tod*24,players.some(p=>animals.some(a=>!a.dead&&(a.state==='chase'||a.state==='lunge')&&a.tgt===p)));
-  updateChunks(dt); updateWorldContent(dt); updateNet(now); updateNetCoop(dt); updateNetFamily(dt,now); updateNetWorld(G.paused?0:dt,now);
+  updateChunks(dt); updateWorldContent(dt); updateFish(now); updateNet(now); updateNetCoop(dt); updateNetFamily(dt,now); updateNetWorld(G.paused?0:dt,now);
   renderAll();
 }
 /** Gastgeber im Online-Spiel mit mindestens einem Gast im Raum */

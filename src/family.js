@@ -20,10 +20,11 @@ import { carcassContext, endCarcass, nearCarcass, recordPartner, takeMeat } from
 import { goalEvent } from './goals.js';
 import { moveAnimal } from './ai.js';
 import { nameOf, tell, viewMin } from './coop.js';
-import { doClimb, gainXp, nearestTree } from './actions.js';
+import { doClimb, doPounce, gainXp, nearestTree } from './actions.js';
 import { canPair, ensureKin, litterLeaves, litterSize, newId, pairCandidate, pairPlayers, related } from './kinship.js';
 import { DEN_CAP, SWITCH_AT, cubFollowContext, denCount, denFull, denKids, followerOf, followers, hasOwnCub, kidDies, kidOf, kidsOf, numOf, syncLitter, tickKids } from './cubfollow.js';
 import { drinkContext } from './thirst.js';
+import { fishContext } from './fish.js';
 import { trees } from './vegetation.js';
 
 /* ---------- Familie: Partner, Junges, Futter, Überfälle ---------- */
@@ -98,6 +99,7 @@ function context(){
   if(S.cub&&!cubGrown()&&S.food>0&&denFull()<97&&nearCub(P)) return {label:'Füttern (Rest im Vorrat)',fn:feedCub};   // alte Spielstände: übrig gebliebener Vorrat
   if(S.food>0&&S.hunger<50) return {label:'Fressen',fn:eatFood};
   { const dr=drinkContext(P); if(dr) return dr; }
+  { const fc=fishContext(P); if(fc) return {label:fc.label,fn:()=>doPounce(P)}; }
   { const q=pairCandidate(P); if(q){ if(canPair(P,q)) return {label:'Paaren mit '+nameOf(q),fn:()=>pairPlayers(P,q)}; if(related(P.L,q.L)&&canMate()) return {label:'Verwandt – keine Paarung',fn:()=>pairPlayers(P,q)}; } }
   if(canMate()){ const m=nearestMate(); if(m){ mateNotice(m);
     if(m.d<4.5){ const t=offerOf(m.a); return {label:'Paaren · Erbe: '+offerText(t),fn:()=>mateWith(m.a)}; } } }

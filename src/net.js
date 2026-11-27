@@ -27,9 +27,9 @@ const ONLINE_CFG='leolife-online';
 /**
  * Zustand der Verbindung.
  * @type {{ws:WebSocket|null, state:'off'|'connecting'|'online', role:''|'host'|'guest', room:string, id:number, host:number,
- *   peers:Map<number,{name:string}>, sendAt:number, profAt:number, retry:boolean, want:{create?:boolean,room?:string}|null}}
+ *   peers:Map<number,{name:string,ping?:number|null,pingAt?:number}>, sendAt:number, profAt:number, ping:number|null, pingAt:number, pingSendAt:number, pingSentAt:number, pingSamples:number[], retry:boolean, want:{create?:boolean,room?:string}|null}}
  */
-const net={ws:null,state:'off',role:'',room:'',id:0,host:0,peers:new Map(),sendAt:0,profAt:0,retry:false,want:null};
+const net={ws:null,state:'off',role:'',room:'',id:0,host:0,peers:new Map(),sendAt:0,profAt:0,ping:null,pingAt:0,pingSendAt:0,pingSentAt:0,pingSamples:[],retry:false,want:null};
 /**
  * Leoparden der anderen Geräte, Schlüssel 'Gerät:Spielernummer'.
  * @typedef {{key:string, peer:number, num:number, g:any, label:{c:HTMLCanvasElement,tex:any,sp:any}, labelTxt:string, furKey:string,
@@ -101,7 +101,7 @@ function connect(want,c=readForm()){
 }
 /** Verbindung schließen, ohne dass das als Abbruch zählt */
 function closeSocket(){ const ws=net.ws; net.ws=null; if(ws){ try{ ws.close(1000); }catch(e){} } }
-function reset(){ closeSocket(); net.state='off'; net.role=''; net.room=''; net.id=0; net.host=0; net.peers.clear(); net.want=null; for(const k of [...remotes.keys()]) dropRemote(k); ghosts.length=0; }
+function reset(){ closeSocket(); net.state='off'; net.role=''; net.room=''; net.id=0; net.host=0; net.peers.clear(); net.ping=null; net.pingAt=0; net.pingSendAt=0; net.pingSentAt=0; net.pingSamples=[]; net.want=null; for(const k of [...remotes.keys()]) dropRemote(k); ghosts.length=0; }
 function netSend(o){ const ws=net.ws; if(ws&&ws.readyState===1&&net.state==='online'){ const s=JSON.stringify(o); traffic.up+=s.length; ws.send(s); } }
 
 /** Verbindung unerwartet weg */
@@ -132,6 +132,7 @@ function onMessage(m){
       }
       net.state='online'; net.role=guest?'guest':'host'; net.room=m.room; net.id=m.id; net.host=m.host;
       net.peers.clear(); for(const p of m.peers||[]) net.peers.set(p.id,{name:p.name});
+      net.ping=null; net.pingAt=0; net.pingSendAt=0; net.pingSamples=[];
       if(guest&&NET_WORLD) setSession({world:NET_WORLD,room:m.room,rejoin:true});
       net.profAt=0; status(''); renderOnline();
       toast(guest?'Online im Raum '+m.room+' – '+[...net.peers.values()].map(p=>p.name).join(', '):'Raum '+m.room+' ist offen. Gib den Code an deine Mitspieler weiter.','#9be07f');
@@ -146,7 +147,14 @@ function onMessage(m){
       return;
     }
     case 'st': if(net.peers.has(m.from)&&Array.isArray(m.p)) onState(m.from,m.p); return;
-    case 'pf': if(net.peers.has(m.from)&&Array.isArray(m.p)) onProfile(m.from,m.p); return;
+    case 'pf': if(net.peers.has(m.from)&&Array.isArray(m.p)) onProfile(m.from,m.p,m.ping); return;
+    case 'pong': {
+      if(typeof m.c!=='number'||!Number.isFinite(m.c)||m.c!==net.pingSentAt) return;
+      const now=performance.now(), sample=Math.max(0,Math.min(60000,now-m.c));
+      net.pingSamples.push(sample); if(net.pingSamples.length>5) net.pingSamples.shift();
+      net.ping=net.pingSamples.reduce((a,b)=>a+b,0)/net.pingSamples.length; net.pingAt=now;
+      return;
+    }
     default: { const h=netHandlers[m.t]; if(h&&net.peers.has(m.from)) h(m); }
   }
 }
@@ -173,7 +181,7 @@ function sendState(){
 function sendProfile(){
   const c=onlineCfg();
   // 4. Feld: Herkunft und Familie (Kennung, Eltern, Erbanlagen, schon Nachwuchs) fürs Paaren über Geräte (netcoop.js)
-  netSend({t:'pf',name:c.name||'Leopard',p:players.map(p=>[p.num||1,p.saveFur?(S.fur||null):p.fur,p.L.lvl,G.profileExtra?G.profileExtra(p):null])});
+  netSend({t:'pf',name:c.name||'Leopard',ping:net.ping,p:players.map(p=>[p.num||1,p.saveFur?(S.fur||null):p.fur,p.L.lvl,G.profileExtra?G.profileExtra(p):null])});
 }
 
 /* ---------- Leoparden der anderen Geräte ---------- */
@@ -212,7 +220,8 @@ function onState(from,list){
   }
   for(const [k,r] of [...remotes]) if(r.peer===from&&!seen.has(k)) dropRemote(k);   // ein Splitscreen-Mitspieler dort ist ausgestiegen
 }
-function onProfile(from,list){
+function onProfile(from,list,ping){
+  const peer=net.peers.get(from); if(peer){ peer.ping=typeof ping==='number'&&Number.isFinite(ping)?ping:null; peer.pingAt=performance.now(); }
   for(const e of list){ if(!Array.isArray(e)) continue; const r=remotes.get(from+':'+e[0]); if(!r) continue;
     const fur=e[1]&&typeof e[1]==='object'?e[1]:null, fk=JSON.stringify(fur);
     if(fk!==r.furKey){ r.furKey=fk; buildRemoteModel(r,fur); }
@@ -253,6 +262,10 @@ function updateRemotes(now){
 /** Jedes Bild (auch in der Pause): senden und die anderen Leoparden bewegen */
 function updateNet(now){
   if(now-traffic.t>=1000){ const k=1000/Math.max(1000,now-traffic.t||1000); traffic.upRate=traffic.up*k; traffic.downRate=traffic.down*k; traffic.up=traffic.down=0; traffic.t=now; if(onlineOpen()) renderOnline(); }
+  if(net.state==='online'){
+    if(now>=net.pingSendAt){ net.pingSendAt=now+2000; net.pingSentAt=now; netSend({t:'ping',c:now}); }
+    if(net.pingAt&&now-net.pingAt>5000) net.ping=null;
+  }
   if(net.state==='online'&&net.peers.size){
     if(now>=net.sendAt){ net.sendAt=now+SEND_MS; sendState(); }
     if(now>=net.profAt){ net.profAt=now+PROFILE_MS; sendProfile(); }
@@ -270,8 +283,8 @@ function renderOnline(){
   if(on){
     $('onRoom').textContent=net.room;
     $('onRole').textContent=net.role==='host'?'Du bist Gastgeber. Mitspieler treten mit diesem Code bei.':'Du spielst in der Welt des Gastgebers.';
-    const names=[...net.peers.entries()].map(([id,p])=>p.name+(id===net.host?' (Gastgeber)':''));
-    $('onPeers').textContent=names.length?'Dabei: '+names.join(', '):'Noch niemand dabei.';
+    const now=performance.now(), names=[...net.peers.entries()].map(([id,p])=>p.name+(id===net.host?' (Gastgeber)':'')+' · '+(typeof p.ping==='number'&&now-(p.pingAt||0)<=5000?Math.round(p.ping)+' ms':'Ping –'));
+    $('onPeers').textContent=(names.length?'Dabei: '+names.join(', ')+' · ':'Noch niemand dabei · ')+'Dein Ping: '+(typeof net.ping==='number'?Math.round(net.ping)+' ms':'–');
     $('btnOnPlay').style.display=G.started?'none':'';
     $('onTraffic').textContent='Daten: ↑ '+(traffic.upRate/1024).toFixed(1)+' kB/s · ↓ '+(traffic.downRate/1024).toFixed(1)+' kB/s';
   }
