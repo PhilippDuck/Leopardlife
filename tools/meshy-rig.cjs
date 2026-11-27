@@ -9,6 +9,7 @@
  *   Dunkle Stellen außerhalb des Kopfs sind Meshys Flecken und zählen als Fell: das Spiel legt eigene Flecken darüber.
  * - Knoten (Name ohne Punkte wie bei three.js, Eltern, Ruhelage), inverse Bindematrizen, Clips mit 15 Bildern je Sekunde:
  *   Drehungen (Int16-Quaternionen) und, wo sie sich ändern, Verschiebungen (Float32). Skalierung wird nicht animiert.
+ * - --repaint-grey: grauweiße Flecken der Textur hinten am Körper mit Fellfarbe übermalen (nicht bei gräulichem Fell, z. B. Jungtier)
  * - Maßstab und Höhe: Das Modell wird so skaliert, dass es in Ruhelage --height hoch ist, die Pfoten stehen auf y=0.
  */
 const fs = require('fs');
@@ -208,6 +209,31 @@ function shrinkTexture() {
   return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('PLTE', Buffer.from(pal.flat())), chunk('IDAT', zlib.deflateSync(raw, { level: 9 })), chunk('IEND', Buffer.alloc(0))]);
 }
 function crc32(buf) { let c, crc = 0xffffffff; for (let n = 0; n < buf.length; n++) { c = (crc ^ buf[n]) & 0xff; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; crc = (crc >>> 8) ^ c; } return (crc ^ 0xffffffff) >>> 0; }
+// Grauweiße Flecken außerhalb von Kopf und Brust (Stellen, die auf Meshys Ausgangsbild nicht zu sehen waren) mit Fellfarbe übermalen:
+// Dreiecke im hinteren 60 % des Körpers, deren Textur teils grauweiß ist; nur die grauweißen Pixel darin werden ersetzt.
+function repaintGrey() {
+  const grey = (o) => { const r = tex.px[o], g = tex.px[o + 1], b = tex.px[o + 2], mx = Math.max(r, g, b), mn = Math.min(r, g, b); return mx + mn > 24 && (mx - mn) / mx < 0.15 && (mx + mn) / 510 > 0.45; };
+  let fr = 0, fg = 0, fb = 0, fn = 0;   // Fellfarbe: Mittel der kräftig gefärbten Pixel
+  for (let o = 0; o < tex.px.length; o += tex.bpp * 7) { const r = tex.px[o], g = tex.px[o + 1], b = tex.px[o + 2], mx = Math.max(r, g, b), mn = Math.min(r, g, b); if (mx > 90 && (mx - mn) / mx > 0.45) { fr += r; fg += g; fb += b; fn++; } }
+  fr /= fn; fg /= fn; fb /= fn;
+  let painted = 0;
+  for (let t = 0; t < nT; t++) {
+    let z = 0; for (let k = 0; k < 3; k++) z += rest[IDX[t * 3 + k] * 3 + 2] / 3;
+    if (z > minZ + 0.6 * (maxZ - minZ)) continue;
+    const uv = [0, 1, 2].map((k) => { const i = IDX[t * 3 + k]; return [UV[i * 2] * tex.w, UV[i * 2 + 1] * tex.h]; });
+    const x0 = Math.max(0, Math.floor(Math.min(...uv.map((p) => p[0]))) - 2), x1 = Math.min(tex.w - 1, Math.ceil(Math.max(...uv.map((p) => p[0]))) + 2);
+    const y0 = Math.max(0, Math.floor(Math.min(...uv.map((p) => p[1]))) - 2), y1 = Math.min(tex.h - 1, Math.ceil(Math.max(...uv.map((p) => p[1]))) + 2);
+    const [A, B, C] = uv, den = (B[1] - C[1]) * (A[0] - C[0]) + (C[0] - B[0]) * (A[1] - C[1]); if (!den) continue;
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+      const l1 = ((B[1] - C[1]) * (x - C[0]) + (C[0] - B[0]) * (y - C[1])) / den, l2 = ((C[1] - A[1]) * (x - C[0]) + (A[0] - C[0]) * (y - C[1])) / den, l3 = 1 - l1 - l2;
+      if (l1 < -0.05 || l2 < -0.05 || l3 < -0.05) continue;
+      const o = (y * tex.w + x) * tex.bpp; if (!grey(o)) continue;
+      tex.px[o] = fr; tex.px[o + 1] = fg; tex.px[o + 2] = fb; painted++;
+    }
+  }
+  console.log(`Grauweiß übermalt: ${painted} Pixel`);
+}
+if (process.argv.includes("--repaint-grey")) repaintGrey();
 const png = shrinkTexture();
 const NRM = accessor(prim.attributes.NORMAL);
 
