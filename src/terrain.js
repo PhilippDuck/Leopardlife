@@ -276,4 +276,4 @@ function collide(x,z,rad,skipLow){
   _col.x=x; _col.z=z; return _col;
 }
 
-export { RIV_SWIM, RIV_HEAD, RIV_LAKE, riverEdge, lakePond, Hv, riverDepth, RIV_FORD, fordX, riverLevel, riverMarks, riverNear, waterDepth, samePond, GLSL_DRY, moisture, swampFactor, dryness, worldPond, streamedPonds, removeSight, addSight, sightAt, GLSL_H, GLSL_PONDMASK, H, H0, PONDS, WATER_D, WORLD, addCol, collide, cullTiles, hash2, inWater, nearestPond, onView, pondAt, registerCull, registerTile, removeCol, tileOf, unregisterCull, vnoise, waters };
+export { LAKE_D, RIV_SWIM, RIV_HEAD, RIV_LAKE, riverEdge, lakePond, Hv, riverDepth, RIV_FORD, fordX, riverLevel, riverMarks, riverNear, waterDepth, samePond, GLSL_DRY, moisture, swampFactor, dryness, worldPond, streamedPonds, removeSight, addSight, sightAt, GLSL_H, GLSL_PONDMASK, H, H0, PONDS, WATER_D, WORLD, addCol, collide, cullTiles, hash2, inWater, nearestPond, onView, pondAt, registerCull, registerTile, removeCol, tileOf, unregisterCull, vnoise, waters };

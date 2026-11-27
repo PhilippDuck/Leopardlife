@@ -11,6 +11,7 @@ import { ACACIA } from './acaciamodel.js';
 import { BAOBAB } from './baobabmodel.js';
 import { DEADTREE } from './deadtreemodel.js';
 import { modelGeometry } from './meshmodel.js';
+import { reedMesh, reedPatches, reedSpots } from './reeds.js';
 import { addWaterPlants } from './waterplants.js';
 
 /* Bäume: aus mehreren Teilen (Stamm, Äste, Wurzeln, Laubballen). Arten: Urwaldbaum, Urwaldriese, Schirmakazie, toter Baum, Palme am Wasser.
@@ -328,6 +329,14 @@ const patches=[]; let tallGeo=null, tallMat=null, TALL_N=0;
   });
   tallMat.uniforms.uLight=grassLight; tallMat.uniforms.uWind=windU;
   tallGeo.forEach(t=>{ const mesh=new THREE.Mesh(t.g,tallMat); scene.add(mesh); registerTile(mesh,t.k,76); });
+})();
+/* Schilf am Ufer im Startgebiet (reeds.js): je Kachel ein Instanz-Modell; die Gruppen sind Verstecke (nach dem hohen Gras, das sonst darin wüchse) */
+(function(){
+  const {r}=vegRng(0x72656564);
+  const spots=reedSpots(-WORLD,-WORLD,WORLD,WORLD,r,(x,z)=>Math.hypot(x,z)>WORLD||Math.hypot(x-7,z-5)<10);
+  const byT={}; spots.forEach(p=>{ const k=tileOf(p.x,p.z); (byT[k]=byT[k]||[]).push(p); });
+  for(const k in byT){ const m=reedMesh(byT[k],r); registerTile(m,+k,84); scene.add(m); }
+  patches.push(...reedPatches(spots));
 })();
 function inGrass(x,z){ for(let i=0;i<patches.length;i++){ const p=patches[i]; if(p.burnt) continue; const dx=x-p.x, dz=z-p.z; if(dx*dx+dz*dz<p.r*p.r) return true; } return false; }
 
