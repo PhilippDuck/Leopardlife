@@ -46,7 +46,7 @@ const SAMPLES={roar:'audio/roar.mp3',dayA:'audio/amb-day-1.mp3',dayB:'audio/amb-
   // Tiere und Umgebung (ElevenLabs): ersetzen die künstlich erzeugten Laute, sobald sie geladen sind
   eleTrumpet:'audio/ele-trumpet.mp3',eleRumble:'audio/ele-rumble.mp3',hippo:'audio/hippo.mp3',snakeHiss:'audio/snake-hiss.mp3',croc:'audio/croc.mp3',squeak:'audio/squeak.mp3',
   leoSaw:'audio/leopard-saw.mp3',babBark:'audio/baboon-bark.mp3',babScreech:'audio/baboon-screech.mp3',gnu:'audio/gnu.mp3',boarGrunt:'audio/boar-grunt.mp3',boarSqueal:'audio/boar-squeal.mp3',
-  guinea:'audio/guinea.mp3',gunshot:'audio/gunshot.mp3',frogs:'audio/frogs.mp3',river:'audio/river.mp3',fire:'audio/fire.mp3'};
+  guinea:'audio/guinea.mp3',frogs:'audio/frogs.mp3',river:'audio/river.mp3',fire:'audio/fire.mp3'};
 /** @type {Record<string, AudioBuffer>} */ const bufs={};
 /** Für Schleifen: Stille am Anfang und Ende überspringen (MP3 hat dort Polster), damit es nahtlos weiterläuft */
 const loopPts={};
