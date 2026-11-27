@@ -2,7 +2,9 @@
 /*
  * Wandelt ein mit Meshy erzeugtes Low-Poly-Modell (GLB mit eingebetteter PNG-Textur) in ein kleines JS-Modul für das Spiel um.
  *
- *   node tools/meshy-model.cjs <modell.glb> <src/ziel.js> --name ACACIA --height 6 [--perch 0.7]
+ *   node tools/meshy-model.cjs <modell.glb> <src/ziel.js> --name ACACIA --height 6 [--perch 0.7] [--colors]
+ *
+ * --colors: alles ein Teil (wood), statt Helligkeit die echte Farbe je Dreieck (rgb) – für Felsen, Termitenhügel, Blüten …
  *
  * --perch: Liegeplatz auf diesem Anteil der Höhe über der Stammmitte (z. B. oben auf dem dicken Affenbrotbaum-Stamm
  *          oder in der Astgabel). Ohne --perch liegt er oben auf dem Laub in der Kronenmitte.
@@ -22,6 +24,8 @@ function arg(name, def) { const i = process.argv.indexOf('--' + name); return i 
 const [src, out] = process.argv.slice(2).filter((a, i, all) => !a.startsWith('--') && !(i > 0 && all[i - 1].startsWith('--')));
 if (!src || !out) { console.error('Aufruf: node tools/meshy-model.cjs <modell.glb> <ziel.js> --name NAME --height METER'); process.exit(1); }
 const NAME = arg('name', 'MODEL'), HEIGHT = +arg('height', 6), PERCH = arg('perch') === undefined ? null : +arg('perch');
+// --colors: ein Teil mit echter Farbe je Dreieck (für Felsen, Termitenhügel, Aloe …), kein Laub
+const COLORS = process.argv.includes('--colors');
 
 /* ---------- GLB lesen ---------- */
 const glb = fs.readFileSync(src);
@@ -86,7 +90,7 @@ for (let t = 0; t < tris; t++) {
     const s = sample(u, v); c[0] += s[0] / W.length; c[1] += s[1] / W.length; c[2] += s[2] / W.length;
   }
   const mx = Math.max(...c), mn = Math.min(...c), sat = mx ? (mx - mn) / mx : 0;
-  triCol.push(c); triLeaf.push(sat > 0.3 && c[1] >= c[0] * 0.8 && c[1] > c[2] * 1.2);
+  triCol.push(c); triLeaf.push(!COLORS && sat > 0.3 && c[1] >= c[0] * 0.8 && c[1] > c[2] * 1.2);
 }
 // Einzelne Ausreißer: Ein Dreieck, dessen Nachbarn (gemeinsame Ecke) überwiegend anders sind, wird angeglichen
 const byVert = new Map();
@@ -127,7 +131,8 @@ function part(leaf) {
     for (let k = 0; k < 3; k++) { const i = idx[t * 3 + k]; if (!map.has(i)) { map.set(i, verts.length / 3); verts.push(...P(i)); } index.push(map.get(i)); }
     shade.push(Math.round(Math.min(2, Math.max(0.3, Math.sqrt(lum(triCol[t]) / mean))) * 100));   // Helligkeit relativ zum Mittel, 100 = 1.0
   }
-  return { verts, index, shade, tris: list.length, color: meanCol.map(Math.round) };
+  const rgb = []; for (const t of list) rgb.push(...triCol[t].map((v) => Math.round(Math.min(255, v))));
+  return { verts, index, shade, rgb, tris: list.length, color: meanCol.map(Math.round) };
 }
 const wood = part(false), leaf = part(true);
 if (wood.verts.length / 3 > 65535 || leaf.verts.length / 3 > 65535) throw new Error('zu viele Ecken für Uint16');
@@ -170,7 +175,7 @@ const info = { height: HEIGHT, trunkR: r2(Math.max(0.15, trunkR)), trunk: [r2(tx
 
 /* ---------- Ausgabe ---------- */
 const b64 = (Arr, data) => Buffer.from(new Arr(data).buffer).toString('base64');
-const enc = (p) => `{ pos: '${b64(Int16Array, p.verts.map((v) => Math.round(v * 1000)))}', index: '${b64(Uint16Array, p.index)}', shade: '${b64(Uint8Array, p.shade)}' }`;
+const enc = (p) => `{ pos: '${b64(Int16Array, p.verts.map((v) => Math.round(v * 1000)))}', index: '${b64(Uint16Array, p.index)}', ${COLORS ? `rgb: '${b64(Uint8Array, p.rgb)}'` : `shade: '${b64(Uint8Array, p.shade)}'`} }`;
 const file = `// Erzeugt mit tools/meshy-model.cjs aus ${require('path').basename(src)} – nicht von Hand ändern.
 // Holz: ${wood.tris} Dreiecke, Laub: ${leaf.tris} Dreiecke. Mittlere Farbe im Modell: Holz rgb(${wood.color}), Laub rgb(${leaf.color}).
 export const ${NAME} = {
