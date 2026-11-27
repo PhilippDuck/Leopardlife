@@ -18,7 +18,7 @@ function arg(name, def) { const i = process.argv.indexOf('--' + name); return i 
 const pos0 = process.argv.slice(2).filter((a, i, all) => !a.startsWith('--') && !(i > 0 && all[i - 1].startsWith('--')));
 const [src, out] = pos0;
 if (!src || !out) { console.error('Aufruf: node tools/meshy-rig.cjs <modell.glb> <ziel.js> --name NAME --height 1.15 --clips name=glbName,…'); process.exit(1); }
-const NAME = arg('name', 'RIG'), HEIGHT = +arg('height', 1), FPS = 15;
+const NAME = arg('name', 'RIG'), HEIGHT = +arg('height', 1), FPS = 15, TEX = +arg('tex', 512);
 const CLIPS = Object.fromEntries((arg('clips', '') || '').split(',').filter(Boolean).map((s) => s.split('=')));
 
 /* ---------- GLB lesen ---------- */
@@ -166,6 +166,39 @@ for (const [key, glbName] of Object.entries(CLIPS)) {
   clips[key] = { d: +dur.toFixed(4), n: frames, tracks };
 }
 
+/* ---------- Textur: verkleinert, Lücken zwischen den Inseln aufgefüllt (sonst dunkle Nähte), als PNG ---------- */
+function shrinkTexture() {
+  const f = tex.w / TEX, out = new Float32Array(TEX * TEX * 3), have = new Uint8Array(TEX * TEX);
+  for (let y = 0; y < TEX; y++) for (let x = 0; x < TEX; x++) {
+    let r = 0, g = 0, b = 0, n = 0;
+    for (let yy = 0; yy < f; yy++) for (let xx = 0; xx < f; xx++) { const o = ((y * f + yy) * tex.w + x * f + xx) * tex.bpp, R = tex.px[o], G = tex.px[o + 1], B = tex.px[o + 2]; if (R + G + B < 12) continue; r += R; g += G; b += B; n++; }
+    if (n > f * f * 0.25) { const i = y * TEX + x; out[i * 3] = r / n; out[i * 3 + 1] = g / n; out[i * 3 + 2] = b / n; have[i] = 1; }
+  }
+  for (let pass = 0; pass < 12; pass++) {   // leere Pixel aus belegten Nachbarn füllen
+    const add = [];
+    for (let y = 0; y < TEX; y++) for (let x = 0; x < TEX; x++) { const i = y * TEX + x; if (have[i]) continue; let r = 0, g = 0, b = 0, n = 0;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) { const X = x + dx, Y = y + dy; if (X < 0 || Y < 0 || X >= TEX || Y >= TEX) continue; const j = Y * TEX + X; if (!have[j]) continue; r += out[j * 3]; g += out[j * 3 + 1]; b += out[j * 3 + 2]; n++; }
+      if (n) add.push([i, r / n, g / n, b / n]); }
+    for (const [i, r, g, b] of add) { out[i * 3] = r; out[i * 3 + 1] = g; out[i * 3 + 2] = b; have[i] = 1; }
+  }
+  // Palette mit 256 Farben: häufigste Farbfächer (4 Bit je Kanal), jedes Pixel bekommt die nächste Palettenfarbe
+  const bins = new Map();
+  for (let i = 0; i < TEX * TEX; i++) { const k = (out[i * 3] >> 4) << 8 | (out[i * 3 + 1] >> 4) << 4 | (out[i * 3 + 2] >> 4); const e = bins.get(k) || bins.set(k, [0, 0, 0, 0]).get(k); e[0] += out[i * 3]; e[1] += out[i * 3 + 1]; e[2] += out[i * 3 + 2]; e[3]++; }
+  const pal = [...bins.values()].sort((a, b) => b[3] - a[3]).slice(0, 256).map((e) => [e[0] / e[3], e[1] / e[3], e[2] / e[3]].map(Math.round));
+  const near = new Map(), idx = new Uint8Array(TEX * TEX);
+  for (let i = 0; i < TEX * TEX; i++) { const k = (out[i * 3] >> 3) << 10 | (out[i * 3 + 1] >> 3) << 5 | (out[i * 3 + 2] >> 3);
+    let c = near.get(k); if (c === undefined) { let bd = 1e9; pal.forEach((p, j) => { const d = (p[0] - out[i * 3]) ** 2 + (p[1] - out[i * 3 + 1]) ** 2 + (p[2] - out[i * 3 + 2]) ** 2; if (d < bd) { bd = d; c = j; } }); near.set(k, c); }
+    idx[i] = c; }
+  const raw = Buffer.alloc(TEX * (TEX + 1));
+  for (let y = 0; y < TEX; y++) { raw[y * (TEX + 1)] = 0; for (let x = 0; x < TEX; x++) raw[y * (TEX + 1) + 1 + x] = idx[y * TEX + x]; }
+  const chunk = (type, data) => { const len = Buffer.alloc(4); len.writeUInt32BE(data.length); const td = Buffer.concat([Buffer.from(type, 'ascii'), data]); const crc = Buffer.alloc(4); crc.writeUInt32BE(zlib.crc32 ? zlib.crc32(td) : crc32(td)); return Buffer.concat([len, td, crc]); };
+  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(TEX, 0); ihdr.writeUInt32BE(TEX, 4); ihdr[8] = 8; ihdr[9] = 3;
+  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('PLTE', Buffer.from(pal.flat())), chunk('IDAT', zlib.deflateSync(raw, { level: 9 })), chunk('IEND', Buffer.alloc(0))]);
+}
+function crc32(buf) { let c, crc = 0xffffffff; for (let n = 0; n < buf.length; n++) { c = (crc ^ buf[n]) & 0xff; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; crc = (crc >>> 8) ^ c; } return (crc ^ 0xffffffff) >>> 0; }
+const png = shrinkTexture();
+const NRM = accessor(prim.attributes.NORMAL);
+
 /* ---------- Ausgabe ---------- */
 const maxAbs = Math.max(...Array.from(P).map(Math.abs)), qs = 32000 / maxAbs;
 const r6 = (a) => a.map((x) => +x.toFixed(6));
@@ -174,6 +207,8 @@ const data = {
   pos: b64(Int16Array, Array.from(P).map((x) => Math.round(x * qs))),
   joints: b64(Uint8Array, Array.from(J)), weights: b64(Uint8Array, Array.from(W).map((x) => Math.round(x * 255))),
   index: b64(Uint16Array, Array.from(IDX)), cls: b64(Uint8Array, Array.from(cls)),
+  uv: b64(Uint16Array, Array.from(UV).map((x) => Math.round(Math.min(1, Math.max(0, x)) * 65535))), normal: b64(Int8Array, Array.from(NRM).map((x) => Math.round(x * 127))),
+  tex: 'data:image/png;base64,' + png.toString('base64'),
   nodes: nodes.map((n) => ({ n: n.n, p: n.p, t: r6(n.t), r: r6(n.r), s: r6(n.s) })),
   mesh: nodeOf.get(meshNodeIdx), bones: skin.joints.map((j) => nodeOf.get(j)), ibm: b64(Float32Array, Array.from(IBM)),
   fps: FPS, clips,

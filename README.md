@@ -83,7 +83,7 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 | `src/thirst.js` | Trinken am Ufer eines Wasserlochs (Aktionstaste) |
 | `src/main.js` | Einstieg: Hauptschleife (Bild für Bild: Spieler, Tiere, Kamera, Anzeige) und Spielstart |
 | `src/menu.js` | Pausenmenü, Einstellungen, Steuerungsliste, Neustart |
-| `src/leopard.js` | Leopard als Low-Poly-Modell mit Skelett (Meshy: Modell, Vierbeiner-Rig, Leoparden-Clips): Erwachsene und Junge, Clips nach Tempo und Haltung gemischt, eigenes Fleckenmuster je Leopard aus den Erbanlagen |
+| `src/leopard.js` | Leopard als Low-Poly-Modell mit Skelett (Meshy: Modell, Vierbeiner-Rig, Leoparden-Clips): Erwachsene und Junge, Clips nach Tempo und Haltung gemischt, Meshys Fell-Textur, Fellsorten (hell/dunkel, Albino, Panther) im Shader umgefärbt |
 | `src/leoadultrig.js`, `src/leocubrig.js` | Geriggte Leoparden-Modelle mit Clips (von `tools/meshy-rig.cjs` erzeugt) |
 | `src/meshmodel.js` | Baut aus den Daten umgewandelter Modelle die Geometrie (flache Flächen, Helligkeit je Dreieck) |
 | `src/models.js` | Tiermodelle aus Blöcken, Fellvarianten (inkl. Albino und Panther), eigenes Krokodilmodell (Schuppen, Zähne, Kiefer, schlängelnder Schwanz), Zusammenführen starrer Teile, Laufanimation |
@@ -119,7 +119,7 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 | `tools/add-imports.py` | Ergänzt solche fehlenden Importe automatisch aus den Exporten der anderen Module |
 | `tools/coop-shot.py` | Splitscreen-Browsertest mit simulierten Controllern (Einsteigen, Bewegen, Aussteigen, Pause) |
 | `tools/meshy-model.cjs` | Wandelt ein Meshy-Modell (GLB mit Textur) in ein kleines JS-Modul um: Helligkeit je Dreieck statt Textur, Holz und Laub getrennt, Fuß auf den Boden. Aufruf: `node tools/meshy-model.cjs modell.glb src/ziel.js --name NAME --height 5.5 [--perch 0.65]` (`--perch`: Liegeplatz auf diesem Anteil der Höhe, sonst oben auf dem Laub) |
-| `tools/meshy-rig.cjs` | Wandelt ein geriggtes, animiertes Meshy-Modell (GLB) in ein JS-Modul um: Skelett, Gewichte, Clips mit 15 Bildern je Sekunde, Fellklasse je Dreieck. Aufruf: `node tools/meshy-rig.cjs modell.glb src/ziel.js --name NAME --height 1.15 --clips idle=leopard_idle,walk=…` |
+| `tools/meshy-rig.cjs` | Wandelt ein geriggtes, animiertes Meshy-Modell (GLB) in ein JS-Modul um: Skelett, Gewichte, Clips mit 15 Bildern je Sekunde, Textur verkleinert (Lücken gefüllt, 256 Farben, `--tex 512`). Aufruf: `node tools/meshy-rig.cjs modell.glb src/ziel.js --name NAME --height 1.15 --clips idle=leopard_idle,walk=…` |
 | `tools/shot.py` | Startet das Spiel in Headless-Chrome, öffnet alle Fenster, macht Bildschirmfotos und meldet Fehler |
 
 ## App-Version
