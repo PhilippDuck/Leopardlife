@@ -163,7 +163,19 @@ for (const [key, glbName] of Object.entries(CLIPS)) {
     if (ch.target.path === 'rotation') tracks.push([k, 'r', b64(Int16Array, vals.flat().map((x) => Math.round(x * 32767)))]);
     else tracks.push([k, 't', b64(Float32Array, vals.flat())]);
   }
-  clips[key] = { d: +dur.toFixed(4), n: frames, tracks };
+  // Schrittlänge: Die Clips laufen auf der Stelle; eine Vorderpfote schwingt je Schrittfolge um etwa eine Schrittlänge vor und zurück.
+  // Lage der Pfote je Bild (Vorwärtskinematik), Spanne entlang +z (vorn), in Metern bei Maßstab 1 nach der Normierung.
+  const pose = new Map();
+  for (const ch of anim.channels) if (ch.target.path !== 'scale') pose.set(ch.target.node + ch.target.path, sampleChannel(anim.samplers[ch.sampler], times));
+  const foot = gltf.nodes.findIndex((n) => /^frontFoot\.L$/.test(n.name || ''));
+  let zmin = Infinity, zmax = -Infinity;
+  if (foot >= 0) for (let f = 0; f < frames; f++) {
+    let m = null; const chain = []; for (let i = foot; i >= 0; i = parent[i]) chain.unshift(i);
+    for (const i of chain) { const [t, r, sc] = trs(gltf.nodes[i]); const T = pose.get(i + 'translation'), R = pose.get(i + 'rotation'); const l = compose(T ? T[f] : t, R ? R[f] : r, sc); m = m ? mul(m, l) : l; }
+    const z = m[14]; zmin = Math.min(zmin, z); zmax = Math.max(zmax, z);
+  }
+  const stride = foot >= 0 ? zmax - zmin : 0;
+  clips[key] = { d: +dur.toFixed(4), n: frames, stride: +(stride * scale).toFixed(4), tracks };
 }
 
 /* ---------- Textur: verkleinert, Lücken zwischen den Inseln aufgefüllt (sonst dunkle Nähte), als PNG ---------- */

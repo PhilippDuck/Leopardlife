@@ -1,8 +1,9 @@
 // LeoLife – Leopard (Spielfigur, Partner, Rivalen, Junge) als Low-Poly-Modell mit Skelett und Clips (Meshy: Modell, Vierbeiner-Rig,
 // Leoparden-Animationen; umgewandelt mit tools/meshy-rig.cjs). Erwachsene und Junge haben eigene Modelle.
 // Fell: Meshys gemalte Textur; Fellsorten (hell/dunkel, kräftig/blass, Albino, Panther) färbt der Shader um (ein Material je Sorte).
-// Bewegung: animLegs(g,t,amp) ruft userData.anim. Der Ausschlag amp wählt den Clip (klein Stehen bzw. geduckt Kauern, mittel Gehen,
-// groß Rennen, ab 1 Sprung); die Clips laufen in echter Zeit, Gehen und Rennen so schnell, wie die Phase t voranschreitet.
+// Bewegung: animLegs(g,t,amp) ruft userData.anim. Kleiner Ausschlag: Stehen (geduckt Kauern), ab 1 Sprung. In Bewegung wählt das Tempo
+// (aus der Schrittphase t, je Körpergröße) die Gangart: langsam Gehen, sonst Rennen, geduckt Pirschen. Die Clips laufen in echter Zeit,
+// so schnell, dass die Pfoten möglichst mit dem Boden mitlaufen (gemessene Schrittlänge des Clips), höchstens 2,2-fach.
 // userData.pose ('lie', 'roar', 'dead', 'pounce') hat Vorrang.
 import { LEO_ADULT } from './leoadultrig.js';
 import { LEO_CUB } from './leocubrig.js';
@@ -67,7 +68,7 @@ function furMaterial(M,fur){
 
 /* ---------- Figur ---------- */
 /** Einmalige Clips bleiben am Ende stehen; Gehen und Rennen: Phasen-Tempo (rad/s), bei dem sie in Originalgeschwindigkeit laufen */
-const ONCE={dead:1,lie:1,pounce:1}, PACE={walk:12,run:22};
+const ONCE={dead:1,lie:1,pounce:1}, PACE={walk:12,stalk:9,run:22};
 /**
  * Leopard als Gruppe wie buildQuad: userData.inner (Hebt, Neigung), anim (für animLegs), pose; Skelett und Clips je Figur.
  * kind 'adult' oder 'cub'; fur: Fellsorte (makeFur) oder null.
@@ -88,19 +89,23 @@ function buildLeopard(kind,col,fur){
   // glTF: Die Lage des Modellknotens zählt beim Skinning nicht (Ecken = Σ Gewicht · Knochen-Welt · inverse Bindematrix · Ecke)
   mesh.bind(new THREE.Skeleton(D.bones.map(k=>objs[k]),inv),new THREE.Matrix4());
   // Clips mischen: Gewichte gleiten zum gewünschten Clip, Gehen und Rennen folgen der Phase
-  const mixer=new THREE.AnimationMixer(rig), acts={}, w={};
+  const mixer=new THREE.AnimationMixer(rig), acts={}, w={}, strides={};
+  for(const key in D.clips) strides[key]=D.clips[key].stride||0;
   for(const key in M.clips){ const a=mixer.clipAction(M.clips[key]); a.play(); a.setEffectiveWeight(key==='idle'?1:0); acts[key]=a; w[key]=key==='idle'?1:0; }
   let last=performance.now(), lastT=0, pace=0, cur='idle';
   function anim(t,amp){
     const now=performance.now(), dt=Math.min(0.1,Math.max(0,(now-last)/1000)); last=now;
     if(dt>0){ const r=Math.abs(t-lastT)/dt; pace+=((r<80?r:pace)-pace)*Math.min(1,dt*6); } lastT=t;   // wie schnell die Schrittphase läuft
     const sneak=inner.position.y<-0.07, pose=g.userData.pose;
-    let want=pose&&acts[pose]?pose:amp>=1?(acts.jump?'jump':'run'):amp<0.1?(sneak&&acts.cower?'cower':'idle'):amp<0.7?'walk':'run';
+    // Gangart nach dem Tempo (Körperlängen je Sekunde): langsam gehen, sonst rennen; geduckt pirschen
+    const spd=Math.max(0,(pace-5)/1.4), sc=g.scale.x||1, rel=spd/sc;
+    let want=pose&&acts[pose]?pose:amp>=1?(acts.jump?'jump':'run'):amp<0.1?(sneak&&acts.cower?'cower':'idle'):sneak&&acts.stalk?'stalk':rel<3?'walk':'run';
     if(want!==cur){ if(ONCE[want]) acts[want].time=0; cur=want; }
     let sum=0; for(const k in w){ w[k]+=((k===want?1:0)-w[k])*Math.min(1,dt*9); sum+=w[k]; }
     for(const k in acts){ const a=acts[k], d=a.getClip().duration;
       a.setEffectiveWeight(w[k]/(sum||1));
-      const speed=PACE[k]?Math.max(0.45,Math.min(1.7,pace/PACE[k])):1;
+      // Gehen, Pirschen, Rennen: so schnell abspielen, dass die Pfoten mit dem Boden mitlaufen (Schrittlänge des Clips, Tempo im Spiel)
+      const st=strides[k], speed=!PACE[k]?1:st>0.05?Math.max(0.6,Math.min(2.2,spd*d/(st*sc))):Math.max(0.45,Math.min(1.7,pace/PACE[k]));
       if(ONCE[k]) a.time=Math.min(d-0.001,a.time+dt); else a.time=(a.time+dt*speed)%d; }
     mixer.update(0);
   }
