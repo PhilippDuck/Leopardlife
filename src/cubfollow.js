@@ -94,7 +94,7 @@ function learnOf(p){ const c=S.cub; if(!c) return {}; c.learn=c.learn||{}; retur
 
 function addFollower(p){
   const c=S.cub; if(!c||denCount()<=0||followerOf(p)) return;
-  const g=buildQuad({col:0xe0a23c,col2:0xf0c98a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.5,ears:0.17,tail:1.0,tailTip:0x2a1c10,spots:1},c.fur||null);
+  const g=buildQuad({leo:'cub',col:0xe0a23c,col2:0xf0c98a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.5,ears:0.17,tail:1.0,tailTip:0x2a1c10,spots:1},c.fur||null);
   g.userData.blob.visible=!QUAL[quality].sh; scene.add(g);
   followers.push({p,c,x:cub.x,z:cub.z,rot:0,g,ph:0,wait:false,eatT:0,hitT:0,mewT:4,up:0,tree:null,waitTree:null});
   snd.mew(); tell(p,'Dein Junges kommt mit! Es lernt, was es bei dir sieht. Aktionstaste beim Jungen: „Warte hier“.','#ff9ad0');

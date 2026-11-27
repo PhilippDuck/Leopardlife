@@ -63,9 +63,9 @@ export const SPECIES=[
  {id:'hippo',n:'Nilpferd',size:1.5,hp:1400,spd:6,xp:900,sense:14,ring:[0,230],count:3,young:1,fight:1,dmg:34,hippo:1,m:{col:0x6e5d60,col2:0x4e4244,belly:0xb88a86}},
  {id:'snake',n:'Puffotter',size:0.55,hp:22,spd:3.2,xp:45,sense:6,ring:[25,215],count:4,fight:1,dmg:7,snake:1,m:{col:0x8a7148,col2:0xd9c48e,tailTip:0x3b2c19,belly:0xe2d6b0}},
  {id:'gnu',n:'Gnu',size:1.1,hp:170,spd:12.5,xp:180,sense:22,ring:[0,0],count:0,m:{col:0x5c5751,col2:0x3c3834,leg:1.0,neck:0.45,horns:0.55,stripe:0x2a2622,ears:0.2,tail:0.6}},
- {id:'rival',n:'Rivale',size:1.15,hp:320,spd:11,xp:600,sense:30,ring:[0,0],count:0,pred:1,fight:1,hunt:99,dmg:13,m:{col:0xb98a3a,col2:0xe2c08a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.46,ears:0.15,tail:1.1,tailTip:0x2a1c10,spots:1}},
+ {id:'rival',n:'Rivale',size:1.15,hp:320,spd:11,xp:600,sense:30,ring:[0,0],count:0,pred:1,fight:1,hunt:99,dmg:13,m:{leo:'adult',col:0xb98a3a,col2:0xe2c08a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.46,ears:0.15,tail:1.1,tailTip:0x2a1c10,spots:1}},
  {id:'poacher',n:'Wilderer',size:1.4,hp:150,spd:5.5,xp:250,sense:40,ring:[0,0],count:0,human:1,dmg:22,m:null},
- {id:'mate',n:'Leopard',size:1.0,hp:999,spd:7,xp:0,sense:0,ring:[40,150],count:5,friend:1,m:{col:0xe0a23c,col2:0xf0c98a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.44,ears:0.15,tail:1.1,tailTip:0x2a1c10,spots:1}}
+ {id:'mate',n:'Leopard',size:1.0,hp:999,spd:7,xp:0,sense:0,ring:[40,150],count:5,friend:1,m:{leo:'adult',col:0xe0a23c,col2:0xf0c98a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.44,ears:0.15,tail:1.1,tailTip:0x2a1c10,spots:1}}
 ];
 
 export const ICONS={

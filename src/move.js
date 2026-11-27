@@ -75,6 +75,8 @@ function stepPlayer(p,dt){
   g.userData.inner.rotation.x=climbing?-1.1:p.pounce>0?(p.leap?0.35:-0.3):p.drinking?0.3:0;   // trinkend: Kopf zum Wasser
   // Ausschlag der Beine merken: net.js zeigt den Leoparden damit auch auf den anderen Geräten im Online-Spiel
   if(climbing) p.legA=0.7; else if(p.tree!=null&&p.treeWalk){ p.walkT+=dt*6; p.legA=0.3; } else if(moving||p.pounce>0){ p.walkT+=dt*(5+spd*1.4); p.legA=p.pounce>0?1.1:sprint?0.85:sneak?0.3:0.55; } else p.legA=0.02;
+  // Haltung für das Leoparden-Modell: brüllen, im Baum oder auf dem Felsen liegend
+  g.userData.pose=p.roarT>0?'roar':p.tree!=null&&!climbing&&!p.treeWalk&&!moving&&p.pounce<=0&&!trees[p.tree]?.cave?'lie':null;
   animLegs(g,p.walkT,p.legA);
   if(moving&&p.pounce<=0){ p.stepT=(p.stepT||0)-dt*(sprint?1.7:sneak?0.55:1); if(p.stepT<=0){ p.stepT=0.3; if(p.wet) snd.splash(); else snd.step(sneak?0.04:sprint?0.2:0.12); } }
   // Tarnung

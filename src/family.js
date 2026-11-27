@@ -59,7 +59,7 @@ function denContext(){
   return null;
 }
 let cubG=null;
-const CUBSPEC={col:0xe0a23c,col2:0xf0c98a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.5,ears:0.17,tail:1.0,tailTip:0x2a1c10,spots:1};
+const CUBSPEC={leo:'cub',col:0xe0a23c,col2:0xf0c98a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.5,ears:0.17,tail:1.0,tailTip:0x2a1c10,spots:1};
 const sibG=[];   // Geschwister im Bau: je Junges im Wurf ein eigenes Modell (das erste ist cubG)
 function rebuildCub(){ dropModel(cubG); cubG=buildQuad(CUBSPEC,(S.cub&&S.cub.fur)||null); cubG.userData.blob.visible=!QUAL[quality].sh; cubG.visible=false; scene.add(cubG);
   while(sibG.length) dropModel(sibG.pop());
