@@ -114,7 +114,7 @@ function hostSend(now){
   if(add.length) m.n=add;
   if(del.length) m.x=del;
   if(now>=envAt){ envAt=now+ENV_MS;
-    m.e=[Math.round(S.tod*1e5)/1e5,rd2(W.rain),rd2(W.target),W.storm?1:0,rd2(G.windAng||0),EV.on||'',rd2(EV.s||0),rd2(EV.dir.x),rd2(EV.dir.z)]; }
+    m.e=[Math.round(S.tod*1e5)/1e5,rd2(W.rain),rd2(W.target),W.storm?1:0,rd2(G.windAng||0),EV.on||'',rd2(EV.s||0),rd2(EV.dir.x),rd2(EV.dir.z),Math.round(EV.c.x),Math.round(EV.c.z)]; }
   netSend(m);
 }
 /** Ein Tier des Gastgebers trifft den Leoparden eines Gastes: Schaden geht an dessen Gerät (dort mit eigener Schwierigkeit) */
@@ -220,7 +220,7 @@ onNet('wd',m=>{
     if(isNum(e[0])) todFromHost(((e[0]%1)+1)%1);   // überschreitet sie den Morgen: neuer Tag mit neuen Tageszielen
     setWeather(+e[1]||0,+e[2]||0,!!e[3]);
     if(isNum(e[4])){ G.windTarget=e[4]; G.windT=1e9; }
-    applyEvent(typeof e[5]==='string'?e[5]:'',+e[6]||0,+e[7]||1,+e[8]||0);
+    applyEvent(typeof e[5]==='string'?e[5]:'',+e[6]||0,+e[7]||1,+e[8]||0,+e[9]||0,+e[10]||0);
   }
 });
 onNet('hit',m=>{

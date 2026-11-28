@@ -522,13 +522,24 @@ console.log('audio nodes created',ACs&&ACs.count());
   if(!(h0>=14)||!(moved>15)||left!==0||T.animals.length!==n0){ console.log('FEHLER: Gnu-Wanderung',h0,moved,left,T.animals.length,n0); process.exit(1); }
   console.log('Gnu-Wanderung: '+h0+' Gnus ziehen ('+moved.toFixed(0)+' m in 5 s) und verlassen danach die Welt');
   // Steppenbrand: Tiere vor der Front fliehen, Feuer verletzt, Gras brennt ab und wächst nach
-  T.startEvent('fire'); const d=T.EV.dir; T.EV.s=0; P.dead=false; P.tree=null; P.hp=200; P.x=d.x*-1+(-d.z)*40; P.z=d.z*-1+d.x*40;
-  const prey=T.animals.find(a=>!a.dead&&!a.sp.croc&&!a.sp.friend&&!a.ev); prey.x=d.x*30+(-d.z)*20; prey.z=d.z*30+d.x*20; prey.dead=false;
+  T.players.forEach(q=>{ q.x=0; q.z=0; });   // Brand ums Startgebiet (dort ist hohes Gras)
+  T.startEvent('fire'); const d=T.EV.dir, c=T.EV.c; T.EV.s=0; P.dead=false; P.tree=null; P.hp=200; P.x=c.x+d.x*-1+(-d.z)*40; P.z=c.z+d.z*-1+d.x*40;
+  const prey=T.animals.find(a=>!a.dead&&!a.sp.croc&&!a.sp.friend&&!a.ev); prey.x=c.x+d.x*30+(-d.z)*20; prey.z=c.z+d.z*30+d.x*20; prey.dead=false;
   T.updateEvents(0.1); const flees=prey.ev==='fire'; const hp0=P.hp; for(let i=0;i<10;i++) T.updateEvents(0.1); const burnt=P.hp<hp0;
   T.EV.s=T.WORLD+20; T.updateEvents(0.1); const anyBurnt=T.patches.some(p=>p.burnt), off=!T.eventOn();
   T.EV.regrow=0.05; T.updateEvents(0.1); const regrown=!T.patches.some(p=>p.burnt);
   if(!flees||!burnt||!anyBurnt||!off||!regrown){ console.log('FEHLER: Steppenbrand',flees,burnt,anyBurnt,off,regrown); process.exit(1); }
   console.log('Steppenbrand: Tiere fliehen, Flammen verletzen, Gras brennt ab und wächst nach');
+  // Weit draußen in der Welt: Ereignisse spielen um den Spieler, nicht um die Weltmitte
+  { const far=[2600,-1900]; T.players.forEach(q=>{ q.x=far[0]; q.z=far[1]; q.dead=false; });
+    T.startEvent('migr'); const hm=T.animals.filter(a=>a.ev==='migr'), dm=Math.max(...hm.map(a=>Math.hypot(a.x-far[0],a.z-far[1]))); T.endEvent();
+    T.startEvent('fire'); const cf=T.EV.c; T.endEvent();
+    T.startEvent('poach'); const wp=T.animals.filter(a=>a.ev==='poach'), dp=Math.max(...wp.map(a=>Math.hypot(a.x-far[0],a.z-far[1]))); T.endEvent();
+    T.startEvent('rival'); const rd=Math.hypot(T.EV.rival.x-far[0],T.EV.rival.z-far[1]), rc=T.EV.c; T.EV.rival.gone=true; T.EV.rival.dead=true; T.endEvent();
+    for(const a of T.animals) if(a.temp&&(a.ev==='leave'||a.ev==='migr'||a.ev==='poach')){ a.gone=true; a.dead=true; } T.updateEvents(0.01);
+    if(!(dm<T.WORLD+40)||Math.hypot(cf.x-far[0],cf.z-far[1])>1||!(dp<150)||!(rd<T.WORLD+10)||rc.den){ console.log('FEHLER: Ereignisse weit draußen',dm,cf,dp,rd,rc); process.exit(1); }
+    console.log('Ereignisse weit draußen: Wanderung, Brand, Wilderer und Rivale beim Spieler');
+    T.players.forEach(q=>{ q.x=keepP[0]; q.z=keepP[1]; }); }
   // Rivale: kommt, wird besiegt, Ereignis endet
   T.EV.next=0; T.EV.last='fire'; T.startEvent('rival'); const r=T.EV.rival, hpR=r.hp;
   r.hp=1; T.hitAnimal(r,P); T.updateEvents(0.1); const won=!T.eventOn();
