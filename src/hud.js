@@ -286,6 +286,10 @@ function drawRadar(p=P,cv=/** @type {HTMLCanvasElement} */(hEl(p,'rc')),ctx=p===
   // Windpfeil am Rand: zeigt, wohin der Wind weht
   { const wx=windU.value.x, wz=windU.value.y, rr=W*0.4, bx=-wx*rr, bz=-wz*rr, px=-wz, pz=wx, L=14*sc;
     rc.fillStyle='rgba(150,205,255,.95)'; rc.beginPath(); rc.moveTo(bx+wx*L,bz+wz*L); rc.lineTo(bx+px*L*0.55,bz+pz*L*0.55); rc.lineTo(bx-px*L*0.55,bz-pz*L*0.55); rc.fill(); }
+  // Norden (−z in der Welt) am Rand: N in einem dunklen Kreis, immer aufrecht
+  { const ny=-W*0.42, u=10*sc; rc.save(); rc.translate(0,ny); rc.rotate(-p.cam.yaw);
+    rc.fillStyle='rgba(20,16,10,.75)'; rc.beginPath(); rc.arc(0,0,u*1.25,0,6.283); rc.fill();
+    rc.fillStyle='#fff'; rc.font='bold '+Math.round(u*1.6)+'px sans-serif'; rc.textAlign='center'; rc.textBaseline='middle'; rc.fillText('N',0,u*0.08); rc.restore(); }
   rc.restore();
   rc.fillStyle='#fff'; rc.beginPath(); rc.moveTo(W/2,W/2-11*sc); rc.lineTo(W/2+7*sc,W/2+8*sc); rc.lineTo(W/2-7*sc,W/2+8*sc); rc.fill();
 }
