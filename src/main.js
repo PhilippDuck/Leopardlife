@@ -75,7 +75,7 @@ onChunkFill(fillTrails);
 onChunkFill(fillRiver);
 document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent='Version '+APP_VERSION; });
 if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }); }
-if(typeof THREE==='undefined'){ $('err').textContent='Three.js konnte nicht geladen werden. Bitte Seite neu laden.'; $('btnPlay').disabled=true; throw new Error('three.js fehlt'); }
+if(typeof THREE==='undefined'){ document.body.classList.remove('boot'); $('err').textContent='Three.js konnte nicht geladen werden. Bitte Seite neu laden.'; $('btnPlay').disabled=true; throw new Error('three.js fehlt'); }
 
 
 
@@ -108,6 +108,12 @@ function frame(now){
   for(const p of players) updateCamera(p,p.camera); updateTrees(dt,players.map(p=>({camera:p.camera,p}))); updateSpray(dt,P); updateEnv(dt,now); eventsVisual(); updateEnvSound(dt); updateTitle(dt); musicTick(); ambTick(dayF,W.rain,W.storm,S.tod*24,players.some(p=>animals.some(a=>!a.dead&&(a.state==='chase'||a.state==='lunge')&&a.tgt===p)));
   updateChunks(dt); updateWorldContent(dt); updateFish(now); updateNet(now); updateNetCoop(dt); updateNetFamily(dt,now); updateNetWorld(G.paused?0:dt,now);
   renderAll();
+  if(!G.booted){ G.booted=true; endBoot(); }
+}
+/** Erstes Bild ist gezeichnet: Ladebildschirm ausblenden, darunter steht schon der fertige Startbildschirm */
+function endBoot(){
+  const b=$('boot'); document.body.classList.remove('boot'); if(!b) return;
+  b.classList.add('out'); document.body.classList.add('booting'); setTimeout(()=>{ b.remove(); document.body.classList.remove('booting'); },600);
 }
 /** Gastgeber im Online-Spiel mit mindestens einem Gast im Raum */
 const hostLive=()=>net.state==='online'&&net.role==='host'&&net.peers.size>0;

@@ -4,7 +4,7 @@
 // Bewegung: animLegs(g,t,amp) ruft userData.anim. Kleiner Ausschlag: Stehen (geduckt Kauern), ab 1 Sprung. In Bewegung wählt das Tempo
 // (aus der Schrittphase t, je Körpergröße) die Gangart: langsam Gehen, sonst Rennen, geduckt Pirschen. Die Clips laufen in echter Zeit,
 // so schnell, dass die Pfoten möglichst mit dem Boden mitlaufen (gemessene Schrittlänge des Clips), höchstens 2,2-fach.
-// userData.pose ('lie', 'roar', 'dead', 'pounce') hat Vorrang.
+// userData.pose ('lie', 'rise' = Aufstehen, 'roar', 'dead', 'pounce') hat Vorrang.
 import { LEO_ADULT } from './leoadultrig.js';
 import { LEO_CUB } from './leocubrig.js';
 
@@ -39,6 +39,7 @@ function prepare(D){
         if(a!==undefined){ const d=v[m*3+a]-v[a]; for(let i=0;i<C.n;i++) v[i*3+a]-=d*i/m; }
         tracks.push(new THREE.VectorKeyframeTrack(name+'.position',times,v)); } }
     clips[key]=new THREE.AnimationClip(key,C.d,tracks); }
+  if(clips.lie){ clips.rise=clips.lie.clone(); clips.rise.name='rise'; }   // Aufstehen: Hinlegen rückwärts
   return {D,geo,tex:leoTexture(D),ibm:new Float32Array(leoBytes(D.ibm)),clips,mats:{}};
 }
 const MODELS={};
@@ -46,29 +47,44 @@ const modelOf=kind=>MODELS[kind]||(MODELS[kind]=prepare(kind==='cub'?LEO_CUB:LEO
 
 /* ---------- Fell: Umfärben der Textur ---------- */
 /**
- * Material für eine Fellsorte: Helligkeit l, Sättigung s (wie makeFur), Albino (blass, Flecken nur angedeutet),
- * Panther (fast schwarz, Rosetten schimmern durch). Gleiche Sorten teilen sich ein Material.
+ * Material für eine Fellsorte. Alle Sorten teilen ein Shaderprogramm, die Werte kommen als Uniforms.
+ * Damit sich Leoparden deutlich unterscheiden, wirken die Werte stärker als beim früheren Blockmodell:
+ * l Helligkeit, s Sättigung, ss Grundton (goldrot bis blass-sandfarben), sn Flecken (kräftig dunkel bis verwaschen);
+ * Albino (blass, Flecken nur angedeutet), Panther (fast schwarz, Rosetten schimmern durch).
  */
 function furMaterial(M,fur){
-  const l=fur?fur.l:1, s=fur?fur.s:1, alb=fur&&fur.albino?1:0, mel=fur&&fur.melan?1:0, key=[l.toFixed(2),s.toFixed(2),alb,mel].join();
+  const cl=(x,a,b)=>Math.max(a,Math.min(b,x));
+  const l=fur?cl(1+(fur.l-1)*1.5,0.5,1.4):1, s=fur?cl(1+(fur.s-1)*2,0.55,1.35):1, alb=fur&&fur.albino?1:0, mel=fur&&fur.melan?1:0;
+  const warm=fur&&fur.ss!==undefined?cl((fur.ss-1.1)/0.35,-1,1):0, spot=fur&&fur.sn!==undefined?cl((fur.sn-1.075)/0.525,-1,1):0;
+  const key=[l,s,warm,spot].map(x=>x.toFixed(2)).join()+','+alb+mel;
   if(M.mats[key]) return M.mats[key];
   const m=new THREE.MeshLambertMaterial({map:M.tex,skinning:true});
+  const uA=new THREE.Vector4(l,s,alb,mel), uB=new THREE.Vector2(warm,spot);
   m.onBeforeCompile=sh=>{
-    sh.fragmentShader=sh.fragmentShader.replace('#include <map_fragment>',
+    sh.uniforms.uFurA={value:uA}; sh.uniforms.uFurB={value:uB};
+    sh.fragmentShader='uniform vec4 uFurA; uniform vec2 uFurB;\n'+sh.fragmentShader.replace('#include <map_fragment>',
       '#ifdef USE_MAP\n vec4 texelColor=texture2D(map,vUv); texelColor=mapTexelToLinear(texelColor);\n'+
       ' float lum=dot(texelColor.rgb,vec3(0.299,0.587,0.114));\n'+
-      ' vec3 c=mix(vec3(lum),texelColor.rgb,'+s.toFixed(3)+')*'+l.toFixed(3)+';\n'+
-      ' c=mix(c,vec3(0.86,0.83,0.76)*(0.55+0.9*lum),'+alb.toFixed(1)+');\n'+
-      ' c=mix(c,texelColor.rgb*0.16+vec3(0.012,0.01,0.008),'+mel.toFixed(1)+');\n'+
+      ' float spotM=smoothstep(0.40,0.22,lum), cream=smoothstep(0.62,0.80,lum);\n'+   // dunkle Rosetten, helle Bauchseite
+      ' vec3 c=texelColor.rgb;\n'+
+      // Grundton: warm = tiefes Goldrot, kühl = blasses Sandgelb (Bauch und Flecken weniger betroffen)
+      ' vec3 tint=uFurB.x>0.0?vec3(1.07,0.90,0.74):vec3(0.97,1.0,1.10);\n'+
+      ' c*=mix(vec3(1.0),tint,abs(uFurB.x)*(1.0-spotM)*(1.0-0.6*cream));\n'+
+      ' c=mix(vec3(dot(c,vec3(0.299,0.587,0.114))),c,uFurA.y)*uFurA.x;\n'+
+      // Flecken: kräftig (dunkler) oder verwaschen (zum Grundton hin)
+      ' vec3 ground=c*(0.56/max(lum,0.05));\n'+
+      ' c=uFurB.y>0.0?c*(1.0-0.55*uFurB.y*spotM):mix(c,ground,-uFurB.y*0.6*spotM);\n'+
+      ' c=mix(c,vec3(0.86,0.83,0.76)*(0.55+0.9*lum),uFurA.z);\n'+
+      ' c=mix(c,texelColor.rgb*0.16+vec3(0.012,0.01,0.008),uFurA.w);\n'+
       ' diffuseColor.rgb*=c;\n#endif');
   };
-  m.customProgramCacheKey=()=>'leo'+key;
+  m.customProgramCacheKey=()=>'leoFur';
   return M.mats[key]=m;
 }
 
 /* ---------- Figur ---------- */
 /** Einmalige Clips bleiben am Ende stehen; Gehen und Rennen: Phasen-Tempo (rad/s), bei dem sie in Originalgeschwindigkeit laufen */
-const ONCE={dead:1,lie:1,pounce:1}, PACE={walk:12,stalk:9,run:22};
+const ONCE={dead:1,lie:1,pounce:1,rise:1}, PACE={walk:12,stalk:9,run:22};
 /**
  * Leopard als Gruppe wie buildQuad: userData.inner (Hebt, Neigung), anim (für animLegs), pose; Skelett und Clips je Figur.
  * kind 'adult' oder 'cub'; fur: Fellsorte (makeFur) oder null.
@@ -100,13 +116,13 @@ function buildLeopard(kind,col,fur){
     // Gangart nach dem Tempo (Körperlängen je Sekunde): langsam gehen, sonst rennen; geduckt pirschen
     const spd=Math.max(0,(pace-5)/1.4), sc=g.scale.x||1, rel=spd/sc;
     let want=pose&&acts[pose]?pose:amp>=1?(acts.jump?'jump':'run'):amp<0.1?(sneak&&acts.cower?'cower':'idle'):sneak&&acts.stalk?'stalk':rel<3?'walk':'run';
-    if(want!==cur){ if(ONCE[want]) acts[want].time=0; cur=want; }
+    if(want!==cur){ if(ONCE[want]) acts[want].time=want==='rise'?acts[want].getClip().duration-0.001:0; cur=want; }
     let sum=0; for(const k in w){ w[k]+=((k===want?1:0)-w[k])*Math.min(1,dt*9); sum+=w[k]; }
     for(const k in acts){ const a=acts[k], d=a.getClip().duration;
       a.setEffectiveWeight(w[k]/(sum||1));
       // Gehen, Pirschen, Rennen: so schnell abspielen, dass die Pfoten mit dem Boden mitlaufen (Schrittlänge des Clips, Tempo im Spiel)
       const st=strides[k], speed=!PACE[k]?1:st>0.05?Math.max(0.6,Math.min(2.2,spd*d/(st*sc))):Math.max(0.45,Math.min(1.7,pace/PACE[k]));
-      if(ONCE[k]) a.time=Math.min(d-0.001,a.time+dt); else a.time=(a.time+dt*speed)%d; }
+      if(k==='rise') a.time=Math.max(0,a.time-dt); else if(ONCE[k]) a.time=Math.min(d-0.001,a.time+dt); else a.time=(a.time+dt*speed)%d; }
     mixer.update(0);
   }
   g.userData={legs:[],tail:null,head:null,inner,anim,pose:null,leopard:kind,dispose:()=>{ mixer.stopAllAction(); mixer.uncacheRoot(rig); }};

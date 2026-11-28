@@ -1,5 +1,5 @@
 // LeoLife – Startbildschirm in 3D: Die Kamera schwebt langsam um den eigenen Leoparden (groß im Bild, rechts),
-// er atmet, schaut sich um und wedelt mit dem Schwanz. Musik läuft, sobald der Browser Ton erlaubt (erster Klick/Tipp/Taste).
+// er steht ruhig da (Ruhe-Clip) und legt sich ab und zu hin, steht wieder auf oder brüllt (gähnt). Musik läuft, sobald der Browser Ton erlaubt (erster Klick/Tipp/Taste).
 // Weitere Controller können hier schon mit Start einsteigen – ihre Leoparden stellen sich daneben.
 import { AC, initAudio, musicSoon } from './audio.js';
 import { renderer } from './engine.js';
@@ -31,7 +31,8 @@ function updateTitle(dt){
     g.position.set(p.x,y+Math.sin(ph)*0.012,p.z);
     g.rotation.y=p.rot+Math.sin(titleT*0.23+i)*0.18;   // dreht sich ganz leicht hin und her
     const u=g.userData; if(u){ if(u.tail) u.tail.rotation.y=Math.sin(titleT*1.6+i)*0.45; if(u.head){ u.head.rotation.y=Math.sin(titleT*0.37+i*2)*0.5; u.head.rotation.x=Math.sin(titleT*0.29+i)*0.12; }
-      if(u.legs) u.legs.forEach(l=>{ l.rotation.x=0; }); if(u.inner) u.inner.scale.y=1+Math.sin(ph)*0.015; }
+      if(u.legs) u.legs.forEach(l=>{ l.rotation.x=0; }); if(u.inner&&!u.anim) u.inner.scale.y=1+Math.sin(ph)*0.015;
+      if(u.anim){ idleAct(p,u,dt); u.anim(0,0); } }
   });
   // Kamera: vor dem Leoparden, im langsamen Bogen; der Leopard steht rechts der Bildmitte
   const n=players.length, sc=P.g.scale.x, r=1.6+3.4*sc+1.8*(n-1), ang=face+0.5+Math.sin(titleT*0.08)*0.4, y0=H(P.x,P.z);
@@ -41,6 +42,15 @@ function updateTitle(dt){
   renderer.getSize(_tSz); const asp=_tSz.x/_tSz.y; if(Math.abs(P.camera.aspect-asp)>1e-3){ P.camera.aspect=asp; P.camera.updateProjectionMatrix(); }
   if(P.camera.fov!==42){ P.camera.fov=42; P.camera.updateProjectionMatrix(); }
   P.camera.position.set(cx,Math.max(cy,H(cx,cz)+0.4),cz); P.camera.lookAt(lx,y0+0.75*sc,lz);
+}
+/* Ruheverhalten auf dem Startbildschirm: meist stehen, ab und zu brüllen/gähnen oder hinlegen, eine Weile liegen und wieder aufstehen */
+const NEXT={idle:()=>Math.random()<0.4?['roar',1.7]:['lie',5+Math.random()*6], roar:()=>['idle',7+Math.random()*7], lie:()=>['rise',3.7], rise:()=>['idle',8+Math.random()*8]};
+/** @param {any} p @param {any} u @param {number} dt */
+const acts=new WeakMap();
+function idleAct(p,u,dt){
+  let s=acts.get(p); if(!s){ s={a:'idle',t:4+Math.random()*6}; acts.set(p,s); }
+  s.t-=dt; if(s.t<=0){ const [a,t]=NEXT[s.a](); s.a=a; s.t=t; }
+  u.pose=s.a==='idle'?null:s.a;
 }
 /* Bühne: eine freie Stelle in der Nähe (kein hohes Gras, keine Bäume, kein Wasser, nicht am Bau), damit der Leopard gut zu sehen ist.
    Beim Spielstart kehrt Spieler 1 an seinen Platz zurück. */
@@ -75,7 +85,8 @@ function renderPlayers(){
 function unlock(){ initAudio(); if(AC&&AC.state==='suspended') AC.resume(); if(titleOn()) musicSoon(); $('soundHint').style.display='none'; }
 ['pointerdown','keydown','touchstart'].forEach(ev=>document.addEventListener(ev,unlock,{once:true,capture:true}));
 /** nach dem Start wieder die Spielkamera */
-function leaveTitle(){ if(home){ P.x=home.x; P.z=home.z; P.rot=home.rot; players.forEach((p,i)=>{ if(i>0){ p.x=P.x+Math.sin(P.rot+Math.PI/2*(i%2?1:-1))*2.5; p.z=P.z+Math.cos(P.rot+Math.PI/2*(i%2?1:-1))*2.5; } }); home=null; }
+function leaveTitle(){ players.forEach(p=>{ if(p.g&&p.g.userData) p.g.userData.pose=null; acts.delete(p); });
+  if(home){ P.x=home.x; P.z=home.z; P.rot=home.rot; players.forEach((p,i)=>{ if(i>0){ p.x=P.x+Math.sin(P.rot+Math.PI/2*(i%2?1:-1))*2.5; p.z=P.z+Math.cos(P.rot+Math.PI/2*(i%2?1:-1))*2.5; } }); home=null; }
   if(P.camera.fov!==60){ P.camera.fov=60; P.camera.updateProjectionMatrix(); } }
 
 export { leaveTitle, renderPlayers, titleOn, updateTitle };
