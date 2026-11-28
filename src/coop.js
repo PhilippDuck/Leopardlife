@@ -231,7 +231,8 @@ function updateCoop(dt){
       ||net.find(o=>!o.dead&&o.helping&&Math.hypot(o.x-p.x,o.z-p.z)<REVIVE_DIST+1);   // Abstand etwas großzügiger: der Stand des anderen ist kurz verzögert
     if(helper){ p.revT+=dt; if(p.revT>=REVIVE_TIME){ wakeUp(p,p.x,p.z,0.35); toast(nameOf(helper)+' hat '+nameOf(p)+' wiederbelebt.','#9be07f'); continue; } }
     else p.revT=Math.max(0,p.revT-dt*0.5);
-    p.downT-=dt; if(p.downT<=0){ const sp=spawnSpot(); wakeUp(p,sp.x,sp.z,1); toast(nameOf(p)+' erwacht im Bau.','#f2b84b'); }
+    // Zeit abgelaufen: wer schon beim Wiederbeleben ist, darf es zu Ende führen
+    p.downT=Math.max(0,p.downT-dt); if(p.downT<=0&&!(helper&&p.revT>0)){ const sp=spawnSpot(); wakeUp(p,sp.x,sp.z,1); toast(nameOf(p)+' erwacht im Bau.','#f2b84b'); }
   }
 }
 function wakeUp(p,x,z,hpF){
@@ -300,12 +301,12 @@ function updateCoopHud(dt){
     updateCross(p); updateWarn(dt,p);
     if((hudTick+(p.num||0))%2===0){ const cv=/** @type {HTMLCanvasElement} */(hEl(p,'rc')); drawRadar(p,cv,cv.getContext('2d')); }
     const dn=q(h,'.pvDown'); dn.style.display=p.dead?'flex':'none';
-    if(p.dead){ q(dn,'span').textContent='Ein Mitspieler hält X neben dir – oder du erwachst in '+Math.ceil(p.downT||0)+' s im Bau.'; q(dn,'.rev').style.width=(p.revT/REVIVE_TIME*100)+'%'; }
+    if(p.dead){ q(dn,'span').textContent=(p.downT>0?'Ein Mitspieler hält X neben dir – oder du erwachst in '+Math.ceil(p.downT||0)+' s im Bau.':'Ein Mitspieler belebt dich gerade wieder …'); q(dn,'.rev').style.width=(p.revT/REVIVE_TIME*100)+'%'; }
     if(p.toastT>0){ p.toastT-=dt; if(p.toastT<=0) hEl(p,'toast').style.opacity='0'; }
     if(p.noStT>0){ p.noStT-=dt; if(p.noStT<=0) hEl(p,'crossMsg').style.opacity='0'; }
   }
   // Spieler 1 am Boden (nur im Koop): Hinweis in der großen Anzeige
-  if(anyMates()&&P.dead&&P.downT!=null){ const s=Math.ceil(P.downT); if(s!==P.lastS){ P.lastS=s; $('crossMsg').textContent='Am Boden – Mitspieler: X halten · Bau in '+s+' s'; $('crossMsg').style.opacity='1'; } }
+  if(anyMates()&&P.dead&&P.downT!=null){ const s=Math.ceil(P.downT); if(s!==P.lastS){ P.lastS=s; $('crossMsg').textContent=s>0?'Am Boden – Mitspieler: X halten · Bau in '+s+' s':'Am Boden – du wirst gerade wiederbelebt …'; $('crossMsg').style.opacity='1'; } }
   else if(P.lastS!=null){ P.lastS=null; $('crossMsg').style.opacity='0'; }   // wieder auf den Beinen (auch nach dem gemeinsamen Tod)
 }
 
@@ -326,7 +327,7 @@ function updateMarks(v,dt){
     let el=pool[n]; if(!el){ el=document.createElement('div'); el.className='mk'; frame.appendChild(el); pool.push(el); } n++;
     const W=frame.clientWidth, Hh=frame.clientHeight, d=Math.round(Math.hypot(q.x-v.x,q.z-v.z)), col=q.remote?'#ffd27a':PCOL[(q.num||1)-1];
     _mv.set(q.x,q.y+1.4*pScale(q.L)+0.6,q.z).project(v.camera);
-    const label=(q.dead?'Am Boden · ':'')+nameOf(q)+' · '+d+' m';
+    const down=q.dead&&q.downT!=null, label=(down?'Am Boden · ':'')+nameOf(q)+' · '+d+' m'+(down&&!q.noTime?' · '+(q.downT>0?'noch '+Math.ceil(q.downT)+' s':'letzte Chance'):'');   // am Boden: wie lange er noch wiederbelebt werden kann
     el.style.display='block'; el.style.color=col;
     if(_mv.z<1&&Math.abs(_mv.x)<0.95&&Math.abs(_mv.y)<0.95){   // im Bild: über dem Kopf
       el.className='mk'; el.innerHTML=esc(label)+'<br>▼';
