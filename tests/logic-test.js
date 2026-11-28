@@ -675,8 +675,13 @@ console.log('audio nodes created',ACs&&ACs.count());
   assert.ok(!T.ctx()||!/verlegen/.test(T.ctx().label),'in der eigenen Höhle wird ein Umzug angeboten');
   S0.tod=0.9; run(2); assert.equal(T.ctx()&&T.ctx().label,'Schlafen'); key('KeyF'); run(5); assert.ok(S0.tod>0.25&&S0.tod<0.3||T.P.wantSleep,'in der Höhle nicht geschlafen');   // im Koop wartet man auf die anderen
   key('KeyE'); run(10); assert.equal(T.P.tree,null); assert.ok(Math.hypot(T.P.x-ct.x,T.P.z-ct.z)>1,'nicht aus der Höhle gekommen');
+  // Neu erwachen: vor der Höhle, die jetzt der Bau ist, mit Blick hinaus (nicht mehr am alten Startplatz)
+  T.P.x=ct.x+60; T.P.z=ct.z; T.respawn(); run(1);
+  { const d=Math.hypot(T.P.x-ct.x,T.P.z-ct.z), dr=Math.abs(Math.atan2(Math.sin(T.P.rot-Math.atan2(ct.out[0],ct.out[1])),Math.cos(T.P.rot-Math.atan2(ct.out[0],ct.out[1]))));
+    assert.ok(d>2&&d<8,'nicht vor dem neuen Bau erwacht: '+d.toFixed(1)+' m von der Höhle'); assert.ok(dr<0.3,'erwacht nicht mit Blick aus der Höhle'); }
   T.P.x=7; T.P.z=5; run(2); assert.equal(T.ctx()&&T.ctx().label,'Bau hierher zurückverlegen'); key('KeyF'); run(2);
   assert.ok(!S0.den&&T.CUB_HOME.x===7&&T.CUB_HOME.z===5,'Bau nicht zurückverlegt');
+  T.respawn(); run(1); assert.ok(Math.hypot(T.P.x-2,T.P.z-2)<1,'nach dem Zurückverlegen nicht am alten Startplatz erwacht');
   // Weite Welt: selten, fest je Abschnitt, mit dem Abschnitt geladen und entfernt
   let found=null, n=0, ns=0; for(let cx=10;cx<70;cx++) for(let cz=-40;cz<-20;cz++){ const s=T.worldKopje(cx,cz); if(s&&s.small) ns++; else if(s){ n++; if(!found) found={cx,cz,s}; } }
   assert.ok(found,'kein Felsplateau in der weiten Welt'); assert.ok(n<200,'zu viele Felsplateaus: '+n); assert.ok(ns>0&&ns<350,'kleine Felsgruppen: '+ns);

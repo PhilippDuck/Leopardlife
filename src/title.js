@@ -3,14 +3,14 @@
 // Weitere Controller können hier schon mit Start einsteigen – ihre Leoparden stellen sich daneben.
 import { AC, initAudio, musicSoon } from './audio.js';
 import { renderer } from './engine.js';
-import { players, P } from './player.js';
+import { players, P, START_ROT, START_YAW } from './player.js';
 import { S } from './save.js';
 import { G } from './state.js';
 import { H, PONDS, pondAt } from './terrain.js';
 import { $ } from './util.js';
 import { furName } from './models.js';
 import { inGrass, tallMat, trees } from './vegetation.js';
-import { CUB_HOME } from './family.js';
+import { CUB_HOME, spawnSpot } from './family.js';
 import { kopjeNear } from './kopjesites.js';
 
 /** Läuft gerade der Startbildschirm? */
@@ -70,7 +70,7 @@ function viewClear(x,z,rot){
   return true;
 }
 function toStage(){
-  if(!home) home={x:P.x,z:P.z,rot:P.rot};
+  if(!home){ const sp=spawnSpot(); home={x:sp.x,z:sp.z,rot:sp.rot}; }   // beim Spielstart erwacht man am Bau
   for(let r=0;r<160;r+=6){ for(let k=0;k<16;k++){ const a=k/16*6.283+r*0.13, x=home.x+Math.cos(a)*r, z=home.z+Math.sin(a)*r;
     // vor dem Leoparden (Richtung Kamera) muss auch frei sein
     if(freeSpot(x,z)&&viewClear(x,z,home.rot)){ P.x=x; P.z=z; P.rot=home.rot; return; } } }
@@ -86,7 +86,7 @@ function unlock(){ initAudio(); if(AC&&AC.state==='suspended') AC.resume(); if(t
 ['pointerdown','keydown','touchstart'].forEach(ev=>document.addEventListener(ev,unlock,{once:true,capture:true}));
 /** nach dem Start wieder die Spielkamera */
 function leaveTitle(){ players.forEach(p=>{ if(p.g&&p.g.userData) p.g.userData.pose=null; acts.delete(p); });
-  if(home){ P.x=home.x; P.z=home.z; P.rot=home.rot; players.forEach((p,i)=>{ if(i>0){ p.x=P.x+Math.sin(P.rot+Math.PI/2*(i%2?1:-1))*2.5; p.z=P.z+Math.cos(P.rot+Math.PI/2*(i%2?1:-1))*2.5; } }); home=null; }
+  if(home){ P.x=home.x; P.z=home.z; P.rot=home.rot; P.cam.yaw=START_YAW+home.rot-START_ROT; players.forEach((p,i)=>{ if(i>0){ p.x=P.x+Math.sin(P.rot+Math.PI/2*(i%2?1:-1))*2.5; p.z=P.z+Math.cos(P.rot+Math.PI/2*(i%2?1:-1))*2.5; } }); home=null; }
   if(P.camera.fov!==60){ P.camera.fov=60; P.camera.updateProjectionMatrix(); } }
 
 export { leaveTitle, renderPlayers, titleOn, updateTitle };

@@ -120,7 +120,7 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 | `tools/add-imports.py` | Ergänzt solche fehlenden Importe automatisch aus den Exporten der anderen Module |
 | `tools/coop-shot.py` | Splitscreen-Browsertest mit simulierten Controllern (Einsteigen, Bewegen, Aussteigen, Pause) |
 | `tools/meshy-model.cjs` | Wandelt ein Meshy-Modell (GLB mit Textur) in ein kleines JS-Modul um: Helligkeit je Dreieck statt Textur, Holz und Laub getrennt, Fuß auf den Boden. Aufruf: `node tools/meshy-model.cjs modell.glb src/ziel.js --name NAME --height 5.5 [--perch 0.65]` (`--perch`: Liegeplatz auf diesem Anteil der Höhe, sonst oben auf dem Laub) |
-| `tools/meshy-rig.cjs` | Wandelt ein geriggtes, animiertes Meshy-Modell (GLB) in ein JS-Modul um: Skelett, Gewichte, Clips mit 15 Bildern je Sekunde, Textur verkleinert (Lücken gefüllt, 256 Farben, `--tex 512`). Aufruf: `node tools/meshy-rig.cjs modell.glb src/ziel.js --name NAME --height 1.15 --clips idle=leopard_idle,walk=…` |
+| `tools/meshy-rig.cjs` | Wandelt ein geriggtes, animiertes Meshy-Modell (GLB) in ein JS-Modul um: Skelett, Gewichte, Clips mit 15 Bildern je Sekunde (kurze ab 30), je Gangart das gemessene Tempo, bei dem die Pfoten nicht rutschen, Textur verkleinert (Lücken gefüllt, 256 Farben, `--tex 512`). Aufruf: `node tools/meshy-rig.cjs modell.glb src/ziel.js --name NAME --height 1.15 --clips idle=leopard_idle,walk=…` |
 | `tools/shot.py` | Startet das Spiel in Headless-Chrome, öffnet alle Fenster, macht Bildschirmfotos und meldet Fehler |
 
 ## App-Version
