@@ -24,7 +24,7 @@ const LEX={
   pango:'Sucht nachts an Termitenhügeln nach Futter. Bemerkt es dich, rollt es sich zu einer Panzerkugel ein, an der jeder Biss abgleitet. Nur geduckt anschleichen – oder still abwarten, bis es sich wieder entrollt.',
   baboon:'Lebt im Trupp mit Jungen und schläft in Bäumen. Bellt bei Gefahr Alarm – dann flieht alles Wild ringsum. Sitzt ein Leopard in ihrem Baum, klettern die Männchen hinauf und greifen an. Junge abseits des Trupps sind leichte Beute.',
   boar:'Wehrt sich mit den Hauern. Bachen verteidigen ihre Frischlinge – halte Abstand zu den Kleinen.',
-  deer:'Aufmerksam, mit gutem Gehör. Hirschkühe verteidigen ihre Kälber; Madenhacker auf dem Rücken warnen sie.',
+  deer:'Klein, flink und aufmerksam, mit gutem Gehör. Gazellenmütter verteidigen ihre Kitze; Madenhacker auf dem Rücken warnen sie.',
   anti:'Sehr schnell und wachsam. Nur aus dem Hinterhalt zu erwischen.',
   giant:'Riesig und wehrhaft – Beute nur für ausgewachsene Leoparden.',
   jack:'Jagt im Rudel junge Leoparden. Später leichte Beute.',

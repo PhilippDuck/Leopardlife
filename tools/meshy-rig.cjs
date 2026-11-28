@@ -139,6 +139,9 @@ console.log(`Dreiecke: ${nT}, hell ${nLight}, dunkel am Kopf ${nDark}`);
 
 /* ---------- Clips ---------- */
 const nodeOf = new Map(order.map((i, k) => [i, k]));
+// Pfoten (Leopard: frontFoot/rearFoot) oder Hufe (Huftier-Rig: frontToe/rearToe), je vier
+const FEET = (() => { const by = (re) => gltf.nodes.map((n, i) => [n.name || '', i]).filter(([n]) => re.test(n)).map(([, i]) => i);
+  const f = by(/^(front|rear)Foot\.[LR]$/); return f.length === 4 ? f : by(/^(front|rear)Toe\.[LR]$/); })();
 function sampleChannel(sampler, times) {
   const inp = accessor(sampler.input), outp = accessor(sampler.output), n = outp.length / inp.length;
   return times.map((t) => {
@@ -171,10 +174,10 @@ for (const [key, glbName] of Object.entries(CLIPS)) {
   const footAt = (foot, P, f) => { let m = null; const chain = []; for (let i = foot; i >= 0; i = parent[i]) chain.unshift(i);
     for (const i of chain) { const [t, r, sc] = trs(gltf.nodes[i]); const T = P.get(i + 'translation'), R = P.get(i + 'rotation'); const l = compose(T ? T[f] : t, R ? R[f] : r, sc); m = m ? mul(m, l) : l; }
     return [m[12], m[13], m[14]]; };
-  const foot = gltf.nodes.findIndex((n) => /^frontFoot\.L$/.test(n.name || ''));
+  const foot = FEET.find((i) => /^front\w*\.L$/.test(gltf.nodes[i].name));
   let zmin = Infinity, zmax = -Infinity;
-  if (foot >= 0) for (let f = 0; f < frames; f++) { const z = footAt(foot, pose, f)[2]; zmin = Math.min(zmin, z); zmax = Math.max(zmax, z); }
-  const stride = foot >= 0 ? zmax - zmin : 0;
+  if (foot !== undefined) for (let f = 0; f < frames; f++) { const z = footAt(foot, pose, f)[2]; zmin = Math.min(zmin, z); zmax = Math.max(zmax, z); }
+  const stride = foot !== undefined ? zmax - zmin : 0;
   // Tempo des Clips (m/s bei Maßstab 1, nach der Normierung): wie schnell sich der Körper bewegen muss, damit die Pfoten nicht rutschen.
   // Fein abgetastet (60 Bilder/s), Verschiebungen ohne Drift über den Clip. Je Pfote:
   // - Schreiten (Pfoten heben kaum ab): Weg der Pfote nach hinten / Zeit, in der sie nach hinten wandert (das ist die Standphase);
@@ -185,7 +188,7 @@ for (const [key, glbName] of Object.entries(CLIPS)) {
     if (ch.target.path === 'translation') { const d = v[NF - 1].map((x, c) => x - v[0][c]); v.forEach((q, i) => q.forEach((x, c) => { q[c] = x - (d[c] * i) / (NF - 1); })); }
     fine.set(ch.target.node + ch.target.path, v); }
   const med = (a) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[s.length >> 1] : 0; };
-  const feet = gltf.nodes.map((n, i) => [n.name || '', i]).filter(([n]) => /^(front|rear)Foot\.[LR]$/.test(n)).map(([, i]) => i);
+  const feet = FEET;
   const footV = feet.map((fi) => {
     const ps = ft.map((_, f) => footAt(fi, fine, f)), ys = ps.map((q) => q[1]), zs = ps.map((q) => q[2]), lo = Math.min(...ys), hi = Math.max(...ys);
     if ((hi - lo) * scale < 0.25) { let back = 0; for (let f = 0; f + 1 < NF; f++) if (zs[f + 1] < zs[f]) back++; return back ? ((Math.max(...zs) - Math.min(...zs)) / (back * fdt)) * scale : 0; }

@@ -53,9 +53,9 @@ export const SPECIES=[
  {id:'pango',n:'Schuppentier',size:0.45,hp:28,spd:3.2,xp:60,sense:9,ring:[40,210],count:3,termite:1,roll:1,m:{col:0x7d6346,col2:0x5f4a33,len:1.4,hgt:0.42,wid:0.44,leg:0.24,head:0.3,ears:0.04,tail:1.0,tailTip:0x5f4a33,spots:1,ball:0x6f5639}},
  {id:'baboon',n:'Pavian',size:0.72,hp:42,spd:9,xp:48,sense:26,ring:[60,195],count:6,young:4,fight:1,dmg:7,guard:1,baboon:1,troop:[5,7],m:{col:0x7a6a4c,col2:0x54473a,mane:0x9c9070}},
  {id:'boar',n:'Wildschwein',size:0.75,hp:75,spd:8.5,xp:70,sense:13,ring:[70,170],count:5,fight:1,dmg:8,young:3,guard:1,m:{col:0x4b3d33,col2:0x3a2f27,len:1.5,hgt:0.75,wid:0.6,leg:0.42,tusks:1,tail:0.3}},
- {id:'deer',n:'Hirsch',size:1.0,hp:115,spd:12,xp:120,sense:24,ring:[90,200],count:7,young:3,guard:1,gdmg:10,m:{col:0xa8743f,col2:0x8c5e30,leg:0.95,neck:0.35,horns:0.6,stripe:0xe8d9bd,ears:0.2}},
- {id:'anti',n:'Antilope',size:1.15,hp:200,spd:13.5,xp:230,sense:27,ring:[130,225],count:7,young:3,guard:1,gdmg:14,m:{col:0xc9924f,col2:0xe9d2a8,leg:1.0,neck:0.4,horns:0.85,stripe:0x3b2a1c,ears:0.2,tail:0.4}},
- {id:'giant',n:'Riesenantilope',size:2.5,hp:700,spd:10.5,xp:1200,sense:22,ring:[185,228],count:2,fight:1,dmg:35,boss:1,m:{col:0xb08a5c,col2:0x7d6040,leg:1.0,neck:0.45,horns:1.1,hgt:0.75,wid:0.65,len:1.6,ears:0.22,tail:0.6,tailTip:0x2a1c10}},
+ {id:'deer',n:'Gazelle',size:1.0,hp:115,spd:12,xp:120,sense:24,ring:[90,200],count:7,young:3,guard:1,gdmg:10,m:{hoof:'deer',col:0xa8743f,col2:0x8c5e30,leg:0.95,neck:0.35,horns:0.6,stripe:0xe8d9bd,ears:0.2}},
+ {id:'anti',n:'Antilope',size:1.15,hp:200,spd:13.5,xp:230,sense:27,ring:[130,225],count:7,young:3,guard:1,gdmg:14,m:{hoof:'anti',col:0xc9924f,col2:0xe9d2a8,leg:1.0,neck:0.4,horns:0.85,stripe:0x3b2a1c,ears:0.2,tail:0.4}},
+ {id:'giant',n:'Riesenantilope',size:2.5,hp:700,spd:10.5,xp:1200,sense:22,ring:[185,228],count:2,fight:1,dmg:35,boss:1,m:{hoof:'giant',col:0xb08a5c,col2:0x7d6040,leg:1.0,neck:0.45,horns:1.1,hgt:0.75,wid:0.65,len:1.6,ears:0.22,tail:0.6,tailTip:0x2a1c10}},
  {id:'jack',n:'Schakal',size:0.62,hp:40,spd:8.6,xp:55,sense:30,ring:[60,140],count:3,hunt:4,fight:1,dmg:6,pred:1,m:{col:0xb58a4f,col2:0x8d8a80,ears:0.3,tail:0.7,leg:0.6}},
  {id:'hyena',n:'Hyäne',size:0.95,hp:125,spd:10,xp:160,sense:34,ring:[105,190],count:3,hunt:8,fight:1,dmg:14,pred:1,young:2,guard:1,m:{col:0x9c8a6a,col2:0x4a4036,ears:0.22,tail:0.4,leg:0.7,hgt:0.65,spots:1}},
  {id:'lion',n:'Löwe',size:1.35,hp:360,spd:11.5,xp:520,sense:38,ring:[150,225],count:2,hunt:12,fight:1,dmg:30,pred:1,young:1,guard:1,m:{col:0xcfa35a,col2:0xbf9350,mane:0x6e4420,tail:1.0,tailTip:0x4a2c12,leg:0.7,hgt:0.7,wid:0.6,len:1.6}},
@@ -64,7 +64,7 @@ export const SPECIES=[
  {id:'ele',n:'Elefant',size:2.2,hp:2600,spd:6.5,xp:1600,sense:22,ring:[80,225],count:5,young:2,fight:1,dmg:42,elephant:1,troop:[5,6],m:{col:0x837b74,col2:0x6a635d}},
  {id:'hippo',n:'Nilpferd',size:1.5,hp:1400,spd:6,xp:900,sense:14,ring:[0,230],count:3,young:1,fight:1,dmg:34,hippo:1,m:{col:0x6e5d60,col2:0x4e4244,belly:0xb88a86}},
  {id:'snake',n:'Puffotter',size:0.55,hp:22,spd:3.2,xp:45,sense:6,ring:[25,215],count:4,fight:1,dmg:7,snake:1,m:{col:0x8a7148,col2:0xd9c48e,tailTip:0x3b2c19,belly:0xe2d6b0}},
- {id:'gnu',n:'Gnu',size:1.1,hp:170,spd:12.5,xp:180,sense:22,ring:[0,0],count:0,m:{col:0x5c5751,col2:0x3c3834,leg:1.0,neck:0.45,horns:0.55,stripe:0x2a2622,ears:0.2,tail:0.6}},
+ {id:'gnu',n:'Gnu',size:1.1,hp:170,spd:12.5,xp:180,sense:22,ring:[0,0],count:0,m:{hoof:'gnu',col:0x5c5751,col2:0x3c3834,leg:1.0,neck:0.45,horns:0.55,stripe:0x2a2622,ears:0.2,tail:0.6}},
  {id:'rival',n:'Rivale',size:1.15,hp:320,spd:11,xp:600,sense:30,ring:[0,0],count:0,pred:1,fight:1,hunt:99,dmg:13,m:{leo:'adult',col:0xb98a3a,col2:0xe2c08a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.46,ears:0.15,tail:1.1,tailTip:0x2a1c10,spots:1}},
  {id:'poacher',n:'Wilderer',size:1.4,hp:150,spd:5.5,xp:250,sense:40,ring:[0,0],count:0,human:1,dmg:22,m:null},
  {id:'mate',n:'Leopard',size:1.0,hp:999,spd:7,xp:0,sense:0,ring:[40,150],count:5,friend:1,m:{leo:'adult',col:0xe0a23c,col2:0xf0c98a,len:1.5,hgt:0.5,wid:0.48,leg:0.5,head:0.44,ears:0.15,tail:1.1,tailTip:0x2a1c10,spots:1}}
@@ -104,6 +104,6 @@ export const ico=(k,c,sz)=>'<span class="ico" style="--ic:'+c+(sz?';--isz:'+sz+'
 
 export const FOOD={gnu:9,rival:8,croc:8,bigcroc:25,hippo:30,ele:40,maus:1,hase:2,capy:4,boar:6,wart:4,erdf:4,pango:2,baboon:3,deer:8,anti:10,giant:20,jack:3,hyena:5,lion:8,snake:1};
 
-export const DAT={poacher:'einem Wilderer',gnu:'einer Gnu-Herde',fire:'dem Feuer',rival:'einem rivalisierenden Leoparden',croc:'einem Krokodil',bigcroc:'einem Riesenkrokodil',hippo:'einem Nilpferd',ele:'einem Elefanten',lion:'einem Löwen',hyena:'einer Hyäne',jack:'einem Schakal',boar:'einem Wildschwein',wart:'einem Warzenschwein',baboon:'einem Pavian',snake:'einer Puffotter',deer:'einem Hirsch',anti:'einer Antilope',giant:'einer Riesenantilope'};
+export const DAT={poacher:'einem Wilderer',gnu:'einer Gnu-Herde',fire:'dem Feuer',rival:'einem rivalisierenden Leoparden',croc:'einem Krokodil',bigcroc:'einem Riesenkrokodil',hippo:'einem Nilpferd',ele:'einem Elefanten',lion:'einem Löwen',hyena:'einer Hyäne',jack:'einem Schakal',boar:'einem Wildschwein',wart:'einem Warzenschwein',baboon:'einem Pavian',snake:'einer Puffotter',deer:'einer Gazelle',anti:'einer Antilope',giant:'einer Riesenantilope'};
 
-export const ART={croc:'ein',hase:'einen',maus:'eine',capy:'ein',boar:'ein',baboon:'einen',deer:'einen',anti:'eine',lion:'einen',hyena:'eine',jack:'einen'};
+export const ART={croc:'ein',hase:'einen',maus:'eine',capy:'ein',boar:'ein',baboon:'einen',deer:'eine',anti:'eine',lion:'einen',hyena:'eine',jack:'einen'};

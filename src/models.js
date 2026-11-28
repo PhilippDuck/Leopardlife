@@ -2,6 +2,7 @@
 import { blobs } from './quality.js';
 import { rnd } from './util.js';
 import { buildLeopard } from './leopard.js';
+import { buildHoofed } from './hoofed.js';
 
 /* ---------- Tiermodelle ---------- */
 const matCache={}; const M=c=>matCache[c]||(matCache[c]=new THREE.MeshLambertMaterial({color:c}));
@@ -52,6 +53,7 @@ function leopardQuad(o,v){
 }
 function buildQuad(o,v){
   if(o.leo) return leopardQuad(o,v);
+  if(o.hoof) return buildHoofed(o.hoof,v,blobs,shadowGeo,shadowMat);   // Huftiere: Meshy-Modelle (hoofed.js)
   if(v){ o=Object.assign({},o); ['col','col2','mane','stripe','tailTip'].forEach(k=>{ if(o[k]!==undefined) o[k]=furColor(o[k],v); }); }
   const eyeC=v&&v.albino?0xc8506a:0x111111, noseC=v&&v.albino?0xd9a0a8:0x222222;
   // o: col, col2, len, hgt, wid, leg, head, ears, horns, tail, mane, spots, snout
