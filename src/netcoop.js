@@ -39,7 +39,7 @@ function updateNetCoop(dt){
     const bits=s[16];
     q.name=(net.peers.get(r.peer)?.name||'Leopard')+(r.num>1?' ('+r.num+')':'');
     q.x=s[17]; q.z=s[18]; q.y=r.g?r.g.position.y:s[19]; q.L.lvl=s[13];
-    q.dead=!!(bits&8); q.downT=bits&32?1:null; q.helping=!!(bits&64); q.wantSleep=!!(bits&128); q.biting=!!(bits&256); q.revT=s[20]||0;
+    q.dead=!!(bits&8); q.downT=bits&32?(s[21]>=0?s[21]:1):null; q.noTime=!(s[21]>=0);   // ältere Version: ohne Restzeit q.helping=!!(bits&64); q.wantSleep=!!(bits&128); q.biting=!!(bits&256); q.revT=s[20]||0;
     const kin=r.kin; if(kin&&typeof kin.id==='string'){ q.L.id=kin.id; q.L.parents=Array.isArray(kin.par)?kin.par.filter(x=>typeof x==='string'):[]; q.L.traits=Array.isArray(kin.tr)?kin.tr.filter(x=>typeof x==='string'):[]; q.L.gen=+kin.gen||1; q.busy=!!kin.busy; }
     q.fur=r.fur||null;
     if(q.pingT>0) q.pingT-=dt;

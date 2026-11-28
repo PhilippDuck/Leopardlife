@@ -185,6 +185,9 @@ console.log('audio nodes created',ACs&&ACs.count());
   if(!Q.dead||!(Q.downT>0)||P.dead||T.G.paused) { console.log('FEHLER: Mitspieler sollte am Boden liegen, Spiel weiterlaufen'); process.exit(1); }
   P.ctl.act=true; for(let i=0;i<40;i++) T.updateCoop(0.1); P.ctl.act=false;
   if(Q.dead||!(Q.hp>0)) { console.log('FEHLER: Wiederbeleben hat nicht geklappt'); process.exit(1); }
+  // Wiederbeleben kurz vor Ablauf begonnen: darf zu Ende geführt werden
+  T.hurtPlayer(9999,lion,true,Q); Q.downT=1; P.ctl.act=true; for(let i=0;i<40;i++) T.updateCoop(0.1); P.ctl.act=false;
+  if(Q.dead||Math.hypot(Q.x-2,Q.z-2)<0.01) { console.log('FEHLER: begonnenes Wiederbeleben nach Ablauf abgebrochen'); process.exit(1); }
   T.hurtPlayer(9999,lion,true,Q); for(let i=0;i<620;i++) T.updateCoop(0.1);
   if(Q.dead||Math.hypot(Q.x-2,Q.z-2)>0.01) { console.log('FEHLER: Erwachen im Bau nach Ablauf'); process.exit(1); }
   T.hurtPlayer(9999,lion,true,P); for(let i=0;i<3;i++){ T.updateCoop(0.1); T.updateCoopHud(0.1); } T.hurtPlayer(9999,lion,true,Q);
