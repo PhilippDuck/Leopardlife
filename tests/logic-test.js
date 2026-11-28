@@ -14,7 +14,7 @@ function bundle(file){
   included.add(file);
   const c=fs.readFileSync(file,'utf8');
   return c.replace(/^import \{[^}]*\} from '\.\/([\w-]+\.js)';\n/mg,(m,f)=>bundle(path.join(path.dirname(file),f)))
-          .replace(/^export \{[^}]*\};?\n?/mg,'').replace(/^export /mg,'');
+          .replace(/^export \{([^}]*)\};?\n?/mg,(m,l)=>l.split(',').map(e=>e.trim().split(/\s+as\s+/)).filter(e=>e.length===2).map(([a,b])=>'const '+b+'='+a+';\n').join('')).replace(/^export /mg,'');
 }
 const code=bundle(path.join(__dirname,'..','src','main.js'));
 function U(name){ const store={}; const f=function(){};
@@ -752,8 +752,8 @@ console.log('audio nodes created',ACs&&ACs.count());
   const side={...T.riverNear(deepX,zc(deepX))}; T.P.z=zc(deepX)+side.w*side.k*0.93; T.P.x=deepX; S0.thirst=40; run(2);
   assert.equal(T.drinkContext(T.P)?.label,'Trinken','am Fluss kann man nicht trinken'); assert.ok(!T.P.swim);
   // Herde: geht nicht ins Tiefe, sondern am Ufer entlang zur Furt und dort hinüber
-  const deer=T.animals.find(a=>a.sp.id==='deer'&&!a.dead); const bank=z=>zc(deer.x)-(side.w*side.k+1.5);
-  deer.x=fx+60; deer.z=bank(); const far=zc(fx+60)+30; let maxD=0;
+  const deer=T.animals.find(a=>a.sp.id==='deer'&&!a.dead&&!a.ev&&!a.juv&&!a.wound)||T.animals.find(a=>a.sp.id==='deer'&&!a.dead); const bank=z=>zc(deer.x)-(side.w*side.k+1.5);
+  deer.state='wander'; deer.fleeFrom=null; deer.stuckT=0; deer.x=fx+60; deer.z=bank(); const far=zc(fx+60)+30; let maxD=0;
   for(let i=0;i<1200&&deer.z<zc(deer.x)+side.w;i++){ T.moveAnimal(deer,0,far-deer.z,4,0.05); maxD=Math.max(maxD,T.riverDepth(deer.x,deer.z)); }
   assert.ok(maxD<=T.RIV_SWIM+0.01,'Herdentier im tiefen Wasser: '+maxD.toFixed(2));
   assert.ok(deer.z>zc(deer.x)&&Math.abs(deer.x-fx)<20,'nicht an der Furt hinüber: x '+(deer.x-fx).toFixed(1));
@@ -892,4 +892,27 @@ console.log('Ereignis-Auswahl und Feuerpause OK');
   assert.ok(green>=3,'kaum Kleintiere in grünen Abschnitten: '+green); assert.equal(dry,0,'Kleintiere in trockenen Abschnitten');
   assert.ok(mice>=green*2,'zu wenige Mäuse');
   console.log('Kleintiere: '+green+' grüne Abschnitte mit '+mice+' Mäusen OK'); }
+// Tiere untereinander: Beute flieht vor Raubtieren, Schakal weicht dem Löwen, hungriger Löwe jagt und frisst
+{ const assert=require('node:assert/strict'), T=globalThis.__T, P=T.P; P.dead=false; P.tree=null; P.safe=true;
+  const find=id=>T.animals.find(a=>a.sp.id===id&&!a.dead&&!a.juv&&!a.ev&&!a.world)||T.animals.find(a=>a.sp.id===id&&!a.dead&&!a.juv&&!a.world);
+  const lion=find('lion'), jack=find('jack'), deer=find('deer');
+  const keep=T.animals.map(a=>[a,a.x,a.z,a.state,a.dead]);
+  for(const a of T.animals) if(a!==lion&&a!==jack&&a!==deer&&!a.dead){ a.x+=5000; a.z+=5000; }   // die anderen aus dem Weg
+  const put=(a,x,z)=>{ a.x=P.x+x; a.z=P.z+z; a.tx=a.x; a.tz=a.z; a.state='wander'; a.timer=5; a.idle=0; a.socT=0; a.stun=0; a.fleeFrom=null; a.g.visible=true; };
+  const run=(n,list)=>{ for(let i=0;i<n;i++) for(const a of list) T.updateAnimal(a,0.05); };
+  // satter Löwe: der Hirsch flieht trotzdem (weg vom Löwen), der Schakal weicht
+  put(lion,40,0); lion.hungerT=999; put(deer,52,0); put(jack,30,0);
+  run(10,[lion,deer,jack]);
+  assert.equal(deer.state,'flee','Hirsch flieht nicht vor dem Löwen'); assert.equal(deer.fleeFrom,lion);
+  assert.equal(jack.state,'flee','Schakal weicht dem Löwen nicht'); const d0=Math.hypot(deer.x-lion.x,deer.z-lion.z);
+  run(40,[lion,deer,jack]); assert.ok(Math.hypot(deer.x-lion.x,deer.z-lion.z)>d0,'Hirsch läuft nicht vom Löwen weg');
+  // hungriger Löwe jagt einen Hasen (hier: den Hirsch, langsam gemacht) und frisst ihn
+  jack.x+=5000; put(lion,40,0); lion.hungerT=0; put(deer,50,0); const spd=deer.sp.spd; deer.sp.spd=1;
+  let hunted=false; for(let i=0;i<400&&!deer.dead;i++){ run(1,[lion,deer]); if(lion.state==='hunt') hunted=true; }
+  deer.sp.spd=spd;
+  assert.ok(hunted,'Löwe jagt nicht'); assert.ok(deer.dead&&deer.carc,'Löwe erlegt die Beute nicht'); assert.equal(lion.state,'scav','Löwe frisst nicht von seiner Beute');
+  console.log('Tiere untereinander: Hirsch flieht vor dem Löwen, Schakal weicht, hungriger Löwe jagt und frisst OK');
+  if(deer.carc) T.endCarcass(deer);
+  for(const [a,x,z,st,dd] of keep){ a.x=x; a.z=z; a.state=st; a.dead=dd; a.fleeFrom=null; a.prey=null; a.carc=a.carc||null; }
+  lion.state='wander'; lion.carc=null; P.safe=false; }
 

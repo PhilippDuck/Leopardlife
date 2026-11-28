@@ -102,7 +102,7 @@ function doRoar(p=P){
 function roarAt(x,z,R,lvl,rl){
   let n=0;
   animals.forEach(a=>{ if(a.dead) return; const d=Math.hypot(a.x-x,a.z-z); if(d>R) return;
-    if(a.sp.pred){ if(!a.sp.hunt||lvl+2*rl>=a.sp.hunt-3){ a.state='flee'; a.fleeT=0; a.aggro=0; a.scared=5; n++; } }
+    if(a.sp.pred){ if(!a.sp.hunt||lvl+2*rl>=a.sp.hunt-3){ a.state='flee'; a.fleeT=0; a.fleeFrom=null; a.aggro=0; a.scared=5; n++; } }
     else if(!a.sp.boss&&!a.sp.friend&&!a.sp.elephant){ a.stun=1.2+0.5*rl; } });
   return n;
 }

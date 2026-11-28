@@ -51,6 +51,7 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 | `src/termitemodel.js`, `src/euphorbiamodel.js`, `src/acaciabushmodel.js`, `src/aloemodel.js`, `src/rockpilemodel.js`, `src/bonesmodel.js`, `src/thornmodel.js` | Low-Poly-Modelle der Landschaftsobjekte (mit `--colors` erzeugt: Farbe je Dreieck) |
 | `src/actions.js` | Aktionen des Leoparden: Sprung, Klettern, Brüllen, Treffer austeilen und einstecken, Tod und Neubeginn |
 | `src/ai.js` | Tierverhalten: Rudeljagd, Flucht, Angriff, Herden |
+| `src/wildlife.js` | Tiere untereinander: Beute flieht vor Raubtieren, Raubtiere jagen Beute (Schakale und Hyänen im Rudel), stärkere verjagen schwächere |
 | `src/animals.js` | Alle Tiere der Welt: Anlegen pro Gebiet, Platzieren und Herden bilden |
 | `src/audio.js` | Ton: Geräusche, Umgebung (Wind, Vögel) und laufend erzeugte Musik, synthetisch über WebAudio, dazu aufgenommene Geräusche aus `audio/` (Brüllen, mit ElevenLabs erzeugt; Synth-Ersatz, solange sie fehlen) |
 | `src/carcass.js` | Kadaver, Aasfresser, Herden und Ahnenbuch |

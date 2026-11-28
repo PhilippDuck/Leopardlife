@@ -31,6 +31,7 @@ import { baboonStep } from './baboons.js';
 import { elephantStep } from './elephants.js';
 import { hippoStep } from './hippo.js';
 import { rollStep, rollUp, termitePose, termiteSense, termiteStep } from './termites.js';
+import { huntStep, socialScan } from './wildlife.js';
 
 /* Rudel: Hyänen und Schakale rufen ihre Artgenossen zur Jagd (je nach Schwierigkeit) */
 const PACK={hyena:1,jack:1};
@@ -90,7 +91,7 @@ function targetOf(a){
 /** Beutetiere suchen bei Durst Wasser und trinken dort automatisch. */
 function animalWater(a,dt){
   a.thirst=Math.max(0,(a.thirst==null?100:a.thirst)-dt*(100/700));
-  if(a.state==='flee'||a.state==='chase'||a.state==='lunge'||a.state==='scav'||a.sp.human) return false;
+  if(a.state==='flee'||a.state==='chase'||a.state==='lunge'||a.state==='scav'||a.state==='hunt'||a.sp.human) return false;
   if(a.state!=='drink'&&a.thirst<24){
     const q=nearestPond(a.x,a.z); if(!q) return false;
     a.drinkPond=q; const an=Math.atan2(a.z-q.z,a.x-q.x); a.drinkX=q.x+Math.cos(an)*q.r*0.93; a.drinkZ=q.z+Math.sin(an)*q.r*0.93; a.state='drink';
@@ -165,7 +166,9 @@ function updateAnimal(a,dt){
       for(const o of animals) if(o!==prey&&!o.dead&&o.state==='drink'&&samePond(o.drinkPond,a.pond)){ o.state='flee'; o.fleeT=0; o.drinkPond=null; o.thirst=Math.min(o.thirst,40); } }
     pounceHits(a);
     return; }
+  if(!(a.stun>0)&&(a.state==='wander'||a.state==='scav')&&!a.juv) socialScan(a,dt);   // andere Tiere: fliehen, verjagen, jagen (wildlife.js)
   if(a.stun>0){ a.stun-=dt; animLegs(a.g,a.ph,0.05); if(a.stun<=0) weakRecover(a); }
+  else if(a.state==='hunt'){ huntStep(a,dt,moveAnimal); }
   else if(a.state==='wander'&&guardYoung(a,T)){ /* Elterntier geht auf den Spieler los */ }
   else if(a.state==='wander'){
     a.timer-=dt;
@@ -212,15 +215,18 @@ function updateAnimal(a,dt){
   else if(a.state==='flee'){
     a.sus=0; a.near=false;
     a.fleeT+=dt; const tired=a.fleeT>6?0.72:1;
-    let fx=-dx, fz=-dz; const r=Math.hypot(a.x,a.z);
-    if(!sp.fight&&SMART()>0&&d>0.1){   // Haken schlagen: abrupt die Seite wechseln und ein Stück schräg weglaufen
+    // Flucht vor einem anderen Tier (wildlife.js) oder vor dem Spieler
+    const src=a.fleeFrom&&!a.fleeFrom.dead&&!a.fleeFrom.hidden?a.fleeFrom:null; if(a.fleeFrom&&!src) a.fleeFrom=null;
+    const sdx=src?src.x-a.x:dx, sdz=src?src.z-a.z:dz, sd=src?Math.hypot(sdx,sdz):d;
+    let fx=-sdx, fz=-sdz; const r=Math.hypot(a.x,a.z);
+    if(!sp.fight&&SMART()>0&&sd>0.1){   // Haken schlagen: abrupt die Seite wechseln und ein Stück schräg weglaufen
       a.zzT=(a.zzT||0)-dt;
       if(a.zzT<=0){ a.zzT=rnd(1.4,4)*(0.8+sp.size*0.4);   // selten und zufällig: oft geradeaus, ab und zu ein Haken zu einer beliebigen Seite
         if(Math.random()<0.55*SMART()){ a.zzSide=Math.random()<0.5?1:-1; a.zzA=rnd(0.6,1.1); a.zzT=rnd(0.5,1.1); } else { a.zzSide=1; a.zzA=0; } }
-      const th=a.zzSide*a.zzA, c=Math.cos(th), sn=Math.sin(th), ux=fx/d, uz=fz/d; fx=ux*c-uz*sn; fz=ux*sn+uz*c; }
+      const th=a.zzSide*a.zzA, c=Math.cos(th), sn=Math.sin(th), ux=fx/sd, uz=fz/sd; fx=ux*c-uz*sn; fz=ux*sn+uz*c; }
     if(!a.world&&r>WORLD-25){ fx+=-a.z*1.5*(a.side||(a.side=Math.random()<.5?1:-1))-a.x*0.5; fz+=a.x*1.5*a.side-a.z*0.5; }
     moveAnimal(a,fx,fz,sp.spd*tired,dt);
-    if(d>Math.max(detect,sp.sense*0.6)*2+18||a.fleeT>22){ a.state='wander'; a.timer=0; }
+    if(src?sd>Math.max(30,sp.sense)+12||a.fleeT>14:d>Math.max(detect,sp.sense*0.6)*2+18||a.fleeT>22){ a.state='wander'; a.timer=0; a.fleeFrom=null; }
   }
   else if(a.state==='chase'){
     if(T.safe){

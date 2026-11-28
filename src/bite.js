@@ -100,7 +100,7 @@ function breakFree(a,p,avg){
   a.held=null;
   a.wound={sev:avg,t:0,die:avg<0.28?0:14+(1-avg)*70,heal:30,by:p,acc:0};
   a.hp=Math.max(1,Math.round(a.hp*(1-avg*0.6)));
-  if(a.sp.fight||a.sp.pred){ a.state='chase'; a.aggro=10; a.scared=0; a.lost=0; } else { a.state='flee'; a.fleeT=0; }   // Raubtiere und Kämpfer wehren sich
+  if(a.sp.fight||a.sp.pred){ a.state='chase'; a.aggro=10; a.scared=0; a.lost=0; } else { a.state='flee'; a.fleeT=0; a.fleeFrom=null; }   // Raubtiere und Kämpfer wehren sich
 }
 /** Balken zeichnen: Punkt, Zielzone, Runden */
 function biteUi(p){
@@ -139,7 +139,7 @@ function woundTick(a,dt){
     if(!by.dead) tell(by,a.sp.n+' ist erschöpft zusammengebrochen – folge der Blutspur und gib ihm den Rest!','#f2b84b'); }
 }
 /** Ein zusammengebrochenes Tier, zu dem keiner kam, rappelt sich wieder auf (mit wenig Leben) */
-function weakRecover(a){ if(!a.weak) return; a.weak=false; a.g.rotation.z=0; a.hp=Math.max(a.hp,Math.round(a.sp.hp*0.4)); a.state='flee'; a.fleeT=0; }
+function weakRecover(a){ if(!a.weak) return; a.weak=false; a.g.rotation.z=0; a.hp=Math.max(a.hp,Math.round(a.sp.hp*0.4)); a.state='flee'; a.fleeT=0; a.fleeFrom=null; }
 /** Spieler p ist gestorben: seine Wunden zählen nicht mehr – verletzte Tiere erholen sich, statt ihm später zuzufallen */
 function forgetWounds(p){ for(const a of animals){ if(a.wound&&a.wound.by===p){ a.wound.die=0; a.wound.t=0; } if(a.weak){ a.stun=0; weakRecover(a); } } }
 /** Beim Laufen eines verwundeten Tieres: Blutstropfen auf den Boden */
