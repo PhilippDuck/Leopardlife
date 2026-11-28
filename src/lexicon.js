@@ -20,6 +20,8 @@ const LEX={
   hase:'Schnell und schreckhaft. Aus dem hohen Gras heraus anspringen.',
   capy:'Lebt in Gruppen nahe am Wasser. Ihre Jungen sind leichte Beute, die Eltern wehren sich nicht.',
   wart:'Flieht mit hochgestelltem Schwanz in seinen Bau und schläft dort nachts. Wer geduckt in der Nähe wartet, erwischt es beim Herauskommen.',
+  erdf:'Zieht nachts von Termitenhügel zu Termitenhügel und gräbt mit den Krallen nach Termiten. Tagsüber schläft es zusammengerollt an einem Hügel. Beim Graben und Schlafen merkt es wenig – schleich dich heran.',
+  pango:'Sucht nachts an Termitenhügeln nach Futter. Bemerkt es dich, rollt es sich zu einer Panzerkugel ein, an der jeder Biss abgleitet. Nur geduckt anschleichen – oder still abwarten, bis es sich wieder entrollt.',
   baboon:'Lebt im Trupp mit Jungen und schläft in Bäumen. Bellt bei Gefahr Alarm – dann flieht alles Wild ringsum. Sitzt ein Leopard in ihrem Baum, klettern die Männchen hinauf und greifen an. Junge abseits des Trupps sind leichte Beute.',
   boar:'Wehrt sich mit den Hauern. Bachen verteidigen ihre Frischlinge – halte Abstand zu den Kleinen.',
   deer:'Aufmerksam, mit gutem Gehör. Hirschkühe verteidigen ihre Kälber; Madenhacker auf dem Rücken warnen sie.',

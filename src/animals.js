@@ -7,6 +7,7 @@ import { REG } from './save.js';
 import { PONDS } from './terrain.js';
 import { rnd } from './util.js';
 import { dropOrbs } from './effects.js';
+import { termiteReset } from './termitepose.js';
 
 /* ---------- Tierarten ---------- */
 // ring: Abstand vom Zentrum. hunt: jagt Spieler unter dieser Stufe. fight: wehrt sich.
@@ -34,6 +35,7 @@ function placeAnimal(a){
   if(a.carc&&a.carc.orbs) dropOrbs(a.carc.orbs); a.carc=null; a.g.rotation.z=0;
   a.x=x; a.z=z; a.hp=sp.hp*(a.juv?JUV_HP:1); a.thirst=100; a.drinkPond=null; a.state='wander'; a.tx=x; a.tz=z; a.timer=0; a.aggro=0; a.lost=0; a.fleeT=0; a.cd=0; a.rest=0; a.stun=0; a.sus=0; a.near=false; a.dead=false; a.sy=null; a.ph=Math.random()*6; if(sp.croc||sp.snake) a.state='lurk'; if(sp.hippo){ a.state='wade'; a.idle=0; a.calmT=0; }
   if(sp.friend){ const ks=Object.keys(TRAITS); a.trait=ks[Math.floor(Math.random()*ks.length)]; }   // Erbanlage, die dieser Leopard weitergeben würde
+  if(sp.termite) termiteReset(a);
   a.g.visible=true;
 }
 SPECIES.forEach(sp=>{ const cnt=(REG.counts&&REG.counts[sp.id]!==undefined)?REG.counts[sp.id]:sp.count, population=cnt>0?Math.max(1,Math.floor(cnt*0.8)):0; for(let i=0;i<population;i++){ const fur=makeFur(), g=sp.croc?buildCroc(sp.m,fur):sp.snake?buildSnake(sp.m,fur):sp.baboon?buildBaboon(sp.m,fur):sp.elephant?buildElephant(sp.m,fur):sp.hippo?buildHippo(sp.m,fur):buildQuad(sp.m,fur); g.scale.setScalar(sp.size); scene.add(g); const a={sp,g,fur,rad:sp.size*0.8+0.25,uid:animals.length}; placeAnimal(a); animals.push(a); } });

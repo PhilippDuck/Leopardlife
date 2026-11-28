@@ -127,6 +127,8 @@ function cellProps(x0,z0,rng,skip,kop){
 }
 
 /* ---------- Hindernisse, Verstecke, Klettern ---------- */
+/** Alle geladenen Termitenhügel {x,z,r} (Erdferkel und Schuppentiere suchen dort nach Futter, termites.js) */
+const MOUNDS=[];
 /** Termitenhügel als Klettereintrag wie eine kleine Felsgruppe: hinaufspringen auch ohne Klettern-Fähigkeit, oben Aussicht */
 function moundSpot(p){
   const R=0.75*p.s, top=TERMITE.info.height*p.s-0.25;
@@ -138,7 +140,8 @@ function moundSpot(p){
 function applyProps(set,cleanup,slots){
   const keep=fn=>{ if(cleanup) cleanup.push(fn); };
   for(const p of set.termite){
-    const col=addCol(p.x,p.z,0.75*p.s,false), sg=addSight(p.x,p.z,0.8*p.s,2.6*p.s,1); keep(()=>{ removeCol(col); removeSight(sg); });
+    const col=addCol(p.x,p.z,0.75*p.s,false), sg=addSight(p.x,p.z,0.8*p.s,2.6*p.s,1), mo={x:p.x,z:p.z,r:0.75*p.s}; MOUNDS.push(mo);
+    keep(()=>{ removeCol(col); removeSight(sg); MOUNDS.splice(MOUNDS.indexOf(mo),1); });
     const i=treeSlot(); trees[i]=moundSpot(p); slots.push(i); keep(()=>releaseTree(i));
   }
   for(const p of set.euphorbia){ const col=addCol(p.x,p.z,0.35*p.s,false), sg=addSight(p.x,p.z,1.6*p.s,4*p.s,0.5); keep(()=>{ removeCol(col); removeSight(sg); }); }
@@ -203,4 +206,4 @@ function leaveBones(x,z,size){
 
 G.onBones=leaveBones;   // ai.js: Kadaver am Boden zu Ende
 
-export { fillProps, leaveBones };
+export { MOUNDS, fillProps, leaveBones };

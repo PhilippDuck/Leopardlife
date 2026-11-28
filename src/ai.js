@@ -30,6 +30,7 @@ import { hearR, visibility } from './vision.js';
 import { baboonStep } from './baboons.js';
 import { elephantStep } from './elephants.js';
 import { hippoStep } from './hippo.js';
+import { rollStep, rollUp, termitePose, termiteSense, termiteStep } from './termites.js';
 
 /* Rudel: Hyänen und Schakale rufen ihre Artgenossen zur Jagd (je nach Schwierigkeit) */
 const PACK={hyena:1,jack:1};
@@ -150,6 +151,8 @@ function updateAnimal(a,dt){
   if(a.sp.burrow&&!(a.stun>0)&&burrowSeek(a,dt)){ pounceHits(a); return; }   // läuft zum Bau
   if(sp.baboon&&baboonStep(a,dt)){ if(!(a.up>0.3)) pounceHits(a); return; }   // Pavian: Baum, Alarm, Drohen
   a.cd-=dt; if(a.scared>0) a.scared-=dt; if(a.gcd>0) a.gcd-=dt;
+  if(sp.termite&&a.tpose&&a.state!=='wander') termitePose(a,null);   // aufgeschreckt: aufstehen
+  if(sp.roll&&!a.juv&&rollStep(a,dt)){ a.g.position.set(a.x,animalY(a),a.z); pounceHits(a); return; }   // Schuppentier eingerollt
   const hostile=sp.hunt&&!a.juv&&T.L.lvl<sp.hunt&&!(a.scared>0);
   // Wahrnehmung: Reichweite (Art, Tarnung, Schwierigkeit, Nacht, Wind) × was das Tier wirklich sieht (vision.js) – Hören geht rundum
   const reach0=sp.sense*stealth*D().sense*(sp.pred?1+0.25*(1-dayF):1.1)*(d>0.1?windMulDir(-dx/d,-dz/d):1);
@@ -166,15 +169,16 @@ function updateAnimal(a,dt){
   else if(a.state==='wander'&&guardYoung(a,T)){ /* Elterntier geht auf den Spieler los */ }
   else if(a.state==='wander'){
     a.timer-=dt;
+    const busy=sp.termite&&!(a.stun>0)&&termiteStep(a,dt);   // Erdferkel, Schuppentier: zum Termitenhügel, graben, schlafen
     const mom=a.juv&&a.mom&&!a.mom.dead?a.mom:null;
     if(mom&&mom.state==='flee') startFlee(a);
     if(mom&&(a.timer<=0||Math.hypot(mom.x-a.x,mom.z-a.z)>5)&&Math.hypot(a.tx-mom.x,a.tz-mom.z)>3.5){ a.tx=mom.x+rnd(-2.5,2.5); a.tz=mom.z+rnd(-2.5,2.5); a.timer=rnd(1,2.5); a.idle=0; }
-    if(a.timer<=0||Math.hypot(a.tx-a.x,a.tz-a.z)<1){ const an=Math.random()*6.283, r=rnd(4,16); a.tx=a.x+Math.cos(an)*r; a.tz=a.z+Math.sin(an)*r;
+    if(!busy&&(a.timer<=0||Math.hypot(a.tx-a.x,a.tz-a.z)<1)){ const an=Math.random()*6.283, r=rnd(4,16); a.tx=a.x+Math.cos(an)*r; a.tz=a.z+Math.sin(an)*r;
       const cr=Math.hypot(a.tx,a.tz); if(!a.world&&(cr<sp.ring[0]||cr>sp.ring[1])){ const k=(sp.ring[0]+sp.ring[1])/2/(cr||1); a.tx=a.x+(a.tx*k-a.x)*0.3; a.tz=a.z+(a.tz*k-a.z)*0.3; }
       a.timer=rnd(3,8); a.idle=Math.random()<0.4?rnd(1,3):0;
       if(a.herd){ const L=herdLead(a); if(L!==a){ a.tx=L.x+rnd(-7,7); a.tz=L.z+rnd(-7,7); a.timer=rnd(2,5); } } }
     const farH=mom?Math.hypot(mom.x-a.x,mom.z-a.z)>6:a.herd&&Math.hypot(herdLead(a).x-a.x,herdLead(a).z-a.z)>16;
-    if(a.idle>0&&!farH){ a.idle-=dt; animLegs(a.g,a.ph,0.03); } else moveAnimal(a,a.tx-a.x,a.tz-a.z,sp.spd*(farH?0.6:0.28),dt);
+    if(busy){ /* termites.js bewegt */ } else if(a.idle>0&&!farH){ a.idle-=dt; animLegs(a.g,a.ph,0.03); } else moveAnimal(a,a.tx-a.x,a.tz-a.z,sp.spd*(farH?0.6:0.28),dt);
     a.near=false;
     if(hostile){
       a.near=d<detect*1.6+8;
@@ -185,7 +189,8 @@ function updateAnimal(a,dt){
       } else a.sus=Math.max(0,a.sus-dt*0.35);
     } else {
       a.sus=0;
-      if(d<detect&&(!sp.fight||(a.juv&&d<detect*0.6)||(sp.pred&&T.L.lvl>=sp.hunt+2&&d<detect*0.5))) startFlee(a);
+      const det=sp.termite?detect*termiteSense(a):detect;   // beim Graben und Schlafen abgelenkt
+      if(d<det&&(!sp.fight||(a.juv&&d<det*0.6)||(sp.pred&&T.L.lvl>=sp.hunt+2&&d<det*0.5))){ if(sp.roll&&!a.juv) rollUp(a); else startFlee(a); }
     }
   }
   else if(a.state==='raid'){ raidStep(a,dt); }

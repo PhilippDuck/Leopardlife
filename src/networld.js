@@ -28,6 +28,7 @@ import { envenom } from './snake.js';
 import { G } from './state.js';
 import { setWeather, W } from './weather.js';
 import { EV, applyEvent } from './worldevents.js';
+import { termiteBits, termiteGuest } from './termites.js';
 
 /** Tiere so oft je Sekunde senden; Tageszeit, Wetter, Wind und Ereignis alle ENV_MS */
 const WD_MS=100, ENV_MS=1000;
@@ -56,8 +57,8 @@ const sentAnimals=new Map();
 /** Neues Gerät im Raum: alles noch einmal vollständig schicken */
 joinHooks.push(()=>{ sentAnimals.clear(); envAt=0; });
 function nearGuest(a){ for(const gh of ghosts){ const dx=gh.x-a.x, dz=gh.z-a.z; if(dx*dx+dz*dz<NET_R*NET_R) return true; } return false; }
-/** Zustand als Bits: 1 sichtbar, 2 tot, 4 jagt/greift an, 8 flieht, 16 blutet (Blutspur) */
-function bitsOf(a){ return (a.g.visible?1:0)|(a.dead?2:0)|(a.state==='chase'||a.state==='lunge'?4:0)|(a.state==='flee'?8:0)|(a.wound&&a.wound.die?16:0); }
+/** Zustand als Bits: 1 sichtbar, 2 tot, 4 jagt/greift an, 8 flieht, 16 blutet (Blutspur); Termitenfresser: 32 eingerollt, 64 gräbt, 128 schläft */
+function bitsOf(a){ return (a.g.visible?1:0)|(a.dead?2:0)|(a.state==='chase'||a.state==='lunge'?4:0)|(a.state==='flee'?8:0)|(a.wound&&a.wound.die?16:0)|(a.sp.termite?termiteBits(a):0); }
 /** Wer zieht den Kadaver a? Gerät·8 + Spielernummer (eigener Spieler des Gastgebers oder ein Gast), sonst 0 */
 function draggerOf(a){
   if(!a.carc) return 0;
@@ -318,6 +319,7 @@ function guestAnimals(dt,now){
     if(!a.dead){ const v=ox===1e6||dt<=0?0:Math.hypot(a.x-ox,a.z-oz)/dt; animLegs(g,a.ph,v>0.3?Math.min(0.9,0.25+v*0.05):0.03);
       // verwundet: Blutspur wie beim Gastgeber
       if(bits&16&&ox!==1e6){ a.bleed=(a.bleed||0)+Math.hypot(a.x-ox,a.z-oz); if(a.bleed>1.1){ a.bleed=0; bloodDrop(a.x+(Math.random()-0.5)*0.6,a.z+(Math.random()-0.5)*0.6,1); } }
+      if(a.sp.termite) termiteGuest(a,bits,dt);
       if(g.visible) guestPounce(a); }
     guestCarcass(a,q,now,false);
   }
