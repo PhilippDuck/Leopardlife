@@ -7,7 +7,7 @@
  * - Geometrie: Positionen (Int16), Knochen-Indizes und Gewichte je Ecke (Uint8), Dreiecke (Uint16).
  * - Je Dreieck eine Fellklasse aus der Textur: 0 Fell, 1 hell (Bauch, Brust, Schnauze), 2 dunkel am Kopf (Nase, Augen).
  *   Dunkle Stellen außerhalb des Kopfs sind Meshys Flecken und zählen als Fell: das Spiel legt eigene Flecken darüber.
- * - Knoten (Name ohne Punkte wie bei three.js, Eltern, Ruhelage), inverse Bindematrizen, Clips mit 15 Bildern je Sekunde:
+ * - Knoten (Name ohne Punkte wie bei three.js, Eltern, Ruhelage), inverse Bindematrizen, Clips mit 15 Bildern je Sekunde (kürzer als 1 s: 30):
  *   Drehungen (Int16-Quaternionen) und, wo sie sich ändern, Verschiebungen (Float32). Skalierung wird nicht animiert.
  * - --repaint-grey: grauweiße Flecken der Textur hinten am Körper mit Fellfarbe übermalen (nicht bei gräulichem Fell, z. B. Jungtier)
  * - Maßstab und Höhe: Das Modell wird so skaliert, dass es in Ruhelage --height hoch ist, die Pfoten stehen auf y=0.
@@ -153,7 +153,7 @@ const b64 = (Arr, data) => Buffer.from(new Arr(data).buffer).toString('base64');
 const clips = {};
 for (const [key, glbName] of Object.entries(CLIPS)) {
   const anim = gltf.animations.find((a) => a.name === glbName); if (!anim) throw new Error('Clip fehlt: ' + glbName);
-  const dur = Math.max(...anim.samplers.map((s) => gltf.accessors[s.input].max[0])), frames = Math.max(2, Math.round(dur * FPS) + 1);
+  const dur = Math.max(...anim.samplers.map((s) => gltf.accessors[s.input].max[0])), frames = Math.max(2, Math.round(dur * (dur < 1 ? 30 : FPS)) + 1);   // kurze Clips (Rennen, Sprung) feiner
   const times = Array.from({ length: frames }, (_, i) => (i * dur) / (frames - 1));
   const tracks = [];
   for (const ch of anim.channels) {
@@ -168,15 +168,32 @@ for (const [key, glbName] of Object.entries(CLIPS)) {
   // Lage der Pfote je Bild (Vorwärtskinematik), Spanne entlang +z (vorn), in Metern bei Maßstab 1 nach der Normierung.
   const pose = new Map();
   for (const ch of anim.channels) if (ch.target.path !== 'scale') pose.set(ch.target.node + ch.target.path, sampleChannel(anim.samplers[ch.sampler], times));
+  const footAt = (foot, P, f) => { let m = null; const chain = []; for (let i = foot; i >= 0; i = parent[i]) chain.unshift(i);
+    for (const i of chain) { const [t, r, sc] = trs(gltf.nodes[i]); const T = P.get(i + 'translation'), R = P.get(i + 'rotation'); const l = compose(T ? T[f] : t, R ? R[f] : r, sc); m = m ? mul(m, l) : l; }
+    return [m[12], m[13], m[14]]; };
   const foot = gltf.nodes.findIndex((n) => /^frontFoot\.L$/.test(n.name || ''));
   let zmin = Infinity, zmax = -Infinity;
-  if (foot >= 0) for (let f = 0; f < frames; f++) {
-    let m = null; const chain = []; for (let i = foot; i >= 0; i = parent[i]) chain.unshift(i);
-    for (const i of chain) { const [t, r, sc] = trs(gltf.nodes[i]); const T = pose.get(i + 'translation'), R = pose.get(i + 'rotation'); const l = compose(T ? T[f] : t, R ? R[f] : r, sc); m = m ? mul(m, l) : l; }
-    const z = m[14]; zmin = Math.min(zmin, z); zmax = Math.max(zmax, z);
-  }
+  if (foot >= 0) for (let f = 0; f < frames; f++) { const z = footAt(foot, pose, f)[2]; zmin = Math.min(zmin, z); zmax = Math.max(zmax, z); }
   const stride = foot >= 0 ? zmax - zmin : 0;
-  clips[key] = { d: +dur.toFixed(4), n: frames, stride: +(stride * scale).toFixed(4), tracks };
+  // Tempo des Clips (m/s bei Maßstab 1, nach der Normierung): wie schnell sich der Körper bewegen muss, damit die Pfoten nicht rutschen.
+  // Fein abgetastet (60 Bilder/s), Verschiebungen ohne Drift über den Clip. Je Pfote:
+  // - Schreiten (Pfoten heben kaum ab): Weg der Pfote nach hinten / Zeit, in der sie nach hinten wandert (das ist die Standphase);
+  // - Rennen (Sprünge, Pfoten hoch in der Luft): Tempo nach hinten in den Bildern nahe dem tiefsten Punkt (Standphase kurz und schnell).
+  // Tempo = Median der vier Pfoten.
+  const NF = Math.max(3, Math.round(dur * 60) + 1), ft = Array.from({ length: NF }, (_, i) => (i * dur) / (NF - 1)), fdt = dur / (NF - 1), fine = new Map();
+  for (const ch of anim.channels) if (ch.target.path !== 'scale') { const v = sampleChannel(anim.samplers[ch.sampler], ft);
+    if (ch.target.path === 'translation') { const d = v[NF - 1].map((x, c) => x - v[0][c]); v.forEach((q, i) => q.forEach((x, c) => { q[c] = x - (d[c] * i) / (NF - 1); })); }
+    fine.set(ch.target.node + ch.target.path, v); }
+  const med = (a) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[s.length >> 1] : 0; };
+  const feet = gltf.nodes.map((n, i) => [n.name || '', i]).filter(([n]) => /^(front|rear)Foot\.[LR]$/.test(n)).map(([, i]) => i);
+  const footV = feet.map((fi) => {
+    const ps = ft.map((_, f) => footAt(fi, fine, f)), ys = ps.map((q) => q[1]), zs = ps.map((q) => q[2]), lo = Math.min(...ys), hi = Math.max(...ys);
+    if ((hi - lo) * scale < 0.25) { let back = 0; for (let f = 0; f + 1 < NF; f++) if (zs[f + 1] < zs[f]) back++; return back ? ((Math.max(...zs) - Math.min(...zs)) / (back * fdt)) * scale : 0; }
+    const vs = []; for (let f = 0; f + 1 < NF; f++) if (Math.max(ys[f], ys[f + 1]) - lo < 0.08 * (hi - lo)) vs.push(((zs[f] - zs[f + 1]) / fdt) * scale);
+    return med(vs); });
+  const speed = feet.length ? med(footV) : 0;
+  if (stride > 0.05 / scale) console.log(`${key}: Tempo ${speed.toFixed(2)} m/s (Pfoten ${footV.map((v) => v.toFixed(2)).join(' ')})`);
+  clips[key] = { d: +dur.toFixed(4), n: frames, stride: +(stride * scale).toFixed(4), v: +speed.toFixed(4), tracks };
 }
 
 /* ---------- Textur: verkleinert, Lücken zwischen den Inseln aufgefüllt (sonst dunkle Nähte), als PNG ---------- */

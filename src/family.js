@@ -6,7 +6,7 @@ import { puff } from './effects.js';
 import { scene } from './engine.js';
 import { keys } from './input.js';
 import { animLegs, buildQuad, furName, makeFur } from './models.js';
-import { P, dropModel, players } from './player.js';
+import { P, START_ROT, dropModel, players } from './player.js';
 import { quality } from './quality.js';
 import { D, NET_GUEST, S, has, save, tlvOf } from './save.js';
 import { G } from './state.js';
@@ -43,9 +43,20 @@ function denCave(){
 const caveDen=t=>({x:t.x+t.out[0]*2.2,z:t.z+t.out[1]*2.2});
 /** Bau verlegen: in die Höhle t oder (null) zurück an den alten Platz. Die Jungen ziehen sofort mit. */
 function moveDen(t){
-  if(t) S.den=caveDen(t); else delete S.den;
+  if(t) S.den=Object.assign(caveDen(t),{ox:t.out[0],oz:t.out[1]}); else delete S.den;
   cub.x=cub.tx=CUB_HOME.x; cub.z=cub.tz=CUB_HOME.z; cub.t=0; cub.inside=false; save(); snd.mew();
   toast(t?'Die Höhle ist jetzt euer Bau – hier kommen die Jungen zur Welt und warten auf Beute.':'Der Bau ist wieder am alten Platz.','#ff9ad0');
+}
+/**
+ * Wo man im Bau erwacht (Spielstart, neu erwachen, Mitspieler nach dem Liegenbleiben): am alten Bau der Startplatz,
+ * bei einer Höhle als Bau ein paar Schritte vor ihrem Eingang, mit Blick hinaus. rot: Blickrichtung (wie p.rot).
+ */
+function spawnSpot(){
+  if(!S.den) return {x:2,z:2,rot:START_ROT};
+  let ox=S.den.ox, oz=S.den.oz;
+  if(ox==null){ const t=denCave(); if(t){ ox=t.out[0]; oz=t.out[1]; } }   // ältere Spielstände: Richtung aus der Höhle
+  if(ox==null) return {x:S.den.x-3,z:S.den.z-3,rot:START_ROT};
+  return {x:S.den.x+ox*2.5,z:S.den.z+oz*2.5,rot:Math.atan2(ox,oz)};
 }
 /** Kontextaktion Bau verlegen für P (in einer Höhle bzw. am alten Bau), sonst null */
 function denContext(){
@@ -297,5 +308,5 @@ function updateFamArrow(dt){
 }
 
 export { offerText };
-export { mateWild, nearestWild, playerSeeks, cubDies, nearCub, CUB_HOME, FOOD_MAX, context, cub, doContext, endRaid, raidStep, seekT, seeking, updateCub, updateFamArrow };
+export { spawnSpot, mateWild, nearestWild, playerSeeks, cubDies, nearCub, CUB_HOME, FOOD_MAX, context, cub, doContext, endRaid, raidStep, seekT, seeking, updateCub, updateFamArrow };
 export { denCave, CUBSPEC, familyModels, rebuildCub, feedCub };

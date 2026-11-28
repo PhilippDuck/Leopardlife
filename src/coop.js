@@ -10,6 +10,7 @@ import { on } from './events.js';
 import { claimOverlay, pdz } from './gamepad.js';
 import { menuOpen, toggleMenu } from './menu.js';
 import { P, dropModel, makePlayer, players } from './player.js';
+import { spawnSpot } from './family.js';
 import { S, copyLeopard, fresh, maxHp, maxSt, pScale, save } from './save.js';
 import { sky, stars } from './sky.js';
 import { G } from './state.js';
@@ -230,7 +231,7 @@ function updateCoop(dt){
       ||net.find(o=>!o.dead&&o.helping&&Math.hypot(o.x-p.x,o.z-p.z)<REVIVE_DIST+1);   // Abstand etwas großzügiger: der Stand des anderen ist kurz verzögert
     if(helper){ p.revT+=dt; if(p.revT>=REVIVE_TIME){ wakeUp(p,p.x,p.z,0.35); toast(nameOf(helper)+' hat '+nameOf(p)+' wiederbelebt.','#9be07f'); continue; } }
     else p.revT=Math.max(0,p.revT-dt*0.5);
-    p.downT-=dt; if(p.downT<=0){ wakeUp(p,2,2,1); toast(nameOf(p)+' erwacht im Bau.','#f2b84b'); }
+    p.downT-=dt; if(p.downT<=0){ const sp=spawnSpot(); wakeUp(p,sp.x,sp.z,1); toast(nameOf(p)+' erwacht im Bau.','#f2b84b'); }
   }
 }
 function wakeUp(p,x,z,hpF){

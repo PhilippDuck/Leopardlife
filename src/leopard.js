@@ -1,9 +1,10 @@
 // LeoLife – Leopard (Spielfigur, Partner, Rivalen, Junge) als Low-Poly-Modell mit Skelett und Clips (Meshy: Modell, Vierbeiner-Rig,
 // Leoparden-Animationen; umgewandelt mit tools/meshy-rig.cjs). Erwachsene und Junge haben eigene Modelle.
 // Fell: Meshys gemalte Textur; Fellsorten (hell/dunkel, kräftig/blass, Albino, Panther) färbt der Shader um (ein Material je Sorte).
-// Bewegung: animLegs(g,t,amp) ruft userData.anim. Kleiner Ausschlag: Stehen (geduckt Kauern), ab 1 Sprung. In Bewegung wählt das Tempo
-// (aus der Schrittphase t, je Körpergröße) die Gangart: langsam Gehen, sonst Rennen, geduckt Pirschen. Die Clips laufen in echter Zeit,
-// so schnell, dass die Pfoten möglichst mit dem Boden mitlaufen (gemessene Schrittlänge des Clips), höchstens 2,2-fach.
+// Bewegung: animLegs(g,t,amp) ruft userData.anim. Kleiner Ausschlag: Stehen (geduckt Kauern), ab 1 Sprung. In Bewegung zählt das
+// Tempo über den Boden (aus der Lage der Figur, sonst aus der Schrittphase t): Gehen oder Rennen, je nachdem, welcher Clip von seinem
+// eigenen Tempo her besser passt, geduckt Pirschen. Die Clips laufen so schnell, dass die Pfoten mit dem Boden mitlaufen
+// (gemessenes Tempo des Clips × Körpergröße), 0,4- bis 2,5-fach.
 // userData.pose ('lie', 'rise' = Aufstehen, 'roar', 'dead', 'pounce') hat Vorrang.
 import { LEO_ADULT } from './leoadultrig.js';
 import { LEO_CUB } from './leocubrig.js';
@@ -84,7 +85,7 @@ function furMaterial(M,fur){
 
 /* ---------- Figur ---------- */
 /** Einmalige Clips bleiben am Ende stehen; Gehen und Rennen: Phasen-Tempo (rad/s), bei dem sie in Originalgeschwindigkeit laufen */
-const ONCE={dead:1,lie:1,pounce:1,rise:1}, PACE={walk:12,stalk:9,run:22};
+const ONCE={dead:1,lie:1,pounce:1,rise:1}, PACE={walk:12,stalk:9,run:22}, GAITS={walk:1,stalk:1,run:1};
 /**
  * Leopard als Gruppe wie buildQuad: userData.inner (Hebt, Neigung), anim (für animLegs), pose; Skelett und Clips je Figur.
  * kind 'adult' oder 'cub'; fur: Fellsorte (makeFur) oder null.
@@ -104,24 +105,33 @@ function buildLeopard(kind,col,fur){
   const inv=D.bones.map((_,i)=>new THREE.Matrix4().fromArray(M.ibm,i*16));
   // glTF: Die Lage des Modellknotens zählt beim Skinning nicht (Ecken = Σ Gewicht · Knochen-Welt · inverse Bindematrix · Ecke)
   mesh.bind(new THREE.Skeleton(D.bones.map(k=>objs[k]),inv),new THREE.Matrix4());
-  // Clips mischen: Gewichte gleiten zum gewünschten Clip, Gehen und Rennen folgen der Phase
-  const mixer=new THREE.AnimationMixer(rig), acts={}, w={}, strides={};
-  for(const key in D.clips) strides[key]=D.clips[key].stride||0;
+  // Clips mischen: Gewichte gleiten zum gewünschten Clip, Gehen und Rennen laufen mit dem Tempo über den Boden
+  const mixer=new THREE.AnimationMixer(rig), acts={}, w={}, vel={};
+  for(const key in D.clips) vel[key]=D.clips[key].v||0;
   for(const key in M.clips){ const a=mixer.clipAction(M.clips[key]); a.play(); a.setEffectiveWeight(key==='idle'?1:0); acts[key]=a; w[key]=key==='idle'?1:0; }
-  let last=performance.now(), lastT=0, pace=0, cur='idle';
+  // Gehen oder Rennen: Wechsel beim geometrischen Mittel beider Clip-Tempi (dort wären beide gleich weit von ihrer echten Geschwindigkeit), mit etwas Spielraum
+  const GAIT=vel.walk>0&&vel.run>0?Math.sqrt(vel.walk*vel.run):3;
+  let last=performance.now(), lastT=0, pace=0, gs=0, lx=null, lz=0, cur='idle', ran=false;
   function anim(t,amp){
     const now=performance.now(), dt=Math.min(0.1,Math.max(0,(now-last)/1000)); last=now;
-    if(dt>0){ const r=Math.abs(t-lastT)/dt; pace+=((r<80?r:pace)-pace)*Math.min(1,dt*6); } lastT=t;   // wie schnell die Schrittphase läuft
-    const sneak=inner.position.y<-0.07, pose=g.userData.pose;
-    // Gangart nach dem Tempo (Körperlängen je Sekunde): langsam gehen, sonst rennen; geduckt pirschen
-    const spd=Math.max(0,(pace-5)/1.4), sc=g.scale.x||1, rel=spd/sc;
-    let want=pose&&acts[pose]?pose:amp>=1?(acts.jump?'jump':'run'):amp<0.1?(sneak&&acts.cower?'cower':'idle'):sneak&&acts.stalk?'stalk':rel<3?'walk':'run';
-    if(want!==cur){ if(ONCE[want]) acts[want].time=want==='rise'?acts[want].getClip().duration-0.001:0; cur=want; }
+    if(dt>0){ const r=Math.abs(t-lastT)/dt; pace+=((r<80?r:pace)-pace)*Math.min(1,dt*6);   // wie schnell die Schrittphase läuft
+      // Tempo über den Boden aus der Lage der Figur (Sprünge über 40 m/s: versetzt, nicht gelaufen)
+      const px=g.position.x, pz=g.position.z, v=lx==null?0:Math.hypot(px-lx,pz-lz)/dt; lx=px; lz=pz;
+      gs+=((v<40?v:gs)-gs)*Math.min(1,dt*8); }
+    lastT=t;
+    const sneak=inner.position.y<-0.07, pose=g.userData.pose, sc=g.scale.x||1;
+    // bewegt sich die Figur kaum (festgebissen, an der Stelle), zählt die Schrittphase (etwa 5 + 1,4 · Tempo je Sekunde)
+    const spd=gs>0.3?gs:Math.max(0,(pace-5)/1.4), rel=spd/sc;
+    ran=rel>GAIT*(ran?0.85:1.15);
+    let want=pose&&acts[pose]?pose:amp>=1?(acts.jump?'jump':'run'):amp<0.1?(sneak&&acts.cower?'cower':'idle'):sneak&&acts.stalk?'stalk':ran?'run':'walk';
+    if(want!==cur){ if(ONCE[want]) acts[want].time=want==='rise'?acts[want].getClip().duration-0.001:0;
+      else if((want==='walk'||want==='run'||want==='stalk')&&w[want]<0.05&&GAITS[cur]) acts[want].time=acts[cur].time/acts[cur].getClip().duration*acts[want].getClip().duration;   // Gangwechsel: im selben Takt weiter
+      cur=want; }
     let sum=0; for(const k in w){ w[k]+=((k===want?1:0)-w[k])*Math.min(1,dt*9); sum+=w[k]; }
     for(const k in acts){ const a=acts[k], d=a.getClip().duration;
       a.setEffectiveWeight(w[k]/(sum||1));
-      // Gehen, Pirschen, Rennen: so schnell abspielen, dass die Pfoten mit dem Boden mitlaufen (Schrittlänge des Clips, Tempo im Spiel)
-      const st=strides[k], speed=!PACE[k]?1:st>0.05?Math.max(0.6,Math.min(2.2,spd*d/(st*sc))):Math.max(0.45,Math.min(1.7,pace/PACE[k]));
+      // Gehen, Pirschen, Rennen: so schnell abspielen, dass die Pfoten mit dem Boden mitlaufen (Tempo des Clips × Größe, Tempo im Spiel)
+      const speed=!PACE[k]?1:vel[k]>0.05?Math.max(0.4,Math.min(2.5,spd/(vel[k]*sc))):Math.max(0.45,Math.min(1.7,pace/PACE[k]));
       if(k==='rise') a.time=Math.max(0,a.time-dt); else if(ONCE[k]) a.time=Math.min(d-0.001,a.time+dt); else a.time=(a.time+dt*speed)%d; }
     mixer.update(0);
   }

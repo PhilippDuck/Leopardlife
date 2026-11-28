@@ -13,7 +13,7 @@ import { H } from './terrain.js';
 import { floatText, toast } from './ui.js';
 import { $, rnd } from './util.js';
 import { trees } from './vegetation.js';
-import { FOOD_MAX, cub, rebuildCub } from './family.js';
+import { FOOD_MAX, cub, rebuildCub, spawnSpot } from './family.js';
 import { becomeCub } from './kin.js';
 import { dayF } from './daynight.js';
 import { archiveLine, carcassToTree, makeCarcass, recordAncestor, startFlee, takeMeat } from './carcass.js';
@@ -188,15 +188,15 @@ function die(p,a){
 }
 /** Spieler p erwacht neu (im Bau, als Junges oder mit neuer Blutlinie). */
 function respawn(p=P){
-  let sx=2, sz=2, newLine=false;
+  let { x:sx, z:sz, rot:sr }=spawnSpot(), newLine=false;
   if(G.heirPending&&S.cub){
-    { const sp=cubSpot(P); sx=sp.x; sz=sp.z; } becomeCub(false);
+    { const sp=cubSpot(P); sx=sp.x; sz=sp.z; sr=START_ROT; } becomeCub(false);
     toast('Generation '+S.gen+': Du bist jetzt dein Junges – mit den Erbanlagen deiner Linie und 10 % der Punkte.'+(S.p2?' Dein anderes Elterntier sorgt weiter für dich.':''),'#ff9ad0');
   }
-  else if(G.lineageEnd){ recordAncestor(G.lastCause); archiveLine(); const df=S.diff; resetState(); S.diff=df; save(); if(REG_ID!=='savanne'){ reloadWorld(false); return; } rebuildPlayer(); rebuildCub(); animals.forEach(placeAnimal); G.raider=null; newLine=true; toast('Eine neue Blutlinie beginnt.','#f2b84b'); }
+  else if(G.lineageEnd){ recordAncestor(G.lastCause); archiveLine(); const df=S.diff; resetState(); S.diff=df; save(); if(REG_ID!=='savanne'){ reloadWorld(false); return; } rebuildPlayer(); rebuildCub(); animals.forEach(placeAnimal); G.raider=null; newLine=true; ({ x:sx, z:sz, rot:sr }=spawnSpot()); toast('Eine neue Blutlinie beginnt.','#f2b84b'); }
   else { S.hunger=Math.max(S.hunger,70); S.thirst=Math.max(S.thirst??100,70); }
   G.heirPending=false; G.lineageEnd=false; forgetWounds(p);
-  p.tree=null; p.safe=false; p.dropY=0; p.upNow=0; p.x=sx; p.z=sz; p.rot=START_ROT; p.cam.yaw=START_YAW; p.hp=maxHp(); p.st=maxSt(); p.pounce=0; p.pcd=0; p.sneak=false; p.combatT=0; p.g.rotation.z=0;
+  p.tree=null; p.safe=false; p.dropY=0; p.upNow=0; p.x=sx; p.z=sz; p.rot=sr; p.cam.yaw=START_YAW+sr-START_ROT; p.hp=maxHp(); p.st=maxSt(); p.pounce=0; p.pcd=0; p.sneak=false; p.combatT=0; p.g.rotation.z=0;
   animals.forEach(o=>{ o.aggro=0; o.sus=0; o.near=false; if(o.state==='chase'){ o.state='wander'; o.timer=0; } });
   updateWarn(0); $('hurt').style.opacity=0; $('crossMsg').style.opacity='0'; p.downT=null; $('dead').style.display='none'; p.dead=false; G.paused=false; initAudio(); snd.click();
   if(newLine) resetMates();   // neue Blutlinie: auch die Mitspieler fangen neu an
