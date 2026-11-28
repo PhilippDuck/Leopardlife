@@ -96,7 +96,10 @@ for (let t = 0; t < tris; t++) {
     const s = sample(u, v); c[0] += s[0] / W.length; c[1] += s[1] / W.length; c[2] += s[2] / W.length;
   }
   const mx = Math.max(...c), mn = Math.min(...c), sat = mx ? (mx - mn) / mx : 0;
-  triCol.push(c); triLeaf.push(!COLORS && !SINGLE && sat > 0.3 && c[1] >= c[0] * 0.8 && c[1] > c[2] * 1.2);
+  // Laub: kräftig grün bis gelbgrün, oder (blau-)grün und blass (graugrünes Akazienlaub); Holz ist braun oder grau
+  const hue = mx === mn ? 0 : mx === c[0] ? 60 * (((c[1] - c[2]) / (mx - mn) + 6) % 6) : mx === c[1] ? 60 * ((c[2] - c[0]) / (mx - mn) + 2) : 60 * ((c[0] - c[1]) / (mx - mn) + 4);
+  const green = (sat > 0.3 && c[1] >= c[0] * 0.8 && c[1] > c[2] * 1.2) || (sat > 0.12 && hue >= 75 && hue <= 200);
+  triCol.push(c); triLeaf.push(!COLORS && !SINGLE && green);
 }
 // Einzelne Ausreißer: Ein Dreieck, dessen Nachbarn (gemeinsame Ecke) überwiegend anders sind, wird angeglichen
 const byVert = new Map();

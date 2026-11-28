@@ -1,5 +1,5 @@
 // LeoLife – Landschaftsobjekte aus Low-Poly-Modellen (Meshy): Termitenhügel, Euphorbien, Aloen, Akazienbüsche, Steinhaufen,
-// Knochen und Dorngestrüpp. Im Startgebiet beim Laden, in der weiten Welt je Abschnitt (fillProps).
+// Knochen, Dorngestrüpp, runde Laubbüsche, Blühbüsche, Grasbüschel und Unterholz. Im Startgebiet beim Laden, in der weiten Welt je Abschnitt (fillProps).
 // - Termitenhügel: Hindernis und Deckung; man springt hinauf (wie auf kleine Felsen) und hat Aussicht.
 // - Dorngestrüpp: Versteck wie hohes Gras, aber man kommt darin nur langsam voran (thornAt in vegetation.js).
 // - Knochen: verstreut im Trockenen und dort, wo ein Kadaver am Boden zu Ende gefressen wurde (leaveBones).
@@ -24,6 +24,10 @@ import { ALOE } from './aloemodel.js';
 import { ROCKPILE } from './rockpilemodel.js';
 import { BONES } from './bonesmodel.js';
 import { THORN } from './thornmodel.js';
+import { BUSH_ROUND } from './bushroundmodel.js';
+import { BUSH_FLOWER } from './bushflowermodel.js';
+import { GRASS_TUFT } from './grasstuftmodel.js';
+import { UNDERGROWTH } from './undergrowthmodel.js';
 
 /* ---------- Modelle und Materialien ---------- */
 const propTime={value:0};
@@ -47,6 +51,10 @@ const KINDS={
   rocks:{parts:[[ROCKPILE.wood,propMat]]},
   bones:{parts:[[BONES.wood,propMat]],noShadow:true},
   thorn:{parts:[[THORN.wood,propMat]]},
+  roundbush:{parts:[[BUSH_ROUND.wood,propMat]]},
+  flowerbush:{parts:[[BUSH_FLOWER.wood,propMat]]},
+  grasstuft:{parts:[[GRASS_TUFT.wood,propMat]],noShadow:true},
+  undergrowth:{parts:[[UNDERGROWTH.wood,propMat]],noShadow:true},
 };
 for(const k in KINDS) KINDS[k].geos=KINDS[k].parts.map(([p,m])=>[modelGeometry(p),m]);
 
@@ -103,7 +111,7 @@ const propHsl=(h,s,l)=>new THREE.Color().setHSL(h,s,l).getHex();
  * (kop) Euphorbien und Aloen. skip(x,z): dort nichts. Liefert {sorte:[Plätze]}.
  */
 function cellProps(x0,z0,rng,skip,kop){
-  const out={termite:[],euphorbia:[],bush:[],aloe:[],rocks:[],bones:[],thorn:[]};
+  const out={termite:[],euphorbia:[],bush:[],aloe:[],rocks:[],bones:[],thorn:[],roundbush:[],flowerbush:[],grasstuft:[],undergrowth:[]};
   const free=(x,z,m)=>!skip(x,z)&&!kopjeNear(x,z,m)&&shoreDist(x,z)>5;
   const at=()=>({x:x0+4+rng()*(CHUNK-8),z:z0+4+rng()*(CHUNK-8)});
   const put=(kind,p,s,extra)=>out[kind].push(Object.assign({x:p.x,z:p.z,y:H(p.x,p.z),a:rng()*6.283,s},extra));
@@ -123,6 +131,13 @@ function cellProps(x0,z0,rng,skip,kop){
       if(skip(q.x,q.z)||shoreDist(q.x,q.z)<4||kopjeNear(q.x,q.z,0.6)) continue;
       if(j<ne) put('euphorbia',q,0.8+rng()*0.45,{y:H(q.x,q.z)-0.1}); else put('aloe',q,0.7+rng()*0.6); }
   }
+  // Büsche und Unterholz (zuletzt, damit die Plätze der übrigen Objekte gleich bleiben): Laub- und Blühbüsche und
+  // Unterholz im Grünen, Grasbüschel eher im Trockenen
+  const wet=(n,chance,maxDry,fn)=>{ for(let i=0;i<n;i++){ const p=at(), r=rng(); if(r<chance&&dryness(p.x,p.z)<=maxDry&&free(p.x,p.z,2)) fn(p); } };
+  wet(2,0.45,0.55,p=>put('roundbush',p,0.75+rng()*0.5,{y:H(p.x,p.z)-0.08,c:propHsl(0.2+rng()*0.08,0.15+rng()*0.2,0.85+rng()*0.15)}));
+  wet(1,0.25,0.5,p=>put('flowerbush',p,0.75+rng()*0.4,{y:H(p.x,p.z)-0.06}));
+  wet(1,0.4,0.45,p=>{ const n=1+Math.floor(rng()*3); for(let j=0;j<n;j++){ const q={x:p.x+(rng()-0.5)*5,z:p.z+(rng()-0.5)*5}; if(free(q.x,q.z,1.5)) put('undergrowth',q,0.8+rng()*0.6,{y:H(q.x,q.z)-0.05,c:propHsl(0.25+rng()*0.1,0.1+rng()*0.2,0.85+rng()*0.15)}); } });
+  tries(1,0.45,0.25,p=>{ const n=2+Math.floor(rng()*4); for(let j=0;j<n;j++){ const q={x:p.x+(rng()-0.5)*6,z:p.z+(rng()-0.5)*6}; if(free(q.x,q.z,1.5)) put('grasstuft',q,0.7+rng()*0.6,{y:H(q.x,q.z)-0.05,c:propHsl(0.1+rng()*0.04,0.1+rng()*0.2,0.85+rng()*0.15)}); } });
   return out;
 }
 
@@ -147,6 +162,8 @@ function applyProps(set,cleanup,slots){
   for(const p of set.euphorbia){ const col=addCol(p.x,p.z,0.35*p.s,false), sg=addSight(p.x,p.z,1.6*p.s,4*p.s,0.5); keep(()=>{ removeCol(col); removeSight(sg); }); }
   for(const p of set.rocks){ const col=addCol(p.x,p.z,0.8*p.s,false), sg=addSight(p.x,p.z,0.9*p.s,1.1*p.s,0.7); keep(()=>{ removeCol(col); removeSight(sg); }); }
   for(const p of set.bush){ const sg=addSight(p.x,p.z,1.1*p.s,2*p.s,0.45); keep(()=>removeSight(sg)); }
+  for(const p of set.roundbush){ const sg=addSight(p.x,p.z,1.3*p.s,1.4*p.s,0.85); keep(()=>removeSight(sg)); }   // dichtes Laub: verdeckt fast ganz
+  for(const p of set.flowerbush){ const sg=addSight(p.x,p.z,1.0*p.s,1.2*p.s,0.75); keep(()=>removeSight(sg)); }
   for(const p of set.thorn){
     const sg=addSight(p.x,p.z,1.4*p.s,1.5*p.s,0.85), patch={x:p.x,z:p.z,r:1.5*p.s,thorn:true};
     patches.push(patch); keep(()=>{ removeSight(sg); patches.splice(patches.indexOf(patch),1); });
@@ -179,7 +196,7 @@ function fillProps(chunk){
   applyProps(set,cleanup,slots);
   for(const kind in set){
     let list=set[kind]; if(!list.length) continue;
-    if(quality==='low'&&(kind==='aloe'||kind==='bones')) list=list.filter((_,i)=>i%2===0);   // nur Zierde: auf „niedrig“ weniger
+    if(quality==='low'&&(kind==='aloe'||kind==='bones'||kind==='grasstuft'||kind==='undergrowth')) list=list.filter((_,i)=>i%2===0);   // nur Zierde: auf „niedrig“ weniger
     for(const m of propMeshes(kind,list)){
       scene.add(m); const cu=registerCull(m,x0+CHUNK/2,z0+CHUNK/2,55);
       cleanup.push(()=>{ unregisterCull(cu); scene.remove(m); m.dispose?.(); if(m.userData.ownGeo) m.geometry.dispose(); });
