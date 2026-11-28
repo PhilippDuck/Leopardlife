@@ -40,6 +40,10 @@ function pickKind(kinds,x,z){
   for(const [name,share] of kinds){ if(u<share) return name; u-=share; }
   return kinds[0][0];
 }
+/** Mindestabstand zwischen zwei Baumstämmen (m) */
+const TREE_GAP=7;
+/** Steht schon ein Baum näher als d an x/z? */
+function treeNear(x,z,d){ return trees.some(t=>Math.hypot(t.x-x,t.z-z)<d); }
 const trees=[]; let woodMeshes=[], leafMeshes=[], leafGeoHi=null, leafGeoLo=null; const dirtyTree=new Set(); const leafTime={value:0};
 const _tm=new THREE.Matrix4(), _tb=new THREE.Matrix4(), _tq=new THREE.Quaternion(), _tv=new THREE.Vector3(), _UP=new THREE.Vector3(0,1,0);
 function setTree(i){
@@ -115,15 +119,17 @@ function makeTree(o,random=Math.random){
       modelTree(t,pickKind(ACACIA_KINDS,o.x,o.z),rnd(0.85,1.3),hsl(rnd(0.06,0.09),rnd(0.14,0.22),rnd(0.3,0.38)),hsl(rnd(0.19,0.25),rnd(0.3,0.4),rnd(0.3,0.37)),random);
     } else {
       // Urwaldbaum (vier Formen, selten ein Riese mit Brettwurzeln); Liegeplatz oben auf der Krone
+      // Modelle sind 7,5–9 m hoch (Riese 14 m): etwa 10–13 m, der Riese 17–21 m, so groß wie die alten Urwaldbäume
       const name=random()<0.1?'jungleGiant':pickKind(JUNGLE_KINDS,o.x,o.z);
-      modelTree(t,name,rnd(0.8,1.15),hsl(rnd(0.06,0.09),rnd(0.22,0.32),rnd(0.24,0.32)),hsl(rnd(0.27,0.34),rnd(0.4,0.52),rnd(0.26,0.33)),random);
+      modelTree(t,name,name==='jungleGiant'?rnd(1.2,1.5):rnd(1.1,1.5),hsl(rnd(0.06,0.09),rnd(0.22,0.32),rnd(0.24,0.32)),hsl(rnd(0.27,0.34),rnd(0.4,0.52),rnd(0.26,0.33)),random);
     }
     return t;
   }
 (function(){
   const {r:wr,rr:wrnd}=vegRng(0x74726565);
   for(let i=0;i<REG.trees;i++){
-    let x,z,r; do{ r=Math.sqrt(wr())*WORLD; const a=wr()*6.283; x=Math.cos(a)*r; z=Math.sin(a)*r; }while(r<10||(r>110&&wr()<0.7)||pondAt(x,z,1.3)||kopjeNear(x,z,3));
+    let x,z,r,n=0; do{ r=Math.sqrt(wr())*WORLD; const a=wr()*6.283; x=Math.cos(a)*r; z=Math.sin(a)*r; }
+    while(r<10||(r>110&&wr()<0.7)||pondAt(x,z,1.3)||kopjeNear(x,z,3)||(n++<40&&treeNear(x,z,TREE_GAP)));   // Abstand, damit Stämme nicht ineinander stehen
     trees.push(makeTree({x,z,sav:r>REG.savFrom},wr));
   }
   // Affenbrotbäume: wenige Riesen in der Savanne, weit auseinander; andere Bäume machen ihnen Platz
@@ -348,4 +354,4 @@ function thornAt(x,z){ for(let i=0;i<patches.length;i++){ const p=patches[i]; if
 function inGrass(x,z){ for(let i=0;i<patches.length;i++){ const p=patches[i]; if(p.burnt) continue; const dx=x-p.x, dz=z-p.z; if(dx*dx+dz*dz<p.r*p.r) return true; } return false; }
 
 
-export { rockGeometry, thornAt, treeKinds, modelMeshes, releaseTree, treeSlot, dryBushGeometry, dryBushColor, shrubKind, bushGeometry, bushMaterial, bushColor, makeTree, woodMeshes, setTree, fadedTrees, applyTreeView, _tm, _tv, inGrass, leafGeoHi, leafGeoLo, leafMeshes, leafTime, patches, tallGeo, tallMat, trees, updateTrees };
+export { TREE_GAP, rockGeometry, thornAt, treeKinds, modelMeshes, releaseTree, treeSlot, dryBushGeometry, dryBushColor, shrubKind, bushGeometry, bushMaterial, bushColor, makeTree, woodMeshes, setTree, fadedTrees, applyTreeView, _tm, _tv, inGrass, leafGeoHi, leafGeoLo, leafMeshes, leafTime, patches, tallGeo, tallMat, trees, updateTrees };
