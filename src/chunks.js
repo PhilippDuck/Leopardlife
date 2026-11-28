@@ -10,6 +10,7 @@ import { rnd } from './util.js';
 import { seeded } from './noise.js';
 import { REG, WORLD_SEED } from './save.js';
 import { applyGroundDetail } from './groundtex.js';
+import { releaseSpots } from './spots.js';
 
 const CHUNK=64, SEG=26;
 /** @typedef {{cx:number,cz:number,key:string,mesh:any,cull:any,used:number,rng:()=>number,content:any[]}} Chunk */
@@ -68,7 +69,7 @@ function chunkRng(cx,cz){ return seeded((WORLD_SEED^Math.imul(cx,73856093)^Math.
  */
 const fillers=[];
 function onChunkFill(fn){ fillers.push(fn); for(const c of chunks.values()) fn(c); }
-function unloadChunk(c){ for(const it of c.content) if(it&&it.drop) it.drop(); c.content.length=0; unregisterCull(c.cull); scene.remove(c.mesh); pool.push(c.mesh); chunks.delete(c.key); }
+function unloadChunk(c){ for(const it of c.content) if(it&&it.drop) it.drop(); releaseSpots(c.key); c.content.length=0; unregisterCull(c.cull); scene.remove(c.mesh); pool.push(c.mesh); chunks.delete(c.key); }
 
 /* ---------- Welche Chunks werden gebraucht? ---------- */
 /** Laderadius in Metern: bis knapp hinter die Nebelgrenze, aber begrenzt (dahinter übernimmt die Fernlandschaft) */

@@ -4,6 +4,7 @@ import { scene } from './engine.js';
 import { H, WORLD, dryness, pondAt, addCol, addSight, removeCol, removeSight, registerCull, unregisterCull } from './terrain.js';
 import { rockGeometry, dryBushGeometry, dryBushColor, shrubKind, bushGeometry, bushMaterial, bushColor, makeTree, TREE_GAP, treeKinds, leafMeshes, leafGeoLo, trees, setTree, patches, tallGeo, tallMat, treeSlot, releaseTree } from './vegetation.js';
 import { kopjeNear } from './kopjesites.js';
+import { claimSpot, takeSpot } from './spots.js';
 import { reedMesh, reedPatches, reedSpots } from './reeds.js';
 import { players } from './player.js';
 import { followers } from './cubfollow.js';
@@ -26,7 +27,7 @@ function baobabSpot(cx,cz){
 }
 
 function fillPlants(chunk){
-  const rng=chunk.rng, slots=[], cleanup=[];
+  const rng=chunk.rng, slots=[], cleanup=[], own=chunk.key;   // own: belegte Plätze dieses Abschnitts (spots.js)
   const ox=chunk.cx*CHUNK, oz=chunk.cz*CHUNK;
   const place=(margin)=>({x:ox+margin+rng()*(CHUNK-2*margin),z:oz+margin+rng()*(CHUNK-2*margin)});
   const outside=p=>Math.hypot(p.x,p.z)>WORLD+5&&!pondAt(p.x,p.z,1.5)&&!kopjeNear(p.x,p.z,2);
@@ -66,6 +67,7 @@ function fillPlants(chunk){
       trees[slot]=tree;
       slots.push(slot);
       setTree(slot);
+      takeSpot(tree.x,tree.z,tree.tr+0.8,own);
       const collider=addCol(tree.x,tree.z,tree.tr+0.1,false);
       cleanup.push(()=>{ removeCol(collider); releaseTree(slot); });
       sight(tree.x,tree.z,tree.tr+0.15,tree.baobab?8:6,tree.baobab?1:0.55);
@@ -75,33 +77,36 @@ function fillPlants(chunk){
   const kinds={green:[],dry:[],rock:[]};
   for(const p of Array.from({length:18},()=>place(2)).filter(outside)){ const k=shrubKind(dryness(p.x,p.z),rng); if(k) kinds[k].push(p); }
   const shrubs=kinds.green;
-  if(kinds.dry.length){
-    const mesh=new THREE.InstancedMesh(dryBushGeometry,vegetationBushes.material,kinds.dry.length), color=new THREE.Color();
-    kinds.dry.forEach(({x,z},i)=>{ const k=0.6+rng()*0.45, sy=0.6+rng()*0.4;
-      mesh.setMatrixAt(i,new THREE.Matrix4().compose(new THREE.Vector3(x,H(x,z)-0.05,z),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,rng()*6.28,0)),new THREE.Vector3(k,sy,k)));
-      const t=dryBushColor(rng); mesh.setColorAt(i,color.setHSL(t.h,t.s,t.l)); sight(x,z,k*0.8,sy*0.9,0.35); });
+  // Erst alle Zufallszahlen eines Platzes ziehen, dann prüfen, ob er frei ist (sonst entfällt er, der Rest bleibt gleich)
+  const dry=kinds.dry.map(({x,z})=>({x,z,k:0.6+rng()*0.45,sy:0.6+rng()*0.4,ry:rng()*6.28,t:dryBushColor(rng)})).filter(b=>claimSpot(b.x,b.z,b.k*0.7,own));
+  if(dry.length){
+    const mesh=new THREE.InstancedMesh(dryBushGeometry,vegetationBushes.material,dry.length), color=new THREE.Color();
+    dry.forEach(({x,z,k,sy,ry,t},i)=>{
+      mesh.setMatrixAt(i,new THREE.Matrix4().compose(new THREE.Vector3(x,H(x,z)-0.05,z),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,ry,0)),new THREE.Vector3(k,sy,k)));
+      mesh.setColorAt(i,color.setHSL(t.h,t.s,t.l)); sight(x,z,k*0.8,sy*0.9,0.35); });
     mesh.castShadow=true; show(mesh);
   }
-  if(kinds.rock.length){
-    const mesh=new THREE.InstancedMesh(rockGeometry,vegetationBushes.material,kinds.rock.length), color=new THREE.Color();
-    kinds.rock.forEach(({x,z},i)=>{ const sy=0.25+rng()*0.45, sx=0.4+rng()*0.8, sz=0.4+rng()*0.8;
-      mesh.setMatrixAt(i,new THREE.Matrix4().compose(new THREE.Vector3(x,H(x,z)+sy*0.25,z),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,rng()*6.28,0)),new THREE.Vector3(sx,sy,sz)));
-      mesh.setColorAt(i,color.setHSL(0.07+rng()*0.04,0.06+rng()*0.08,0.45+rng()*0.15));
+  const rocks=kinds.rock.map(({x,z})=>({x,z,sy:0.25+rng()*0.45,sx:0.4+rng()*0.8,sz:0.4+rng()*0.8,ry:rng()*6.28,h:0.07+rng()*0.04,s:0.06+rng()*0.08,l:0.45+rng()*0.15}))
+    .filter(r=>claimSpot(r.x,r.z,(r.sx+r.sz)*0.4,own));
+  if(rocks.length){
+    const mesh=new THREE.InstancedMesh(rockGeometry,vegetationBushes.material,rocks.length), color=new THREE.Color();
+    rocks.forEach(({x,z,sx,sy,sz,ry,h,s,l},i)=>{
+      mesh.setMatrixAt(i,new THREE.Matrix4().compose(new THREE.Vector3(x,H(x,z)+sy*0.25,z),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,ry,0)),new THREE.Vector3(sx,sy,sz)));
+      mesh.setColorAt(i,color.setHSL(h,s,l));
       if(sy>0.45&&sx+sz>1.4){ const c=addCol(x,z,(sx+sz)*0.4,true); cleanup.push(()=>removeCol(c)); }
       if(sy>0.4) sight(x,z,(sx+sz)*0.42,sy*0.95,1); });
     mesh.castShadow=true; mesh.receiveShadow=true; show(mesh);
   }
-  if(shrubs.length){
-    const mesh=new THREE.InstancedMesh(vegetationBushes.geometry,vegetationBushes.material,shrubs.length);
+  const green=shrubs.map(({x,z})=>{ const sy=0.5+rng()*0.45, sx=0.8+rng()*0.9, sz=0.8+rng()*0.9, ry=rng()*6.28;
+    return {x,z,sx,sy,sz,ry,tint:bushColor(Math.hypot(x,z)>WORLD+180,rng)}; }).filter(b=>claimSpot(b.x,b.z,(b.sx+b.sz)*0.4,own));
+  if(green.length){
+    const mesh=new THREE.InstancedMesh(vegetationBushes.geometry,vegetationBushes.material,green.length);
     const color=new THREE.Color();
-    shrubs.forEach(({x,z},i)=>{
-      const savanna=Math.hypot(x,z)>WORLD+180, sy=0.5+rng()*0.45;
-      const sx=0.8+rng()*0.9, sz=0.8+rng()*0.9;
+    green.forEach(({x,z,sx,sy,sz,ry,tint},i)=>{
       const m=new THREE.Matrix4().compose(new THREE.Vector3(x,H(x,z)+sy*0.45,z),
-        new THREE.Quaternion().setFromEuler(new THREE.Euler(0,rng()*6.28,0)),
+        new THREE.Quaternion().setFromEuler(new THREE.Euler(0,ry,0)),
         new THREE.Vector3(sx,sy,sz));
       mesh.setMatrixAt(i,m);
-      const tint=bushColor(savanna,rng);
       mesh.setColorAt(i,color.setHSL(tint.h,tint.s,tint.l));
       const radius=(sx+sz)*0.42;
       sight(x,z,radius,sy*0.9,0.8);

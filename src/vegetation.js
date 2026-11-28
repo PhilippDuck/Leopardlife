@@ -23,6 +23,7 @@ import { DRYBUSH } from './drybushmodel.js';
 import { ROCK } from './rockmodel.js';
 import { reedMesh, reedPatches, reedSpots } from './reeds.js';
 import { addWaterPlants } from './waterplants.js';
+import { claimSpot, spotFree, takeSpot } from './spots.js';
 
 /* Bäume: aus mehreren Teilen (Stamm, Äste, Wurzeln, Laubballen). Arten: Urwaldbaum, Urwaldriese, Schirmakazie, toter Baum, Palme am Wasser.
    Werden ausgeblendet, wenn ihre Krone zwischen Kamera und Leopard steht.
@@ -154,7 +155,7 @@ function makeTree(o,random=Math.random){
   const MS={};
   for(const kind in N){ const K=treeKinds[kind], ms=MS[kind]={}; for(const k in N[kind]){ const m=ms[k]=new THREE.InstancedMesh(K.geo,K.mat,N[kind][k]); K.list.push(m); registerTile(m,+k,84); } }
   const c=new THREE.Color();
-  trees.forEach((t,i)=>{ t.parts.forEach(p=>{ p.mesh=MS[p.kind][p.k]; p.mesh.setColorAt(p.i,c.setHex(p.c)); }); setTree(i); addCol(t.x,t.z,t.tr+0.1); addSight(t.x,t.z,t.tr+0.15,t.baobab?8:6,t.baobab?1:0.55); });   // Stamm verdeckt teilweise, der dicke Affenbrotbaum ganz
+  trees.forEach((t,i)=>{ t.parts.forEach(p=>{ p.mesh=MS[p.kind][p.k]; p.mesh.setColorAt(p.i,c.setHex(p.c)); }); setTree(i); takeSpot(t.x,t.z,t.tr+0.8); addCol(t.x,t.z,t.tr+0.1); addSight(t.x,t.z,t.tr+0.15,t.baobab?8:6,t.baobab?1:0.55); });   // Stamm verdeckt teilweise, der dicke Affenbrotbaum ganz
   woodMeshes.concat(leafMeshes,modelMeshes).forEach(m=>{ m.castShadow=true; m.receiveShadow=true; scene.add(m); });
 })();
 /** Bäume, die gerade in mindestens einer Ansicht ausgeblendet sind oder es waren (nur diese müssen je Ansicht umgestellt werden) */
@@ -226,7 +227,7 @@ function shrubKind(d,random=Math.random){
   const m=new THREE.Matrix4(), q=new THREE.Quaternion(), s=new THREE.Vector3(), v=new THREE.Vector3(), e=new THREE.Euler(), c=new THREE.Color();
   function scatter(n,geo,fn,shadow,material=mat){
     const by={};
-    for(let i=0;i<n;i++){ const o=fn(i), k=tileOf(o.x,o.z); (by[k]=by[k]||[]).push(o); }
+    for(let i=0;i<n;i++){ const o=fn(i); if(!o) continue; const k=tileOf(o.x,o.z); (by[k]=by[k]||[]).push(o); }
     for(const k in by){ const L=by[k], mesh=new THREE.InstancedMesh(geo,material,L.length);
       L.forEach((o,i)=>{ e.set(o.rx||0,o.ry||0,o.rz||0); q.setFromEuler(e); m.compose(v.set(o.x,o.y,o.z),q,s.set(o.sx,o.sy,o.sz)); mesh.setMatrixAt(i,m); mesh.setColorAt(i,c.setHSL(o.h,o.s,o.l)); });
       mesh.castShadow=!!shadow; mesh.receiveShadow=true; scene.add(mesh); registerTile(mesh,+k,78); }
@@ -237,22 +238,31 @@ function shrubKind(d,random=Math.random){
   for(let i=0;i<320;i++){ const p=spot(9,WORLD), k=shrubKind(dryness(p.x,p.z),wr); if(k) shrubs[k].push(p); }
   let si=0;
   scatter(shrubs.green.length,bushGeometry,()=>{ const p=shrubs.green[si++], sy=wrnd(0.5,0.95), sav=p.r>115;
-    const bsx=wrnd(0.8,1.7), bsz=wrnd(0.8,1.7); addSight(p.x,p.z,(bsx+bsz)*0.42,sy*0.9,0.8);   // Busch: verdeckt fast ganz
-    return {x:p.x,z:p.z,y:H(p.x,p.z)+sy*0.45,sx:bsx,sy,sz:bsz,ry:wr()*6,...bushColor(sav,wr)}; },true,bushMaterial);
-  si=0; scatter(shrubs.dry.length,dryBushGeometry,()=>{ const p=shrubs.dry[si++], k=wrnd(0.6,1.05), sy=wrnd(0.6,1.0);
+    const bsx=wrnd(0.8,1.7), bsz=wrnd(0.8,1.7), o={x:p.x,z:p.z,y:H(p.x,p.z)+sy*0.45,sx:bsx,sy,sz:bsz,ry:wr()*6,...bushColor(sav,wr)};
+    if(!claimSpot(p.x,p.z,(bsx+bsz)*0.4)) return null;   // nicht in anderen Objekten
+    addSight(p.x,p.z,(bsx+bsz)*0.42,sy*0.9,0.8);   // Busch: verdeckt fast ganz
+    return o; },true,bushMaterial);
+  si=0; scatter(shrubs.dry.length,dryBushGeometry,()=>{ const p=shrubs.dry[si++], k=wrnd(0.6,1.05), sy=wrnd(0.6,1.0), o={x:p.x,z:p.z,y:H(p.x,p.z)-0.05,sx:k,sy,sz:k,ry:wr()*6,...dryBushColor(wr)};
+    if(!claimSpot(p.x,p.z,k*0.7)) return null;
     addSight(p.x,p.z,k*0.8,sy*0.9,0.35);   // vertrocknet: man sieht teilweise hindurch
-    return {x:p.x,z:p.z,y:H(p.x,p.z)-0.05,sx:k,sy,sz:k,ry:wr()*6,...dryBushColor(wr)}; },true,bushMaterial);
-  si=0; scatter(shrubs.rock.length,rockGeometry,()=>{ const p=shrubs.rock[si++], sy=wrnd(0.25,0.7), sx=wrnd(0.4,1.2), sz=wrnd(0.4,1.2);
-    if(sy>0.45&&sx+sz>1.4) addCol(p.x,p.z,(sx+sz)*0.4,true);
-    if(sy>0.4) addSight(p.x,p.z,(sx+sz)*0.42,sy*0.95,1);
-    return {x:p.x,z:p.z,y:H(p.x,p.z)+sy*0.25,sx,sy,sz,ry:wr()*6,h:wrnd(0.07,0.11),s:wrnd(0.06,0.14),l:wrnd(0.45,0.6)}; },true,bushMaterial);
-  scatter(170,rockGeometry,()=>{ const p=spot(12,WORLD), sy=wrnd(0.3,1.2), sx=wrnd(0.4,1.8), sz=wrnd(0.4,1.8);
+    return o; },true,bushMaterial);
+  // Steine: erst alle Zufallszahlen ziehen, dann prüfen, ob der Platz frei ist (sonst entfällt der Stein)
+  const rock=(p,o)=>{ const {sx,sy,sz}=o;
+    if(!claimSpot(p.x,p.z,(sx+sz)*0.4)) return null;
     if(sy>0.45&&sx+sz>1.4) addCol(p.x,p.z,(sx+sz)*0.4,true);   // kleine Steine bleiben begehbar
     if(sy>0.4) addSight(p.x,p.z,(sx+sz)*0.42,sy*0.95,1);   // Felsen verdecken ganz
-    return {x:p.x,z:p.z,y:H(p.x,p.z)+sy*0.25,sx,sy,sz,ry:wr()*6,h:wrnd(0.07,0.12),s:wrnd(0.04,0.12),l:wrnd(0.42,0.6)}; },true,bushMaterial);
+    return o; };
+  si=0; scatter(shrubs.rock.length,rockGeometry,()=>{ const p=shrubs.rock[si++], sy=wrnd(0.25,0.7), sx=wrnd(0.4,1.2), sz=wrnd(0.4,1.2);
+    return rock(p,{x:p.x,z:p.z,y:H(p.x,p.z)+sy*0.25,sx,sy,sz,ry:wr()*6,h:wrnd(0.07,0.11),s:wrnd(0.06,0.14),l:wrnd(0.45,0.6)}); },true,bushMaterial);
+  scatter(170,rockGeometry,()=>{ const p=spot(12,WORLD), sy=wrnd(0.3,1.2), sx=wrnd(0.4,1.8), sz=wrnd(0.4,1.8);
+    return rock(p,{x:p.x,z:p.z,y:H(p.x,p.z)+sy*0.25,sx,sy,sz,ry:wr()*6,h:wrnd(0.07,0.12),s:wrnd(0.04,0.12),l:wrnd(0.42,0.6)}); },true,bushMaterial);
+  // Liegende Stämme: Kreise entlang des Stamms
   scatter(34,new THREE.CylinderGeometry(0.34,0.4,1,7),()=>{ const p=spot(15,170), len=wrnd(2.5,5.5), ry=wr()*6, n=Math.ceil(len/0.7);
-    for(let j=0;j<=n;j++){ const u=(j/n-0.5)*len; addCol(p.x+Math.cos(ry)*u,p.z-Math.sin(ry)*u,0.42,true); addSight(p.x+Math.cos(ry)*u,p.z-Math.sin(ry)*u,0.4,0.62,0.7); }
-    return {x:p.x,z:p.z,y:H(p.x,p.z)+0.28,sx:wrnd(0.8,1.3),sy:len,sz:wrnd(0.8,1.3),rz:Math.PI/2,ry,h:wrnd(0.06,0.09),s:wrnd(0.3,0.45),l:wrnd(0.2,0.3)}; },true);
+    const o={x:p.x,z:p.z,y:H(p.x,p.z)+0.28,sx:wrnd(0.8,1.3),sy:len,sz:wrnd(0.8,1.3),rz:Math.PI/2,ry,h:wrnd(0.06,0.09),s:wrnd(0.3,0.45),l:wrnd(0.2,0.3)};
+    const along=Array.from({length:n+1},(_,j)=>{ const u=(j/n-0.5)*len; return [p.x+Math.cos(ry)*u,p.z-Math.sin(ry)*u]; });
+    if(!along.every(([x,z])=>spotFree(x,z,0.45))) return null;
+    for(const [x,z] of along){ takeSpot(x,z,0.45); addCol(x,z,0.42,true); addSight(x,z,0.4,0.62,0.7); }
+    return o; },true);
   // Blumen in kleinen Gruppen, vor allem im grünen Zentrum
   const fl=[[0.14,0.9,0.6],[0.92,0.7,0.68],[0.0,0.0,0.95],[0.06,0.9,0.58],[0.75,0.5,0.7]]; let cl=null, cc=null;
   scatter(1100,new THREE.OctahedronGeometry(0.13,0),i=>{ if(i%14===0){ cl=spot(8,150); cc=fl[Math.floor(wr()*fl.length)]; }
