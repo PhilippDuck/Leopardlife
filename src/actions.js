@@ -153,7 +153,7 @@ function die(p,a){
     if(document.exitPointerLock) document.exitPointerLock();
     p.g.rotation.z=Math.PI/2; p.g.position.y=p.y+0.25*pScale();
     snd.death();
-    const fem=(a.sp.id==='hyena'||a.sp.id==='giant'||a.sp.id==='snake'||a.sp.id==='anti');
+    const fem=(a.sp.id==='hyena'||a.sp.id==='giant'||a.sp.id==='snake'||a.sp.id==='anti'||a.sp.id==='deer');
     G.lastCause=a.sp.id==='hunger'?'verhungert':a.sp.id==='thirst'?'verdurstet':a.sp.id==='age'?'an Altersschwäche gestorben':'von '+(DAT[a.sp.id]||'einem '+a.sp.n)+' getötet';
     const cause=a.sp.id==='hunger'?'Du bist verhungert.':a.sp.id==='thirst'?'Du bist verdurstet.':a.sp.id==='age'?'Du bist an Altersschwäche gestorben.':'Ein'+(fem?'e ':' ')+a.sp.n+' hat dich erwischt.';
     $('deadTxt').textContent=cause+(lost>0?' Du verlierst '+lost+' Erfahrung.':'')+' Stufe, Eigenschaften und Fähigkeiten bleiben dir erhalten.';

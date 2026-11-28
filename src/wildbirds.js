@@ -1,5 +1,6 @@
 // LeoLife – Warnvögel: Perlhühner und Madenhacker verraten Jäger – dich, aber auch Raubtiere, die dir gefährlich werden.
 import { animals } from './animals.js';
+import { hoofedBack } from './hoofed.js';
 import { snd } from './audio.js';
 import { startFlee } from './carcass.js';
 import { tell } from './coop.js';
@@ -131,7 +132,7 @@ function buildOx(){
 /** Sitzplatz auf dem Rücken des Wirts (Weltkoordinaten) */
 function backSeat(o){
   const h=o.host, s=h.sp.size*(h.juv?0.55:1), ry=h.g.rotation.y, off=o.slot*0.35-0.15;
-  return {x:h.x+Math.sin(ry)*off*s, z:h.z+Math.cos(ry)*off*s, y:H(h.x,h.z)+s*(h.sp.id==='giant'?1.0:1.12), ry};
+  return {x:h.x+Math.sin(ry)*off*s, z:h.z+Math.cos(ry)*off*s, y:H(h.x,h.z)+s*(hoofedBack(h.sp.id)||1.12), ry};
 }
 function updateOxpeckers(dt){
   // neue Vögel für sichtbare große Huftiere in Spielernähe

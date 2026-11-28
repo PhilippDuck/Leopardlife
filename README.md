@@ -14,7 +14,7 @@ durch Savanne und Sumpf.
 - Tag-Nacht-Wechsel, Regen und Gewitter, Tagesziele, drei Schwierigkeitsgrade
 - Hunger und Durst: Beute fressen und an Wasserlöchern trinken – dort lauern Krokodile, die sich an Trinkende heranschleichen
 - Wildtiere suchen regelmäßig Wasser und können an Krokodil-Wasserlöchern angegriffen werden; Geier finden Kadaver nach einer Weile, kreisen lange darüber, landen nacheinander und fressen – wer sich nähert, verscheucht sie und kann sich die Beute sichern
-- Wasserschweine, Wildschweine, Hirsche, Antilopen, Hyänen und Löwen haben Junge; wehrhafte Eltern verteidigen sie
+- Wasserschweine, Wildschweine, Gazellen, Antilopen, Hyänen und Löwen haben Junge; wehrhafte Eltern verteidigen sie
 - Perlhühner schlagen Alarm, Madenhacker warnen ihre Wirte; Fliegen über Kadavern verraten Aas, nachts leuchten Glühwürmchen
 - Puffottern liegen getarnt im Gras, zischen als Warnung und beißen mit nachwirkendem Gift
 - Elefantenherden mit Jungen ziehen durch die Savanne und treffen sich an den Wasserlöchern; wer zu nahe kommt, wird erst angedroht (Ohren gespreizt, Trompeten) und dann niedergetrampelt
