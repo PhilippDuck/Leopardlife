@@ -3,6 +3,8 @@
 //   Steppenbrand   – eine Feuerfront wandert mit dem Wind über die Karte; Tiere fliehen kopflos (leichte Beute),
 //                    danach ist das hohe Gras abgebrannt (kaum Deckung), bis es nachwächst. Sicher: Bäume, Wasser, der Bau.
 //   Rivale         – ein fremder Leopard dringt ins Revier ein, klaut Beute und bedroht die Jungen im Bau.
+// Jedes Ereignis spielt um einen Mittelpunkt EV.c: einen Spieler (auch weit draußen in der Welt), beim Rivalen den Bau,
+// wenn ein Spieler in dessen Nähe ist. Front, Wege und Grenzen (Radius WORLD) gelten um diesen Punkt.
 import { gainXp, hurtPlayer } from './actions.js';
 import { animals, placeAnimal } from './animals.js';
 import { gunshot, snd, snd3d } from './audio.js';
@@ -13,7 +15,7 @@ import { CUB_HOME } from './family.js';
 import { denKids, kidDies } from './cubfollow.js';
 import { animLegs, buildQuad, makeFur } from './models.js';
 import { buildHuman } from './human.js';
-import { P, players } from './player.js';
+import { P, actors, players } from './player.js';
 import { H, WORLD, pondAt } from './terrain.js';
 import { floatText, toast } from './ui.js';
 import { rnd } from './util.js';
@@ -27,8 +29,8 @@ import { dmg } from './save.js';
 import { G } from './state.js';
 import { hearR, visibility } from './vision.js';
 
-/** @type {{on:string|null,t:number,next:number,last:string,fireCooldown:number,drawT:number,dir:{x:number,z:number},s:number,herd:any[],rival:any,panic:number,burnT:number,regrow:number,lionT:number,kidT:number,home:{x:number,z:number}|null}} */
-const EV={on:null,t:0,next:rnd(150,240),last:'',fireCooldown:900,drawT:0,dir:{x:1,z:0},s:0,herd:[],rival:null,panic:0,burnT:0,regrow:0,lionT:0,kidT:0,home:null};
+/** @type {{on:string|null,t:number,next:number,last:string,fireCooldown:number,drawT:number,dir:{x:number,z:number},s:number,herd:any[],rival:any,panic:number,burnT:number,regrow:number,lionT:number,kidT:number,home:{x:number,z:number}|null,c:{x:number,z:number}}} */
+const EV={on:null,t:0,next:rnd(150,240),last:'',fireCooldown:900,drawT:0,dir:{x:1,z:0},s:0,herd:[],rival:null,panic:0,burnT:0,regrow:0,lionT:0,kidT:0,home:null,c:{x:0,z:0}};
 const spOf=id=>SPECIES.find(s=>s.id===id);
 const maxLvl=()=>Math.max(...players.map(p=>p.L.lvl));
 
@@ -63,17 +65,27 @@ function fireFx(on){
   }
   if(flames){ flames.visible=on; smoke.visible=on; }
 }
-/** Position auf der Front: s entlang der Windrichtung, u quer dazu */
-const frontPt=(s,u)=>({x:EV.dir.x*s-EV.dir.z*u,z:EV.dir.z*s+EV.dir.x*u});
-const along=(x,z)=>x*EV.dir.x+z*EV.dir.z;
-const across=(x,z)=>-x*EV.dir.z+z*EV.dir.x;
+/** Position auf der Front: s entlang der Windrichtung, u quer dazu (um den Mittelpunkt EV.c) */
+const frontPt=(s,u)=>({x:EV.c.x+EV.dir.x*s-EV.dir.z*u,z:EV.c.z+EV.dir.z*s+EV.dir.x*u});
+const along=(x,z)=>(x-EV.c.x)*EV.dir.x+(z-EV.c.z)*EV.dir.z;
+const across=(x,z)=>-(x-EV.c.x)*EV.dir.z+(z-EV.c.z)*EV.dir.x;
+/** Abstand zum Mittelpunkt des Ereignisses */
+const fromC=(x,z)=>Math.hypot(x-EV.c.x,z-EV.c.z);
+/** Wer im Spiel steht (auch die Leoparden der Gäste beim Gastgeber) */
+const living=()=>{ const l=actors().filter(p=>!p.dead); return l.length?l:players; };
+/** Mittelpunkt für ein neues Ereignis: ein zufälliger Spieler; beim Rivalen der Bau, wenn jemand in seiner Nähe ist */
+function eventCenter(id){
+  const l=living();
+  if(id==='rival'&&l.some(p=>Math.hypot(p.x-CUB_HOME.x,p.z-CUB_HOME.z)<200)) return {x:CUB_HOME.x,z:CUB_HOME.z,den:true};
+  const q=l[Math.floor(Math.random()*l.length)]; return {x:q.x,z:q.z};
+}
 const safeFromFire=p=>p.tree!=null||pondAt(p.x,p.z,0.3)||Math.hypot(p.x-CUB_HOME.x,p.z-CUB_HOME.z)<7;
 
 function drawFire(){
   const fp=flames.geometry.attributes.position.array, sp=smoke.geometry.attributes.position.array, tm=performance.now()/1000;
   const centers=players.map(p=>across(p.x,p.z));
   for(let i=0;i<FLAMES;i++){ const u=centers[i%centers.length]+(((i*97)%FLAMES)/FLAMES-0.5)*220+Math.sin(tm*3+i)*1.5, s=EV.s-Math.abs(Math.sin(i*12.9+tm*2.3))*5;
-    const q=frontPt(s,u), fl=Math.abs(Math.sin(tm*(5+i%7)+i)); const wet=pondAt(q.x,q.z,0.5)||Math.hypot(q.x,q.z)>WORLD;
+    const q=frontPt(s,u), fl=Math.abs(Math.sin(tm*(5+i%7)+i)); const wet=pondAt(q.x,q.z,0.5)||fromC(q.x,q.z)>WORLD;
     fp[i*3]=q.x; fp[i*3+1]=wet?-50:H(q.x,q.z)+0.3+fl*3.5; fp[i*3+2]=q.z; }
   for(let i=0;i<SMOKE;i++){ const u=centers[i%centers.length]+(((i*61)%SMOKE)/SMOKE-0.5)*240, k=((tm*0.15+i*0.37)%1), s=EV.s-4-k*30;
     const q=frontPt(s,u); sp[i*3]=q.x+windU.value.x*k*12; sp[i*3+1]=H(q.x,q.z)+2+k*16; sp[i*3+2]=q.z+windU.value.y*k*12; }
@@ -86,9 +98,9 @@ function burnGrass(regrow){
     if(!t.orig) t.orig=Float32Array.from(rs.array);
     for(let i=0;i<t.n;i++){ const y=i*2+1;
       if(regrow){ if(rs.array[y]!==t.orig[y]){ rs.array[y]=t.orig[y]; ch=true; } }
-      else if(rs.array[y]===t.orig[y]&&along(pos[i*3],pos[i*3+2])<EV.s-2&&Math.hypot(pos[i*3]-CUB_HOME.x,pos[i*3+2]-CUB_HOME.z)>7){ rs.array[y]=0.1; ch=true; } }
+      else if(rs.array[y]===t.orig[y]&&along(pos[i*3],pos[i*3+2])<EV.s-2&&fromC(pos[i*3],pos[i*3+2])<WORLD&&Math.hypot(pos[i*3]-CUB_HOME.x,pos[i*3+2]-CUB_HOME.z)>7){ rs.array[y]=0.1; ch=true; } }
     if(ch) rs.needsUpdate=true; }
-  for(const p of patches){ if(regrow) p.burnt=false; else if(along(p.x,p.z)<EV.s-p.r&&Math.hypot(p.x-CUB_HOME.x,p.z-CUB_HOME.z)>7) p.burnt=true; }
+  for(const p of patches){ if(regrow) p.burnt=false; else if(along(p.x,p.z)<EV.s-p.r&&fromC(p.x,p.z)<WORLD&&Math.hypot(p.x-CUB_HOME.x,p.z-CUB_HOME.z)>7) p.burnt=true; }
 }
 
 /* ---------- Wilderer ---------- */
@@ -138,7 +150,7 @@ function humanHit(a,p){
 /* ---------- Start der Ereignisse ---------- */
 const EV_NAMES={migr:'Gnu-Wanderung',fire:'Steppenbrand',rival:'Rivale',poach:'Wilderer'};
 function startEvent(id){
-  EV.on=id; EV.t=0; EV.last=id; const an=Math.random()*6.283; EV.dir={x:Math.cos(an),z:Math.sin(an)}; snd.alert();
+  EV.on=id; EV.t=0; EV.last=id; EV.c=eventCenter(id); const an=Math.random()*6.283; EV.dir={x:Math.cos(an),z:Math.sin(an)}; snd.alert();
   if(id==='migr'){
     const sp=spOf('gnu'), n=14+Math.floor(Math.random()*6), side=rnd(-70,70); EV.herd=[]; EV.panic=0; EV.lionT=0;
     for(let i=0;i<n;i++){ const q=frontPt(-(WORLD-12)-rnd(0,26),side+rnd(-14,14)); const a=spawnTemp(sp,q.x,q.z); a.ev='migr'; a.gx=rnd(-6,6); EV.herd.push(a); }
@@ -149,7 +161,7 @@ function startEvent(id){
     { const wx=windU.value.x||0, wz=windU.value.y||0, l=Math.hypot(wx,wz); if(l>0.1) EV.dir={x:wx/l,z:wz/l}; } EV.s=-(WORLD+5); EV.burnT=0; EV.drawT=0; fireFx(true);
   }
   if(id==='poach'){
-    const sp=spOf('poacher'), q=players[Math.floor(Math.random()*players.length)], an=Math.random()*6.283, r=rnd(95,130), hx=q.x+Math.cos(an)*r, hz=q.z+Math.sin(an)*r, n=Math.random()<0.35?3:2;
+    const sp=spOf('poacher'), l=living(), q=l[Math.floor(Math.random()*l.length)], an=Math.random()*6.283, r=rnd(95,130), hx=q.x+Math.cos(an)*r, hz=q.z+Math.sin(an)*r, n=Math.random()<0.35?3:2;
     EV.herd=[]; EV.home={x:hx,z:hz};
     for(let i=0;i<n;i++){ const a=spawnTemp(sp,hx+rnd(-8,8),hz+rnd(-8,8),buildHuman()); a.ev='poach'; a.rad=0.45; a.shotT=rnd(4,10); a.aimT=0; a.aimAt=null; a.tx=a.x; a.tz=a.z; EV.herd.push(a); }
   }
@@ -174,9 +186,9 @@ function eventStep(a,dt,move){
   const sp=a.sp;
   if(a.ev==='leave'){   // von den Spielern weg und außer Sicht verschwinden
     if(sp.human) a.g.userData.aim=0;
-    let q=players[0], qd=1e9; for(const p of players){ const d=Math.hypot(p.x-a.x,p.z-a.z); if(d<qd){ qd=d; q=p; } }
+    const l=living(); let q=l[0], qd=1e9; for(const p of l){ const d=Math.hypot(p.x-a.x,p.z-a.z); if(d<qd){ qd=d; q=p; } }
     const dx=a.x-q.x, dz=a.z-q.z; move(a,dx||1,dz,sp.human?6.5:sp.spd*0.8,dt);
-    if(qd>175||(!sp.human&&!a.temp&&Math.hypot(a.x,a.z)>WORLD-6)){ a.ev=null; if(a.temp){ a.gone=true; a.dead=true; a.g.visible=false; } } return true; }
+    if(qd>175||(!sp.human&&!a.temp&&fromC(a.x,a.z)>WORLD-6)){ a.ev=null; if(a.temp){ a.gone=true; a.dead=true; a.g.visible=false; } } return true; }
   if(a.ev==='migr'){
     const pan=EV.panic>0, fwd=along(a.x,a.z);
     let mx=EV.dir.x, mz=EV.dir.z;
@@ -189,7 +201,7 @@ function eventStep(a,dt,move){
     return true; }
   if(a.ev==='poach') return poachStep(a,dt,move);
   if(a.ev==='fire'){   // kopflos mit dem Wind davon
-    const r=Math.hypot(a.x,a.z); let mx=EV.dir.x, mz=EV.dir.z; if(r>WORLD-20){ mx+=-a.z/r*0.9; mz+=a.x/r*0.9; }
+    const ox=a.x-EV.c.x, oz=a.z-EV.c.z, r=Math.hypot(ox,oz); let mx=EV.dir.x, mz=EV.dir.z; if(r>WORLD-20){ mx+=-oz/r*0.9; mz+=ox/r*0.9; }
     move(a,mx,mz,sp.spd*0.85,dt);
     if(along(a.x,a.z)<EV.s-1&&!pondAt(a.x,a.z,0.2)){
       a.ev=null; a.held=null; a.wound=null;
@@ -227,9 +239,9 @@ function updateEvents(dt){
     EV.s+=dt*3.6; EV.drawT-=dt;
     if(EV.drawT<=0){ EV.drawT=1/15; drawFire(); }
     // Tiere vor der Front fliehen kopflos
-    for(const a of animals){ if(a.dead||a.ev||a.sp.croc||a.sp.hippo||a.sp.friend||a.held) continue; const d=along(a.x,a.z)-EV.s; if(d>0&&d<70){ a.ev='fire'; a.state='wander'; a.sus=0; } }
+    for(const a of animals){ if(a.dead||a.ev||a.sp.croc||a.sp.hippo||a.sp.friend||a.held) continue; const d=along(a.x,a.z)-EV.s; if(d>0&&d<70&&fromC(a.x,a.z)<WORLD+20){ a.ev='fire'; a.state='wander'; a.sus=0; } }
     // Flammen verbrennen, wer drinsteht
-    for(const p of players){ if(p.dead||safeFromFire(p)) continue; const d=along(p.x,p.z)-EV.s;
+    for(const p of players){ if(p.dead||safeFromFire(p)||fromC(p.x,p.z)>WORLD) continue; const d=along(p.x,p.z)-EV.s;
       if(d<0.5&&d>-5){ p.fireT=(p.fireT||0)-dt; if(p.fireT<=0){ p.fireT=0.45; hurtPlayer(6,{sp:{id:'fire',n:'Feuer',dmg:6}},true,p); floatText('Feuer!',p.x,p.y+2,p.z,'#ff8a3a'); } }
     }
     // leises Knistern in der Nähe
@@ -245,7 +257,9 @@ function updateEvents(dt){
       let best=null, bd=110; for(const o of animals){ if(!o.dead||!o.carc||o.carc.meat<=0||o.carc.tree!=null) continue; const d=Math.hypot(o.x-a.x,o.z-a.z); if(d<bd){ bd=d; best=o; } }
       if(best&&bd<2.5+best.rad){ a.state='scav'; a.carc=best; a.eatT=0; }
       else if(best){ a.tx=best.x; a.tz=best.z; a.timer=1.5; }
-      else { a.tx=CUB_HOME.x+rnd(-2,2); a.tz=CUB_HOME.z+rnd(-2,2); a.timer=1.5; }
+      else if(EV.c.den){ a.tx=CUB_HOME.x+rnd(-2,2); a.tz=CUB_HOME.z+rnd(-2,2); a.timer=1.5; }
+      else { const l=living(); let q=l[0], qd=1e9; for(const p of l){ const d=Math.hypot(p.x-a.x,p.z-a.z); if(d<qd){ qd=d; q=p; } }   // weit weg vom Bau: streift den Spielern nach
+        a.tx=q.x+rnd(-20,20); a.tz=q.z+rnd(-20,20); a.timer=2; }
       // am Bau: greift die Jungen an
       if(Math.hypot(a.x-CUB_HOME.x,a.z-CUB_HOME.z)<5){ const kids=denKids(); EV.kidT-=dt;
         if(kids.length&&EV.kidT<=0){ EV.kidT=1.5; growlAt(a); snd3d(['mew'],CUB_HOME.x,CUB_HOME.z,1.3,100,1.3);
@@ -257,10 +271,10 @@ function updateEvents(dt){
   }
 }
 /* ---------- Gast im Online-Spiel: Ereignisse kommen vom Gastgeber (networld.js) ---------- */
-/** Stand des Ereignisses beim Gastgeber übernehmen: welches, Feuerfront s und Richtung */
-function applyEvent(on,s,dx,dz){
+/** Stand des Ereignisses beim Gastgeber übernehmen: welches, Feuerfront s, Richtung und Mittelpunkt */
+function applyEvent(on,s,dx,dz,cx=0,cz=0){
   const was=EV.on;
-  EV.on=on||null; EV.s=s; EV.dir={x:dx,z:dz};
+  EV.on=on||null; EV.s=s; EV.dir={x:dx,z:dz}; EV.c={x:cx,z:cz};
   if(EV.on==='fire'&&was!=='fire'){ EV.drawT=0; EV.burnT=0; fireFx(true); }
   if(was==='fire'&&EV.on!=='fire'){ burnGrass(false); fireFx(false); EV.regrow=240; players.forEach(p=>{ p.fireWarn=false; }); }
 }
@@ -269,13 +283,13 @@ function guestEvents(dt){
   if(EV.regrow>0){ EV.regrow-=dt; if(EV.regrow<=0) burnGrass(true); }
   if(EV.on!=='fire') return;
   EV.drawT-=dt; if(EV.drawT<=0){ EV.drawT=1/15; drawFire(); }
-  for(const p of players){ if(p.dead||safeFromFire(p)) continue; const d=along(p.x,p.z)-EV.s;
+  for(const p of players){ if(p.dead||safeFromFire(p)||fromC(p.x,p.z)>WORLD) continue; const d=along(p.x,p.z)-EV.s;
     if(d<0.5&&d>-5){ p.fireT=(p.fireT||0)-dt; if(p.fireT<=0){ p.fireT=0.45; hurtPlayer(6,{sp:{id:'fire',n:'Feuer',dmg:6}},true,p); floatText('Feuer!',p.x,p.y+2,p.z,'#ff8a3a'); } } }
   EV.burnT-=dt; if(EV.burnT<=0){ EV.burnT=1.25; burnGrass(false); }
 }
 /** Rauchschleier über der Welt, solange es brennt (nach der Tageszeit-Farbe aufrufen) */
 function eventsVisual(){
-  if(EV.on!=='fire') return; const p=P, d=Math.abs(along(p.x,p.z)-EV.s), k=Math.max(0,1-d/160)*0.45, c=new THREE.Color(0x8a6046);
+  if(EV.on!=='fire') return; const p=P, d=Math.max(Math.abs(along(p.x,p.z)-EV.s),fromC(p.x,p.z)-WORLD), k=Math.max(0,1-d/160)*0.45, c=new THREE.Color(0x8a6046);
   scene.fog.color.lerp(c,k); if(scene.background&&scene.background.lerp) scene.background.lerp(c,k*0.7);
 }
 /** Läuft gerade ein Ereignis? (für Tests und Anzeige) */
