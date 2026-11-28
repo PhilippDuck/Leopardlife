@@ -11,6 +11,9 @@ import { ACACIA } from './acaciamodel.js';
 import { BAOBAB } from './baobabmodel.js';
 import { DEADTREE } from './deadtreemodel.js';
 import { modelGeometry } from './meshmodel.js';
+import { BUSH } from './bushmodel.js';
+import { DRYBUSH } from './drybushmodel.js';
+import { ROCK } from './rockmodel.js';
 import { reedMesh, reedPatches, reedSpots } from './reeds.js';
 import { addWaterPlants } from './waterplants.js';
 
@@ -177,31 +180,27 @@ function applyTreeView(j){
 }
 
 /* Büsche, Felsen, Stämme, Blumen */
-const bushGeometry=new THREE.IcosahedronGeometry(1,0);
-const bushMaterial=new THREE.MeshLambertMaterial({color:0xffffff});
+/**
+ * Low-Poly-Modell (Meshy, Helligkeit je Dreieck) auf die Maße der früheren einfachen Form bringen: halbe Breite halfW,
+ * Höhe h, Unterkante bei y0, in x/z mittig. Den Farbton gibt die Instanzfarbe.
+ */
+function fitGeometry(part,halfW,h,y0){
+  const g=modelGeometry(part); g.computeBoundingBox(); const b=g.boundingBox;
+  const sxz=2*halfW/Math.max(b.max.x-b.min.x,b.max.z-b.min.z), sy=h/(b.max.y-b.min.y);
+  g.translate(-(b.min.x+b.max.x)/2,-b.min.y,-(b.min.z+b.max.z)/2); g.scale(sxz,sy,sxz); g.translate(0,y0,0); g.computeBoundingSphere(); return g;
+}
+/** Grüner Busch: wie früher eine Kugel mit Radius 1 um den Platzierungspunkt (der 0,45 · Höhe über dem Boden liegt) */
+const bushGeometry=fitGeometry(BUSH.wood,1,1.6,-0.45);
+const bushMaterial=new THREE.MeshLambertMaterial({color:0xffffff,vertexColors:true});
 function bushColor(sav,random=Math.random){
   const range=(a,b)=>a+random()*(b-a);
   return {h:sav?range(0.17,0.24):range(0.28,0.36),s:range(0.35,0.5),l:sav?range(0.33,0.42):range(0.24,0.34)};
 }
-/* Vertrockneter Busch: ein Gewirr kahler Zweige, die vom Boden schräg nach oben und außen wachsen (Ursprung am Boden).
+/* Vertrockneter Busch: ein Gewirr kahler Zweige vom Boden aus (Ursprung am Boden).
    Man sieht teilweise hindurch – er versteckt weniger als ein grüner Busch. */
-const dryBushGeometry=(function(){
-  const pos=[], nor=[], mtx=new THREE.Matrix4(), qq=new THREE.Quaternion(), ee=new THREE.Euler(), one=new THREE.Vector3(1,1,1);
-  const add=(len,w,x,y,z,tiltX,tiltZ,yaw)=>{
-    const b=new THREE.BoxGeometry(w,len,w).toNonIndexed(); b.translate(0,len/2,0);
-    ee.set(tiltX,yaw,tiltZ,'YXZ'); qq.setFromEuler(ee); mtx.compose(new THREE.Vector3(x,y,z),qq,one); b.applyMatrix4(mtx);
-    pos.push(...b.attributes.position.array); nor.push(...b.attributes.normal.array); b.dispose();
-    return new THREE.Vector3(0,len,0).applyQuaternion(qq).add(new THREE.Vector3(x,y,z)); };
-  let s=7;  const r=()=>{ s=(s*16807)%2147483647; return (s-1)/2147483646; };
-  for(let i=0;i<9;i++){
-    const yaw=i/9*6.283+r()*0.5, tilt=0.35+r()*0.55, len=0.7+r()*0.6;
-    const tip=add(len,0.07,0,0,0,tilt,0,yaw);
-    const mid=new THREE.Vector3(tip.x*0.6,tip.y*0.6,tip.z*0.6);
-    add(0.25+r()*0.3,0.045,mid.x,mid.y,mid.z,tilt+0.5+r()*0.4,0,yaw+(r()-0.5)*1.4);   // Seitenzweig
-    add(0.2+r()*0.2,0.035,tip.x,tip.y,tip.z,tilt*0.6+0.3,0,yaw+(r()-0.5)*1.2);         // Spitze
-  }
-  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3)); return g;
-})();
+const dryBushGeometry=fitGeometry(DRYBUSH.wood,0.9,1.3,0);
+/** Stein: wie früher etwa Radius 1 um den Platzierungspunkt, Unterkante etwas im Boden */
+const rockGeometry=fitGeometry(ROCK.wood,1,1.4,-0.4);
 const dryBushColor=(random=Math.random)=>({h:0.06+random()*0.04,s:0.18+random()*0.16,l:0.26+random()*0.12});
 /** Was an einem Buschplatz wächst – nach der Trockenheit d: im Grünen Büsche, im Trockenen kaum noch grüne,
     dafür vertrocknete Büsche und Steine (oder gar nichts). */
@@ -213,10 +212,10 @@ function shrubKind(d,random=Math.random){
   const {r:wr,rr:wrnd}=vegRng(0x62757368);
   const mat=new THREE.MeshLambertMaterial({color:0xffffff});
   const m=new THREE.Matrix4(), q=new THREE.Quaternion(), s=new THREE.Vector3(), v=new THREE.Vector3(), e=new THREE.Euler(), c=new THREE.Color();
-  function scatter(n,geo,fn,shadow){
+  function scatter(n,geo,fn,shadow,material=mat){
     const by={};
     for(let i=0;i<n;i++){ const o=fn(i), k=tileOf(o.x,o.z); (by[k]=by[k]||[]).push(o); }
-    for(const k in by){ const L=by[k], mesh=new THREE.InstancedMesh(geo,mat,L.length);
+    for(const k in by){ const L=by[k], mesh=new THREE.InstancedMesh(geo,material,L.length);
       L.forEach((o,i)=>{ e.set(o.rx||0,o.ry||0,o.rz||0); q.setFromEuler(e); m.compose(v.set(o.x,o.y,o.z),q,s.set(o.sx,o.sy,o.sz)); mesh.setMatrixAt(i,m); mesh.setColorAt(i,c.setHSL(o.h,o.s,o.l)); });
       mesh.castShadow=!!shadow; mesh.receiveShadow=true; scene.add(mesh); registerTile(mesh,+k,78); }
   }
@@ -227,18 +226,18 @@ function shrubKind(d,random=Math.random){
   let si=0;
   scatter(shrubs.green.length,bushGeometry,()=>{ const p=shrubs.green[si++], sy=wrnd(0.5,0.95), sav=p.r>115;
     const bsx=wrnd(0.8,1.7), bsz=wrnd(0.8,1.7); addSight(p.x,p.z,(bsx+bsz)*0.42,sy*0.9,0.8);   // Busch: verdeckt fast ganz
-    return {x:p.x,z:p.z,y:H(p.x,p.z)+sy*0.45,sx:bsx,sy,sz:bsz,ry:wr()*6,...bushColor(sav,wr)}; },true);
+    return {x:p.x,z:p.z,y:H(p.x,p.z)+sy*0.45,sx:bsx,sy,sz:bsz,ry:wr()*6,...bushColor(sav,wr)}; },true,bushMaterial);
   si=0; scatter(shrubs.dry.length,dryBushGeometry,()=>{ const p=shrubs.dry[si++], k=wrnd(0.6,1.05), sy=wrnd(0.6,1.0);
     addSight(p.x,p.z,k*0.8,sy*0.9,0.35);   // vertrocknet: man sieht teilweise hindurch
-    return {x:p.x,z:p.z,y:H(p.x,p.z)-0.05,sx:k,sy,sz:k,ry:wr()*6,...dryBushColor(wr)}; },true);
-  si=0; scatter(shrubs.rock.length,new THREE.DodecahedronGeometry(1,0),()=>{ const p=shrubs.rock[si++], sy=wrnd(0.25,0.7), sx=wrnd(0.4,1.2), sz=wrnd(0.4,1.2);
+    return {x:p.x,z:p.z,y:H(p.x,p.z)-0.05,sx:k,sy,sz:k,ry:wr()*6,...dryBushColor(wr)}; },true,bushMaterial);
+  si=0; scatter(shrubs.rock.length,rockGeometry,()=>{ const p=shrubs.rock[si++], sy=wrnd(0.25,0.7), sx=wrnd(0.4,1.2), sz=wrnd(0.4,1.2);
     if(sy>0.45&&sx+sz>1.4) addCol(p.x,p.z,(sx+sz)*0.4,true);
     if(sy>0.4) addSight(p.x,p.z,(sx+sz)*0.42,sy*0.95,1);
-    return {x:p.x,z:p.z,y:H(p.x,p.z)+sy*0.25,sx,sy,sz,ry:wr()*6,h:wrnd(0.07,0.11),s:wrnd(0.06,0.14),l:wrnd(0.45,0.6)}; },true);
-  scatter(170,new THREE.DodecahedronGeometry(1,0),()=>{ const p=spot(12,WORLD), sy=wrnd(0.3,1.2), sx=wrnd(0.4,1.8), sz=wrnd(0.4,1.8);
+    return {x:p.x,z:p.z,y:H(p.x,p.z)+sy*0.25,sx,sy,sz,ry:wr()*6,h:wrnd(0.07,0.11),s:wrnd(0.06,0.14),l:wrnd(0.45,0.6)}; },true,bushMaterial);
+  scatter(170,rockGeometry,()=>{ const p=spot(12,WORLD), sy=wrnd(0.3,1.2), sx=wrnd(0.4,1.8), sz=wrnd(0.4,1.8);
     if(sy>0.45&&sx+sz>1.4) addCol(p.x,p.z,(sx+sz)*0.4,true);   // kleine Steine bleiben begehbar
     if(sy>0.4) addSight(p.x,p.z,(sx+sz)*0.42,sy*0.95,1);   // Felsen verdecken ganz
-    return {x:p.x,z:p.z,y:H(p.x,p.z)+sy*0.25,sx,sy,sz,ry:wr()*6,h:wrnd(0.07,0.12),s:wrnd(0.04,0.12),l:wrnd(0.42,0.6)}; },true);
+    return {x:p.x,z:p.z,y:H(p.x,p.z)+sy*0.25,sx,sy,sz,ry:wr()*6,h:wrnd(0.07,0.12),s:wrnd(0.04,0.12),l:wrnd(0.42,0.6)}; },true,bushMaterial);
   scatter(34,new THREE.CylinderGeometry(0.34,0.4,1,7),()=>{ const p=spot(15,170), len=wrnd(2.5,5.5), ry=wr()*6, n=Math.ceil(len/0.7);
     for(let j=0;j<=n;j++){ const u=(j/n-0.5)*len; addCol(p.x+Math.cos(ry)*u,p.z-Math.sin(ry)*u,0.42,true); addSight(p.x+Math.cos(ry)*u,p.z-Math.sin(ry)*u,0.4,0.62,0.7); }
     return {x:p.x,z:p.z,y:H(p.x,p.z)+0.28,sx:wrnd(0.8,1.3),sy:len,sz:wrnd(0.8,1.3),rz:Math.PI/2,ry,h:wrnd(0.06,0.09),s:wrnd(0.3,0.45),l:wrnd(0.2,0.3)}; },true);
@@ -343,4 +342,4 @@ function thornAt(x,z){ for(let i=0;i<patches.length;i++){ const p=patches[i]; if
 function inGrass(x,z){ for(let i=0;i<patches.length;i++){ const p=patches[i]; if(p.burnt) continue; const dx=x-p.x, dz=z-p.z; if(dx*dx+dz*dz<p.r*p.r) return true; } return false; }
 
 
-export { thornAt, treeKinds, modelMeshes, releaseTree, treeSlot, dryBushGeometry, dryBushColor, shrubKind, bushGeometry, bushMaterial, bushColor, makeTree, woodMeshes, setTree, fadedTrees, applyTreeView, _tm, _tv, inGrass, leafGeoHi, leafGeoLo, leafMeshes, leafTime, patches, tallGeo, tallMat, trees, updateTrees };
+export { rockGeometry, thornAt, treeKinds, modelMeshes, releaseTree, treeSlot, dryBushGeometry, dryBushColor, shrubKind, bushGeometry, bushMaterial, bushColor, makeTree, woodMeshes, setTree, fadedTrees, applyTreeView, _tm, _tv, inGrass, leafGeoHi, leafGeoLo, leafMeshes, leafTime, patches, tallGeo, tallMat, trees, updateTrees };

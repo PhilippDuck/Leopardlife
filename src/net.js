@@ -5,7 +5,7 @@
 import { QUAL } from './data.js';
 import { scene } from './engine.js';
 import { animLegs, buildQuad } from './models.js';
-import { JAG, dropModel, ghosts, players } from './player.js';
+import { JUV_LVL, dropModel, ghosts, jagFor, players } from './player.js';
 import { quality } from './quality.js';
 import { NET_KEY, NET_WORLD, REG_ID, S, WORLD_SEED, save } from './save.js';
 import { G } from './state.js';
@@ -41,7 +41,7 @@ const net={ws:null,state:'off',role:'',room:'',id:0,host:0,peers:new Map(),sendA
 /**
  * Leoparden der anderen Geräte, Schlüssel 'Gerät:Spielernummer'.
  * @typedef {{key:string, peer:number, num:number, g:any, label:{c:HTMLCanvasElement,tex:any,sp:any}, labelTxt:string, furKey:string,
- *   buf:{t:number,s:number[]}[], seenT:number, ghost:import('./player.js').Ghost|null, fur?:any, kin?:any}} Remote
+ *   buf:{t:number,s:number[]}[], seenT:number, ghost:import('./player.js').Ghost|null, fur?:any, kin?:any, lvl?:number, cubModel?:boolean}} Remote
  * @type {Map<string,Remote>}
  */
 const remotes=new Map();
@@ -215,7 +215,7 @@ function drawLabel(r,txt){
   x.lineWidth=6; x.strokeStyle='rgba(0,0,0,.8)'; x.strokeText(txt,128,32,250); x.fillStyle='#ffd27a'; x.fillText(txt,128,32,250);
   r.label.tex.needsUpdate=true;
 }
-function buildRemoteModel(r,fur){ if(r.g) dropModel(r.g); r.g=buildQuad(JAG,fur||null); r.g.userData.blob.visible=!QUAL[quality].sh; r.g.visible=false; scene.add(r.g); }
+function buildRemoteModel(r,fur){ if(r.g) dropModel(r.g); r.g=buildQuad(jagFor(r.lvl||JUV_LVL),fur||null); r.g.userData.blob.visible=!QUAL[quality].sh; r.g.visible=false; scene.add(r.g); }
 /** @returns {Remote} */
 function addRemote(key,peer,num){
   /** @type {Remote} */
@@ -240,7 +240,8 @@ function onProfile(from,list,ping){
   const peer=net.peers.get(from); if(peer){ peer.ping=typeof ping==='number'&&Number.isFinite(ping)?ping:null; peer.pingAt=performance.now(); }
   for(const e of list){ if(!Array.isArray(e)) continue; const r=remotes.get(from+':'+e[0]); if(!r) continue;
     const fur=e[1]&&typeof e[1]==='object'?e[1]:null, fk=JSON.stringify(fur);
-    if(fk!==r.furKey){ r.furKey=fk; buildRemoteModel(r,fur); }
+    const lvl=typeof e[2]==='number'?e[2]:0, cub=lvl>0&&lvl<JUV_LVL;   // Jungtier-Modell für junge Mitspieler
+    if(fk!==r.furKey||cub!==!!r.cubModel){ r.furKey=fk; r.lvl=lvl; r.cubModel=cub; buildRemoteModel(r,fur); }
     nameRemote(r,typeof e[2]==='number'?e[2]:0);
     r.fur=fur; r.kin=e[3]&&typeof e[3]==='object'?e[3]:null; }
 }

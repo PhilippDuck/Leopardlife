@@ -2,7 +2,7 @@
 import { CHUNK } from './chunks.js';
 import { scene } from './engine.js';
 import { H, WORLD, dryness, pondAt, addCol, addSight, removeCol, removeSight, registerCull, unregisterCull } from './terrain.js';
-import { dryBushGeometry, dryBushColor, shrubKind, bushGeometry, bushMaterial, bushColor, makeTree, treeKinds, leafMeshes, leafGeoLo, trees, setTree, patches, tallGeo, tallMat, treeSlot, releaseTree } from './vegetation.js';
+import { rockGeometry, dryBushGeometry, dryBushColor, shrubKind, bushGeometry, bushMaterial, bushColor, makeTree, treeKinds, leafMeshes, leafGeoLo, trees, setTree, patches, tallGeo, tallMat, treeSlot, releaseTree } from './vegetation.js';
 import { kopjeNear } from './kopjesites.js';
 import { reedMesh, reedPatches, reedSpots } from './reeds.js';
 import { players } from './player.js';
@@ -13,7 +13,6 @@ import { quality } from './quality.js';
 import { seeded } from './noise.js';
 import { WORLD_SEED } from './save.js';
 
-const rockGeometry=new THREE.DodecahedronGeometry(1,0);
 const vegetationBushes={geometry:bushGeometry,material:bushMaterial};
 /** Anteil der Abschnitte mit einem Affenbrotbaum (nur im Trockenen) */
 const BAOBAB_CHANCE=0.07;
