@@ -2,7 +2,7 @@
 import { CHUNK } from './chunks.js';
 import { scene } from './engine.js';
 import { H, WORLD, dryness, pondAt, addCol, addSight, removeCol, removeSight, registerCull, unregisterCull } from './terrain.js';
-import { rockGeometry, dryBushGeometry, dryBushColor, shrubKind, bushGeometry, bushMaterial, bushColor, makeTree, treeKinds, leafMeshes, leafGeoLo, trees, setTree, patches, tallGeo, tallMat, treeSlot, releaseTree } from './vegetation.js';
+import { rockGeometry, dryBushGeometry, dryBushColor, shrubKind, bushGeometry, bushMaterial, bushColor, makeTree, TREE_GAP, treeKinds, leafMeshes, leafGeoLo, trees, setTree, patches, tallGeo, tallMat, treeSlot, releaseTree } from './vegetation.js';
 import { kopjeNear } from './kopjesites.js';
 import { reedMesh, reedPatches, reedSpots } from './reeds.js';
 import { players } from './player.js';
@@ -40,7 +40,8 @@ function fillPlants(chunk){
     cleanup.push(()=>removeSight(obstacle));
   }
   const baobab=baobabSpot(chunk.cx,chunk.cz);   // liegt nie auf einem Felsplateau (baobabSpot)
-  const stems=Array.from({length:3},()=>place(4)).filter(outside).filter(p=>!baobab||Math.hypot(p.x-baobab.x,p.z-baobab.z)>8);
+  const stems=Array.from({length:3},()=>place(4)).filter(outside).filter(p=>!baobab||Math.hypot(p.x-baobab.x,p.z-baobab.z)>8)
+    .filter((p,i,a)=>a.slice(0,i).every(q=>Math.hypot(p.x-q.x,p.z-q.z)>=TREE_GAP));   // Stämme nicht ineinander
   if(stems.length||baobab){
     const generated=stems.map(({x,z})=>makeTree({x,z,sav:dryness(x,z)>0.45},rng));
     if(baobab) generated.push(makeTree(baobab,baobab.rng));
