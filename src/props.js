@@ -10,6 +10,7 @@ import { homeKopjes, kopjeNear, worldKopje } from './kopjesites.js';
 import { shoreDist } from './reeds.js';
 import { modelGeometry } from './meshmodel.js';
 import { seeded } from './noise.js';
+import { claimSpot } from './spots.js';
 import { WORLD_SEED } from './save.js';
 import { CHUNK } from './chunks.js';
 import { players } from './player.js';
@@ -105,16 +106,20 @@ function propMeshes(kind,list){
 }
 
 /* ---------- Plätze ---------- */
+/** Platz am Boden je Sorte (Radius bei Größe 1), damit nichts ineinander entsteht (spots.js) */
+const FOOT={termite:1.1,euphorbia:0.5,bush:1.0,aloe:0.35,rocks:0.9,bones:0.7,thorn:1.3,roundbush:1.2,flowerbush:0.9,grasstuft:0.35,undergrowth:0.7};
 const propHsl=(h,s,l)=>new THREE.Color().setHSL(h,s,l).getHex();
 /**
  * Objekte in einer 64-m-Zelle (x0,z0): nach Trockenheit, fern vom Wasser, nicht auf Felsen; am Rand eines Felsplateaus
- * (kop) Euphorbien und Aloen. skip(x,z): dort nichts. Liefert {sorte:[Plätze]}.
+ * (kop) Euphorbien und Aloen. skip(x,z): dort nichts. owner: wem die belegten Plätze gehören (spots.js; 0 = Startgebiet).
+ * Liefert {sorte:[Plätze]}.
  */
-function cellProps(x0,z0,rng,skip,kop){
+function cellProps(x0,z0,rng,skip,kop,owner){
   const out={termite:[],euphorbia:[],bush:[],aloe:[],rocks:[],bones:[],thorn:[],roundbush:[],flowerbush:[],grasstuft:[],undergrowth:[]};
   const free=(x,z,m)=>!skip(x,z)&&!kopjeNear(x,z,m)&&shoreDist(x,z)>5;
   const at=()=>({x:x0+4+rng()*(CHUNK-8),z:z0+4+rng()*(CHUNK-8)});
-  const put=(kind,p,s,extra)=>out[kind].push(Object.assign({x:p.x,z:p.z,y:H(p.x,p.z),a:rng()*6.283,s},extra));
+  // Erst alle Zufallszahlen ziehen, dann prüfen, ob der Platz frei ist: ein belegter Platz entfällt, der Rest bleibt gleich
+  const put=(kind,p,s,extra)=>{ const o=Object.assign({x:p.x,z:p.z,y:H(p.x,p.z),a:rng()*6.283,s},extra); if(claimSpot(p.x,p.z,FOOT[kind]*s,owner)) out[kind].push(o); };
   const tries=(n,chance,minDry,fn)=>{ for(let i=0;i<n;i++){ const p=at(), r=rng(); if(r<chance&&dryness(p.x,p.z)>=minDry&&free(p.x,p.z,3)) fn(p); } };
   tries(2,0.2,0.35,p=>put('termite',p,0.75+rng()*0.5,{y:H(p.x,p.z)-0.2,c:propHsl(0.07+rng()*0.04,0.08+rng()*0.1,0.82+rng()*0.16)}));
   tries(1,0.18,0.5,p=>put('euphorbia',p,0.8+rng()*0.4,{y:H(p.x,p.z)-0.1}));
@@ -176,7 +181,7 @@ function applyProps(set,cleanup,slots){
   const skip=(x,z)=>Math.hypot(x,z)>WORLD-4||Math.hypot(x-7,z-5)<12;
   for(let x0=-WORLD;x0<WORLD;x0+=CHUNK) for(let z0=-WORLD;z0<WORLD;z0+=CHUNK){
     const kop=homeKopjes.find(k=>k.x>=x0&&k.x<x0+CHUNK&&k.z>=z0&&k.z<z0+CHUNK);
-    const set=cellProps(x0,z0,rng,skip,kop);
+    const set=cellProps(x0,z0,rng,skip,kop,0);
     for(const k in set) (all[k]=all[k]||[]).push(...set[k]);
   }
   applyProps(all,null,[]);
@@ -191,7 +196,7 @@ function applyProps(set,cleanup,slots){
 function fillProps(chunk){
   const x0=chunk.cx*CHUNK, z0=chunk.cz*CHUNK;
   const rng=seeded((WORLD_SEED^Math.imul(chunk.cx,0x3c6ef372)^Math.imul(chunk.cz,0x1b873593)^0x70726f70)>>>0);
-  const set=cellProps(x0,z0,rng,(x,z)=>Math.hypot(x,z)<WORLD+4,worldKopje(chunk.cx,chunk.cz));
+  const set=cellProps(x0,z0,rng,(x,z)=>Math.hypot(x,z)<WORLD+4,worldKopje(chunk.cx,chunk.cz),chunk.key);
   const cleanup=[], slots=[];
   applyProps(set,cleanup,slots);
   for(const kind in set){
