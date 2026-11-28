@@ -15,6 +15,8 @@ const HOOFED={
   giant:{D:ELAND,back:1.16,blob:[0.55,1.05]},
   gnu:{D:GNU,back:1.67,blob:[0.7,1.2]},
 };
+/* Ruhig (ohne Gefahr) gehen Huftiere höchstens WALK_MAX-mal so schnell wie ihr Geh-Clip; rennen erst ab RUN_AT-mal (Flucht, Angriff, Panik) */
+const WALK_MAX=2.2, RUN_AT=2.75;
 const HOOF_MODELS={};
 const hoofModelOf=id=>HOOF_MODELS[id]||(HOOF_MODELS[id]=prepareRig(HOOFED[id].D));
 
@@ -42,11 +44,13 @@ function hoofMaterial(M,fur){
 
 /** Huftier der Art id als Gruppe wie buildQuad; fur: Fellsorte (makeFur) oder null. Schattenfleck in userData.blob. */
 function buildHoofed(id,fur,blobs,shadowGeo,shadowMat){
-  const M=hoofModelOf(id), g=rigFigure(M,hoofMaterial(M,fur)), hf=HOOFED[id];
+  const M=hoofModelOf(id), g=rigFigure(M,hoofMaterial(M,fur),0,RUN_AT), hf=HOOFED[id];
   const sh=new THREE.Mesh(shadowGeo,shadowMat); sh.scale.set(hf.blob[0],1,hf.blob[1]); sh.position.y=0.03; g.add(sh); blobs.push(sh); g.userData.blob=sh;
   g.userData.hoofed=id;
   return g;
 }
 const hoofedBack=id=>HOOFED[id]?HOOFED[id].back:null;
+/** Höchsttempo (m/s) von Tier a beim ruhigen Gehen; 0, wenn es kein Huftier-Modell hat */
+function hoofedWalk(a){ const h=a.sp.m&&HOOFED[a.sp.m.hoof]; return h?h.D.clips.walk.v*WALK_MAX*(a.g.scale.x||1):0; }
 
-export { HOOFED, buildHoofed, hoofedBack };
+export { HOOFED, buildHoofed, hoofedBack, hoofedWalk };

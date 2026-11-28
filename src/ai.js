@@ -30,6 +30,7 @@ import { hearR, visibility } from './vision.js';
 import { baboonStep } from './baboons.js';
 import { elephantStep } from './elephants.js';
 import { hippoStep } from './hippo.js';
+import { hoofedWalk } from './hoofed.js';
 import { rollStep, rollUp, termitePose, termiteSense, termiteStep } from './termites.js';
 import { huntStep, socialScan } from './wildlife.js';
 
@@ -46,6 +47,8 @@ function animalY(a){ const g=H(a.x,a.z); if(!swims(a)) return g; return Math.max
 function moveAnimal(a,dx,dz,spd,dt){
   if(a.wound){ spd*=woundSlow(a); woundTrail(a,spd*dt); }
   if(a.juv) spd*=0.85;
+  // Huftiere gehen ohne Eile (Umherziehen, zur Herde, zum Wasser, Wanderung) im Schritt; schnell nur auf der Flucht oder im Angriff
+  const walk=hoofedWalk(a); if(walk&&spd<a.sp.spd*0.7) spd=Math.min(spd,walk);
   const l=Math.hypot(dx,dz)||1; dx/=l; dz/=l;
   const ox=a.x, oz=a.z, swimming=swims(a);
   if(swimming) spd*=0.5;   // schwimmen ist langsam

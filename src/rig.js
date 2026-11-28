@@ -50,8 +50,9 @@ const FAR=70, _cp=new THREE.Vector3();
 /**
  * Figur als Gruppe wie buildQuad: userData.inner (Hebt, Neigung), anim (für animLegs), pose; Skelett und Clips je Figur.
  * M aus prepareRig, mat Material (mit skinning), lift: Füße so viel tiefer als in der Ruhelage.
+ * runAt: Rennen erst ab diesem Vielfachen des Geh-Tempos (sonst beim Mittel aus Geh- und Renn-Tempo).
  */
-function rigFigure(M,mat,lift=0){
+function rigFigure(M,mat,lift=0,runAt=0){
   const D=M.D;
   const g=new THREE.Group(), inner=new THREE.Group(), norm=new THREE.Group(); g.add(inner); inner.add(norm);
   norm.scale.setScalar(D.scale); norm.position.y=D.yOff+lift;
@@ -72,7 +73,7 @@ function rigFigure(M,mat,lift=0){
   for(const key in M.clips){ const a=mixer.clipAction(M.clips[key]); a.play(); a.setEffectiveWeight(key==='idle'?1:0); acts[key]=a; w[key]=key==='idle'?1:0; }
   if(acts.idle2) acts.idle.time=Math.random()*acts.idle.getClip().duration;   // Herden stehen nicht im Gleichtakt
   // Gehen oder Rennen: Wechsel beim geometrischen Mittel beider Clip-Tempi (dort wären beide gleich weit von ihrer echten Geschwindigkeit), mit etwas Spielraum
-  const GAIT=vel.walk>0&&vel.run>0?Math.sqrt(vel.walk*vel.run):3;
+  const GAIT=runAt&&vel.walk>0?vel.walk*runAt:vel.walk>0&&vel.run>0?Math.sqrt(vel.walk*vel.run):3;
   let last=performance.now(), lastT=0, pace=0, gs=0, lx=null, lz=0, cur='idle', ran=false, idleK='idle', skip=2;
   function anim(t,amp){
     const now=performance.now(), dt=Math.min(0.1,Math.max(0,(now-last)/1000));
