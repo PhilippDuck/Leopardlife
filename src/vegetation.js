@@ -10,6 +10,10 @@ import { kopjeNear } from './kopjesites.js';
 import { ACACIA } from './acaciamodel.js';
 import { BAOBAB } from './baobabmodel.js';
 import { DEADTREE } from './deadtreemodel.js';
+import { JUNGLE } from './junglemodel.js';
+import { JUNGLE_WIDE } from './junglewidemodel.js';
+import { JUNGLE_TWIN } from './jungletwinmodel.js';
+import { JUNGLE_GIANT } from './junglegiantmodel.js';
 import { ACACIA_TALL } from './acaciatallmodel.js';
 import { ACACIA_WIDE } from './acaciawidemodel.js';
 import { ACACIA_LEAN } from './acacialeanmodel.js';
@@ -22,17 +26,19 @@ import { addWaterPlants } from './waterplants.js';
 
 /* Bäume: aus mehreren Teilen (Stamm, Äste, Wurzeln, Laubballen). Arten: Urwaldbaum, Urwaldriese, Schirmakazie, toter Baum, Palme am Wasser.
    Werden ausgeblendet, wenn ihre Krone zwischen Kamera und Leopard steht.
-   Jedes Teil hat eine Sorte (kind): 'wood' und 'leaf' sind Zylinder und Laubballen. Schirmakazie, Affenbrotbaum und toter Baum
-   sind fertige Low-Poly-Modelle (TREE_MODELS, Sorten <name>Wood und <name>Leaf). Je Sorte gibt es eigene Instanz-Modelle (treeKinds). */
+   Jedes Teil hat eine Sorte (kind): 'wood' und 'leaf' sind Zylinder und Laubballen (nur noch die Palme). Urwaldbaum, Schirmakazie,
+   Affenbrotbaum und toter Baum sind fertige Low-Poly-Modelle (TREE_MODELS, Sorten <name>Wood und <name>Leaf). Je Sorte gibt es eigene Instanz-Modelle (treeKinds). */
 /** Low-Poly-Baummodelle aus tools/meshy-model.cjs; der tote Baum hat kein Laub */
-const TREE_MODELS={acacia:ACACIA,acaciaTall:ACACIA_TALL,acaciaWide:ACACIA_WIDE,acaciaLean:ACACIA_LEAN,baobab:BAOBAB,dead:DEADTREE};
+const TREE_MODELS={jungle:JUNGLE,jungleWide:JUNGLE_WIDE,jungleTwin:JUNGLE_TWIN,jungleGiant:JUNGLE_GIANT,acacia:ACACIA,acaciaTall:ACACIA_TALL,acaciaWide:ACACIA_WIDE,acaciaLean:ACACIA_LEAN,baobab:BAOBAB,dead:DEADTREE};
 /** Schirmakazien-Sorten mit Anteil: klassisch, hoch und schlank, breit mit zwei Stämmen, schief vom Wind */
 const ACACIA_KINDS=[['acacia',0.4],['acaciaTall',0.2],['acaciaWide',0.25],['acaciaLean',0.15]];
-/** Akazien-Sorte aus der Lage (fester Zufall ohne Zug aus random(), damit die übrige Bepflanzung gleich bleibt) */
-function acaciaKind(x,z){
+/** Urwaldbaum-Formen mit Anteil (der Riese wird extra ausgewählt): rund und voll, breite Wildfeige, Zwilling mit Lianen */
+const JUNGLE_KINDS=[['jungle',0.45],['jungleWide',0.25],['jungleTwin',0.3]];
+/** Sorte aus der Lage (fester Zufall ohne Zug aus random(), damit die übrige Bepflanzung gleich bleibt) */
+function pickKind(kinds,x,z){
   let u=Math.sin(x*12.9898+z*78.233)*43758.5453; u-=Math.floor(u);
-  for(const [name,share] of ACACIA_KINDS){ if(u<share) return name; u-=share; }
-  return 'acacia';
+  for(const [name,share] of kinds){ if(u<share) return name; u-=share; }
+  return kinds[0][0];
 }
 const trees=[]; let woodMeshes=[], leafMeshes=[], leafGeoHi=null, leafGeoLo=null; const dirtyTree=new Set(); const leafTime={value:0};
 const _tm=new THREE.Matrix4(), _tb=new THREE.Matrix4(), _tq=new THREE.Quaternion(), _tv=new THREE.Vector3(), _UP=new THREE.Vector3(0,1,0);
@@ -106,22 +112,11 @@ function makeTree(o,random=Math.random){
       modelTree(t,'dead',rnd(0.8,1.25),hsl(0.08,0.07,rnd(0.46,0.56)),0,random);
     } else if(o.sav){
       // Schirmakazie (vier Sorten): flache, breite Laubschirme; Liegeplatz oben auf der Krone
-      modelTree(t,acaciaKind(o.x,o.z),rnd(0.85,1.3),hsl(rnd(0.06,0.09),rnd(0.14,0.22),rnd(0.3,0.38)),hsl(rnd(0.19,0.25),rnd(0.3,0.4),rnd(0.3,0.37)),random);
+      modelTree(t,pickKind(ACACIA_KINDS,o.x,o.z),rnd(0.85,1.3),hsl(rnd(0.06,0.09),rnd(0.14,0.22),rnd(0.3,0.38)),hsl(rnd(0.19,0.25),rnd(0.3,0.4),rnd(0.3,0.37)),random);
     } else {
-      // Urwaldbaum (selten ein Riese): Brettwurzeln, Äste mit eigenen Laubballen, oben hellere Blätter
-      const big=random()<0.1, k=rnd(0.8,1.4), kb=k*(big?1.45:1), h=(big?rnd(10,12.5):rnd(5.5,8))*k, r=(big?0.62:0.42)*k;
-      const bark=hsl(rnd(0.06,0.09),rnd(0.25,0.35),rnd(0.2,0.29)), top=[rnd(-0.5,0.5)*k,h,rnd(-0.5,0.5)*k], hue=rnd(0.27,0.36), sat=rnd(0.42,0.56), lit=rnd(0.19,0.27);
-      wood([0,-0.3,0],top,r,bark);
-      const nr=3+Math.floor(random()*2);
-      for(let j=0;j<nr;j++){ const a=j/nr*6.283+rnd(-0.3,0.3); wood([Math.cos(a)*1.3*k*(big?1.4:1),-0.25,Math.sin(a)*1.3*k*(big?1.4:1)],[Math.cos(a)*0.15*k,(big?2.2:1.4)*k,Math.sin(a)*0.15*k],0.2*k,bark); }
-      const nb=3+Math.floor(random()*2);
-      for(let j=0;j<nb;j++){ const a=j/nb*6.283+rnd(-0.4,0.4), u=rnd(0.62,0.86), s=[top[0]*u,h*u,top[2]*u], L=rnd(2,3.2)*k*(big?1.4:1), e=[s[0]+Math.cos(a)*L,s[1]+rnd(1,2.2)*k,s[2]+Math.sin(a)*L];
-        wood(s,e,0.17*k*(big?1.3:1),bark);
-        leaf([e[0],e[1]+0.4*k,e[2]],rnd(1.7,2.3)*kb,rnd(1.1,1.5)*kb,rnd(1.7,2.3)*kb,hsl(hue+rnd(-0.02,0.02),sat,lit+rnd(0,0.03))); }
-      leaf([top[0],h+0.7*k,top[2]],2.6*kb,1.7*kb,2.6*kb,hsl(hue,sat,lit+0.04));
-      const nx=1+Math.floor(random()*2);
-      for(let j=0;j<nx;j++){ const a=random()*6.283; leaf([top[0]+Math.cos(a)*1.4*kb,h+rnd(1,1.8)*k,top[2]+Math.sin(a)*1.4*kb],rnd(1.2,1.7)*kb,rnd(0.9,1.2)*kb,rnd(1.2,1.7)*kb,hsl(hue+rnd(-0.02,0.02),sat,lit+0.06)); }
-      t.cx=top[0]; t.cz=top[2]; t.cy=h+0.6*k; t.rx=(big?6:4.5)*k; t.ry=2.4*kb; t.perch=[top[0],h+0.7*k+1.7*kb*0.85,top[2]]; t.tr=r+0.05;
+      // Urwaldbaum (vier Formen, selten ein Riese mit Brettwurzeln); Liegeplatz oben auf der Krone
+      const name=random()<0.1?'jungleGiant':pickKind(JUNGLE_KINDS,o.x,o.z);
+      modelTree(t,name,rnd(0.8,1.15),hsl(rnd(0.06,0.09),rnd(0.22,0.32),rnd(0.24,0.32)),hsl(rnd(0.27,0.34),rnd(0.4,0.52),rnd(0.26,0.33)),random);
     }
     return t;
   }
