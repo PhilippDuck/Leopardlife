@@ -9,6 +9,7 @@ import { dryness, GLSL_H, H, hash2, onView, pondAt, registerCull, unregisterCull
 import { rnd } from './util.js';
 import { seeded } from './noise.js';
 import { REG, WORLD_SEED } from './save.js';
+import { applyGroundDetail } from './groundtex.js';
 
 const CHUNK=64, SEG=26;
 /** @typedef {{cx:number,cz:number,key:string,mesh:any,cull:any,used:number,rng:()=>number,content:any[]}} Chunk */
@@ -20,6 +21,7 @@ const chunkOf=v=>Math.floor(v/CHUNK);
 
 /* ---------- Boden je Chunk ---------- */
 const groundMat=new THREE.MeshLambertMaterial({vertexColors:true});
+applyGroundDetail(groundMat);   // gemalte Detailtextur aus der Nähe (groundtex.js)
 const c1=new THREE.Color(REG.ground[0]), c2=new THREE.Color(REG.ground[1]), dirt=new THREE.Color(0x8f7248), sand=new THREE.Color(0xcbbb8c), mud=new THREE.Color(0x66684a), marsh=new THREE.Color(0x526844), _c=new THREE.Color();
 function newGroundMesh(){
   const g=new THREE.PlaneGeometry(CHUNK,CHUNK,SEG,SEG); g.rotateX(-Math.PI/2);
