@@ -84,10 +84,20 @@ function buildQuad(o,v){
   mergeRigid(inner,new Set(legs.concat(tail?[tail]:[]))); legs.forEach(l=>mergeRigid(l,new Set())); if(tail) mergeRigid(tail,new Set());
   const sh=new THREE.Mesh(shadowGeo,shadowMat); sh.scale.set(W*1.2,1,L*0.75); sh.position.y=0.03; g.add(sh); blobs.push(sh);
   g.userData={legs,tail,head,inner,blob:sh};
+  if(o.ball) g.userData.ball=ballMesh(o,v,g);
   return g;
 }
 function animLegs(g,t,amp){ if(g.userData.anim){ g.userData.anim(t,amp); return; } const l=g.userData.legs; const a=Math.sin(t)*amp; l[0].rotation.x=a; l[3].rotation.x=a; l[1].rotation.x=-a; l[2].rotation.x=-a; if(g.userData.tail) g.userData.tail.rotation.y=Math.sin(t*0.5)*0.3; }
 
+/** Eingerolltes Schuppentier: Kugel aus Schuppenplatten (abwechselnd hell und dunkel), anfangs versteckt */
+function ballMesh(o,v,g){
+  const r=Math.max(0.3,(o.hgt||0.55)*0.85), geo=new THREE.IcosahedronGeometry(r,1), n=geo.attributes.position.count, C=new Float32Array(n*3);
+  const c1=new THREE.Color(v?furColor(o.ball,v):o.ball), c2=c1.clone().multiplyScalar(0.72);
+  for(let i=0;i<n;i+=3){ const c=(i/3)%3===0?c2:c1; for(let k=0;k<3;k++){ C[(i+k)*3]=c.r; C[(i+k)*3+1]=c.g; C[(i+k)*3+2]=c.b; } }
+  geo.setAttribute('color',new THREE.BufferAttribute(C,3)); geo.computeVertexNormals();
+  const m=new THREE.Mesh(geo,ANIM_MAT); m.scale.set(1,0.9,1.15); m.position.y=r*0.88; m.castShadow=true; m.visible=false; g.add(m);
+  return m;
+}
 /* Krokodil: flacher, gepanzerter Körper mit Rückenschuppen, langer Schnauze mit Zähnen und beweglichem Unterkiefer,
    Augenhöckern oben auf dem Kopf (nur sie schauen beim Lauern aus dem Wasser), seitlich abstehenden Beinen und
    einem Schwanz aus Gliedern, der sich beim Schwimmen schlängelt. Vorn ist +z wie bei den anderen Tieren. */

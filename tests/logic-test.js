@@ -31,7 +31,7 @@ const doc={ querySelectorAll:()=>[], getElementById:el, addEventListener(){}, cr
 let raf=null;
 const g={ window:win, document:doc, navigator:{maxTouchPoints:0}, localStorage:{getItem:k=>(k in ls?ls[k]:null),setItem:(k,v)=>{ls[k]=String(v);}}, THREE:win.THREE,
   requestAnimationFrame:fn=>{ if(fn.name==='frame') raf=fn; else fn(); }, setTimeout:fn=>{ fn(); } };
-const body=code+'\n;globalThis.__trees=trees;globalThis.__T={PONDS,patches,trailsNear,trailTo,trailStep,saltNear,fillProps,fillTrails,leaveBones,thornAt,assistBite,disconnectPlayer,pollCoop,leavePlayer,G,makeTree,fillPlants,baobabSpot,riverNear,riverDepth,riverEdge,lakePond,RIV_LAKE,RIV_HEAD,fordX,fillRiver,RIV_SWIM,pondAt,worldPond,moveAnimal,samePond,waterDepth,homeKopjes,worldKopje,fillKopje,denCave,cubState:()=>cub,kopjeNear,CUB_HOME,chunkRng,sightAt,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,H,visibility,lineOfSight,addSight,hearR,startEvent,endEvent,EV,updateEvents,eventOn,inGrass,patches,updateAnimal,WORLD,kidOf,kidsOf,tickKids,updateLife,playerSeeks,canSwitchFor,markTaken,cubFollowContext,cubLearn,updateFollowers,followers,learnOf,canSwitch,woundTick,forgetWounds,resetMates,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping,PONDS,drinkContext,updateDrinking,hungerRate,crocStep,BURROWS,updateLexicon,lexIds,fowl,oxen,fowlSpots,oxpeckerSpots,vultureSpots,TROOPS,troopOf,updateBaboons,eleThreat,WATER_D,hippoThreat};';
+const body=code+'\n;globalThis.__trees=trees;globalThis.__T={PONDS,patches,trailsNear,trailTo,trailStep,saltNear,fillProps,fillTrails,leaveBones,thornAt,assistBite,disconnectPlayer,pollCoop,leavePlayer,G,makeTree,fillPlants,baobabSpot,riverNear,riverDepth,riverEdge,lakePond,RIV_LAKE,RIV_HEAD,fordX,fillRiver,RIV_SWIM,pondAt,worldPond,moveAnimal,samePond,waterDepth,homeKopjes,worldKopje,fillKopje,denCave,cubState:()=>cub,kopjeNear,CUB_HOME,chunkRng,sightAt,W:()=>W,startFlee,unpause:()=>{G.paused=false;},dayF:()=>dayF,fogFar:()=>scene.fog.far,ctx:()=>context(),maxHp,paused:()=>G.paused,S:()=>S,P,animals,step,updateUI,doContext,startRaid,cub,hurtPlayer,respawn,gainXp,doPounce,doClimb,doRoar,hitAnimal,toggleMenu,toggleSkills,resetSkills,startBite,biteHit,H,visibility,lineOfSight,addSight,hearR,startEvent,endEvent,EV,updateEvents,eventOn,inGrass,patches,updateAnimal,WORLD,kidOf,kidsOf,tickKids,updateLife,playerSeeks,canSwitchFor,markTaken,cubFollowContext,cubLearn,updateFollowers,followers,learnOf,canSwitch,woundTick,forgetWounds,resetMates,inheritTrait,goalEvent,newGoals,togglePounce,pounceRun,raider:()=>G.raider,setQ:q=>{quality=q;applyQuality();},dead:()=>P.dead,frame,makePlayer,players,stepPlayer,readControls,updateCoop,hurtPlayer,copyLeopard,maxHpOf:maxHp,related,canPair,pairPlayers,mateBecomeCub,updateCub,becomeCub,ensureKin,newId,warnArrows,updateFamily,fam,mateContext,mateContextInfo,makeCarcass,takeMeat,updateEating,carcassContext,updateDrag,carcassToTree,nearCarcass,endCarcass,updateCoopHud,sleepOnTree,sleepingNow:()=>sleeping,PONDS,drinkContext,updateDrinking,hungerRate,crocStep,BURROWS,updateLexicon,lexIds,fowl,oxen,fowlSpots,oxpeckerSpots,vultureSpots,TROOPS,troopOf,updateBaboons,eleThreat,WATER_D,hippoThreat,MOUNDS,termiteSense};';
 new Function(...Object.keys(g), body)(...Object.values(g));
 const T=globalThis.__T; const rnd2=()=>Math.random()*8-4; const localStorageDump=()=>ls['jaguar-lines'];
 els.btnPlay.onclick();
@@ -822,6 +822,32 @@ console.log('Ereignis-Auswahl und Feuerpause OK');
  if(S.lex.vulture||S.lex.oxpecker) throw Error('Vogel ohne Sichtung entdeckt');
  if(!T.fowlSpots().length||T.vultureSpots().some(v=>!isFinite(v.x))) throw Error('Vogelpositionen fehlerhaft');
  console.log('Lexikon-Vögel: '+T.lexIds.length+' Einträge, Perlhühner nah und sichtbar entdeckt, alter Spielstand OK');
+}
+// Termitenfresser: Erdferkel gräbt nachts am Termitenhügel (abgelenkt), Schuppentier rollt sich ein, Biss gleitet ab, entrollt sich
+{
+ const S=T.S(), P=T.P, ad=T.animals.find(a=>a.sp.id==='erdf'&&!a.juv&&!a.dead), pg=T.animals.find(a=>a.sp.id==='pango'&&!a.dead);
+ if(!ad||!pg) throw Error('Erdferkel oder Schuppentier fehlt');
+ if(!T.MOUNDS.length) throw Error('keine Termitenhügel erfasst');
+ const tod0=S.tod; S.tod=0; T.step(0.001); if(T.dayF()>0.3) throw Error('keine Nacht: '+T.dayF());
+ P.dead=false; P.tree=null; P.sneak=false;
+ const m=T.MOUNDS[0];
+ Object.assign(ad,{x:m.x+5,z:m.z,tx:m.x+5,tz:m.z,state:'wander',thirst:100,saltT:999,tM:null,tWait:0,tpose:null,stun:0});
+ P.x=m.x+38; P.z=m.z+20;
+ for(let i=0;i<600&&ad.tpose!=='dig';i++){ ad.thirst=100; T.updateAnimal(ad,0.05); }
+ if(ad.tpose!=='dig') throw Error('Erdferkel gräbt nicht: '+ad.state+' '+(ad.tM?Math.hypot(ad.tM.x-ad.x,ad.tM.z-ad.z).toFixed(1):'kein Hügel'));
+ if(Math.hypot(ad.tM.x-ad.x,ad.tM.z-ad.z)>ad.tM.r+ad.rad+1.5) throw Error('Erdferkel gräbt nicht am Hügel');
+ if(!(T.termiteSense(ad)<1)) throw Error('Erdferkel beim Graben nicht abgelenkt');
+ // Schuppentier: unvorsichtig herankommen – es rollt sich ein, der Biss gleitet ab
+ Object.assign(pg,{x:m.x-5,z:m.z+3,tx:m.x-5,tz:m.z+3,state:'wander',thirst:100,saltT:999,tWait:5,stun:0,rolled:false});
+ P.x=pg.x+3; P.z=pg.z; P.sneak=false;
+ for(let i=0;i<40&&pg.state!=='roll';i++){ pg.thirst=100; T.updateAnimal(pg,0.05); }
+ if(pg.state!=='roll'||!pg.rolled) throw Error('Schuppentier rollt sich nicht ein: '+pg.state);
+ const hp=pg.hp; T.hitAnimal(pg,P); if(pg.hp!==hp||pg.dead) throw Error('Biss durch den Panzer');
+ P.x=pg.x+60;
+ for(let i=0;i<400&&pg.rolled;i++) T.updateAnimal(pg,0.05);
+ if(pg.rolled||pg.state==='roll') throw Error('Schuppentier entrollt sich nicht');
+ S.tod=tod0; T.step(0.001);
+ console.log('Termitenfresser: '+T.MOUNDS.length+' Hügel, Erdferkel gräbt, Schuppentier rollt sich ein und wieder aus OK');
 }
 // Landschaft: Termitenhügel zum Hinaufspringen, Wildwechsel zwischen den Wasserlöchern, Dorngestrüpp bremst
 {

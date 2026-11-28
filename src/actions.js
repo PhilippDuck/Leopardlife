@@ -211,6 +211,9 @@ $('btnRespawn').onclick=()=>respawn();
  */
 function hitAnimal(a,p=P){
   if(a.sp.human){ humanHit(a,p); return; }   // Wilderer: verletzen und vertreiben, nicht erlegen
+  if(a.rolled){   // eingerolltes Schuppentier: Der Biss gleitet am Panzer ab
+    p.combatT=5; if(!p.ghost){ floatText('Panzer! Der Biss gleitet ab',a.x,H(a.x,a.z)+a.sp.size*2,a.z,'#ddd'); snd.hit(); }
+    a.rollT=Math.max(a.rollT||0,rnd(6,10)); return; }
   painCry(a);
   let d=p.ghost?p.atkD:dmg(p.L), amb=false; const leap=!!p.leap;
   // Hinterhalt – auch bei Tieren auf der Flucht vor dem Feuer und bei ziehenden Gnus (sie achten nicht auf dich)
@@ -251,6 +254,7 @@ function painCry(a){
   const id=a.sp.id;
   if(id==='hase'||id==='maus') snd3d(['squeak'],a.x,a.z,id==='maus'?0.3:0.5,35,id==='maus'?rnd(1.35,1.6):rnd(0.95,1.15));
   else if(id==='boar'||id==='wart') snd3d(['boarSqueal'],a.x,a.z,0.55,60,id==='wart'?rnd(1.05,1.2):rnd(0.9,1.02));
+  else if(id==='erdf') snd3d(['boarSqueal'],a.x,a.z,0.45,50,rnd(0.75,0.85));
 }
 function killAnimal(a,p=P,fromWounds){
   if(a.dead) return;

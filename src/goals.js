@@ -13,7 +13,7 @@ import { players } from './player.js';
 // Zu jedem Sonnenaufgang drei neue Aufgaben; jede bringt einen Teil der nächsten Stufe als Bonus-Erfahrung.
 // Alle drei an einem Tag: +1 Punkt für Eigenschaften und Fähigkeiten (für jeden Spieler). Wer das mehrere Tage
 // hintereinander schafft, baut eine Serie auf; jeder dritte Tag der Serie bringt einen weiteren Punkt.
-const PREY_BY_LVL=l=>{ const L=l<3?['hase','maus']:l<6?['capy','hase','wart']:l<9?['boar','deer','capy','wart','baboon']:l<12?['deer','anti','boar']:['anti','lion','hyena','croc']; const f=L.filter(id=>animals.some(a=>a.sp.id===id)); return f.length?f:['hase']; };
+const PREY_BY_LVL=l=>{ const L=l<3?['hase','maus']:l<6?['capy','hase','wart','erdf']:l<9?['boar','deer','capy','wart','baboon','erdf','pango']:l<12?['deer','anti','boar']:['anti','lion','hyena','croc']; const f=L.filter(id=>animals.some(a=>a.sp.id===id)); return f.length?f:['hase']; };
 function spName(id){ const sp=SPECIES.find(x=>x.id===id); return sp?sp.n:id; }
 function newGoals(){
   const pool=[];
