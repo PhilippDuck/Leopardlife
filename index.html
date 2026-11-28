@@ -248,9 +248,26 @@ body.quad .ph{--rad:92px}
 /* Eigenes Entwicklungsfenster eines Spielers im gemeinsamen Spiel (skills.js): im Ausschnitt, das Spiel läuft weiter */
 .skp{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(440px,94%);max-height:86%;overflow:auto;z-index:5;display:none}
 .skp .skill{padding:5px 0}
+  /* Ladebildschirm: solange die Module laden, statt des noch unfertigen Startmenüs (main.js nimmt body.boot nach dem ersten Bild weg) */
+  #boot{display:none}
+  body.boot #boot,body.booting #boot{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:radial-gradient(ellipse at 50% 60%,#2b2414 0%,#14170e 55%,#080a06 100%);color:var(--txt);transition:opacity .5s}
+  body.boot #start{visibility:hidden}
+  #boot.out{opacity:0;pointer-events:none}
+  #boot .ttl{font-size:clamp(34px,6vw,58px);color:var(--gold);font-weight:bold;letter-spacing:.5px;text-shadow:0 2px 18px rgba(242,184,75,.35)}
+  #boot .paws{display:flex;gap:16px;height:46px;align-items:center}
+  #boot .paws svg{width:26px;height:26px;fill:var(--gold);opacity:.12;animation:bpaw 2s infinite}
+  #boot .paws svg:nth-child(odd){transform:translateY(-9px) rotate(90deg)} #boot .paws svg:nth-child(even){transform:translateY(9px) rotate(90deg)}
+  #boot .paws svg:nth-child(2){animation-delay:.25s} #boot .paws svg:nth-child(3){animation-delay:.5s} #boot .paws svg:nth-child(4){animation-delay:.75s} #boot .paws svg:nth-child(5){animation-delay:1s}
+  @keyframes bpaw{0%,100%{opacity:.12} 20%{opacity:1} 55%{opacity:.12}}
+  #boot .msg{font-size:13px;color:var(--mut);letter-spacing:1px}
 </style>
 </head>
-<body>
+<body class="boot">
+<div id="boot" role="status" aria-live="polite"><div class="ttl">LeoLife</div><div class="paws"><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="16" rx="5.2" ry="4.4"/><ellipse cx="5.4" cy="10" rx="2" ry="2.6"/><ellipse cx="9.4" cy="6.4" rx="2" ry="2.7"/><ellipse cx="14.6" cy="6.4" rx="2" ry="2.7"/><ellipse cx="18.6" cy="10" rx="2" ry="2.6"/></svg><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="16" rx="5.2" ry="4.4"/><ellipse cx="5.4" cy="10" rx="2" ry="2.6"/><ellipse cx="9.4" cy="6.4" rx="2" ry="2.7"/><ellipse cx="14.6" cy="6.4" rx="2" ry="2.7"/><ellipse cx="18.6" cy="10" rx="2" ry="2.6"/></svg><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="16" rx="5.2" ry="4.4"/><ellipse cx="5.4" cy="10" rx="2" ry="2.6"/><ellipse cx="9.4" cy="6.4" rx="2" ry="2.7"/><ellipse cx="14.6" cy="6.4" rx="2" ry="2.7"/><ellipse cx="18.6" cy="10" rx="2" ry="2.6"/></svg><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="16" rx="5.2" ry="4.4"/><ellipse cx="5.4" cy="10" rx="2" ry="2.6"/><ellipse cx="9.4" cy="6.4" rx="2" ry="2.7"/><ellipse cx="14.6" cy="6.4" rx="2" ry="2.7"/><ellipse cx="18.6" cy="10" rx="2" ry="2.6"/></svg><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="16" rx="5.2" ry="4.4"/><ellipse cx="5.4" cy="10" rx="2" ry="2.6"/><ellipse cx="9.4" cy="6.4" rx="2" ry="2.7"/><ellipse cx="14.6" cy="6.4" rx="2" ry="2.7"/><ellipse cx="18.6" cy="10" rx="2" ry="2.6"/></svg></div><div class="msg">Die Savanne erwacht …</div></div>
+<script>
+  // Fehler beim Laden: Ladebildschirm weg, damit das Startmenü mit der Fehlermeldung sichtbar wird
+  window.addEventListener('error',function(){ document.body.classList.remove('boot'); });
+</script>
 <canvas id="game"></canvas>
 
 <!-- Anzeige eines Spielers. Im geteilten Bild sitzt der Rahmen über dem Ausschnitt des Spielers; Mitspieler bekommen eine Kopie (coop.js). -->
