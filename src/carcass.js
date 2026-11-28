@@ -114,8 +114,8 @@ function updateEating(p,dt){
 const herdLead=a=>{ for(const m of a.herd) if(!m.dead) return m; return a; };
 function startFlee(a){
   if(a.state!=='flee') alarmAt(a);
-  a.state='flee'; a.fleeT=0;
-  if(a.herd) for(const m of a.herd) if(m!==a&&!m.dead&&m.state==='wander'&&Math.hypot(m.x-a.x,m.z-a.z)<40){ m.state='flee'; m.fleeT=0; m.sus=0; }
+  a.state='flee'; a.fleeT=0; a.fleeFrom=null;   // vor dem Spieler (wildlife.js setzt danach ein anderes Tier)
+  if(a.herd) for(const m of a.herd) if(m!==a&&!m.dead&&m.state==='wander'&&Math.hypot(m.x-a.x,m.z-a.z)<40){ m.state='flee'; m.fleeT=0; m.sus=0; m.fleeFrom=null; }
 }
 // Ahnenbuch: jede Generation der Blutlinie mit Fell, Erbanlagen, Stufe, Beute und Schicksal
 /** Trägt einen Leoparden ins Ahnenbuch ein. L: seine Werte (Standard Spieler 1), who: Name eines Mitspielers */
