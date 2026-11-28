@@ -75,6 +75,7 @@ Kein Build-Schritt: Der Browser lädt die Dateien direkt. three.js (r128, MIT-Li
 | `src/goals.js` | Tagesziele |
 | `src/hide.js` | Versteck-Anzeige am Fadenkreuz und dunkler Bildrand |
 | `src/groundfx.js` | Trockenrisse um Wasserlöcher im Trockenen, Gischt an den Furten |
+| `src/groundtex.js` | Detailtextur für den Boden: gemalt per Canvas, nahtlos kachelbar, in zwei Maßstäben gemischt und mit der Entfernung ausgeblendet; bei niedriger Grafik aus |
 | `src/hud.js` | Anzeige: Entdeckungswarnung, Kamera, Fadenkreuz, Statusleisten, Ziel, Spürkarte |
 | `src/input.js` | Eingabe über Tastatur, Maus und Touch, Umschalten der Anzeige je nach zuletzt benutzter Eingabe |
 | `src/kin.js` | Partner und Elterntiere am Bau: verteidigen, Futter bringen, beschützen; Wechsel ins Junge |
