@@ -106,6 +106,25 @@ function spawnWorldHerd(chunk,now){
   if(!sp.pred&&!sp.snake){ const adults=group.filter(a=>!a.juv); for(const animal of adults) animal.herd=adults; }   // Junge folgen der Mutter, nicht der Herde
   worldHerds.set(chunk.key,{group,deadCount:0});
 }
+/**
+ * Kleintiere der weiten Welt: In grünen Abschnitten (nicht trocken) leben eigene Gruppen von Mäusen und Hasen,
+ * unabhängig von den Herden (eigener Schlüssel 'k…', wie diese verdrängt und nach einer Jagd erst später neu).
+ */
+const SMALL_GREEN=0.55;
+function spawnSmallGame(chunk,now){
+  const key='k'+chunk.key;
+  if(worldHerds.has(key)) return;
+  if(S.worldHunts&&S.worldHunts[key]>now) return;
+  const random=chunkRng(chunk.cx-7919,chunk.cz+30011);
+  if(random()>0.55) return;
+  const x=(chunk.cx+0.2+random()*0.6)*CHUNK, z=(chunk.cz+0.2+random()*0.6)*CHUNK;
+  if(Math.hypot(x,z)<WORLD+40||pondAt(x,z,1.6)||dryness(x,z)>SMALL_GREEN) return;
+  if(actors().some(p=>Math.hypot(p.x-x,p.z-z)<45)) return;
+  const group=[], mice=2+Math.floor(random()*3), hares=random()<0.7?1+Math.floor(random()*2):0;
+  for(const [id,n,spread] of [['maus',mice,8],['hase',hares,14]]){ const sp=SPECIES.find(o=>o.id===id); if(!sp) continue;
+    for(let i=0;i<n;i++){ const ax=x+(random()-0.5)*spread, az=z+(random()-0.5)*spread; if(!pondAt(ax,az,1.2)) group.push(makeWorldAnimal(sp,ax,az,null)); } }
+  if(group.length) worldHerds.set(key,{group,deadCount:0});
+}
 function updateWorldContent(dt){
   if(NET_GUEST) return;
   worldContentTimer-=dt;
@@ -136,6 +155,6 @@ function updateWorldContent(dt){
   }
   for(const key in S.worldHunts||{}) if(S.worldHunts[key]<=now){ delete S.worldHunts[key]; changed=true; }
   if(changed) save();
-  for(const chunk of chunks.values()) spawnWorldHerd(chunk,now);
+  for(const chunk of chunks.values()){ spawnWorldHerd(chunk,now); spawnSmallGame(chunk,now); }
 }
 export { fillWater, spawnPondHippos, updateWorldContent };
